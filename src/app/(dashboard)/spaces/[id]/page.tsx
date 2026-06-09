@@ -586,6 +586,7 @@ export default function SpaceDetailPage() {
   const posts = (postRecords ?? []).map(r => ({
     id: r.id, anon: r.isAnonymous,
     name: r.isAnonymous ? undefined : (r.authorName ?? r.userId),
+    userId: r.userId,
     avatarUrl: r.isAnonymous ? null : (r.authorAvatar ?? null),
     time: formatRelativeTime(r.createdAt), doing: r.doing ?? '', honest: r.honestThing ?? '',
     progress: r.progress ?? '',

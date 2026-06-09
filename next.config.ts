@@ -5,10 +5,12 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   async rewrites() {
+    const raw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const base = /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/:path*`,
+        destination: `${base}/:path*`,
       },
     ];
   },
