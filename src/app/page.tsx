@@ -1,66 +1,46 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useUserStore } from '@/store/useUserStore';
 
-export default function Home() {
+export default function Splash() {
+  const router = useRouter();
+  const { isInitialized, user: authUser } = useAuthStore();
+  const { user } = useUserStore();
+
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    if (!authUser) {
+      // Not logged in → sign-in page
+      router.replace('/auth');
+    } else if (!user.onboardingCompleted) {
+      // Logged in, onboarding not done → start onboarding
+      router.replace('/onboarding/welcome');
+    } else {
+      // Fully set up → home
+      router.replace('/home');
+    }
+  }, [isInitialized, authUser, user.onboardingCompleted, router]);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{
+      height: '100vh', width: '100vw', background: 'var(--cream)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div style={{ textAlign: 'center' }} className="fade-in">
+        <div className="serif" style={{ fontSize: '4rem', fontWeight: 600, color: 'var(--ember)', lineHeight: 1 }}>
+          Grouw
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div style={{ marginTop: '.9rem', color: 'var(--ink-3)', fontSize: '1.05rem' }}>
+          Your chapter. Your circle.
         </div>
-      </main>
+        <div style={{
+          margin: '2.4rem auto 0', width: 10, height: 10, borderRadius: '50%',
+          background: 'var(--ember)', animation: 'pulseDot 1.5s ease infinite'
+        }} />
+      </div>
     </div>
   );
 }

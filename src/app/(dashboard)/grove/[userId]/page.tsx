@@ -1,0 +1,375 @@
+'use client';
+import { useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { Avatar } from '@/components/ui/Avatar';
+import { Icon } from '@/components/ui/Icon';
+import { StageChip } from '@/components/ui/StageChip';
+import { Waveform } from '@/components/ui/Waveform';
+import { Spinner } from '@/components/ui/Spinner';
+import { AURAS, nowPhase, PHASE, auraFor, spaceById } from '@/lib/data';
+import { useToastStore } from '@/store/useToastStore';
+import { groveApi, logApi } from '@/lib/api';
+import { useInviteToBond } from '@/hooks/useBondInvitations';
+import { useQuery } from '@tanstack/react-query';
+import type { AuraKey } from '@/lib/types';
+
+const RINGS = [
+  { key: 'inner',  label: 'Struggling with', field: 'struggling', color: '#B1454F', r: 0.30 },
+  { key: 'middle', label: 'Building',         field: 'building',   color: '#F3701E', r: 0.50 },
+  { key: 'outer',  label: 'Open to',          field: 'openTo',     color: '#4E7D5E', r: 0.70 },
+];
+
+function LogViewer({ name, entries, onClose }: {
+  name: string;
+  entries: { date: string; mediaUrl: string | null; body: string }[];
+  onClose: () => void;
+}) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 7000, background: 'rgba(26,26,26,.5)',
+      backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}
+      onClick={onClose}>
+      <div className="scroll" style={{ width: 'min(520px, 94vw)', height: '100%', background: 'var(--white)',
+        overflowY: 'auto', animation: 'slideIn .3s ease both' }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2,
+          borderBottom: '1px solid var(--border)', padding: '1.1rem 1.4rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="label-mono">{name.split(' ')[0]}'s Grouw Log</div>
+          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="close" stroke="var(--ink-3)"/>
+          </button>
+        </div>
+        <div style={{ padding: '1.4rem' }}>
+          {entries.length === 0 && (
+            <p style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>No log entries yet.</p>
+          )}
+          {entries.map((e, i) => (
+            <article key={i} style={{ marginBottom: '1.8rem', paddingBottom: '1.8rem',
+              borderBottom: i < entries.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              <div className="label-mono" style={{ marginBottom: '.6rem' }}>Day {entries.length - i} · {e.date}</div>
+              {e.mediaUrl && (
+                <div style={{ borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: '.8rem' }}>
+                  <img src={e.mediaUrl} alt="" style={{ width: '100%', objectFit: 'cover', display: 'block', maxHeight: 240 }}/>
+                </div>
+              )}
+              <p className="serif" style={{ fontSize: '1.15rem', lineHeight: 1.5 }}>{e.body}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function GrovePage() {
+  const router = useRouter();
+  const params = useParams();
+  const { toast } = useToastStore();
+  const userId = params.userId as string;
+
+  const [active, setActive] = useState<string | null>(null);
+  const [hover, setHover] = useState<string | null>(null);
+  const [showOverlap, setShowOverlap] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [viewLog, setViewLog] = useState(false);
+  const [ambience, setAmbience] = useState(false);
+  const [ci, setCi] = useState(0);
+
+  const { data: grove, isLoading } = useQuery({
+    queryKey: ['grove', userId],
+    queryFn:  () => groveApi.get(userId),
+    staleTime: 5 * 60_000,
+  });
+
+  const primarySpaceSlug = grove?.activeSpaces?.[0]?.space?.slug ?? null;
+  const { data: logEntries = [] } = useQuery({
+    queryKey: ['grove-log', userId, primarySpaceSlug],
+    queryFn:  () => logApi.myEntries(primarySpaceSlug!),
+    enabled:  !!primarySpaceSlug,
+    staleTime: 5 * 60_000,
+  });
+
+  const inviteToBond = useInviteToBond();
+  const phase = nowPhase();
+  const STAGE = 540, C = STAGE / 2;
+
+  const name      = grove?.profile?.displayName ?? '';
+  const firstName = name.split(' ')[0] || '…';
+  const avatarUrl = grove?.profile?.avatarUrl ?? null;
+
+  const uniqueSpaceIds = (
+    grove?.activeSpaces.map(s => s.space?.slug).filter(Boolean) as string[] | undefined
+    ?? ['career', 'learning', 'spiritual', 'adventure']
+  ).filter((v, i, a) => a.indexOf(v) === i).slice(0, 4);
+
+  const closedChapters = grove?.closedChapters ?? [];
+  const chapter        = closedChapters[Math.min(ci, Math.max(closedChapters.length - 1, 0))];
+
+  const logForViewer = logEntries.slice(0, 10).map(e => ({
+    date:     new Date(e.entryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    mediaUrl: e.mediaUrl,
+    body:     e.body,
+  }));
+
+  const primarySpace = grove?.activeSpaces?.[0];
+
+  function getRingContent(key: 'inner' | 'middle' | 'outer'): string | null {
+    if (!grove?.rings) return null;
+    return { inner: grove.rings.struggling, middle: grove.rings.building, outer: grove.rings.openTo }[key] ?? null;
+  }
+
+  return (
+    <div className="scroll" style={{ height: '100vh', width: '100vw', overflowY: 'auto',
+      background: 'radial-gradient(circle at 50% 38%, #FBF8F3, var(--bg) 70%)' }}>
+
+      {/* Top bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.2rem 1.6rem' }}>
+        <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '.4rem', color: 'var(--ink-3)', fontSize: '.9rem' }}>
+          <Icon name="back" size={18} stroke="var(--ink-3)"/> Back
+        </button>
+        <div className="label-mono" style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+          {isLoading ? <Spinner size={12}/> : (
+            <><span>You're inside</span> <span style={{ color: 'var(--ember)', fontWeight: 600 }}>{firstName}'s Grouw</span></>
+          )}
+        </div>
+        <button onClick={() => setShowOverlap(s => !s)} className="chip"
+          style={{ cursor: 'pointer', background: showOverlap ? 'var(--ember-dim)' : 'var(--surf-high)', color: showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)' }}>
+          <Icon name="dots" size={14} stroke={showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)'} sw={2}/> Overlap
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '1.5rem', maxWidth: 1100, margin: '0 auto', padding: '0 1.6rem 3rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+
+        {/* Orbit stage */}
+        <div style={{ flex: '1 1 540px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ position: 'relative', width: STAGE, height: STAGE, maxWidth: '92vw' }}>
+
+            {/* Rings */}
+            {[...RINGS].reverse().map(ring => {
+              const d = STAGE * ring.r * 2;
+              const on = active === ring.key;
+              const hov = hover === ring.key;
+              return (
+                <div key={ring.key} onClick={() => setActive(on ? null : ring.key)}
+                  onMouseEnter={() => setHover(ring.key)} onMouseLeave={() => setHover(null)}
+                  style={{ position: 'absolute', left: '50%', top: '50%', width: d, height: d, transform: 'translate(-50%,-50%)',
+                    borderRadius: '50%', border: `2px solid ${ring.color}`, opacity: on || hov ? 1 : .5, cursor: 'pointer',
+                    boxShadow: on ? `0 0 26px -2px ${ring.color}99, inset 0 0 26px -6px ${ring.color}66` : 'none',
+                    background: hov && !on ? `radial-gradient(circle, transparent 60%, ${ring.color}14)` : 'transparent',
+                    transition: 'opacity .25s, box-shadow .25s, background .2s' }}>
+                  <div style={{ position: 'absolute', left: '50%', top: -1, transform: 'translate(-50%,-55%)',
+                    background: 'var(--white)', borderRadius: 100, padding: '.25rem .7rem', boxShadow: 'var(--shadow-soft)',
+                    fontSize: '.66rem', fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase' as const, color: ring.color, whiteSpace: 'nowrap' as const }}>
+                    {ring.label}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Orbiting spaces */}
+            <div style={{ position: 'absolute', inset: 0, animation: 'orbit 48s linear infinite', pointerEvents: 'none' }}>
+              {uniqueSpaceIds.map((id, i) => {
+                const ang = (i / uniqueSpaceIds.length) * Math.PI * 2 - Math.PI / 2;
+                const rr = STAGE * 0.70;
+                const x = C + Math.cos(ang) * rr, y = C + Math.sin(ang) * rr;
+                const s = spaceById(id);
+                return (
+                  <div key={id} style={{ position: 'absolute', left: x, top: y, transform: 'translate(-50%,-50%)', animation: 'orbitR 48s linear infinite' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow)', animation: 'groveFloat 4s ease-in-out infinite' }}>
+                      <Icon name={s.icon} size={20} stroke={s.ink} sw={1.6}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Center portrait */}
+            <button onMouseDown={() => setAmbience(true)} onMouseUp={() => setAmbience(false)} onMouseLeave={() => setAmbience(false)}
+              style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', borderRadius: '50%', zIndex: 6 }}>
+              <Avatar name={name || '?'} size={150} timePhase={phase} aura={auraFor(name) as AuraKey} ring={2} avatarUrl={avatarUrl}/>
+            </button>
+
+            {ambience && (
+              <div style={{ position: 'absolute', left: '50%', bottom: 8, transform: 'translateX(-50%)', zIndex: 7,
+                display: 'flex', alignItems: 'center', gap: '.5rem', background: 'var(--white)', borderRadius: 100, padding: '.4rem .8rem', boxShadow: 'var(--shadow)' }}>
+                <div style={{ width: 54 }}><Waveform color="var(--sage)" playing bars={14} height={18}/></div>
+                <span style={{ fontSize: '.72rem', color: 'var(--ink-2)' }}>{firstName}'s ambience</span>
+              </div>
+            )}
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: '.4rem' }}>
+            <div className="label-mono" style={{ marginBottom: '.9rem' }}>
+              Tap a ring to enter · hold the portrait to hear them · {PHASE[phase].label.toLowerCase()} light
+            </div>
+            {closedChapters.length > 1 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.9rem', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '.72rem', color: 'var(--ink-3)' }}>Now</span>
+                  <input type="range" min="0" max={closedChapters.length - 1} value={ci}
+                    onChange={e => { setCi(+e.target.value); setActive(null); }}
+                    style={{ width: 240, accentColor: 'var(--ember)' }}/>
+                  <span style={{ fontSize: '.72rem', color: 'var(--ink-3)' }}>Earlier</span>
+                </div>
+                {chapter && (
+                  <div style={{ marginTop: '.5rem', fontSize: '.85rem', color: 'var(--ink-2)' }}>
+                    Chapter in <strong style={{ color: 'var(--ink)' }}>{chapter.space?.name ?? 'Unknown'}</strong>
+                    {chapter.closedAt && <> · closed {new Date(chapter.closedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</>}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div style={{ flex: '1 1 300px', minWidth: 280, maxWidth: 380, display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '.5rem' }}>
+
+          <div className="card" style={{ padding: '1.3rem 1.4rem' }}>
+            {isLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+                <div style={{ height: 28, width: '65%', background: 'var(--surf-high)', borderRadius: 6, animation: 'pulse 1.5s ease infinite' }}/>
+                <div style={{ height: 18, width: '40%', background: 'var(--surf-high)', borderRadius: 6, animation: 'pulse 1.5s ease infinite' }}/>
+              </div>
+            ) : (
+              <>
+                <div className="serif" style={{ fontSize: '1.7rem', fontWeight: 600, lineHeight: 1.15, marginBottom: '.6rem' }}>{name}</div>
+                {primarySpace?.space?.slug && (
+                  <StageChip space={primarySpace.space.slug} stage={primarySpace.stage ?? primarySpace.space.name}/>
+                )}
+                {name && (
+                  <div style={{ marginTop: '.8rem', display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.8rem', color: 'var(--ink-3)' }}>
+                    <span style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
+                      background: AURAS[auraFor(name) as AuraKey].color,
+                      boxShadow: `0 0 8px ${AURAS[auraFor(name) as AuraKey].color}`, display: 'block' }}/>
+                    {AURAS[auraFor(name) as AuraKey].label} — <span style={{ fontStyle: 'italic' }}>{AURAS[auraFor(name) as AuraKey].hint}</span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {active ? (() => {
+            const ring    = RINGS.find(r => r.key === active)!;
+            const content = getRingContent(active as 'inner' | 'middle' | 'outer');
+            const chapterLearning = active === 'inner' && chapter?.closingLearned;
+            return (
+              <div className="card fade-in" style={{ padding: '1.3rem 1.4rem', borderLeft: `4px solid ${ring.color}` }}>
+                <div className="label-mono" style={{ color: ring.color, marginBottom: '.5rem' }}>{ring.label}</div>
+                {content ? (
+                  <p className="serif" style={{ fontSize: '1.3rem', fontWeight: 600, lineHeight: 1.3, marginBottom: '1rem' }}>"{content}"</p>
+                ) : (
+                  <p style={{ color: 'var(--ink-3)', fontStyle: 'italic', marginBottom: '1rem' }}>
+                    {firstName} hasn't filled this in yet.
+                  </p>
+                )}
+                {chapterLearning && (
+                  <>
+                    <div className="label-mono" style={{ marginBottom: '.6rem' }}>What they learned in this chapter</div>
+                    <div style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.7rem .9rem', fontSize: '.88rem', color: 'var(--ink-2)', fontStyle: 'italic' }}>
+                      "{chapter.closingLearned}"
+                    </div>
+                  </>
+                )}
+                <button onClick={() => setActive(null)} style={{ marginTop: '1rem', fontSize: '.8rem', color: 'var(--ink-3)' }}>← Step back out</button>
+              </div>
+            );
+          })() : (
+            <div className="card" style={{ padding: '1.3rem 1.4rem', background: 'linear-gradient(160deg, var(--white), var(--surf-low))' }}>
+              <p style={{ color: 'var(--ink-2)', lineHeight: 1.6, fontSize: '.95rem' }}>
+                You're standing in the middle of {firstName}'s Grouw. Each ring is a layer of where they are —{' '}
+                <span style={{ color: '#B1454F' }}>struggling</span>, <span style={{ color: 'var(--ember)' }}>building</span>,{' '}
+                <span style={{ color: 'var(--sage)' }}>open to</span>. Step into one.
+              </p>
+            </div>
+          )}
+
+          {showOverlap && (
+            <div className="card fade-in" style={{ padding: '1.2rem 1.4rem', background: 'var(--ember-dim)', border: '1px solid var(--ember-bdr)' }}>
+              <div className="label-mono" style={{ color: 'var(--ember-deep)', marginBottom: '.4rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+                <Icon name="dots" size={12} stroke="var(--ember-deep)" sw={2}/> Where your Grouws overlap
+              </div>
+              {grove?.activeSpaces?.length ? (
+                <p style={{ color: 'var(--ink-2)', lineHeight: 1.55, fontSize: '.92rem' }}>
+                  You're both navigating{' '}
+                  {grove.activeSpaces.slice(0, 2).map(s => s.space?.name).filter(Boolean).join(' and ')}.
+                </p>
+              ) : (
+                <p style={{ color: 'var(--ink-3)', fontStyle: 'italic', fontSize: '.92rem' }}>No shared spaces found yet.</p>
+              )}
+            </div>
+          )}
+
+          {/* Their Grouw Log */}
+          <div className="card" style={{ padding: '1.1rem 1.2rem' }}>
+            <div className="label-mono" style={{ marginBottom: '.7rem' }}>{firstName}'s Grouw Log</div>
+            {logForViewer.length > 0 ? (
+              <div className="scroll" style={{ display: 'flex', gap: '.5rem', overflowX: 'auto', marginBottom: '.7rem' }}>
+                {logForViewer.map((e, i) => (
+                  <button key={i} onClick={() => setViewLog(true)}
+                    style={{ flexShrink: 0, width: 96, borderRadius: 12, overflow: 'hidden', boxShadow: 'var(--shadow-soft)' }}>
+                    <div style={{ height: 120, position: 'relative', background: 'var(--surf-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {e.mediaUrl ? (
+                        <>
+                          <img src={e.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(20,14,8,.75))' }}/>
+                        </>
+                      ) : (
+                        <span style={{ fontSize: '.65rem', color: 'var(--ink-3)', padding: '.3rem', textAlign: 'center', lineHeight: 1.4 }}>
+                          {e.body.slice(0, 40)}…
+                        </span>
+                      )}
+                      <span className="mono" style={{ position: 'absolute', left: 6, bottom: 5, color: e.mediaUrl ? '#fff' : 'var(--ink-3)', fontSize: '.58rem' }}>{e.date}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: '.83rem', color: 'var(--ink-4)', fontStyle: 'italic', marginBottom: '.7rem' }}>
+                {isLoading ? 'Loading…' : `${firstName} hasn't posted any log entries yet.`}
+              </p>
+            )}
+            <button onClick={() => setViewLog(true)} disabled={logForViewer.length === 0}
+              className="btn btn-soft btn-block" style={{ fontSize: '.85rem' }}>
+              Scroll their log →
+            </button>
+          </div>
+
+          <button
+            disabled={sent || inviteToBond.isPending}
+            className="btn btn-primary btn-lg btn-block"
+            style={{ opacity: sent ? .8 : 1 }}
+            onClick={async () => {
+              try {
+                await inviteToBond.mutateAsync({ recipientId: userId });
+                setSent(true);
+                toast(`Bond invitation sent to ${firstName}.`);
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : 'Could not send';
+                if (msg.includes('409') || msg.toLowerCase().includes('already')) {
+                  setSent(true);
+                  toast('You already have a Bond or pending invitation with this person.');
+                } else {
+                  toast(`Failed: ${msg}`);
+                }
+              }
+            }}>
+            {inviteToBond.isPending ? (
+              <><Spinner size={16} color="#fff"/> Sending…</>
+            ) : sent ? (
+              <><Icon name="check" size={16} stroke="#fff" sw={2.5}/> Bond invitation sent</>
+            ) : (
+              <>Bond with {firstName} <Icon name="arrow" stroke="#fff"/></>
+            )}
+          </button>
+          <p style={{ textAlign: 'center', fontSize: '.76rem', color: 'var(--ink-4)', marginTop: '-.4rem' }}>
+            {sent ? 'They\'ll see it in their notifications.' : 'A Bond is earned, not requested lightly.'}
+          </p>
+        </div>
+      </div>
+
+      {viewLog && <LogViewer name={name || firstName} entries={logForViewer} onClose={() => setViewLog(false)}/>}
+    </div>
+  );
+}

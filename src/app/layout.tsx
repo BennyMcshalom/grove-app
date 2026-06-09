@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Outfit, DM_Mono } from 'next/font/google';
+import { Figtree, Outfit, DM_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 
-const cormorant = Cormorant_Garamond({
-  variable: '--font-cormorant',
+const figtree = Figtree({
+  variable: '--font-figtree',
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
   style: ['normal', 'italic'],
   display: 'swap',
 });
@@ -32,7 +32,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${outfit.variable} ${dmMono.variable}`}>
+    <html lang="en" className={`${figtree.variable} ${outfit.variable} ${dmMono.variable}`}>
+      <head>
+        {/* Runs before React hydrates — prevents theme flash and follows system preference */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            var stored = localStorage.getItem('grove-theme');
+            var t = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', t);
+            // If no stored value, keep following system (don't set grove-theme-manual)
+            if (!stored) localStorage.setItem('grove-theme', t);
+          } catch(e) {}
+        `}}/>
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

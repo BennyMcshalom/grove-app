@@ -1,6 +1,7 @@
 export interface Space {
   id: string;
   emoji: string;
+  icon: string;   // Icon component name e.g. 'space-career'
   name: string;
   desc: string;
   color: string;
@@ -17,6 +18,8 @@ export interface Post {
   id: number;
   name?: string;
   anon?: boolean;
+  avatarUrl?: string | null;
+  userId?: string;
   space: string;
   progress: string;
   time: string;
@@ -26,6 +29,10 @@ export interface Post {
   roots: number;
   comments: number;
   rooted?: boolean;
+  kind?: string;
+  caption?: string;
+  clock?: string;
+  location?: string;
 }
 
 export interface Bond {
@@ -41,7 +48,7 @@ export interface Bond {
 
 export interface Group {
   id: string;
-  emoji: string;
+  icon: string;
   name: string;
   phase: string;
   color: string;
@@ -83,5 +90,7 @@ export interface User {
   tension?: string;
   sitting?: string;
   open?: string;
+  location?: string;
   avatar_url?: string;
+  onboardingCompleted?: boolean;
 }
