@@ -37,6 +37,11 @@ async function req<T>(
     throw new ApiError(0, 'Network error — API unreachable');
   }
 
+  // 502/503/504 mean the backend is down — treat the same as a network failure
+  if (res.status === 502 || res.status === 503 || res.status === 504) {
+    throw new ApiError(0, 'Server unavailable');
+  }
+
   // Auto-refresh on 401 — only for regular API calls, never for auth endpoints
   if (res.status === 401 && !retried && !noRefresh) {
     if (isRefreshing) {
