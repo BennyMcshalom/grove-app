@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Routes that never require authentication
 const PUBLIC = new Set([
   '/',
   '/auth',
