@@ -9,6 +9,8 @@ import { hydrateSession } from '@/lib/session';
 import { setupPush } from '@/lib/push';
 import { useTheme } from '@/hooks/useTheme';
 import { toggleTheme } from '@/lib/theme';
+import { useAuthStore } from '@/store/useAuthStore';
+import { retrySession } from '@/components/AuthInitializer';
 
 function GoogleBtn({ onClick }: { onClick: () => void }) {
   return (
@@ -26,15 +28,17 @@ function GoogleBtn({ onClick }: { onClick: () => void }) {
 }
 
 function AuthForm() {
-  const router       = useRouter();
-  const searchParams = useSearchParams();
-  const theme        = useTheme();
-  const nextUrl      = searchParams.get('next') || '';
-  const safeNext     = /^\/[^/]/.test(nextUrl) ? nextUrl : '/home';
+  const router          = useRouter();
+  const searchParams    = useSearchParams();
+  const theme           = useTheme();
+  const apiUnreachable  = useAuthStore(s => s.apiUnreachable);
+  const nextUrl         = searchParams.get('next') || '';
+  const safeNext        = /^\/[^/]/.test(nextUrl) ? nextUrl : '/home';
 
   const [tab,           setTab]          = useState<'signup' | 'signin'>('signup');
   const [agree,         setAgree]        = useState(false);
   const [loading,       setLoading]      = useState(false);
+  const [retrying,      setRetrying]     = useState(false);
   const [error,         setError]        = useState('');
   const [name,          setName]         = useState('');
   const [email,         setEmail]        = useState('');
@@ -54,7 +58,11 @@ function AuthForm() {
       setupPush().catch(() => {});
       router.push('/onboarding/welcome');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Try again.');
+      if (err instanceof ApiError && err.status === 0) {
+        useAuthStore.getState().setApiUnreachable(true);
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Something went wrong. Try again.');
+      }
     } finally { setLoading(false); }
   }
 
@@ -69,7 +77,11 @@ function AuthForm() {
       setupPush().catch(() => {});
       router.push(onboardingCompleted ? safeNext : '/onboarding/welcome');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Try again.');
+      if (err instanceof ApiError && err.status === 0) {
+        useAuthStore.getState().setApiUnreachable(true);
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Something went wrong. Try again.');
+      }
     } finally { setLoading(false); }
   }
 
@@ -158,6 +170,33 @@ function AuthForm() {
         </div>
 
         <div style={{ width: '100%', maxWidth: 420 }} className="rise">
+          {/* Connection error card */}
+          {apiUnreachable && (
+            <div style={{
+              marginBottom: '1.4rem', padding: '1rem 1.1rem',
+              background: 'var(--amber-soft)', borderRadius: 'var(--r-md)',
+              border: '1px solid var(--amber)', display: 'flex', alignItems: 'flex-start', gap: '.7rem',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--amber)', fontSize: '.88rem', marginBottom: '.25rem' }}>
+                  Can't reach the server
+                </div>
+                <div style={{ fontSize: '.82rem', color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: '.6rem' }}>
+                  Grouw can't connect right now. Sign-in won't work until this is resolved.
+                </div>
+                <button
+                  onClick={async () => { setRetrying(true); await retrySession(); setRetrying(false); }}
+                  disabled={retrying}
+                  style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--amber)', textDecoration: 'underline', opacity: retrying ? .5 : 1, cursor: retrying ? 'default' : 'pointer' }}>
+                  {retrying ? 'Checking…' : 'Try again'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Tabs */}
           <div style={{ marginBottom: '1.8rem' }}>
             <h2 className="serif" style={{ fontSize: '1.8rem', fontWeight: 600, marginBottom: '.3rem' }}>

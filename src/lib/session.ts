@@ -17,6 +17,7 @@ import { authApi, profilesApi, ApiError } from './api';
 export interface SessionResult {
   authenticated: boolean;
   onboardingCompleted: boolean;
+  apiUnreachable?: boolean;
 }
 
 export async function hydrateSession(): Promise<SessionResult> {
@@ -27,14 +28,21 @@ export async function hydrateSession(): Promise<SessionResult> {
   try {
     me = await authApi.me();
   } catch (err) {
-    const expected = err instanceof ApiError &&
+    const isNetwork = err instanceof ApiError && err.status === 0;
+    const isExpected = err instanceof ApiError &&
       (err.status === 401 || err.status === 0 || err.status === 429);
-    if (!expected && process.env.NODE_ENV === 'development') {
+    if (!isExpected && process.env.NODE_ENV === 'development') {
       console.warn('[session] /auth/me →', err instanceof ApiError
         ? `${err.status} – ${err.message}` : String(err));
     }
+    if (isNetwork) {
+      useAuthStore.getState().setApiUnreachable(true);
+      return { authenticated: false, onboardingCompleted: false, apiUnreachable: true };
+    }
     return { authenticated: false, onboardingCompleted: false };
   }
+  // Successful response — API is reachable
+  useAuthStore.getState().setApiUnreachable(false);
 
   setUser(me);
 

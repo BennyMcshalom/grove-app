@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
 import { hydrateSession } from '@/lib/session';
-import { spacesApi } from '@/lib/api';
+import { spacesApi, ApiError } from '@/lib/api';
 import { setupPush } from '@/lib/push';
 import { setupSystemThemeListener } from '@/lib/theme';
 
@@ -14,11 +14,15 @@ export function AuthInitializer() {
     if (_started) return;
     _started = true;
 
-    // Start following OS dark/light mode changes (unless user has manually overridden)
     setupSystemThemeListener();
 
-    // Load space slug→UUID map (needed by every space operation)
-    spacesApi.all().then(s => useSpaceStore.getState().setSpaces(s)).catch(() => {});
+    spacesApi.all()
+      .then(s => useSpaceStore.getState().setSpaces(s))
+      .catch(err => {
+        if (err instanceof ApiError && err.status === 0) {
+          useAuthStore.getState().setApiUnreachable(true);
+        }
+      });
 
     hydrateSession()
       .then(({ authenticated }) => {
@@ -30,4 +34,21 @@ export function AuthInitializer() {
   }, []);
 
   return null;
+}
+
+// Exported so the OfflineBanner can trigger a fresh session check
+export async function retrySession() {
+  _started = false;
+  useAuthStore.getState().setApiUnreachable(false);
+  try {
+    await hydrateSession();
+    const spaces = await spacesApi.all();
+    useSpaceStore.getState().setSpaces(spaces);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 0) {
+      useAuthStore.getState().setApiUnreachable(true);
+    }
+  } finally {
+    useAuthStore.getState().setInitialized();
+  }
 }
