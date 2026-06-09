@@ -33,6 +33,7 @@ export function mapPost(record: PostRecord, authorName?: string): Post {
     roots:    record.rootCount ?? 0,
     comments: 0,
     rooted:   record.userReacted ?? false,
+    userId:   record.userId,
     kind:     record.kind,
     caption:  record.body ?? undefined,
     // keep original uuid for mutations
