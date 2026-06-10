@@ -28,13 +28,15 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for access cookie — the backend sets __Host-access (httpOnly)
-  // In production (HTTPS) this is __Host-access; in dev it may be plain 'access'
-  const accessCookie =
-    req.cookies.get('__Host-access')?.value ||
+  // grove_session is a presence flag set by the frontend JS after login/signup.
+  // The actual JWT lives in __Host-access which is httpOnly and scoped to the API
+  // domain — middleware running on the frontend domain cannot read it.
+  const hasSession =
+    req.cookies.get('grove_session')?.value ||
+    req.cookies.get('__Host-access')?.value || // works in local dev (same origin)
     req.cookies.get('access')?.value;
 
-  if (!accessCookie) {
+  if (!hasSession) {
     const url = req.nextUrl.clone();
     url.pathname = '/auth';
     url.searchParams.set('next', pathname);

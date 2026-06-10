@@ -103,6 +103,21 @@ const authReq = {
   post: <T>(path: string, body?: unknown) => req<T>('POST', path, body,      false, true),
 };
 
+// Presence cookie set on the FRONTEND domain so Next.js middleware can read it.
+// The actual auth token stays in the httpOnly __Host-access cookie on the API domain.
+const SESSION_COOKIE = 'grove_session';
+const THIRTY_DAYS = 60 * 60 * 24 * 30;
+
+export function markSessionPresent() {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${SESSION_COOKIE}=1; path=/; max-age=${THIRTY_DAYS}; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
+}
+
+export function clearSessionPresent() {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${SESSION_COOKIE}=; path=/; max-age=0`;
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export interface SignupPayload  { email: string; password: string; display_name: string; }
 export interface LoginPayload   { email: string; password: string; }
@@ -122,11 +137,20 @@ export interface ProfileResponse {
 }
 
 export const authApi = {
-  signup:         (data: SignupPayload) =>
-                    authReq.post<SignupResponse>('/auth/signup', data),
-  login:          (data: LoginPayload) =>
-                    authReq.post<{ userId: string }>('/auth/login', data),
-  logout:         () => authReq.post<void>('/auth/logout'),
+  signup:         async (data: SignupPayload) => {
+    const r = await authReq.post<SignupResponse>('/auth/signup', data);
+    markSessionPresent();
+    return r;
+  },
+  login:          async (data: LoginPayload) => {
+    const r = await authReq.post<{ userId: string }>('/auth/login', data);
+    markSessionPresent();
+    return r;
+  },
+  logout:         async () => {
+    clearSessionPresent();
+    return authReq.post<void>('/auth/logout');
+  },
   me:             () => authReq.get<MeResponse>('/auth/me'),
   forgotPassword: (email: string) =>
                     authReq.post<{ ok: boolean }>('/auth/forgot-password', { email }),
