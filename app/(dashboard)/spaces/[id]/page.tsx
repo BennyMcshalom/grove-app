@@ -691,7 +691,9 @@ export default function SpaceDetailPage() {
             {postsLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
             ) : posts.length === 0 ? (
-              <EmptyState variant="feed" title={`Nothing rooted in ${s.name} yet.`} body="Be the first to root a thought here."/>
+              <div className="card" style={{ background: 'linear-gradient(160deg, var(--green-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
+                <EmptyState variant="feed" title={`Nothing rooted in ${s.name} yet.`} body="Be the first to root a thought here."/>
+              </div>
             ) : posts.map(p => (
               <article key={p.id} className="card" style={{ padding: '1.1rem 1.2rem', marginBottom: '.8rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.7rem' }}>
@@ -727,7 +729,9 @@ export default function SpaceDetailPage() {
             {openLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
             ) : posts.length === 0 ? (
-              <EmptyState variant="feed" title="Nothing shared yet." body="Posts from this space will appear here."/>
+              <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
+                <EmptyState variant="feed" title="Nothing shared yet." body="Posts from this space will appear here."/>
+              </div>
             ) : posts.map(p => (
               <article key={p.id} className="card" style={{ padding: '1.1rem 1.2rem', marginBottom: '.8rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.7rem' }}>
@@ -772,7 +776,9 @@ export default function SpaceDetailPage() {
           membersLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
           ) : !members || members.length === 0 ? (
-            <EmptyState variant="groups" title="No members yet." body="Be the first person in this chapter."/>
+            <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--green-dim))', maxWidth: 480, margin: '0 auto' }}>
+              <EmptyState variant="groups" title="No members yet." body="Be the first person in this chapter."/>
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
               {members.map(m => (

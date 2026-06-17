@@ -38,7 +38,9 @@ export default function StatsPage() {
             <Spinner/>
           </div>
         ) : months.length === 0 ? (
-          <EmptyState variant="stats"/>
+          <div className="card" style={{ background: 'linear-gradient(160deg, var(--ember-dim), var(--green-dim))', maxWidth: 480, margin: '0 auto' }}>
+            <EmptyState variant="stats"/>
+          </div>
         ) : (
           <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.2rem', marginBottom: '1.4rem' }}>

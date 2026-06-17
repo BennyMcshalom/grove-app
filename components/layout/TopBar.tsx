@@ -73,7 +73,9 @@ function NotifPanel({ onClose }: { onClose: () => void }) {
           {isLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
           ) : items.length === 0 ? (
-            <EmptyState variant="notifications"/>
+            <div className="card" style={{ background: 'linear-gradient(160deg, var(--amber-dim), var(--slate-dim))', margin: '.5rem' }}>
+              <EmptyState variant="notifications"/>
+            </div>
           ) : items.map(n => (
             <button key={n.id}
               onClick={() => {

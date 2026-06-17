@@ -31,8 +31,10 @@ export default function ArchivePage() {
             <Spinner/>
           </div>
         ) : closed.length === 0 ? (
-          <EmptyState variant="archive"
-            body="When you close a space, the reflections you wrote will live here — private and permanent."/>
+          <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--green-dim))', maxWidth: 480, margin: '0 auto' }}>
+            <EmptyState variant="archive"
+              body="When you close a space, the reflections you wrote will live here — private and permanent."/>
+          </div>
         ) : closed.map(c => {
           const slug = c.space?.slug ?? slugById(c.spaceId) ?? 'career';
           const s = spaceById(slug);
@@ -107,9 +109,10 @@ export default function ArchivePage() {
           {curioLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
           ) : !savedCurios || savedCurios.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '1.5rem 1rem',
-              color: 'var(--ink-4)', fontSize: '.88rem', fontStyle: 'italic' }}>
-              Curio cards and reflections you save will appear here.
+            <div className="card" style={{ background: 'linear-gradient(160deg, var(--amber-dim), var(--green-dim))', maxWidth: 440, margin: '0 auto' }}>
+              <EmptyState variant="curio" compact
+                title="Nothing saved yet."
+                body="Curio cards and reflections you save will appear here."/>
             </div>
           ) : savedCurios.map(c => {
             const open = curioExp[c.id];

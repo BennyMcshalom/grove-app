@@ -989,8 +989,10 @@ export default function HomePage() {
             <Spinner size={24} />
           </div>
         ) : shown.length === 0 ? (
-          <EmptyState variant="feed"
-            body={tab === 'all' ? 'Your circle hasn\'t posted yet. Root a thought above to get things going.' : 'No posts in this space yet. Be the first.'} />
+          <div className="card" style={{ background: 'linear-gradient(160deg, var(--green-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
+            <EmptyState variant="feed"
+              body={tab === 'all' ? 'Your circle hasn\'t posted yet. Root a thought above to get things going.' : 'No posts in this space yet. Be the first.'} />
+          </div>
         ) : shown.map((p, i) => (
           <React.Fragment key={p.id}>
             {p.kind === 'just_grouw'

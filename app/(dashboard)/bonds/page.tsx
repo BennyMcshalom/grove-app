@@ -511,9 +511,11 @@ function BondThread({ bond }: { bond: BondRecord }) {
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
         ) : !messages || messages.length === 0 ? (
-          <EmptyState variant="thread"
-            title={`Start with ${otherName.split(' ')[0]}.`}
-            body="Send a message or hold the mic."/>
+          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <EmptyState variant="thread"
+              title={`Start with ${otherName.split(' ')[0]}.`}
+              body="Send a message or hold the mic."/>
+          </div>
         ) : (
           <>
             {(messages).map((m, i) => {
@@ -728,7 +730,12 @@ export default function BondsPage() {
             {isLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
             ) : allConnections.length === 0 ? (
-              <EmptyState variant="bonds"/>
+              <div className="card" style={{ background: 'linear-gradient(160deg, var(--ember-dim), var(--slate-dim))' }}>
+                <EmptyState variant="bonds" compact
+                  title="No connections yet."
+                  body="Bonds and Circle members will appear here."
+                  action={{ label: 'Explore spaces →', onClick: () => router.push('/spaces') }}/>
+              </div>
             ) : (
               <>
                 {/* ── Full Bonds (up to 5) ── */}
@@ -856,9 +863,15 @@ export default function BondsPage() {
             {allConnections.length > 0 ? (
               <BondThread bond={allConnections[Math.min(sel, allConnections.length - 1)]}/>
             ) : !isLoading ? (
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <EmptyState variant="bonds" title="Your first Bond is waiting."
-                  body="Show up consistently for someone in your circle."/>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+                <div className="card" style={{
+                  background: 'linear-gradient(160deg, var(--ember-dim), var(--slate-dim))',
+                  boxShadow: 'var(--shadow-lg)', maxWidth: 420, width: '100%',
+                }}>
+                  <EmptyState variant="bonds" title="Your first Bond is waiting."
+                    body="Show up consistently for someone in your circle. It can't be rushed — but it's worth it."
+                    action={{ label: 'Explore spaces →', onClick: () => router.push('/spaces') }}/>
+                </div>
               </div>
             ) : null}
           </div>

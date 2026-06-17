@@ -123,10 +123,12 @@ export default function SpacesPage() {
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Spinner/></div>
         ) : activeSlots.length === 0 ? (
-          <EmptyState variant="feed"
-            title="No open chapters yet."
-            body="Open a space from the directory below to start your chapter."
-            action={{ label: 'Browse spaces', onClick: () => document.getElementById('spaces-dir')?.scrollIntoView({ behavior: 'smooth' }) }}/>
+          <div className="card" style={{ background: 'linear-gradient(160deg, var(--green-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
+            <EmptyState variant="feed"
+              title="No open chapters yet."
+              body="Open a space from the directory below to start your chapter."
+              action={{ label: 'Browse spaces', onClick: () => document.getElementById('spaces-dir')?.scrollIntoView({ behavior: 'smooth' }) }}/>
+          </div>
         ) : (
           <div className="spaces-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             {activeSlots.map(slot => (
