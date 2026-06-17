@@ -5,7 +5,6 @@ import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useToastStore } from '@/store/useToastStore';
@@ -503,16 +502,6 @@ function BondThread({ bond }: { bond: BondRecord }) {
           </span>
         </div>
       )}
-
-      {/* ── Depth bar ── */}
-      <div style={{ padding: '.5rem 1.2rem', borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', gap: '.6rem', background: 'var(--surf-low)' }}>
-        <span className="label-mono" style={{ whiteSpace: 'nowrap' }}>Bond depth</span>
-        <div style={{ flex: 1 }}><ProgressBar value={bond.depthScore ?? 0}/></div>
-        <span style={{ fontSize: '.68rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace', flexShrink: 0 }}>
-          {bond.depthScore ?? 0}/100
-        </span>
-      </div>
 
       {/* ── Messages ── */}
       <div ref={threadRef} className="scroll" style={{ flex: 1, overflowY: 'auto',

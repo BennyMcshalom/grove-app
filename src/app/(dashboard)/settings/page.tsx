@@ -106,7 +106,7 @@ export default function SettingsPage() {
   }, []);
 
   const prefs = notifPrefs ?? {
-    morning_curio: true, voice_room: true, chapter_prompt: false,
+    morning_curio: true, chapter_prompt: false,
     bond_invitation: true, wave: true,
   };
 
@@ -228,11 +228,7 @@ export default function SettingsPage() {
                 <Toggle on={prefs.morning_curio ?? true}
                   onChange={v => updatePref('morning_curio', v)}/>
               </Row>
-              <Row label="Voice Room open" sub="When someone opens a room">
-                <Toggle on={prefs.voice_room ?? true}
-                  onChange={v => updatePref('voice_room', v)}/>
-              </Row>
-              <Row label="Chapter prompt" sub="Weekly reflection nudge">
+<Row label="Chapter prompt" sub="Weekly reflection nudge">
                 <Toggle on={prefs.chapter_prompt ?? false}
                   onChange={v => updatePref('chapter_prompt', v)}/>
               </Row>
