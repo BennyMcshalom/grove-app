@@ -912,23 +912,12 @@ export default function HomePage() {
             </div>
           </button>
         )) : (
-          <div style={{ borderRadius: 'var(--r-md)', padding: '1rem', textAlign: 'center' }}>
-            {/* Two overlapping ring arcs */}
-            <svg width="40" height="26" viewBox="0 0 40 26" fill="none" style={{ margin: '0 auto .6rem', display: 'block' }}>
-              <circle cx="14" cy="13" r="11" stroke="var(--border-2)" strokeWidth="1.5" strokeDasharray="3 2.5" />
-              <circle cx="26" cy="13" r="11" stroke="var(--border-2)" strokeWidth="1.5" strokeDasharray="3 2.5" />
-              <circle cx="20" cy="13" r="3" fill="var(--ember)" opacity=".35" />
-            </svg>
-            <p className="serif" style={{ fontSize: '.95rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '.25rem' }}>
-              No Bonds yet.
-            </p>
-            <p style={{ fontSize: '.76rem', color: 'var(--ink-3)', lineHeight: 1.5 }}>
-              Bonds form when you consistently show up for someone.
-            </p>
-            <button onClick={() => router.push('/bonds')}
-              style={{ marginTop: '.7rem', fontSize: '.76rem', color: 'var(--ember)', fontWeight: 500 }}>
-              See how Bonds work →
-            </button>
+          <div className="card" style={{ background: 'linear-gradient(160deg, var(--ember-dim), var(--slate-dim))' }}>
+            <EmptyState variant="bonds" compact
+              title="No Bonds yet."
+              body="Bonds form when you consistently show up for someone."
+              action={{ label: 'See how Bonds work →', onClick: () => router.push('/bonds') }}
+            />
           </div>
         )}
       </RPSection>
@@ -943,25 +932,12 @@ export default function HomePage() {
             <div style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>{g.lifePhase}</div>
           </button>
         )) : (
-          <div style={{ borderRadius: 'var(--r-md)', padding: '1rem', textAlign: 'center' }}>
-            <svg width="44" height="28" viewBox="0 0 44 28" fill="none" style={{ margin: '0 auto .6rem', display: 'block' }}>
-              <circle cx="22" cy="9" r="5" stroke="var(--border-2)" strokeWidth="1.5" />
-              <path d="M13 27c0-5 4-9 9-9s9 4 9 9" stroke="var(--border-2)" strokeWidth="1.5" strokeLinecap="round" />
-              <circle cx="9" cy="10" r="4" stroke="var(--border-2)" strokeWidth="1.5" opacity=".5" />
-              <path d="M3 26c0-3.3 2.7-6 6-6" stroke="var(--border-2)" strokeWidth="1.5" strokeLinecap="round" opacity=".5" />
-              <circle cx="35" cy="10" r="4" stroke="var(--border-2)" strokeWidth="1.5" opacity=".5" />
-              <path d="M41 26c0-3.3-2.7-6-6-6" stroke="var(--border-2)" strokeWidth="1.5" strokeLinecap="round" opacity=".5" />
-            </svg>
-            <p className="serif" style={{ fontSize: '.95rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '.25rem' }}>
-              No chapter groups yet.
-            </p>
-            <p style={{ fontSize: '.76rem', color: 'var(--ink-3)', lineHeight: 1.5 }}>
-              Groups form around shared life phases. Start or join one.
-            </p>
-            <button onClick={() => router.push('/groups')}
-              style={{ marginTop: '.7rem', fontSize: '.76rem', color: 'var(--ember)', fontWeight: 500 }}>
-              Browse groups →
-            </button>
+          <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--green-dim))' }}>
+            <EmptyState variant="groups" compact
+              title="No chapter groups yet."
+              body="Groups form around shared life phases. Start or join one."
+              action={{ label: 'Browse groups →', onClick: () => router.push('/groups') }}
+            />
           </div>
         )}
       </RPSection>

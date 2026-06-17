@@ -15,7 +15,7 @@ export function Logo({ size = 22, sub, light }: LogoProps) {
         width={width}
         height={Math.round(height)}
         priority
-        style={{ height: 'auto', width: '120px' }}
+        style={{ height: 'auto', width: '80px' }}
       />
       {sub && <div className="label-mono" style={{
         fontSize: '.54rem',

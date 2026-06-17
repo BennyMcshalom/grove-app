@@ -3,6 +3,8 @@ interface EmptyStateProps {
   title?: string;
   body?: string;
   action?: { label: string; onClick: () => void };
+  /** Smaller illustration + tighter padding, for narrow contexts like a sidebar widget */
+  compact?: boolean;
 }
 
 const VARIANTS = {
@@ -170,25 +172,29 @@ const VARIANTS = {
   },
 } as const;
 
-export function EmptyState({ variant, title, body, action }: EmptyStateProps) {
+export function EmptyState({ variant, title, body, action, compact }: EmptyStateProps) {
   const v = VARIANTS[variant];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
-      textAlign: 'center', padding: '3rem 1.5rem', gap: '1rem' }}>
-      <div style={{ animation: 'rise .6s cubic-bezier(.22,.61,.36,1) both' }}>
+      textAlign: 'center', padding: compact ? '1.6rem 1.1rem' : '3rem 1.5rem', gap: compact ? '.7rem' : '1rem' }}>
+      <div style={{
+        animation: 'rise .6s cubic-bezier(.22,.61,.36,1) both',
+        transform: compact ? 'scale(.7)' : undefined,
+        margin: compact ? '-10px 0' : undefined,
+      }}>
         {v.illustration}
       </div>
-      <div style={{ maxWidth: 320 }}>
-        <h3 className="serif" style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '.4rem', color: 'var(--ink)' }}>
+      <div style={{ maxWidth: compact ? 230 : 320 }}>
+        <h3 className="serif" style={{ fontSize: compact ? '1.05rem' : '1.4rem', fontWeight: 600, marginBottom: '.35rem', color: 'var(--ink)' }}>
           {title ?? v.title}
         </h3>
-        <p style={{ fontSize: '.88rem', color: 'var(--ink-3)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: compact ? '.78rem' : '.88rem', color: 'var(--ink-3)', lineHeight: 1.55 }}>
           {body ?? v.body}
         </p>
       </div>
       {action && (
         <button onClick={action.onClick} className="btn btn-primary btn-pill"
-          style={{ padding: '.6rem 1.4rem', fontSize: '.88rem', marginTop: '.4rem' }}>
+          style={{ padding: compact ? '.5rem 1.1rem' : '.6rem 1.4rem', fontSize: compact ? '.78rem' : '.88rem', marginTop: compact ? '.1rem' : '.4rem' }}>
           {action.label}
         </button>
       )}
