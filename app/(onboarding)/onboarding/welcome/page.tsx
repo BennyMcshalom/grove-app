@@ -17,7 +17,7 @@ export default function ObWelcome() {
     <OBShell step={1}>
       <div style={{ textAlign: 'center', margin: 'auto 0', maxWidth: 500, marginInline: 'auto' }}>
         {/* Simple 2-avatar scene */}
-        <div style={{ position: 'relative', width: 280, height: 160, margin: '0 auto 1.6rem' }} className="fade-in">
+        <div className="ob-scene fade-in" style={{ position: 'relative', width: 'min(280px, 100%)', height: 160, margin: '0 auto 1.6rem' }}>
           <div style={{ position: 'absolute', width: 160, height: 160, left: 0, top: 16, borderRadius: '50%',
             filter: 'blur(18px)', background: 'radial-gradient(circle at 38% 35%, var(--c-creative), transparent 70%)', opacity: .85 }}/>
           <div style={{ position: 'absolute', width: 170, height: 170, right: 0, top: 6, borderRadius: '50%',
@@ -35,10 +35,10 @@ export default function ObWelcome() {
           </div>
         </div>
 
-        <h1 className="serif" style={{ fontSize: '2.8rem', fontWeight: 600, lineHeight: 1.12, marginBottom: '1.1rem' }}>
+        <h1 className="serif" style={{ fontSize: 'clamp(1.9rem, 8vw, 2.8rem)', fontWeight: 600, lineHeight: 1.12, marginBottom: '1.1rem' }}>
           This is not social media.
         </h1>
-        <p style={{ fontSize: '1.15rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 'clamp(.95rem, 4vw, 1.15rem)', color: 'var(--ink-2)', lineHeight: 1.6 }}>
           It's a small circle of people in the same chapter as you. No audience. No performance. Just depth.
         </p>
         <div style={{ height: 64, marginTop: '2.4rem' }}>

@@ -14,18 +14,18 @@ export default function LegalPage() {
           <Logo size={22}/>
           <button onClick={() => router.push('/home')} style={{ fontSize: '.84rem', color: 'var(--ink-3)' }}>Back to Grouw →</button>
         </div>
-        <div style={{ display: 'flex', gap: '1.6rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem' }}>
+        <div className="scroll" style={{ display: 'flex', gap: '1.6rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem', overflowX: 'auto' }}>
           {([['promise',"Grouw's Promise"],['privacy','Privacy Policy'],['terms','Terms of Service']] as [string,string][]).map(([id,l]) => (
             <button key={id} onClick={() => setTab(id as typeof tab)}
               style={{ paddingBottom: '.7rem', fontSize: '.95rem', fontWeight: tab === id ? 600 : 500,
-                color: tab === id ? 'var(--ember)' : 'var(--ink-3)',
+                color: tab === id ? 'var(--ember)' : 'var(--ink-3)', whiteSpace: 'nowrap', flexShrink: 0,
                 borderBottom: tab === id ? '2px solid var(--ember)' : '2px solid transparent', marginBottom: -1 }}>{l}</button>
           ))}
         </div>
 
         {tab === 'promise' && (
           <article className="fade-in">
-            <h1 className="serif" style={{ fontSize: '2.6rem', fontWeight: 600, lineHeight: 1.1, marginBottom: '.5rem' }}>What Grouw will always be.</h1>
+            <h1 className="serif" style={{ fontSize: 'clamp(1.8rem, 8vw, 2.6rem)', fontWeight: 600, lineHeight: 1.1, marginBottom: '.5rem' }}>What Grouw will always be.</h1>
             <div className="mono" style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginBottom: '1.8rem' }}>A promise, not a contract · May 2026</div>
             <p style={{ fontSize: '1.15rem', lineHeight: 1.8, color: 'var(--ink-2)', marginBottom: '1.6rem' }}>We built Grouw because we were tired of being counted. Here is what we promise you:</p>
             {[
@@ -47,7 +47,7 @@ export default function LegalPage() {
 
         {tab === 'privacy' && (
           <article className="fade-in">
-            <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, marginBottom: '.4rem' }}>Your Privacy, Simply Explained.</h1>
+            <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7.5vw, 2.4rem)', fontWeight: 600, marginBottom: '.4rem' }}>Your Privacy, Simply Explained.</h1>
             <div className="mono" style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginBottom: '1.8rem' }}>Last updated May 2026</div>
             <div className="card" style={{ padding: '1.2rem 1.4rem', marginBottom: '1.8rem', background: 'var(--ember-dim)', border: '1px solid var(--ember-bdr)' }}>
               <p style={{ fontWeight: 600, color: 'var(--ember-deep)' }}>We will never sell your data. We have no ad business model.</p>
@@ -69,7 +69,7 @@ export default function LegalPage() {
 
         {tab === 'terms' && (
           <article className="fade-in">
-            <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, marginBottom: '.4rem' }}>The Rules of the Garden.</h1>
+            <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7.5vw, 2.4rem)', fontWeight: 600, marginBottom: '.4rem' }}>The Rules of the Garden.</h1>
             <div className="mono" style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginBottom: '1.8rem' }}>Last updated May 2026</div>
             {[['Who can join','Anyone 16 or older, willing to show up honestly.'],
               ['What you can post','What\'s true for you. Your chapter, your tension, your real situation.'],

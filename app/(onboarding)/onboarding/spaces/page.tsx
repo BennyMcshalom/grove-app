@@ -22,12 +22,12 @@ export default function ObSpaces() {
   return (
     <OBShell step={3} wide onBack={() => router.push('/onboarding/name')}>
       <div style={{ textAlign: 'center', marginBottom: '1.6rem' }}>
-        <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, marginBottom: '.5rem' }}>
+        <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7vw, 2.4rem)', fontWeight: 600, marginBottom: '.5rem' }}>
           Which chapters of life are you in?
         </h1>
         <p style={{ color: 'var(--ink-2)' }}>Choose up to four. These are your spaces.</p>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '.9rem' }}>
+      <div className="ob-spaces-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '.9rem' }}>
         {SPACES.map(s => {
           const on = sel.includes(s.id);
           return (

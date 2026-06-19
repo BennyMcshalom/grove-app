@@ -43,23 +43,23 @@ export default function StatsPage() {
           </div>
         ) : (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.2rem', marginBottom: '1.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.6rem', marginBottom: '1.4rem' }}>
               <button onClick={() => setMi(Math.min(mi + 1, months.length - 1))}
-                disabled={mi >= months.length - 1} style={{ opacity: mi >= months.length - 1 ? .3 : 1 }}>
+                disabled={mi >= months.length - 1} style={{ flexShrink: 0, opacity: mi >= months.length - 1 ? .3 : 1 }}>
                 <Icon name="back" stroke="var(--ink-2)"/>
               </button>
-              <div className="serif" style={{ fontSize: '1.7rem', fontWeight: 600, minWidth: 200, textAlign: 'center' }}>
+              <div className="serif" style={{ fontSize: 'clamp(1.25rem, 5.5vw, 1.7rem)', fontWeight: 600, minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap' }}>
                 {formatMonth(month!.month)}
               </div>
               <button onClick={() => setMi(Math.max(mi - 1, 0))}
-                disabled={mi <= 0} style={{ opacity: mi <= 0 ? .3 : 1, transform: 'scaleX(-1)' }}>
+                disabled={mi <= 0} style={{ flexShrink: 0, opacity: mi <= 0 ? .3 : 1, transform: 'scaleX(-1)' }}>
                 <Icon name="back" stroke="var(--ink-2)"/>
               </button>
             </div>
-            <div className="card" style={{ padding: '1.8rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.8rem 1rem' }}>
+            <div className="card stats-grid" style={{ padding: '1.8rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.8rem 1rem' }}>
               {rows.map(([label, n]) => (
                 <div key={label} style={{ textAlign: 'center' }}>
-                  <div className="serif" style={{ fontSize: '2.6rem', fontWeight: 600, lineHeight: 1 }}>{n}</div>
+                  <div className="serif" style={{ fontSize: 'clamp(1.9rem, 7vw, 2.6rem)', fontWeight: 600, lineHeight: 1 }}>{n}</div>
                   <div className="label-mono" style={{ marginTop: '.5rem' }}>{label}</div>
                 </div>
               ))}

@@ -14,7 +14,7 @@ export default function ObName() {
   return (
     <OBShell step={2} onBack={() => router.push('/onboarding/welcome')}>
       <div style={{ textAlign: 'center', margin: 'auto 0', maxWidth: 420, marginInline: 'auto' }}>
-        <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, marginBottom: '.6rem' }}>
+        <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7vw, 2.4rem)', fontWeight: 600, marginBottom: '.6rem' }}>
           What do we call you?
         </h1>
         <p style={{ color: 'var(--ink-2)', marginBottom: '2rem' }}>

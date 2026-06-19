@@ -26,7 +26,7 @@ export default function ObReady() {
     <OBShell>
       <div style={{ textAlign: 'center', margin: 'auto 0', maxWidth: 520, marginInline: 'auto' }}>
         {/* Circle scene */}
-        <div style={{ position: 'relative', width: 360, height: 180, margin: '0 auto 1.6rem' }} className="fade-in">
+        <div className="ob-scene fade-in" style={{ position: 'relative', width: 'min(360px, 100%)', height: 180, margin: '0 auto 1.6rem' }}>
           {circleNames.map((name, i) => {
             const offset = (i - 1) * 72;
             return (
@@ -46,10 +46,10 @@ export default function ObReady() {
             </span>
           ))}
         </div>
-        <h1 className="serif" style={{ fontSize: '2.6rem', fontWeight: 600, lineHeight: 1.15, marginBottom: '1rem' }}>
+        <h1 className="serif" style={{ fontSize: 'clamp(1.8rem, 7.5vw, 2.6rem)', fontWeight: 600, lineHeight: 1.15, marginBottom: '1rem' }}>
           Your Grouw is ready, {user.name}.
         </h1>
-        <p style={{ fontSize: '1.1rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 'clamp(.95rem, 4vw, 1.1rem)', color: 'var(--ink-2)', lineHeight: 1.6 }}>
           A small circle of people in the same chapters as you is being assembled. Show up honestly.
         </p>
         <div style={{ marginTop: '2.2rem', minHeight: 70, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.8rem' }}>

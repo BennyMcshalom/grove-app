@@ -28,7 +28,7 @@ export default function ObStages() {
         <div className="label-mono" style={{ textAlign: 'center', marginBottom: '.6rem' }}>
           Space {idx + 1} of {spaces.length}
         </div>
-        <h1 className="serif" style={{ fontSize: '2.1rem', fontWeight: 600, textAlign: 'center', marginBottom: '1.6rem' }}>
+        <h1 className="serif" style={{ fontSize: 'clamp(1.5rem, 6.5vw, 2.1rem)', fontWeight: 600, textAlign: 'center', marginBottom: '1.6rem' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '.5rem' }}>
             <SpaceIcon spaceId={space.id} size={22} pill pillSize={40}/>
             {space.name}

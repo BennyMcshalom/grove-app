@@ -31,11 +31,11 @@ function BondReleaseInner() {
   ];
 
   return (
-    <div style={{ height: '100vh', width: '100vw', background: '#F6F3F2', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+    <div className="scroll" style={{ minHeight: '100dvh', width: '100%', background: '#F6F3F2', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(1.2rem, 5vw, 2rem)', overflowY: 'auto' }}>
       <div style={{ maxWidth: 560, width: '100%', textAlign: 'center' }} className="screen-enter" key={step}>
         {step === 0 && (
           <>
-            <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, marginBottom: '.8rem' }}>Before you release this Bond.</h1>
+            <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7.5vw, 2.4rem)', fontWeight: 600, marginBottom: '.8rem' }}>Before you release this Bond.</h1>
             <p style={{ color: 'var(--ink-2)', fontSize: '1.05rem', marginBottom: '2rem' }}>Take your time. These answers are private.</p>
             {begin && <button className="btn btn-primary btn-lg btn-pill fade-in" onClick={() => setStep(1)}>Begin</button>}
           </>
@@ -45,7 +45,7 @@ function BondReleaseInner() {
           return (
             <>
               <div className="label-mono" style={{ marginBottom: '1rem' }}>{name.split(' ')[0]}'s Bond</div>
-              <h1 className="serif" style={{ fontSize: '2.1rem', fontWeight: 600, marginBottom: '1.4rem', lineHeight: 1.2 }}>{cur.q}</h1>
+              <h1 className="serif" style={{ fontSize: 'clamp(1.5rem, 6.5vw, 2.1rem)', fontWeight: 600, marginBottom: '1.4rem', lineHeight: 1.2 }}>{cur.q}</h1>
               <textarea autoFocus value={ans[i]} onChange={e => { const a = [...ans]; a[i] = e.target.value; setAns(a); }}
                 placeholder="Write what's true. Don't edit yourself."
                 style={{ width: '100%', minHeight: 130, padding: '1.1rem', fontSize: '1.05rem', lineHeight: 1.6, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', resize: 'vertical', marginBottom: '1.4rem' }}/>
@@ -60,7 +60,7 @@ function BondReleaseInner() {
         {step === 4 && (
           <>
             <Avatar name={name} size={88} style={{ margin: '0 auto 1.4rem' }}/>
-            <h1 className="serif" style={{ fontSize: '2rem', fontWeight: 600 }}>{name.split(' ')[0]}'s Bond</h1>
+            <h1 className="serif" style={{ fontSize: 'clamp(1.5rem, 6vw, 2rem)', fontWeight: 600 }}>{name.split(' ')[0]}'s Bond</h1>
             <p style={{ color: 'var(--ink-3)', margin: '.5rem 0' }}>Oct 2025 – Today · 7 months</p>
             <div style={{ height: 60, marginTop: '2rem' }}>
               {held ? (

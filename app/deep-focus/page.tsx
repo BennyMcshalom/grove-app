@@ -16,13 +16,13 @@ export default function DeepFocusPage() {
 
   if (!active) {
     return (
-      <div style={{ height: '100vh', width: '100vw', background: 'var(--cream)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+      <div className="scroll" style={{ minHeight: '100dvh', width: '100%', background: 'var(--cream)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(1.2rem, 5vw, 2rem)', overflowY: 'auto' }}>
         <div style={{ maxWidth: 440, width: '100%', textAlign: 'center' }} className="rise">
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--surf-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
             <Icon name="moon" size={28} stroke="var(--ink-3)"/>
           </div>
-          <h1 className="serif" style={{ fontSize: '2.2rem', fontWeight: 600, marginBottom: '.6rem' }}>Go into Deep Focus.</h1>
+          <h1 className="serif" style={{ fontSize: 'clamp(1.6rem, 7vw, 2.2rem)', fontWeight: 600, marginBottom: '.6rem' }}>Go into Deep Focus.</h1>
           <p style={{ color: 'var(--ink-2)', marginBottom: '1.6rem' }}>
             Grouw locks until you choose to return. No counter waiting for you when you come back.
           </p>
@@ -63,15 +63,15 @@ export default function DeepFocusPage() {
   const DIM  = 'rgba(240,234,224,.45)';
 
   return (
-    <div style={{ height: '100vh', width: '100vw', background: DARK,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+    <div className="scroll" style={{ minHeight: '100dvh', width: '100%', background: DARK,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(1.2rem, 5vw, 2rem)', overflowY: 'auto' }}>
       <div style={{ textAlign: 'center', maxWidth: 440 }} className="fade-in">
         <div style={{ width: 64, height: 64, borderRadius: '50%',
           background: 'rgba(240,234,224,.06)', border: `1.5px solid rgba(240,234,224,.14)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.4rem' }}>
           <Icon name="moon" size={32} stroke={DIM}/>
         </div>
-        <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, color: TEXT }}>
+        <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7.5vw, 2.4rem)', fontWeight: 600, color: TEXT }}>
           You&apos;re in Deep Focus.
         </h1>
         <p style={{ color: DIM, fontSize: '1.05rem', marginTop: '.7rem', lineHeight: 1.6 }}>

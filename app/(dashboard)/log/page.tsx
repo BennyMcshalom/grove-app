@@ -215,7 +215,7 @@ function Artifact({ spaceId, phase, entries, onClose }: {
         <div style={{ padding: '2.2rem 2rem 3rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '2.2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '.4rem' }}><Icon name={space.icon} size={32} stroke={space.ink} sw={1.5}/></div>
-            <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, lineHeight: 1.1 }}>
+            <h1 className="serif" style={{ fontSize: 'clamp(1.6rem, 7.5vw, 2.4rem)', fontWeight: 600, lineHeight: 1.1 }}>
               {space.name} · {phase}
             </h1>
             <div className="mono" style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.5rem' }}>
@@ -482,7 +482,7 @@ function BondReveal({ bonds }: { bonds: { id: string; name: string; avatarUrl?: 
                     <Icon name="check" size={12} stroke="var(--forest)" sw={2.5}/> Both posted — revealed
                   </span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.9rem', marginBottom: '1rem' }}>
+                <div className="grid-2-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.9rem', marginBottom: '1rem' }}>
                   {([
                     ['You',           myEntry.body ?? '',           true,  undefined,        myResonance],
                     [partner?.name ?? '', partnerEntry.body ?? '',  false, partner?.avatarUrl, partnerResonance],
@@ -561,7 +561,7 @@ function BondReveal({ bonds }: { bonds: { id: string; name: string; avatarUrl?: 
                     <p style={{ fontSize: '.82rem', fontStyle: 'italic', color: 'var(--ink-3)', marginBottom: '.5rem', lineHeight: 1.45 }}>
                       &ldquo;{item.prompt}&rdquo;
                     </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.6rem' }}>
+                    <div className="grid-2-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.6rem' }}>
                       {[['You', item.myEntry.body, 'var(--ember)'], [partner?.name?.split(' ')[0] ?? 'Bond', item.partnerEntry.body, 'var(--sage)']].map(([who, body, color]) => (
                         <div key={who as string} style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-sm)',
                           padding: '.7rem .8rem', borderLeft: `2px solid ${color}` }}>

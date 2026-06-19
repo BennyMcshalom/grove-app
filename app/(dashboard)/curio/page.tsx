@@ -109,7 +109,7 @@ function CurioReaderInner() {
         </div>
 
         {/* Title */}
-        <h1 className="serif" style={{ fontSize: '2.8rem', fontWeight: 600, lineHeight: 1.12, marginBottom: '1.6rem' }}>
+        <h1 className="serif" style={{ fontSize: 'clamp(1.9rem, 8vw, 2.8rem)', fontWeight: 600, lineHeight: 1.12, marginBottom: '1.6rem' }}>
           {title}
         </h1>
 
@@ -143,7 +143,7 @@ function CurioReaderInner() {
 
         {/* Read next */}
         <div className="label-mono" style={{ marginBottom: '.9rem' }}>Read next</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.9rem' }}>
+        <div className="grid-2-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.9rem' }}>
           {others.map(t => {
             const o = CURIO_LIBRARY[t];
             return (

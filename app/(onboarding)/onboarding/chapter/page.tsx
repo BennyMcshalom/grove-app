@@ -36,7 +36,7 @@ export default function ObChapter() {
     <OBShell step={6} bg="#F2EEEA" onBack={() => router.push('/onboarding/tension')}>
       <div style={{ maxWidth: 540, marginInline: 'auto', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.6rem' }}>
-          <h1 className="serif" style={{ fontSize: '2.1rem', fontWeight: 600, marginBottom: '.5rem' }}>
+          <h1 className="serif" style={{ fontSize: 'clamp(1.5rem, 6.5vw, 2.1rem)', fontWeight: 600, marginBottom: '.5rem' }}>
             Before we show you anyone else —
           </h1>
           <p style={{ color: 'var(--ink-2)' }}>Tell us what's actually happening. This shapes everything Grouw shows you.</p>

@@ -37,7 +37,7 @@ export default function ObTension() {
     <OBShell step={5} bg="#F6F3F2" onBack={() => router.push('/onboarding/stages')}>
       <div style={{ maxWidth: 540, marginInline: 'auto', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.6rem' }}>
-          <h1 className="serif" style={{ fontSize: '2.1rem', fontWeight: 600, marginBottom: '.5rem' }}>
+          <h1 className="serif" style={{ fontSize: 'clamp(1.5rem, 6.5vw, 2.1rem)', fontWeight: 600, marginBottom: '.5rem' }}>
             This is what makes your profile yours.
           </h1>
           <p style={{ color: 'var(--ink-2)' }}>Three questions. Honest answers. Only your Bonds will ever see these.</p>

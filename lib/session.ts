@@ -59,14 +59,14 @@ export async function hydrateSession(): Promise<SessionResult> {
 
     setProfile(u => ({
       ...u,
-      id:                  me.id,
-      name:                profile.displayName,
-      email:               me.email,
-      avatar_url:          profile.avatarUrl       ?? undefined,
-      tension:             profile.honestTension   ?? undefined,
-      sitting:             profile.sittingWith     ?? undefined,
-      open:                profile.openTo          ?? undefined,
-      deepFocus:           profile.deepFocusActive,
+      id: me.id,
+      name: profile.displayName,
+      email: me.email,
+      avatar_url: profile.avatarUrl ?? undefined,
+      tension: profile.honestTension ?? undefined,
+      sitting: profile.sittingWith ?? undefined,
+      open: profile.openTo ?? undefined,
+      deepFocus: profile.deepFocusActive,
       onboardingCompleted, // resolved value, not raw profile value
     }));
 

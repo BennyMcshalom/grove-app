@@ -77,7 +77,7 @@ export default function SubscribePage() {
               <span className="chip" style={{ background: 'var(--ember-dim)', color: 'var(--ember-deep)', fontWeight: 600, marginBottom: '.9rem', display: 'inline-block' }}>
                 14 days free, then choose to stay
               </span>
-              <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, lineHeight: 1.1 }}>
+              <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7.5vw, 2.4rem)', fontWeight: 600, lineHeight: 1.1 }}>
                 Go deeper into Grouw.
               </h1>
               <p style={{ color: 'var(--ink-3)', marginTop: '.5rem' }}>
@@ -184,7 +184,7 @@ export default function SubscribePage() {
         {step === 'pay' && (
           <div className="screen-enter">
             <div style={{ textAlign: 'center', marginBottom: '1.4rem' }}>
-              <h1 className="serif" style={{ fontSize: '2.1rem', fontWeight: 600 }}>Add a payment method</h1>
+              <h1 className="serif" style={{ fontSize: 'clamp(1.5rem, 6.5vw, 2.1rem)', fontWeight: 600 }}>Add a payment method</h1>
               <p style={{ color: 'var(--ink-3)', marginTop: '.4rem' }}>Required to start your trial. Nothing is charged today.</p>
             </div>
 
@@ -279,7 +279,7 @@ export default function SubscribePage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.4rem' }}>
               <Icon name="check" size={40} stroke="var(--green)"/>
             </div>
-            <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, lineHeight: 1.1 }}>
+            <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7.5vw, 2.4rem)', fontWeight: 600, lineHeight: 1.1 }}>
               Your 14 days start now.
             </h1>
             <p style={{ color: 'var(--ink-2)', marginTop: '.6rem', maxWidth: 380, marginInline: 'auto', lineHeight: 1.6 }}>

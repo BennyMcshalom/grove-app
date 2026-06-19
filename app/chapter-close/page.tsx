@@ -181,8 +181,8 @@ function ChapterCloseInner() {
   );
 
   return (
-    <div style={{ height: '100vh', width: '100vw', background: 'var(--bg)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', overflowY: 'auto' }}>
+    <div className="scroll" style={{ minHeight: '100dvh', width: '100%', background: 'var(--bg)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(1.2rem, 5vw, 2rem)', overflowY: 'auto' }}>
       <div style={{ maxWidth: 580, width: '100%', textAlign: 'center' }} className="screen-enter" key={step}>
 
         {/* ── Step 0: Intro ── */}
@@ -191,7 +191,7 @@ function ChapterCloseInner() {
             <div style={{ marginBottom: '.8rem' }}>
               <SpaceIcon spaceId={s.id} size={28} pill pillSize={56}/>
             </div>
-            <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600, marginBottom: '.8rem' }}>
+            <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7.5vw, 2.4rem)', fontWeight: 600, marginBottom: '.8rem' }}>
               Before you close this chapter.
             </h1>
             <p style={{ color: 'var(--ink-2)', fontSize: '1.05rem', marginBottom: '2rem', lineHeight: 1.6 }}>
@@ -286,7 +286,7 @@ function ChapterCloseInner() {
             <div style={{ marginBottom: '1.2rem' }}>
               <SpaceIcon spaceId={s.id} size={28} pill pillSize={56}/>
             </div>
-            <h1 className="serif" style={{ fontSize: '2.4rem', fontWeight: 600 }}>
+            <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7.5vw, 2.4rem)', fontWeight: 600 }}>
               Chapter closed.
             </h1>
             <p style={{ color: 'var(--ink-2)', margin: '.6rem 0 .25rem',
