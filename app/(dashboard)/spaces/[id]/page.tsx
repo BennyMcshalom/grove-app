@@ -10,6 +10,7 @@ import { StageChip } from '@/components/ui/StageChip';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ReportModal } from '@/components/ui/ReportModal';
 import { useToastStore } from '@/store/useToastStore';
 import { useUserStore } from '@/store/useUserStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
@@ -30,6 +31,7 @@ function AnswerCard({ answer, index }: { answer: AnonAskAnswer; index: number })
   const [commentCount, setCommentCount] = useState(answer.commentCount ?? 0);
   const [showComments, setShowComments] = useState(false);
   const [commentDraft, setCommentDraft] = useState('');
+  const [reporting, setReporting] = useState(false);
   const likeAnswer   = useLikeAnswer();
   const addComment   = useAddAnswerComment();
   const { data: comments } = useAnswerComments(showComments ? answer.id : undefined);
@@ -89,7 +91,16 @@ function AnswerCard({ answer, index }: { answer: AnonAskAnswer; index: number })
           <Icon name="comment" size={13} stroke={showComments ? 'var(--slate)' : 'var(--ink-3)'}/>
           {commentCount > 0 ? <span>{commentCount} {commentCount === 1 ? 'reply' : 'replies'}</span> : 'Reply'}
         </button>
+        <button onClick={() => setReporting(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '.3rem', padding: '.35rem .65rem',
+            borderRadius: 100, fontSize: '.78rem', fontWeight: 500, color: 'var(--ink-3)' }}>
+          <Icon name="flag" size={12} stroke="var(--ink-3)"/> Report
+        </button>
       </div>
+
+      {reporting && (
+        <ReportModal contentType="anon_answer" contentId={answer.id} onClose={() => setReporting(false)}/>
+      )}
 
       {/* Anonymous comments thread */}
       {showComments && (

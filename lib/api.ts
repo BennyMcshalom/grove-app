@@ -786,6 +786,7 @@ export interface AdminStats {
   signupsThisWeek: number;
   activeSubscriptions: number;
   trialingSubscriptions: number;
+  pendingReports: number;
 }
 
 export interface AdminSeriesPoint { date: string; count: number; }
@@ -867,6 +868,30 @@ export interface AdminSession {
   expiresAt: string;
 }
 
+export type ReportContentType = 'post' | 'comment' | 'bond_message' | 'anon_answer';
+export type ReportReason = 'spam' | 'harassment' | 'inappropriate' | 'other';
+export type ReportStatus = 'pending' | 'resolved' | 'dismissed';
+
+export interface AdminReport {
+  id: string;
+  reporterId: string;
+  reporterName: string | null;
+  contentType: ReportContentType;
+  contentId: string;
+  authorId: string | null;
+  authorName: string | null;
+  contentSnapshot: string | null;
+  reason: ReportReason;
+  details: string | null;
+  status: ReportStatus;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  resolutionAction: string | null;
+  createdAt: string;
+}
+
+export interface AdminReportsResponse { total: number; reports: AdminReport[]; }
+
 function qs<T extends object>(params: T): string {
   const parts = Object.entries(params as Record<string, unknown>)
     .filter(([, v]) => v !== undefined && v !== '')
@@ -908,4 +933,15 @@ export const adminApi = {
     if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => res.statusText));
     return res.blob();
   },
+
+  reports: (params: { limit?: number; offset?: number; status?: ReportStatus } = {}) =>
+    api.get<AdminReportsResponse>(`/admin/reports${qs(params)}`),
+  dismissReport:        (id: string) => api.patch<{ ok: true }>(`/admin/reports/${id}/dismiss`),
+  removeReportedContent: (id: string) => api.patch<{ ok: true }>(`/admin/reports/${id}/remove`),
+};
+
+// ── Content reports (consumer-facing) ───────────────────────────────
+export const reportsApi = {
+  submit: (data: { contentType: ReportContentType; contentId: string; reason: ReportReason; details?: string }) =>
+    api.post<{ ok: true }>('/reports', data),
 };

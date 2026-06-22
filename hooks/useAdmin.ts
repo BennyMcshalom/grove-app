@@ -1,6 +1,6 @@
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi, type AdminUsersQuery, type UserStatus } from '@/lib/api';
+import { adminApi, type AdminUsersQuery, type UserStatus, type ReportStatus } from '@/lib/api';
 
 export function useAdminStats() {
   return useQuery({
@@ -121,6 +121,37 @@ export function useDeleteUser() {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
       qc.invalidateQueries({ queryKey: ['admin-audit-log'] });
       qc.invalidateQueries({ queryKey: ['admin-stats'] });
+    },
+  });
+}
+
+export function useAdminReports(params: { limit?: number; offset?: number; status?: ReportStatus } = {}) {
+  return useQuery({
+    queryKey: ['admin-reports', params],
+    queryFn:  () => adminApi.reports(params),
+  });
+}
+
+function invalidateReports(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['admin-reports'] });
+  qc.invalidateQueries({ queryKey: ['admin-stats'] });
+}
+
+export function useDismissReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.dismissReport(id),
+    onSuccess: () => invalidateReports(qc),
+  });
+}
+
+export function useRemoveReportedContent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.removeReportedContent(id),
+    onSuccess: () => {
+      invalidateReports(qc);
+      qc.invalidateQueries({ queryKey: ['admin-audit-log'] });
     },
   });
 }

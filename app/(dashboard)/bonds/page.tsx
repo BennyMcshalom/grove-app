@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ReportModal } from '@/components/ui/ReportModal';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useBonds, useBondMessages, useSendBondMessage, useUploadVoice } from '@/hooks/useBonds';
@@ -113,6 +114,7 @@ function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, onReply }
   const [localReactions, setLocalReactions] = useState<Record<string, string[]>>(msg.reactions ?? {});
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hovered, setHovered] = useState(false);
+  const [reporting, setReporting] = useState(false);
 
   const myEmoji = Object.entries(localReactions).find(([, users]) => users.includes(myId))?.[0];
   const reactionList = Object.entries(localReactions).filter(([, users]) => users.length > 0);
@@ -319,6 +321,7 @@ function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, onReply }
             {[
               { label: 'Reply', icon: 'back', action: () => { onReply(msg); closeMenu(); } },
               ...(msg.kind !== 'voice' && msg.body ? [{ label: 'Copy', icon: 'copy', action: () => { navigator.clipboard.writeText(msg.body!).catch(() => {}); toast('Copied.'); closeMenu(); } }] : []),
+              ...(!sent ? [{ label: 'Report', icon: 'flag', action: () => { setReporting(true); closeMenu(); } }] : []),
             ].map(item => (
               <button key={item.label} onClick={item.action}
                 style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%',
@@ -332,6 +335,10 @@ function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, onReply }
             ))}
           </div>
         </>
+      )}
+
+      {reporting && (
+        <ReportModal contentType="bond_message" contentId={msg.id} onClose={() => setReporting(false)}/>
       )}
     </>
   );

@@ -10,6 +10,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Waveform } from '@/components/ui/Waveform';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ReportModal } from '@/components/ui/ReportModal';
 import { useUserStore } from '@/store/useUserStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
@@ -88,6 +89,8 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
   const [confirmDel, setConfirm]  = useState(false);
   const [editDoing, setEditDoing] = useState(post.doing);
   const [editHonest, setEditHonest] = useState(post.honest);
+  const [reportingPost, setReportingPost] = useState(false);
+  const [reportingComment, setReportingComment] = useState<string | null>(null);
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
   const isOwn = !!myId && post.userId === myId;
@@ -173,9 +176,13 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
               <div style={{ borderTop: '1px solid var(--border)' }}/>
             </>}
             {menuRow('Save to a Bond', () => { setMenu(false); toast('Saved.'); })}
-            {menuRow('Report', () => { setMenu(false); toast('Thanks — we\'ll take a look.'); }, true)}
+            {menuRow('Report', () => { setMenu(false); setReportingPost(true); }, true)}
           </div>
         </>
+      )}
+
+      {reportingPost && (
+        <ReportModal contentType="post" contentId={postUuid} onClose={() => setReportingPost(false)}/>
       )}
 
       {/* Delete confirmation */}
@@ -258,12 +265,24 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
           {comments.map(c => (
             <div key={c.id} style={{ display: 'flex', gap: '.6rem', marginBottom: '.8rem' }}>
               <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar}/>
-              <div style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: '.8rem' }}>{c.authorName}</div>
-                <div style={{ fontSize: '.86rem', color: 'var(--ink-2)', lineHeight: 1.45 }}>{c.body}</div>
+              <div style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1,
+                display: 'flex', alignItems: 'flex-start', gap: '.5rem' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '.8rem' }}>{c.authorName}</div>
+                  <div style={{ fontSize: '.86rem', color: 'var(--ink-2)', lineHeight: 1.45 }}>{c.body}</div>
+                </div>
+                <button onClick={() => setReportingComment(c.id)} title="Report comment"
+                  style={{ flexShrink: 0, opacity: .5, marginTop: 1 }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '.5')}>
+                  <Icon name="flag" size={12} stroke="var(--ink-4)"/>
+                </button>
               </div>
             </div>
           ))}
+          {reportingComment && (
+            <ReportModal contentType="comment" contentId={reportingComment} onClose={() => setReportingComment(null)}/>
+          )}
           {comments.length === 0 && !addCommentMutation.isPending && (
             <p style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontStyle: 'italic', marginBottom: '.8rem' }}>
               No comments yet. Be the first.
@@ -557,6 +576,8 @@ function JustGrouwCard({ post, myId }: { post: Post; myId?: string }) {
   const { data: fetchedComments }   = usePostComments(showC ? postUuid : undefined);
   const addCommentMutation          = useAddComment(postUuid);
   const comments                    = fetchedComments ?? [];
+  const [reportingPost, setReportingPost] = useState(false);
+  const [reportingComment, setReportingComment] = useState<string | null>(null);
 
   const submitComment = async () => {
     if (!draft.trim() || addCommentMutation.isPending) return;
@@ -621,7 +642,15 @@ function JustGrouwCard({ post, myId }: { post: Post; myId?: string }) {
         <span className="chip" style={{ background: 'var(--ember-dim)', color: 'var(--ember-deep)', fontSize: '.62rem' }}>
           Just Grouw
         </span>
+        <button onClick={() => setReportingPost(true)} title="Report"
+          style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name="flag" size={15} stroke="var(--ink-4)"/>
+        </button>
       </header>
+
+      {reportingPost && (
+        <ReportModal contentType="post" contentId={postUuid} onClose={() => setReportingPost(false)}/>
+      )}
 
       {/* Portrait frame */}
       {post.media && (
@@ -719,12 +748,24 @@ function JustGrouwCard({ post, myId }: { post: Post; myId?: string }) {
           {comments.map(c => (
             <div key={c.id} style={{ display: 'flex', gap: '.6rem', marginBottom: '.8rem' }}>
               <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar}/>
-              <div style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: '.8rem' }}>{c.authorName}</div>
-                <div style={{ fontSize: '.86rem', color: 'var(--ink-2)', lineHeight: 1.45 }}>{c.body}</div>
+              <div style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1,
+                display: 'flex', alignItems: 'flex-start', gap: '.5rem' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '.8rem' }}>{c.authorName}</div>
+                  <div style={{ fontSize: '.86rem', color: 'var(--ink-2)', lineHeight: 1.45 }}>{c.body}</div>
+                </div>
+                <button onClick={() => setReportingComment(c.id)} title="Report comment"
+                  style={{ flexShrink: 0, opacity: .5, marginTop: 1 }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '.5')}>
+                  <Icon name="flag" size={12} stroke="var(--ink-4)"/>
+                </button>
               </div>
             </div>
           ))}
+          {reportingComment && (
+            <ReportModal contentType="comment" contentId={reportingComment} onClose={() => setReportingComment(null)}/>
+          )}
           {comments.length === 0 && !addCommentMutation.isPending && (
             <p style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontStyle: 'italic', marginBottom: '.8rem' }}>
               No comments yet. Be the first.
