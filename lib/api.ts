@@ -868,6 +868,17 @@ export interface AdminSession {
   expiresAt: string;
 }
 
+export interface AdminRelatedAccount {
+  userId: string;
+  email: string | null;
+  status: UserStatus | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  sharedIpCount: number;
+  sessionCount: number;
+  lastSeen: string;
+}
+
 export type ReportContentType = 'post' | 'comment' | 'bond_message' | 'anon_answer';
 export type ReportReason = 'spam' | 'harassment' | 'inappropriate' | 'other';
 export type ReportStatus = 'pending' | 'resolved' | 'dismissed';
@@ -918,6 +929,7 @@ export const adminApi = {
 
   sessions:      (id: string) => api.get<AdminSession[]>(`/admin/users/${id}/sessions`),
   revokeSession: (id: string, sessionId: string) => api.delete<void>(`/admin/users/${id}/sessions/${sessionId}`),
+  relatedAccounts: (id: string) => api.get<AdminRelatedAccount[]>(`/admin/users/${id}/related-accounts`),
 
   spaceStats: () => api.get<AdminSpaceStat[]>('/admin/stats/spaces'),
   waitlist:   (params: { limit?: number; offset?: number } = {}) =>

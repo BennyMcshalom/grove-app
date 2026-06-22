@@ -39,6 +39,14 @@ export function useAdminUser(id: string | undefined) {
   });
 }
 
+export function useRelatedAccounts(id: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-related-accounts', id],
+    queryFn:  () => adminApi.relatedAccounts(id!),
+    enabled:  !!id,
+  });
+}
+
 export function useAdminAuditLog(params: { limit?: number; offset?: number } = {}) {
   return useQuery({
     queryKey: ['admin-audit-log', params],
