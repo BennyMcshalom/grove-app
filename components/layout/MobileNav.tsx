@@ -13,15 +13,19 @@ const NAV = [
   { href: '/settings', icon: 'gear',    label: 'Settings' },
 ];
 
+const ADMIN_ITEM = { href: '/admin', icon: 'shield', label: 'Admin' };
+
 export function MobileNav() {
   const pathname = usePathname();
-  const { isInitialized } = useAuthStore();
+  const { isInitialized, user } = useAuthStore();
+  const isAdmin = user?.roles.includes('admin') ?? false;
   const { data: bondsData } = useBonds();
   const bondCount = bondsData?.length ?? 0;
+  const items = isAdmin ? [...NAV, ADMIN_ITEM] : NAV;
 
   return (
     <nav className="app-mobile-nav">
-      {NAV.map(item => {
+      {items.map(item => {
         const active = pathname.startsWith(item.href)
           || (item.href === '/settings' && pathname.startsWith('/profile'));
         const showBadge = item.href === '/bonds' && isInitialized && bondCount > 0;

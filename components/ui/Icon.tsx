@@ -50,6 +50,7 @@ export function Icon({ name, size = 19, stroke = 'currentColor', sw = 1.7 }: Ico
     case 'wave':       return <svg {...p}><path d="M7.5 7.5c.83-1.17 1.83-1.5 3-1.5 1.8 0 3 1.2 3 3 0 1.35-.56 2.37-2.2 4.2C9.5 15.2 8 18 8 18M14 13c.83-1.17 1.83-1.5 3-1.5 1.8 0 3 1.2 3 3 0 2.5-2 5.5-5 5.5M4 7.5C4.83 6.33 5.83 6 7 6"/><path d="M4 11.5c0-1.2.5-2 1.5-2.5"/></svg>;
     case 'map':        return <svg {...p}><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>;
     case 'strong':     return <svg {...p}><path d="M14.5 9.5 12 12l-2.5-2.5"/><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/><circle cx="12" cy="12" r="9"/></svg>;
+    case 'shield':     return <svg {...p}><path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>;
     // Group icons
     case 'group-founders':  return <svg {...p}><path d="M12 2 9.5 8.5 3 9.3l5 4.8-1.5 6.7L12 17l5.5 3.8-1.5-6.7 5-4.8-6.5-.8L12 2z"/></svg>;
     case 'group-relocate':  return <svg {...p}><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M8 14h.01M12 14h4"/></svg>;

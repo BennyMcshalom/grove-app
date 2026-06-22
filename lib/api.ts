@@ -772,3 +772,99 @@ export const subscriptionsApi = {
   portal: (returnUrl?: string) =>
     api.post<{ url: string }>('/subscriptions/portal', returnUrl ? { returnUrl } : {}),
 };
+
+// ── Admin ─────────────────────────────────────────────────────────
+export interface AdminStats {
+  members: number;
+  verifiedEmails: number;
+  waitlist: number;
+  activeBonds: number;
+  activeCircles: number;
+  postsLast24h: number;
+  postsLast7d: number;
+  signupsToday: number;
+  signupsThisWeek: number;
+  activeSubscriptions: number;
+  trialingSubscriptions: number;
+}
+
+export interface AdminSeriesPoint { date: string; count: number; }
+
+export type UserStatus = 'active' | 'suspended' | 'banned';
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  googleId: string | null;
+  emailVerifiedAt: string | null;
+  status: UserStatus;
+  statusReason: string | null;
+  statusChangedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  roles: string[];
+  subscriptionStatus: string | null;
+}
+
+export interface AdminUsersResponse { total: number; users: AdminUserRow[]; }
+
+export interface AdminUserDetail {
+  user: Omit<AdminUserRow, 'displayName' | 'avatarUrl' | 'roles' | 'subscriptionStatus'>;
+  profile: { displayName: string; avatarUrl: string | null; bio: string | null } | null;
+  roles: string[];
+  subscription: SubscriptionRecord | null;
+  bondCount: number;
+  spaceCount: number;
+  recentAudit: AdminAuditEntry[];
+}
+
+export interface AdminAuditEntry {
+  id: string;
+  adminId: string;
+  adminName?: string;
+  targetUserId: string | null;
+  targetEmail: string | null;
+  action: 'suspend' | 'unsuspend' | 'ban' | 'unban' | 'grant_admin' | 'revoke_admin' | 'verify_email' | 'delete_user';
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface AdminAuditLogResponse { total: number; entries: AdminAuditEntry[]; }
+
+export interface AdminUsersQuery {
+  limit?: number;
+  offset?: number;
+  q?: string;
+  status?: UserStatus;
+  role?: 'admin' | 'user';
+}
+
+function qs<T extends object>(params: T): string {
+  const parts = Object.entries(params as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`);
+  return parts.length ? `?${parts.join('&')}` : '';
+}
+
+export const adminApi = {
+  stats:    () => api.get<AdminStats>('/admin/stats'),
+  signups:  (days = 30) => api.get<AdminSeriesPoint[]>(`/admin/stats/signups${qs({ days })}`),
+  activity: (days = 30) => api.get<AdminSeriesPoint[]>(`/admin/stats/activity${qs({ days })}`),
+
+  users:    (params: AdminUsersQuery = {}) =>
+    api.get<AdminUsersResponse>(`/admin/users${qs(params)}`),
+  user:     (id: string) => api.get<AdminUserDetail>(`/admin/users/${id}`),
+
+  setStatus: (id: string, status: UserStatus, reason?: string) =>
+    api.patch<{ ok: true }>(`/admin/users/${id}/status`, { status, reason }),
+  setRole:   (id: string, role: 'admin' | 'user') =>
+    api.patch<{ ok: true }>(`/admin/users/${id}/role`, { role }),
+  verifyEmail: (id: string) =>
+    api.post<{ ok: true }>(`/admin/users/${id}/verify-email`),
+  deleteUser:  (id: string) => api.delete<void>(`/admin/users/${id}`),
+
+  auditLog: (params: { limit?: number; offset?: number } = {}) =>
+    api.get<AdminAuditLogResponse>(`/admin/audit-log${qs(params)}`),
+};

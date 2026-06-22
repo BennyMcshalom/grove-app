@@ -16,7 +16,8 @@ export function Sidebar() {
   const { user } = useUserStore();
   const theme = useTheme();
   const isDark = theme === 'dark';
-  const { isInitialized } = useAuthStore();
+  const { isInitialized, user: authUser } = useAuthStore();
+  const isAdmin = authUser?.roles.includes('admin') ?? false;
   const { data: bondsData } = useBonds();
   const bondCount = bondsData?.length ?? 0;
 
@@ -80,6 +81,21 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {isAdmin && (
+          <>
+            <div style={{ height: 1, background: 'var(--border)', margin: '.5rem .7rem' }}/>
+            <Link href="/admin" style={{ display: 'flex', alignItems: 'center', gap: '.75rem', padding: '.62rem .7rem',
+              borderRadius: 'var(--r-md)', fontSize: '.9rem', fontWeight: 500, textDecoration: 'none',
+              color: pathname.startsWith('/admin') ? 'var(--ember)' : 'var(--ink-2)',
+              background: pathname.startsWith('/admin') ? 'var(--ember-dim)' : 'transparent', transition: 'background .15s, color .15s' }}
+              onMouseEnter={e => { if (!pathname.startsWith('/admin')) (e.currentTarget as HTMLElement).style.background = 'var(--surf-low)'; }}
+              onMouseLeave={e => { if (!pathname.startsWith('/admin')) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+              <Icon name="shield" stroke={pathname.startsWith('/admin') ? 'var(--ember)' : 'var(--ink-3)'}/>
+              <span style={{ whiteSpace: 'nowrap' }}>Admin</span>
+            </Link>
+          </>
+        )}
       </nav>
 
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '.7rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
