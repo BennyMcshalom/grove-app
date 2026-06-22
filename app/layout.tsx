@@ -34,8 +34,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${figtree.variable} ${outfit.variable} ${dmMono.variable}`}>
       <head>
-        {/* Runs before React hydrates — prevents theme flash and follows system preference */}
-        <script dangerouslySetInnerHTML={{ __html: `
+        <script dangerouslySetInnerHTML={{
+          __html: `
           try {
             var stored = localStorage.getItem('grove-theme');
             var t = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             // If no stored value, keep following system (don't set grove-theme-manual)
             if (!stored) localStorage.setItem('grove-theme', t);
           } catch(e) {}
-        `}}/>
+        `}} />
       </head>
       <body>
         <Providers>{children}</Providers>
