@@ -46,6 +46,36 @@ export function useAdminAuditLog(params: { limit?: number; offset?: number } = {
   });
 }
 
+export function useAdminSpaceStats() {
+  return useQuery({
+    queryKey: ['admin-space-stats'],
+    queryFn:  adminApi.spaceStats,
+  });
+}
+
+export function useAdminWaitlist(params: { limit?: number; offset?: number } = {}) {
+  return useQuery({
+    queryKey: ['admin-waitlist', params],
+    queryFn:  () => adminApi.waitlist(params),
+  });
+}
+
+export function useAdminSessions(id: string | undefined) {
+  return useQuery({
+    queryKey: ['admin-sessions', id],
+    queryFn:  () => adminApi.sessions(id!),
+    enabled:  !!id,
+  });
+}
+
+export function useRevokeSession(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => adminApi.revokeSession(id, sessionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-sessions', id] }),
+  });
+}
+
 export function useSetUserStatus(id: string) {
   const qc = useQueryClient();
   return useMutation({

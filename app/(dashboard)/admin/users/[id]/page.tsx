@@ -9,6 +9,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
   useAdminUser, useSetUserStatus, useSetUserRole, useVerifyUserEmail, useDeleteUser,
+  useAdminSessions, useRevokeSession,
 } from '@/hooks/useAdmin';
 import { ApiError, type UserStatus } from '@/lib/api';
 
@@ -18,11 +19,34 @@ const STATUS_COLOR: Record<UserStatus, string> = {
 const STATUS_BG: Record<UserStatus, string> = {
   active: 'var(--green-dim)', suspended: 'var(--amber-dim)', banned: 'var(--red-dim)',
 };
+const STATUS_GRADIENT: Record<UserStatus, string> = {
+  active: 'linear-gradient(160deg, var(--white), var(--green-dim))',
+  suspended: 'linear-gradient(160deg, var(--white), var(--amber-dim))',
+  banned: 'linear-gradient(160deg, var(--white), var(--red-dim))',
+};
 const ACTION_LABEL: Record<string, string> = {
   suspend: 'Suspended', unsuspend: 'Reactivated', ban: 'Banned', unban: 'Reactivated',
   grant_admin: 'Granted admin', revoke_admin: 'Revoked admin',
   verify_email: 'Force-verified email', delete_user: 'Deleted account',
 };
+
+function friendlyDevice(ua: string | null): string {
+  if (!ua) return 'Unknown device';
+  const os = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android'
+    : /Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : 'an unknown OS';
+  const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome'
+    : /Safari\//.test(ua) && !/Chrome/.test(ua) ? 'Safari' : /Firefox\//.test(ua) ? 'Firefox' : 'a browser';
+  return `${browser} on ${os}`;
+}
+
+function timeAgo(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 export default function AdminUserDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -32,10 +56,12 @@ export default function AdminUserDetailPage() {
   const isSelf = me?.id === id;
 
   const { data, isLoading } = useAdminUser(id);
+  const { data: sessions, isLoading: sessionsLoading } = useAdminSessions(isSelf ? undefined : id);
   const setStatus = useSetUserStatus(id);
   const setRole = useSetUserRole(id);
   const verifyEmail = useVerifyUserEmail(id);
   const deleteUser = useDeleteUser();
+  const revokeSession = useRevokeSession(id);
 
   const [pendingStatus, setPendingStatus] = useState<UserStatus | null>(null);
   const [reason, setReason] = useState('');
@@ -86,6 +112,15 @@ export default function AdminUserDetailPage() {
     }
   }
 
+  async function handleRevokeSession(sessionId: string) {
+    try {
+      await revokeSession.mutateAsync(sessionId);
+      toast('Device logged out.');
+    } catch {
+      toast('Could not log out that device.');
+    }
+  }
+
   async function handleDelete() {
     if (delConfirm !== 'DELETE') return;
     setDeleting(true);
@@ -108,19 +143,20 @@ export default function AdminUserDetailPage() {
         </button>
 
         {/* ── Header ── */}
-        <div className="card" style={{ padding: '1.3rem 1.4rem', marginBottom: '1.1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <Avatar name={profile?.displayName ?? user.email} size={56} avatarUrl={profile?.avatarUrl}/>
+        <div className="card rise" style={{ padding: '1.4rem 1.5rem', marginBottom: '1.1rem', display: 'flex', gap: '1.1rem',
+          alignItems: 'center', background: STATUS_GRADIENT[user.status] }}>
+          <Avatar name={profile?.displayName ?? user.email} size={60} avatarUrl={profile?.avatarUrl}/>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
-              <span className="serif" style={{ fontSize: '1.25rem', fontWeight: 600 }}>{profile?.displayName ?? 'Unnamed'}</span>
-              <span className="chip" style={{ background: STATUS_BG[user.status], color: STATUS_COLOR[user.status], fontSize: '.66rem', textTransform: 'capitalize' }}>
+              <span className="serif" style={{ fontSize: '1.3rem', fontWeight: 600 }}>{profile?.displayName ?? 'Unnamed'}</span>
+              <span className="chip" style={{ background: '#fff', boxShadow: 'var(--shadow-soft)', color: STATUS_COLOR[user.status], fontSize: '.66rem', textTransform: 'capitalize', fontWeight: 600 }}>
                 {user.status}
               </span>
-              {isAdminUser && <span className="chip" style={{ background: 'var(--slate-dim)', color: 'var(--slate)', fontSize: '.66rem' }}>Admin</span>}
-              {isSelf && <span className="chip" style={{ background: 'var(--surf-high)', color: 'var(--ink-3)', fontSize: '.66rem' }}>You</span>}
+              {isAdminUser && <span className="chip" style={{ background: '#fff', boxShadow: 'var(--shadow-soft)', color: 'var(--slate)', fontSize: '.66rem', fontWeight: 600 }}>Admin</span>}
+              {isSelf && <span className="chip" style={{ background: '#fff', boxShadow: 'var(--shadow-soft)', color: 'var(--ink-3)', fontSize: '.66rem' }}>You</span>}
             </div>
-            <div style={{ fontSize: '.82rem', color: 'var(--ink-3)', marginTop: '.2rem' }}>{user.email}</div>
-            <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.2rem', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+            <div style={{ fontSize: '.84rem', color: 'var(--ink-2)', marginTop: '.25rem' }}>{user.email}</div>
+            <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.25rem', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
               Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               {!user.emailVerifiedAt && ' · Email unverified'}
             </div>
@@ -156,14 +192,18 @@ export default function AdminUserDetailPage() {
           <>
             {/* ── Status ── */}
             <div className="card" style={{ padding: '1.2rem 1.3rem', marginBottom: '1.1rem' }}>
-              <div className="label-mono" style={{ marginBottom: '.8rem' }}>Account status</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.8rem' }}>
+                <Icon name="shield" size={14} stroke="var(--ink-3)"/>
+                <div className="label-mono">Account status</div>
+              </div>
               <div style={{ display: 'flex', gap: '.5rem', marginBottom: pendingStatus && pendingStatus !== user.status ? '.9rem' : 0 }}>
                 {(['active', 'suspended', 'banned'] as const).map(s => (
                   <button key={s} onClick={() => setPendingStatus(s)} className="chip"
                     style={{ cursor: 'pointer', flex: 1, justifyContent: 'center', padding: '.5rem', fontWeight: 600, textTransform: 'capitalize',
                       background: (pendingStatus ?? user.status) === s ? STATUS_BG[s] : 'var(--surf-high)',
                       color: (pendingStatus ?? user.status) === s ? STATUS_COLOR[s] : 'var(--ink-3)',
-                      border: user.status === s ? `1.5px solid ${STATUS_COLOR[s]}` : '1.5px solid transparent' }}>
+                      border: user.status === s ? `1.5px solid ${STATUS_COLOR[s]}` : '1.5px solid transparent',
+                      transition: 'all .15s' }}>
                     {s}
                   </button>
                 ))}
@@ -203,7 +243,10 @@ export default function AdminUserDetailPage() {
             {/* ── Role ── */}
             <div className="card" style={{ padding: '1.2rem 1.3rem', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
               <div>
-                <div className="label-mono" style={{ marginBottom: '.3rem' }}>Admin access</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.3rem' }}>
+                  <Icon name="lock" size={13} stroke="var(--ink-3)"/>
+                  <div className="label-mono">Admin access</div>
+                </div>
                 <p style={{ fontSize: '.82rem', color: 'var(--ink-3)' }}>
                   {isAdminUser ? 'Can see and use the Admin dashboard.' : 'Regular member — no admin access.'}
                 </p>
@@ -218,7 +261,10 @@ export default function AdminUserDetailPage() {
             {!user.emailVerifiedAt && (
               <div className="card" style={{ padding: '1.2rem 1.3rem', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                 <div>
-                  <div className="label-mono" style={{ marginBottom: '.3rem' }}>Email unverified</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.3rem' }}>
+                    <Icon name="envelope" size={13} stroke="var(--ink-3)"/>
+                    <div className="label-mono">Email unverified</div>
+                  </div>
                   <p style={{ fontSize: '.82rem', color: 'var(--ink-3)' }}>Skip the verification email and mark it verified directly.</p>
                 </div>
                 <button disabled={verifyEmail.isPending} onClick={handleVerify} className="btn btn-soft" style={{ fontSize: '.82rem', flexShrink: 0 }}>
@@ -226,6 +272,34 @@ export default function AdminUserDetailPage() {
                 </button>
               </div>
             )}
+
+            {/* ── Sessions ── */}
+            <div className="card" style={{ padding: '1.2rem 1.3rem', marginBottom: '1.1rem' }}>
+              <div className="label-mono" style={{ marginBottom: '.8rem' }}>Active sessions</div>
+              {sessionsLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}><Spinner size={16}/></div>
+              ) : !sessions?.length ? (
+                <p style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>No active sessions.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+                  {sessions.map(s => (
+                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.65rem .8rem',
+                      borderRadius: 'var(--r-sm)', background: 'var(--surf-low)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '.82rem', fontWeight: 500 }}>{friendlyDevice(s.userAgent)}</div>
+                        <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', marginTop: '.1rem' }}>
+                          {s.ip ?? 'Unknown IP'} · started {timeAgo(s.createdAt)}
+                        </div>
+                      </div>
+                      <button onClick={() => handleRevokeSession(s.id)} disabled={revokeSession.isPending}
+                        className="btn btn-soft" style={{ fontSize: '.74rem', padding: '.35rem .75rem', flexShrink: 0 }}>
+                        Log out
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* ── Danger zone ── */}
             <div className="card" style={{ padding: '1.2rem 1.5rem', marginBottom: '1.1rem', border: '1px solid var(--red-bdr)' }}>

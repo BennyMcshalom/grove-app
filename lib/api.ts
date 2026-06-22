@@ -841,6 +841,32 @@ export interface AdminUsersQuery {
   role?: 'admin' | 'user';
 }
 
+export interface AdminSpaceStat {
+  id: string;
+  name: string;
+  slug: string;
+  colorHex: string;
+  memberCount: number;
+  postCount: number;
+}
+
+export interface AdminWaitlistEntry {
+  id: string;
+  email: string;
+  stageInterest: string | null;
+  joinedAt: string;
+}
+
+export interface AdminWaitlistResponse { total: number; entries: AdminWaitlistEntry[]; }
+
+export interface AdminSession {
+  id: string;
+  userAgent: string | null;
+  ip: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
 function qs<T extends object>(params: T): string {
   const parts = Object.entries(params as Record<string, unknown>)
     .filter(([, v]) => v !== undefined && v !== '')
@@ -865,6 +891,21 @@ export const adminApi = {
     api.post<{ ok: true }>(`/admin/users/${id}/verify-email`),
   deleteUser:  (id: string) => api.delete<void>(`/admin/users/${id}`),
 
+  sessions:      (id: string) => api.get<AdminSession[]>(`/admin/users/${id}/sessions`),
+  revokeSession: (id: string, sessionId: string) => api.delete<void>(`/admin/users/${id}/sessions/${sessionId}`),
+
+  spaceStats: () => api.get<AdminSpaceStat[]>('/admin/stats/spaces'),
+  waitlist:   (params: { limit?: number; offset?: number } = {}) =>
+    api.get<AdminWaitlistResponse>(`/admin/waitlist${qs(params)}`),
+
   auditLog: (params: { limit?: number; offset?: number } = {}) =>
     api.get<AdminAuditLogResponse>(`/admin/audit-log${qs(params)}`),
+
+  // CSV export streams a file, not JSON — raw fetch so we can hand the
+  // response a Blob URL instead of parsing it.
+  exportUsersCsv: async (params: Omit<AdminUsersQuery, 'limit' | 'offset'> = {}): Promise<Blob> => {
+    const res = await fetch(`${BASE}/admin/users/export${qs(params)}`, { credentials: 'include' });
+    if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => res.statusText));
+    return res.blob();
+  },
 };
