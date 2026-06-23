@@ -82,17 +82,19 @@ export default function GrovePage() {
     staleTime: 5 * 60_000,
   });
 
-  const primarySpaceSlug = grove?.activeSpaces?.[0]?.space?.slug ?? null;
-  const { data: logEntries = [] } = useQuery({
-    queryKey: ['grove-log', userId, primarySpaceSlug],
-    queryFn:  () => logApi.myEntries(primarySpaceSlug!),
-    enabled:  !!primarySpaceSlug,
+  const primarySpaceId = grove?.activeSpaces?.[0]?.spaceId ?? null;
+  const { data: logResult } = useQuery({
+    queryKey: ['grove-log', userId, primarySpaceId],
+    queryFn:  () => logApi.userEntries(primarySpaceId!, userId),
+    enabled:  !!primarySpaceId,
     staleTime: 5 * 60_000,
   });
+  const logEntries = logResult?.entries ?? [];
+  const logVisible = logResult?.visible ?? true;
 
   const inviteToBond = useInviteToBond();
   const phase = nowPhase();
-  const STAGE = 540, C = STAGE / 2;
+  const STAGE = 540;
 
   const name      = grove?.profile?.displayName ?? '';
   const firstName = name.split(' ')[0] || '…';
@@ -120,40 +122,42 @@ export default function GrovePage() {
   }
 
   return (
-    <div className="scroll" style={{ height: '100vh', width: '100vw', overflowY: 'auto',
+    <div className="scroll" style={{ height: '100vh', width: '100vw', overflowY: 'auto', overflowX: 'hidden',
       background: 'radial-gradient(circle at 50% 38%, #FBF8F3, var(--bg) 70%)' }}>
 
       {/* Top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.2rem 1.6rem' }}>
-        <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '.4rem', color: 'var(--ink-3)', fontSize: '.9rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.6rem', padding: '1.2rem clamp(1rem, 4vw, 1.6rem)' }}>
+        <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '.4rem', color: 'var(--ink-3)', fontSize: '.9rem', flexShrink: 0 }}>
           <Icon name="back" size={18} stroke="var(--ink-3)"/> Back
         </button>
-        <div className="label-mono" style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+        <div className="label-mono" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem',
+          flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {isLoading ? <Spinner size={12}/> : (
             <><span>You're inside</span> <span style={{ color: 'var(--ember)', fontWeight: 600 }}>{firstName}'s Grouw</span></>
           )}
         </div>
         <button onClick={() => setShowOverlap(s => !s)} className="chip"
-          style={{ cursor: 'pointer', background: showOverlap ? 'var(--ember-dim)' : 'var(--surf-high)', color: showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)' }}>
+          style={{ cursor: 'pointer', flexShrink: 0, background: showOverlap ? 'var(--ember-dim)' : 'var(--surf-high)', color: showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)' }}>
           <Icon name="dots" size={14} stroke={showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)'} sw={2}/> Overlap
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '1.5rem', maxWidth: 1100, margin: '0 auto', padding: '0 1.6rem 3rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '1.5rem', maxWidth: 1100, margin: '0 auto', padding: '0 clamp(1rem, 4vw, 1.6rem) 3rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
         {/* Orbit stage */}
         <div style={{ flex: '1 1 540px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ position: 'relative', width: STAGE, height: STAGE, maxWidth: '92vw' }}>
+          <div className="grove-orbit-stage" style={{ position: 'relative', width: STAGE, maxWidth: '92vw', aspectRatio: '1' }}>
 
-            {/* Rings */}
+            {/* Rings — sized as % of the container so they scale with maxWidth/aspectRatio on mobile,
+                instead of a fixed pixel diameter that ignored the responsive container size. */}
             {[...RINGS].reverse().map(ring => {
-              const d = STAGE * ring.r * 2;
+              const dPct = ring.r * 200; // diameter as % of container
               const on = active === ring.key;
               const hov = hover === ring.key;
               return (
                 <div key={ring.key} onClick={() => setActive(on ? null : ring.key)}
                   onMouseEnter={() => setHover(ring.key)} onMouseLeave={() => setHover(null)}
-                  style={{ position: 'absolute', left: '50%', top: '50%', width: d, height: d, transform: 'translate(-50%,-50%)',
+                  style={{ position: 'absolute', left: '50%', top: '50%', width: `${dPct}%`, height: `${dPct}%`, transform: 'translate(-50%,-50%)',
                     borderRadius: '50%', border: `2px solid ${ring.color}`, opacity: on || hov ? 1 : .5, cursor: 'pointer',
                     boxShadow: on ? `0 0 26px -2px ${ring.color}99, inset 0 0 26px -6px ${ring.color}66` : 'none',
                     background: hov && !on ? `radial-gradient(circle, transparent 60%, ${ring.color}14)` : 'transparent',
@@ -167,15 +171,16 @@ export default function GrovePage() {
               );
             })}
 
-            {/* Orbiting spaces */}
+            {/* Orbiting spaces — positioned with %-based coordinates (also fixes the
+                same fixed-pixel-vs-responsive-container mismatch as the rings above) */}
             <div style={{ position: 'absolute', inset: 0, animation: 'orbit 48s linear infinite', pointerEvents: 'none' }}>
               {uniqueSpaceIds.map((id, i) => {
                 const ang = (i / uniqueSpaceIds.length) * Math.PI * 2 - Math.PI / 2;
-                const rr = STAGE * 0.70;
-                const x = C + Math.cos(ang) * rr, y = C + Math.sin(ang) * rr;
+                const rrPct = 70; // matches the outer ring's r=0.70
+                const xPct = 50 + Math.cos(ang) * rrPct, yPct = 50 + Math.sin(ang) * rrPct;
                 const s = spaceById(id);
                 return (
-                  <div key={id} style={{ position: 'absolute', left: x, top: y, transform: 'translate(-50%,-50%)', animation: 'orbitR 48s linear infinite' }}>
+                  <div key={id} style={{ position: 'absolute', left: `${xPct}%`, top: `${yPct}%`, transform: 'translate(-50%,-50%)', animation: 'orbitR 48s linear infinite' }}>
                     <div style={{ width: 44, height: 44, borderRadius: '50%', background: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow)', animation: 'groveFloat 4s ease-in-out infinite' }}>
                       <Icon name={s.icon} size={20} stroke={s.ink} sw={1.6}/>
                     </div>
@@ -209,7 +214,7 @@ export default function GrovePage() {
                   <span style={{ fontSize: '.72rem', color: 'var(--ink-3)' }}>Now</span>
                   <input type="range" min="0" max={closedChapters.length - 1} value={ci}
                     onChange={e => { setCi(+e.target.value); setActive(null); }}
-                    style={{ width: 240, accentColor: 'var(--ember)' }}/>
+                    style={{ width: 'min(240px, 60vw)', accentColor: 'var(--ember)' }}/>
                   <span style={{ fontSize: '.72rem', color: 'var(--ink-3)' }}>Earlier</span>
                 </div>
                 {chapter && (
@@ -224,7 +229,7 @@ export default function GrovePage() {
         </div>
 
         {/* Right column */}
-        <div style={{ flex: '1 1 300px', minWidth: 280, maxWidth: 380, display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '.5rem' }}>
+        <div style={{ flex: '1 1 300px', minWidth: 'min(280px, 100%)', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '.5rem' }}>
 
           <div className="card" style={{ padding: '1.3rem 1.4rem' }}>
             {isLoading ? (
@@ -327,7 +332,11 @@ export default function GrovePage() {
               </div>
             ) : (
               <p style={{ fontSize: '.83rem', color: 'var(--ink-4)', fontStyle: 'italic', marginBottom: '.7rem' }}>
-                {isLoading ? 'Loading…' : `${firstName} hasn't posted any log entries yet.`}
+                {isLoading
+                  ? 'Loading…'
+                  : !logVisible
+                    ? `${firstName}'s Grouw Log is private.`
+                    : `${firstName} hasn't posted any log entries yet.`}
               </p>
             )}
             <button onClick={() => setViewLog(true)} disabled={logForViewer.length === 0}

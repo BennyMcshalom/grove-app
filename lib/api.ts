@@ -699,9 +699,18 @@ export interface CircleLogUser {
   entries: LogEntry[];
 }
 
+export interface UserLogResponse {
+  visible: boolean;
+  entries: LogEntry[];
+}
+
 export const logApi = {
   myEntries: (spaceId: string) =>
     api.get<LogEntry[]>(`/log/${spaceId}`),
+
+  // Someone else's entries for a space — respects their visibility setting.
+  userEntries: (spaceId: string, userId: string) =>
+    api.get<UserLogResponse>(`/log/${spaceId}/user/${userId}`),
 
   addEntry: (spaceId: string, data: { body: string; mediaUrl?: string; mediaType?: string }) =>
     api.post<LogEntry>(`/log/${spaceId}`, data),

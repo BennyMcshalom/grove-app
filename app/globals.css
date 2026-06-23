@@ -565,6 +565,18 @@ textarea:focus {
   }
 }
 
+/* ── Grove profile orbit (the rings/avatar diagram) ── */
+@media (max-width: 600px) {
+  .grove-orbit-stage {
+    transform: scale(.88);
+  }
+}
+@media (max-width: 400px) {
+  .grove-orbit-stage {
+    transform: scale(.74);
+  }
+}
+
 /* ── Two-up content grids (stats, log reveals) ── */
 @media (max-width: 560px) {
   .grid-2-mobile-stack {
