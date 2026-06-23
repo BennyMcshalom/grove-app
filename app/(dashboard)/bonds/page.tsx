@@ -697,13 +697,13 @@ export default function BondsPage() {
         </RPSection>
       )}
 
-      <RPSection label="People in your spaces">
+      <RPSection label="Suggested for you">
         {suggestions && suggestions.length > 0 ? suggestions.slice(0, 5).map(s => (
           <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '.6rem', padding: '.5rem 0' }}>
             <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl}/>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 500, fontSize: '.84rem' }}>{s.displayName}</div>
-              {s.openTo && <div style={{ fontSize: '.72rem', color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.openTo}</div>}
+              <div style={{ fontSize: '.7rem', color: 'var(--ember)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.reason}</div>
             </div>
             <button disabled={invited.includes(s.id) || inviteToBond.isPending}
               onClick={async () => {

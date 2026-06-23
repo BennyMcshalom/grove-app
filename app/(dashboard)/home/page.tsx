@@ -18,6 +18,7 @@ import { usePosts, useCreatePost, useReactToPost, usePostComments, useAddComment
 import { useQuery } from '@tanstack/react-query';
 import { spacesApi } from '@/lib/api';
 import { useSuggestions } from '@/hooks/useUsers';
+import { useInviteToBond } from '@/hooks/useBondInvitations';
 import { useBonds } from '@/hooks/useBonds';
 import { useGroups } from '@/hooks/useGroups';
 import { PROGRESS, spaceById, auraFor, groupIcon } from '@/lib/data';
@@ -908,6 +909,8 @@ export default function HomePage() {
   const { data: bondsData } = useBonds();
   const { data: groupsData } = useGroups();
   const { data: suggestions } = useSuggestions();
+  const inviteToBond = useInviteToBond();
+  const [invited, setInvited] = useState<string[]>([]);
   const createPost = useCreatePost();
   const reactToPost = useReactToPost();
 
@@ -919,19 +922,28 @@ export default function HomePage() {
 
   const right = (
     <>
-      <RPSection label="In your chapters">
+      <RPSection label="Suggested for you" action="View all →" onAction={() => router.push('/bonds')}>
         {suggestions && suggestions.length > 0 ? (
           suggestions.slice(0, 4).map(s => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.5rem .4rem' }}>
               <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl}/>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 500, fontSize: '.86rem' }}>{s.displayName}</div>
-                {s.openTo && (
-                  <div style={{ fontSize: '.72rem', color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {s.openTo}
-                  </div>
-                )}
+                <div style={{ fontSize: '.7rem', color: 'var(--ember)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.reason}
+                </div>
               </div>
+              <button disabled={invited.includes(s.id) || inviteToBond.isPending}
+                onClick={async () => {
+                  try {
+                    await inviteToBond.mutateAsync({ recipientId: s.id });
+                    setInvited(v => [...v, s.id]);
+                    toast(`Bond invitation sent to ${s.displayName.split(' ')[0]}.`);
+                  } catch { toast('Could not send.'); }
+                }}
+                className="btn btn-ghost" style={{ padding: '.3rem .7rem', fontSize: '.72rem', flexShrink: 0 }}>
+                {invited.includes(s.id) ? 'Sent' : 'Bond'}
+              </button>
             </div>
           ))
         ) : (

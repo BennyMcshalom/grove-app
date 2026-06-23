@@ -501,6 +501,7 @@ export interface Suggestion {
   avatarUrl: string | null;
   honestTension: string | null;
   openTo: string | null;
+  reason: string;
 }
 
 export interface BondInvitation {
