@@ -18,7 +18,7 @@ import { usePosts, useCreatePost, useReactToPost, usePostComments, useAddComment
 import { useQuery } from '@tanstack/react-query';
 import { spacesApi } from '@/lib/api';
 import { useSuggestions } from '@/hooks/useUsers';
-import { useInviteToBond } from '@/hooks/useBondInvitations';
+import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useBonds } from '@/hooks/useBonds';
 import { useGroups } from '@/hooks/useGroups';
 import { PROGRESS, spaceById, auraFor, groupIcon } from '@/lib/data';
@@ -911,6 +911,8 @@ export default function HomePage() {
   const { data: suggestions } = useSuggestions();
   const inviteToBond = useInviteToBond();
   const [invited, setInvited] = useState<string[]>([]);
+  const { data: sentInvitations } = useSentBondInvitations();
+  const sentIds = new Set((sentInvitations ?? []).filter(i => i.status === 'pending').map(i => i.toUserId));
   const createPost = useCreatePost();
   const reactToPost = useReactToPost();
 
@@ -933,7 +935,7 @@ export default function HomePage() {
                   {s.reason}
                 </div>
               </div>
-              <button disabled={invited.includes(s.id) || inviteToBond.isPending}
+              <button disabled={invited.includes(s.id) || sentIds.has(s.id) || inviteToBond.isPending}
                 onClick={async () => {
                   try {
                     await inviteToBond.mutateAsync({ recipientId: s.id });
@@ -942,7 +944,7 @@ export default function HomePage() {
                   } catch { toast('Could not send.'); }
                 }}
                 className="btn btn-ghost" style={{ padding: '.3rem .7rem', fontSize: '.72rem', flexShrink: 0 }}>
-                {invited.includes(s.id) ? 'Sent' : 'Bond'}
+                {invited.includes(s.id) || sentIds.has(s.id) ? 'Sent' : 'Bond'}
               </button>
             </div>
           ))

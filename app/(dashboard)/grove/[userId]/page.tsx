@@ -9,7 +9,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { AURAS, nowPhase, PHASE, auraFor, spaceById } from '@/lib/data';
 import { useToastStore } from '@/store/useToastStore';
 import { groveApi, logApi } from '@/lib/api';
-import { useInviteToBond } from '@/hooks/useBondInvitations';
+import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useQuery } from '@tanstack/react-query';
 import type { AuraKey } from '@/lib/types';
 
@@ -71,7 +71,7 @@ export default function GrovePage() {
   const [active, setActive] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [showOverlap, setShowOverlap] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [sentLocal, setSent] = useState(false);
   const [viewLog, setViewLog] = useState(false);
   const [ambience, setAmbience] = useState(false);
   const [ci, setCi] = useState(0);
@@ -93,6 +93,9 @@ export default function GrovePage() {
   const logVisible = logResult?.visible ?? true;
 
   const inviteToBond = useInviteToBond();
+  const { data: sentInvitations } = useSentBondInvitations();
+  const alreadySent = sentInvitations?.some(i => i.toUserId === userId && i.status === 'pending') ?? false;
+  const sent = sentLocal || alreadySent;
   const phase = nowPhase();
   const STAGE = 540;
 

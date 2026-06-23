@@ -11,7 +11,7 @@ import { ReportModal } from '@/components/ui/ReportModal';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useBonds, useBondMessages, useSendBondMessage, useUploadVoice } from '@/hooks/useBonds';
-import { useBondInvitations, useAcceptBondInvitation, useDeclineBondInvitation, useInviteToBond } from '@/hooks/useBondInvitations';
+import { useBondInvitations, useAcceptBondInvitation, useDeclineBondInvitation, useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useSuggestions } from '@/hooks/useUsers';
 import { bondsApi } from '@/lib/api';
 import type { BondRecord, BondMessage } from '@/lib/api';
@@ -657,6 +657,8 @@ export default function BondsPage() {
   const declineInv = useDeclineBondInvitation();
   const inviteToBond = useInviteToBond();
   const [invited, setInvited] = useState<string[]>([]);
+  const { data: sentInvitations } = useSentBondInvitations();
+  const sentIds = new Set((sentInvitations ?? []).filter(i => i.status === 'pending').map(i => i.toUserId));
 
   const allConnections = bondsData ?? [];
   const realBonds = allConnections.filter(b => b.status === 'bond');
@@ -705,13 +707,13 @@ export default function BondsPage() {
               <div style={{ fontWeight: 500, fontSize: '.84rem' }}>{s.displayName}</div>
               <div style={{ fontSize: '.7rem', color: 'var(--ember)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.reason}</div>
             </div>
-            <button disabled={invited.includes(s.id) || inviteToBond.isPending}
+            <button disabled={invited.includes(s.id) || sentIds.has(s.id) || inviteToBond.isPending}
               onClick={async () => {
                 try { await inviteToBond.mutateAsync({ recipientId: s.id }); setInvited(v => [...v, s.id]); toast(`Bond invitation sent to ${s.displayName.split(' ')[0]}.`); }
                 catch { toast('Could not send.'); }
               }}
               className="btn btn-ghost" style={{ padding: '.35rem .75rem', fontSize: '.76rem', flexShrink: 0 }}>
-              {invited.includes(s.id) ? 'Sent' : 'Bond'}
+              {invited.includes(s.id) || sentIds.has(s.id) ? 'Sent' : 'Bond'}
             </button>
           </div>
         )) : (
