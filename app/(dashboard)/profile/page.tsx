@@ -17,7 +17,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const { user, setUser } = useUserStore();
+  const { user, setUser, clear: clearUser } = useUserStore();
   const { user: authUser, clear: clearAuth } = useAuthStore();
   const { toast } = useToastStore();
   const spaces = user.spaces.length ? user.spaces : ['career', 'creative'];
@@ -130,6 +130,7 @@ export default function ProfilePage() {
           onClick={async () => {
             try { await authApi.logout(); } catch {}
             clearAuth();
+            clearUser();
             router.push('/auth');
           }}
           className="btn btn-ghost btn-block">

@@ -10,6 +10,7 @@ import { setupPush } from '@/lib/push';
 import { useTheme } from '@/hooks/useTheme';
 import { toggleTheme } from '@/lib/theme';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useUserStore } from '@/store/useUserStore';
 
 function GoogleBtn({ onClick }: { onClick: () => void }) {
   return (
@@ -51,6 +52,9 @@ function AuthForm() {
     setLoading(true);
     try {
       await authApi.signup({ email: email.trim(), password, display_name: name.trim() });
+      // A signup is always a brand-new account — never trust whatever this
+      // browser had cached from a previous account (see useUserStore.clear).
+      useUserStore.getState().clear();
       await hydrateSession();
       setupPush().catch(() => {});
       router.push('/verify');

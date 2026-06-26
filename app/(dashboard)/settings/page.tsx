@@ -79,7 +79,7 @@ function subColor(status: string): string {
 export default function SettingsPage() {
   const router        = useRouter();
   const { toast }     = useToastStore();
-  const { user }      = useUserStore();
+  const { user, clear: clearUser } = useUserStore();
   const { clear: clearAuth } = useAuthStore();
   const theme  = useTheme();
   const isDark = theme === 'dark';
@@ -134,6 +134,7 @@ export default function SettingsPage() {
     try {
       await usersApi.deleteMe();
       clearAuth();
+      clearUser();
       router.push('/auth');
     } catch {
       toast('Could not delete account. Contact support.');
@@ -144,6 +145,7 @@ export default function SettingsPage() {
   async function handleLogout() {
     try { await authApi.logout(); } catch {}
     clearAuth();
+    clearUser();
     router.push('/auth');
   }
 
