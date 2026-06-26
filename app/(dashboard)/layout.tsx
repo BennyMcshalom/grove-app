@@ -10,7 +10,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isInitialized) return;
-    if (!user) router.replace('/auth');
+    if (!user) { router.replace('/auth'); return; }
+    if (!user.emailVerifiedAt) router.replace('/verify');
   }, [isInitialized, user, router]);
 
   // Show full-screen loader while session check is in flight
@@ -27,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // Don't render children while redirecting away
-  if (!user) return null;
+  if (!user || !user.emailVerifiedAt) return null;
 
   return <>{children}</>;
 }

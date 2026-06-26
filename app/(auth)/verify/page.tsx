@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useUserStore } from '@/store/useUserStore';
 import { authApi, ApiError } from '@/lib/api';
 import { useToastStore } from '@/store/useToastStore';
 import { Icon } from '@/components/ui/Icon';
@@ -30,9 +31,15 @@ export default function VerifyPage() {
   const [resendCd, setResendCd] = useState(0);
   const [resending, setResending] = useState(false);
 
+  // Reachable from both fresh signup and a later login by an account that
+  // never finished verifying — so "done" doesn't always mean "start onboarding".
+  function nextDestination(): string {
+    return useUserStore.getState().user.onboardingCompleted ? '/home' : '/onboarding/welcome';
+  }
+
   // Already verified (e.g. navigated back here after completing it) — move on.
   useEffect(() => {
-    if (user?.emailVerifiedAt) router.replace('/onboarding/welcome');
+    if (user?.emailVerifiedAt) router.replace(nextDestination());
   }, [user?.emailVerifiedAt, router]);
 
   useEffect(() => {
@@ -53,7 +60,7 @@ export default function VerifyPage() {
     setError('');
     try {
       await authApi.verifySignupCode(value);
-      router.push('/onboarding/welcome');
+      router.push(nextDestination());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not verify. Try again.');
       setCode('');

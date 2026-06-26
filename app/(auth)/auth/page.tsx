@@ -76,6 +76,10 @@ function AuthForm() {
       await authApi.login({ email: loginEmail.trim(), password: loginPassword });
       const { onboardingCompleted } = await hydrateSession();
       setupPush().catch(() => {});
+      if (!useAuthStore.getState().user?.emailVerifiedAt) {
+        router.push('/verify');
+        return;
+      }
       router.push(onboardingCompleted ? safeNext : '/onboarding/welcome');
     } catch (err) {
       if (err instanceof ApiError && err.status === 0) {
