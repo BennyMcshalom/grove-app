@@ -156,8 +156,10 @@ export const authApi = {
                     authReq.post<{ ok: boolean }>('/auth/forgot-password', { email }),
   resetPassword:  (data: { token: string; password: string }) =>
                     authReq.post<{ ok: boolean }>('/auth/reset-password', data),
-  verifyEmail:    (token: string) =>
-                    authReq.post<{ ok: boolean }>('/auth/verify-email', { token }),
+  verifySignupCode: (code: string) =>
+                    api.post<{ ok: boolean }>('/auth/verify-signup-code', { code }),
+  resendSignupCode: () =>
+                    api.post<{ ok: boolean }>('/auth/resend-signup-code'),
   googleUrl:      () => `${BASE}/auth/google`,
 };
 

@@ -53,7 +53,7 @@ function AuthForm() {
       await authApi.signup({ email: email.trim(), password, display_name: name.trim() });
       await hydrateSession();
       setupPush().catch(() => {});
-      router.push('/onboarding/welcome');
+      router.push('/verify');
     } catch (err) {
       if (err instanceof ApiError && err.status === 0) {
         useAuthStore.getState().setApiUnreachable(true);

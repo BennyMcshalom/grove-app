@@ -7,7 +7,6 @@ const PUBLIC = new Set([
   '/verify',
   '/forgot',
   '/callback',
-  '/verify-email',
   '/reset-password',
   '/legal',
   '/subscribe',
