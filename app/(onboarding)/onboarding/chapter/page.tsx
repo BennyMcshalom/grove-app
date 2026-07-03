@@ -33,7 +33,7 @@ export default function ObChapter() {
   const [f, setF] = useState({ happening: '', unsaid: '', looking: '', how: '' });
 
   return (
-    <OBShell step={6} bg="#F2EEEA" onBack={() => router.push('/onboarding/tension')}>
+    <OBShell step={6} onBack={() => router.push('/onboarding/tension')}>
       <div style={{ maxWidth: 540, marginInline: 'auto', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.6rem' }}>
           <h1 className="serif" style={{ fontSize: 'clamp(1.5rem, 6.5vw, 2.1rem)', fontWeight: 600, marginBottom: '.5rem' }}>

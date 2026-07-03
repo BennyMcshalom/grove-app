@@ -34,7 +34,7 @@ export default function ObTension() {
   const [f, setF] = useState({ tension: user.tension || '', sitting: user.sitting || '', open: user.open || '' });
 
   return (
-    <OBShell step={5} bg="#F6F3F2" onBack={() => router.push('/onboarding/stages')}>
+    <OBShell step={5} onBack={() => router.push('/onboarding/stages')}>
       <div style={{ maxWidth: 540, marginInline: 'auto', width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.6rem' }}>
           <h1 className="serif" style={{ fontSize: 'clamp(1.5rem, 6.5vw, 2.1rem)', fontWeight: 600, marginBottom: '.5rem' }}>
