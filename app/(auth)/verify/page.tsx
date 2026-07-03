@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUserStore } from '@/store/useUserStore';
 import { authApi, ApiError } from '@/lib/api';
+import { hydrateSession } from '@/lib/session';
 import { useToastStore } from '@/store/useToastStore';
 import { Icon } from '@/components/ui/Icon';
 import { Logo } from '@/components/ui/Logo';
@@ -60,6 +61,7 @@ export default function VerifyPage() {
     setError('');
     try {
       await authApi.verifySignupCode(value);
+      await hydrateSession();
       router.push(nextDestination());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not verify. Try again.');
