@@ -723,7 +723,7 @@ export default function BondsPage() {
           <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '.6rem', padding: '.5rem 0' }}>
             <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl}/>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 500, fontSize: '.84rem' }}>{s.displayName}</div>
+              <div style={{ fontWeight: 500, fontSize: '.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.displayName}</div>
               <div style={{ fontSize: '.7rem', color: 'var(--ember)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.reason}</div>
             </div>
             <button disabled={invited.includes(s.id) || sentIds.has(s.id) || inviteToBond.isPending}
@@ -732,7 +732,7 @@ export default function BondsPage() {
                 catch { toast('Could not send.'); }
               }}
               className="btn btn-ghost" style={{ padding: '.35rem .75rem', fontSize: '.76rem', flexShrink: 0 }}>
-              {invited.includes(s.id) || sentIds.has(s.id) ? 'Sent' : 'Bond'}
+              {invited.includes(s.id) || sentIds.has(s.id) ? 'Sent' : 'Invite'}
             </button>
           </div>
         )) : (

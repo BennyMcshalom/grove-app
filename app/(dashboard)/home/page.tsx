@@ -939,7 +939,7 @@ export default function HomePage() {
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.5rem .4rem' }}>
               <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl}/>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 500, fontSize: '.86rem' }}>{s.displayName}</div>
+                <div style={{ fontWeight: 500, fontSize: '.86rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.displayName}</div>
                 <div style={{ fontSize: '.7rem', color: 'var(--ember)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {s.reason}
                 </div>
@@ -953,7 +953,7 @@ export default function HomePage() {
                   } catch { toast('Could not send.'); }
                 }}
                 className="btn btn-ghost" style={{ padding: '.3rem .7rem', fontSize: '.72rem', flexShrink: 0 }}>
-                {invited.includes(s.id) || sentIds.has(s.id) ? 'Sent' : 'Bond'}
+                {invited.includes(s.id) || sentIds.has(s.id) ? 'Sent' : 'Invite'}
               </button>
             </div>
           ))
