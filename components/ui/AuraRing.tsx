@@ -6,13 +6,13 @@ interface AuraRingProps { aura: AuraKey; size: number; }
 export function AuraRing({ aura, size }: AuraRingProps) {
   const a = AURAS[aura] || AURAS.reflective;
   const c = a.color;
-  const out = size + Math.max(10, size * 0.22);
+  const out = size + Math.max(6, size * 0.13);
   const common: React.CSSProperties = {
     position: 'absolute', left: '50%', top: '50%', borderRadius: '50%', pointerEvents: 'none',
   };
 
   if (aura === 'focus') return (
-    <div style={{ ...common, width: out + 6, height: out + 6, transform: 'translate(-50%,-50%)',
+    <div style={{ ...common, width: out + 3, height: out + 3, transform: 'translate(-50%,-50%)',
       background: `radial-gradient(circle, ${c}55, transparent 70%)`,
       filter: 'blur(5px)', animation: 'mistDrift 5s ease-in-out infinite' }}/>
   );
@@ -35,11 +35,11 @@ export function AuraRing({ aura, size }: AuraRingProps) {
 
   if (aura === 'open') return (
     <>
-      <div style={{ ...common, width: out + 8, height: out + 8, transform: 'translate(-50%,-50%)',
+      <div style={{ ...common, width: out + 3, height: out + 3, transform: 'translate(-50%,-50%)',
         background: `radial-gradient(circle, ${c}40, transparent 68%)`,
         animation: 'auraBreath 3s ease-in-out infinite' }}/>
-      <div style={{ ...common, width: size + 5, height: size + 5, transform: 'translate(-50%,-50%)',
-        boxShadow: `0 0 16px 2px ${c}88`, animation: 'auraGlow 2.6s ease-in-out infinite' }}/>
+      <div style={{ ...common, width: size + 2, height: size + 2, transform: 'translate(-50%,-50%)',
+        boxShadow: `0 0 10px 1px ${c}88`, animation: 'auraGlow 2.6s ease-in-out infinite' }}/>
     </>
   );
 

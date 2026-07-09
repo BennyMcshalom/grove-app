@@ -14,13 +14,19 @@ interface RPSectionProps {
   action?: string;
   onAction?: () => void;
   children: React.ReactNode;
+  /** Sets this section apart as a recommendation module, distinct from the main feed. */
+  suggested?: boolean;
 }
 
-export function RPSection({ label, action, onAction, children }: RPSectionProps) {
+export function RPSection({ label, action, onAction, children, suggested }: RPSectionProps) {
   return (
-    <section style={{ marginBottom: '1.6rem' }}>
+    <section style={{ marginBottom: '1.6rem',
+      ...(suggested ? {
+        background: 'linear-gradient(160deg, var(--ember-dim), var(--surf-low))',
+        border: '1px solid var(--ember-bdr)', borderRadius: 'var(--r-lg)', padding: '.9rem 1rem',
+      } : {}) }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.7rem' }}>
-        <div className="label-mono">{label}</div>
+        <div className="label-mono" style={suggested ? { color: 'var(--ember-deep)' } : undefined}>{label}</div>
         {action && <button onClick={onAction} style={{ fontSize: '.72rem', color: 'var(--ember)', fontWeight: 500 }}>{action}</button>}
       </div>
       {children}

@@ -24,7 +24,7 @@ export default function DeepFocusPage() {
           </div>
           <h1 className="serif" style={{ fontSize: 'clamp(1.6rem, 7vw, 2.2rem)', fontWeight: 600, marginBottom: '.6rem' }}>Go into Deep Focus.</h1>
           <p style={{ color: 'var(--ink-2)', marginBottom: '1.6rem' }}>
-            Grouw locks until you choose to return. No counter waiting for you when you come back.
+            Grouv locks until you choose to return. No counter waiting for you when you come back.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem', marginBottom: '1.6rem' }}>
             {DURATIONS.map(d => (
@@ -75,7 +75,7 @@ export default function DeepFocusPage() {
           You&apos;re in Deep Focus.
         </h1>
         <p style={{ color: DIM, fontSize: '1.05rem', marginTop: '.7rem', lineHeight: 1.6 }}>
-          Grouw is locked {dur.toLowerCase()}.
+          Grouv is locked {dur.toLowerCase()}.
         </p>
         <p style={{ color: DIM, fontSize: '1.05rem' }}>Go do the thing.</p>
         {confirm === 'END' ? (

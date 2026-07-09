@@ -65,7 +65,7 @@ export default function NotFound() {
 
         {/* CTA */}
         <Link href="/" className="btn btn-primary btn-pill" style={{ fontSize: '1rem', padding: '.75rem 2rem' }}>
-          Back to Grouw
+          Back to Grouv
         </Link>
 
       </div>

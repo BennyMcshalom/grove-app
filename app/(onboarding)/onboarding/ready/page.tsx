@@ -32,7 +32,7 @@ export default function ObReady() {
             return (
               <div key={name} style={{ position: 'absolute', left: '50%', top: '50%',
                 transform: `translate(-50%,-50%) translateX(${offset}px)`, zIndex: i === 1 ? 3 : 1 }}>
-                <Avatar name={name} size={sizes[i]}
+                <Avatar name={name} size={sizes[i]} priority={i === 1}
                   style={{ boxShadow: '0 0 0 5px var(--cream), 0 14px 34px -10px rgba(26,26,26,.26)', borderRadius: '50%' }}/>
               </div>
             );
@@ -47,7 +47,7 @@ export default function ObReady() {
           ))}
         </div>
         <h1 className="serif" style={{ fontSize: 'clamp(1.8rem, 7.5vw, 2.6rem)', fontWeight: 600, lineHeight: 1.15, marginBottom: '1rem' }}>
-          Your Grouw is ready, {user.name}.
+          Your Grouv is ready, {user.name}.
         </h1>
         <p style={{ fontSize: 'clamp(.95rem, 4vw, 1.1rem)', color: 'var(--ink-2)', lineHeight: 1.6 }}>
           A small circle of people in the same chapters as you is being assembled. Show up honestly.
@@ -97,7 +97,7 @@ export default function ObReady() {
                 router.push('/home');
               }}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '.5rem' }}>
-              {saving ? 'Saving…' : <> Enter Grouw <Icon name="arrow" stroke="#fff"/></>}
+              {saving ? 'Saving…' : <> Enter Grouv <Icon name="arrow" stroke="#fff"/></>}
             </button>
           )}
         </div>

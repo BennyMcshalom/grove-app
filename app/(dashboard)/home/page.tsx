@@ -66,9 +66,10 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
     try {
       await addCommentMutation.mutateAsync(text);
       setCommentCount(n => n + 1); // bump the footer count immediately
-    } catch {
+    } catch (err) {
       setDraft(text);
-      toast('Comment failed — try again.');
+      const msg = err instanceof Error ? err.message : '';
+      toast(msg ? `Comment failed: ${msg}` : 'Comment failed — try again.');
     }
   };
 
@@ -318,7 +319,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
   const [doing, setDoing] = useState("I'm ");
   const [prog, setProg] = useState<string | null>(null);
   const [honest, setHonest] = useState('');
-  // Just Grouw mode
+  // Just Grouv mode
   const [caption, setCaption] = useState('');
   const [anon, setAnon] = useState(false);
   const [media, setMedia] = useState<{ type: 'image' | 'video'; src: string; file: File } | null>(null);
@@ -354,11 +355,24 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
   const submit = async () => {
     if (!ready) return;
     setUploading(true);
-    try {
-      const { mediaUrl, mediaType } = await uploadMedia();
 
+    let mediaUrl: string | undefined, mediaType: string | undefined;
+    try {
+      ({ mediaUrl, mediaType } = await uploadMedia());
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (!msg.includes('too large')) {
+        if (msg.includes('413')) toast('Video is too large (max 500 MB).');
+        else if (msg.includes('Unsupported')) toast("That file type isn't supported. Use MP4, MOV, or WebM.");
+        else toast('Upload failed — check your connection and try again.');
+      }
+      setUploading(false);
+      return;
+    }
+
+    try {
       if (mode === 'root') {
-        onPost?.({
+        await onPost?.({
           id: Date.now(), name: user.name, anon,
           space: user.spaces[0] || 'career', progress: prog ?? '',
           time: 'just now', doing: doing.trim(), honest: honest.trim(),
@@ -370,7 +384,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
       } else {
         const clock = nowClock();
         const userLocation = user.location;
-        onPost?.({
+        await onPost?.({
           id: Date.now(), name: user.name, anon,
           space: user.spaces[0] || 'career', progress: '',
           time: 'just now', doing: '', honest: '',
@@ -386,13 +400,8 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
       setAnon(false);
       if (media?.src) URL.revokeObjectURL(media.src);
       setMedia(null);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '';
-      if (!msg.includes('too large')) {
-        if (msg.includes('413')) toast('Video is too large (max 500 MB).');
-        else if (msg.includes('Unsupported')) toast("That file type isn't supported. Use MP4, MOV, or WebM.");
-        else toast('Upload failed — check your connection and try again.');
-      }
+    } catch {
+      // onPost already surfaced its own error toast — keep the draft so the user can retry.
     } finally {
       setUploading(false);
     }
@@ -409,7 +418,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
       <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '1rem' }}>
         <Avatar name={user.name} size={40} avatarUrl={user.avatar_url}/>
         <div style={{ display: 'flex', gap: 4, background: 'var(--surf-high)', borderRadius: 100, padding: 3 }}>
-          {([['root', 'Root a thought'], ['justgrouw', 'Just Grouw']] as ['root' | 'justgrouw', string][]).map(([id, l]) => (
+          {([['root', 'Root a thought'], ['justgrouw', 'Just Grouv']] as ['root' | 'justgrouw', string][]).map(([id, l]) => (
             <button key={id} onClick={() => { setMode(id); setMedia(null); }}
               style={{ padding: '.4rem .85rem', borderRadius: 100, fontSize: '.8rem', fontWeight: 500,
                 background: mode === id ? 'var(--white)' : 'transparent',
@@ -480,7 +489,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
         </>
       ) : (
         <>
-          {/* Just Grouw: portrait preview or picker */}
+          {/* Just Grouv: portrait preview or picker */}
           {!media ? (
             <div style={{ display: 'flex', gap: '.8rem', marginBottom: '.9rem' }}>
               {([['image', 'Photo', 'image'], ['video', 'Video', 'video']] as [string, string, string][]).map(([kind, label, icon]) => (
@@ -555,15 +564,15 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
           Post anonymously
         </label>
         <button className="btn btn-primary" disabled={!ready} onClick={submit} style={{ minWidth: 130 }}>
-          {uploading ? 'Posting…' : mode === 'root' ? 'Root this' : 'Grouw it'}
+          {uploading ? 'Posting…' : mode === 'root' ? 'Root this' : 'Grouv it'}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Just Grouw card ──────────────────────────────────────────────
-function JustGrouwCard({ post, myId }: { post: Post; myId?: string }) {
+// ── Just Grouv card ──────────────────────────────────────────────
+function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
   const router = useRouter();
   const { toast } = useToastStore();
   const postUuid = String(post.id);
@@ -641,7 +650,7 @@ function JustGrouwCard({ post, myId }: { post: Post; myId?: string }) {
           <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>{post.time}</div>
         </div>
         <span className="chip" style={{ background: 'var(--ember-dim)', color: 'var(--ember-deep)', fontSize: '.62rem' }}>
-          Just Grouw
+          Just Grouv
         </span>
         <button onClick={() => setReportingPost(true)} title="Report"
           style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -924,7 +933,7 @@ export default function HomePage() {
 
   const right = (
     <>
-      <RPSection label="Suggested for you" action="View all →" onAction={() => router.push('/bonds')}>
+      <RPSection label="Suggested for you" action="View all →" onAction={() => router.push('/bonds')} suggested>
         {suggestions && suggestions.length > 0 ? (
           suggestions.slice(0, 4).map(s => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.5rem .4rem' }}>
@@ -1016,27 +1025,28 @@ export default function HomePage() {
         <RootsComposer onPost={async (p) => {
           const spaceSlug = p.space ?? user.spaces[0] ?? 'career';
           const spaceUuid2 = uuidBySlug(spaceSlug);
-          if (!spaceUuid2) { toast('Open a space first to post.'); return; }
+          if (!spaceUuid2) { toast('Open a space first to post.'); throw new Error('No space open'); }
 
           const extended = p as Post & { _mediaUrl?: string; _mediaType?: string };
-          const isJustGrouw = p.kind === 'just_grouw';
+          const isJustGrouv = p.kind === 'just_grouw';
           try {
             await createPost.mutateAsync({
               spaceId: spaceUuid2,
-              kind: isJustGrouw ? 'just_grouw' : 'roots',
+              kind: isJustGrouv ? 'just_grouw' : 'roots',
               ...(p.doing     && { doing: p.doing }),
               ...(p.progress  && { progress: p.progress as Parameters<typeof createPost.mutateAsync>[0]['progress'] }),
               ...(p.honest    && { honestThing: p.honest }),
-              ...(isJustGrouw && p.caption   && { body: p.caption }),
-              ...(isJustGrouw && p.location  && { authorLocation: p.location }),
+              ...(isJustGrouv && p.caption   && { body: p.caption }),
+              ...(isJustGrouv && p.location  && { authorLocation: p.location }),
               isAnonymous: p.anon,
               ...(extended._mediaUrl  && { mediaUrl: extended._mediaUrl }),
               ...(extended._mediaType && { mediaType: extended._mediaType as 'image' | 'video' }),
             });
-            toast(isJustGrouw ? 'Posted to Grouw.' : 'Rooted. Your circle will see it.');
+            toast(isJustGrouv ? 'Posted to Grouv.' : 'Rooted. Your circle will see it.');
           } catch (err) {
             const msg = err instanceof Error ? err.message : 'Unknown error';
             toast(`Could not post: ${msg}`);
+            throw err;
           }
         }} />
         {postsLoading ? (
@@ -1051,7 +1061,7 @@ export default function HomePage() {
         ) : shown.map((p, i) => (
           <React.Fragment key={p.id}>
             {p.kind === 'just_grouw'
-              ? <JustGrouwCard post={p} myId={user.id}/>
+              ? <JustGrouvCard post={p} myId={user.id}/>
               : <PostCard post={p} myId={user.id}/>}
             {i === 1 && tab === 'all' && <OverlapCard />}
           </React.Fragment>

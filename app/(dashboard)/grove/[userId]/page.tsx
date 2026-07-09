@@ -8,6 +8,7 @@ import { Waveform } from '@/components/ui/Waveform';
 import { Spinner } from '@/components/ui/Spinner';
 import { AURAS, nowPhase, PHASE, auraFor, spaceById } from '@/lib/data';
 import { useToastStore } from '@/store/useToastStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { groveApi, logApi } from '@/lib/api';
 import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useQuery } from '@tanstack/react-query';
@@ -19,8 +20,8 @@ const RINGS = [
   { key: 'outer',  label: 'Open to',          field: 'openTo',     color: '#4E7D5E', r: 0.70 },
 ];
 
-function LogViewer({ name, entries, onClose }: {
-  name: string;
+function LogViewer({ title, entries, onClose }: {
+  title: string;
   entries: { date: string; mediaUrl: string | null; body: string }[];
   onClose: () => void;
 }) {
@@ -34,7 +35,7 @@ function LogViewer({ name, entries, onClose }: {
         <div style={{ position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2,
           borderBottom: '1px solid var(--border)', padding: '1.1rem 1.4rem',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="label-mono">{name.split(' ')[0]}'s Grouw Log</div>
+          <div className="label-mono">{title}</div>
           <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="close" stroke="var(--ink-3)"/>
@@ -66,7 +67,9 @@ export default function GrovePage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToastStore();
+  const { user: authUser } = useAuthStore();
   const userId = params.userId as string;
+  const isOwnProfile = !!authUser?.id && authUser.id === userId;
 
   const [active, setActive] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
@@ -102,6 +105,9 @@ export default function GrovePage() {
   const name      = grove?.profile?.displayName ?? '';
   const firstName = name.split(' ')[0] || '…';
   const avatarUrl = grove?.profile?.avatarUrl ?? null;
+  const possessiveCap = isOwnProfile ? 'Your' : `${firstName}'s`;
+  const hasntFilled    = isOwnProfile ? "You haven't filled this in yet." : `${firstName} hasn't filled this in yet.`;
+  const hasntPosted     = isOwnProfile ? "You haven't posted any log entries yet." : `${firstName} hasn't posted any log entries yet.`;
 
   const uniqueSpaceIds = (
     grove?.activeSpaces.map(s => s.space?.slug).filter(Boolean) as string[] | undefined
@@ -135,14 +141,18 @@ export default function GrovePage() {
         </button>
         <div className="label-mono" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem',
           flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {isLoading ? <Spinner size={12}/> : (
-            <><span>You're inside</span> <span style={{ color: 'var(--ember)', fontWeight: 600 }}>{firstName}'s Grouw</span></>
+          {isLoading ? <Spinner size={12}/> : isOwnProfile ? (
+            <span style={{ color: 'var(--ember)', fontWeight: 600 }}>This is your Grouv</span>
+          ) : (
+            <><span>You're inside</span> <span style={{ color: 'var(--ember)', fontWeight: 600 }}>{firstName}'s Grouv</span></>
           )}
         </div>
-        <button onClick={() => setShowOverlap(s => !s)} className="chip"
-          style={{ cursor: 'pointer', flexShrink: 0, background: showOverlap ? 'var(--ember-dim)' : 'var(--surf-high)', color: showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)' }}>
-          <Icon name="dots" size={14} stroke={showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)'} sw={2}/> Overlap
-        </button>
+        {!isOwnProfile && (
+          <button onClick={() => setShowOverlap(s => !s)} className="chip"
+            style={{ cursor: 'pointer', flexShrink: 0, background: showOverlap ? 'var(--ember-dim)' : 'var(--surf-high)', color: showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)' }}>
+            <Icon name="dots" size={14} stroke={showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)'} sw={2}/> Overlap
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '1.5rem', maxWidth: 1100, margin: '0 auto', padding: '0 clamp(1rem, 4vw, 1.6rem) 3rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -202,7 +212,7 @@ export default function GrovePage() {
               <div style={{ position: 'absolute', left: '50%', bottom: 8, transform: 'translateX(-50%)', zIndex: 7,
                 display: 'flex', alignItems: 'center', gap: '.5rem', background: 'var(--white)', borderRadius: 100, padding: '.4rem .8rem', boxShadow: 'var(--shadow)' }}>
                 <div style={{ width: 54 }}><Waveform color="var(--sage)" playing bars={14} height={18}/></div>
-                <span style={{ fontSize: '.72rem', color: 'var(--ink-2)' }}>{firstName}'s ambience</span>
+                <span style={{ fontSize: '.72rem', color: 'var(--ink-2)' }}>{possessiveCap} ambience</span>
               </div>
             )}
           </div>
@@ -269,7 +279,7 @@ export default function GrovePage() {
                   <p className="serif" style={{ fontSize: '1.3rem', fontWeight: 600, lineHeight: 1.3, marginBottom: '1rem' }}>"{content}"</p>
                 ) : (
                   <p style={{ color: 'var(--ink-3)', fontStyle: 'italic', marginBottom: '1rem' }}>
-                    {firstName} hasn't filled this in yet.
+                    {hasntFilled}
                   </p>
                 )}
                 {chapterLearning && (
@@ -286,7 +296,9 @@ export default function GrovePage() {
           })() : (
             <div className="card" style={{ padding: '1.3rem 1.4rem', background: 'linear-gradient(160deg, var(--white), var(--surf-low))' }}>
               <p style={{ color: 'var(--ink-2)', lineHeight: 1.6, fontSize: '.95rem' }}>
-                You're standing in the middle of {firstName}'s Grouw. Each ring is a layer of where they are —{' '}
+                {isOwnProfile
+                  ? "You're standing in the middle of your own Grouv."
+                  : `You're standing in the middle of ${firstName}'s Grouv.`} Each ring is a layer of where {isOwnProfile ? 'you are' : 'they are'} —{' '}
                 <span style={{ color: '#B1454F' }}>struggling</span>, <span style={{ color: 'var(--ember)' }}>building</span>,{' '}
                 <span style={{ color: 'var(--sage)' }}>open to</span>. Step into one.
               </p>
@@ -296,7 +308,7 @@ export default function GrovePage() {
           {showOverlap && (
             <div className="card fade-in" style={{ padding: '1.2rem 1.4rem', background: 'var(--ember-dim)', border: '1px solid var(--ember-bdr)' }}>
               <div className="label-mono" style={{ color: 'var(--ember-deep)', marginBottom: '.4rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
-                <Icon name="dots" size={12} stroke="var(--ember-deep)" sw={2}/> Where your Grouws overlap
+                <Icon name="dots" size={12} stroke="var(--ember-deep)" sw={2}/> Where your Grouvs overlap
               </div>
               {grove?.activeSpaces?.length ? (
                 <p style={{ color: 'var(--ink-2)', lineHeight: 1.55, fontSize: '.92rem' }}>
@@ -309,9 +321,9 @@ export default function GrovePage() {
             </div>
           )}
 
-          {/* Their Grouw Log */}
+          {/* Grouv Log */}
           <div className="card" style={{ padding: '1.1rem 1.2rem' }}>
-            <div className="label-mono" style={{ marginBottom: '.7rem' }}>{firstName}'s Grouw Log</div>
+            <div className="label-mono" style={{ marginBottom: '.7rem' }}>{possessiveCap} Grouv Log</div>
             {logForViewer.length > 0 ? (
               <div className="scroll" style={{ display: 'flex', gap: '.5rem', overflowX: 'auto', marginBottom: '.7rem' }}>
                 {logForViewer.map((e, i) => (
@@ -338,50 +350,54 @@ export default function GrovePage() {
                 {isLoading
                   ? 'Loading…'
                   : !logVisible
-                    ? `${firstName}'s Grouw Log is private.`
-                    : `${firstName} hasn't posted any log entries yet.`}
+                    ? `${possessiveCap} Grouv Log is private.`
+                    : hasntPosted}
               </p>
             )}
             <button onClick={() => setViewLog(true)} disabled={logForViewer.length === 0}
               className="btn btn-soft btn-block" style={{ fontSize: '.85rem' }}>
-              Scroll their log →
+              {isOwnProfile ? 'Scroll your log →' : 'Scroll their log →'}
             </button>
           </div>
 
-          <button
-            disabled={sent || inviteToBond.isPending}
-            className="btn btn-primary btn-lg btn-block"
-            style={{ opacity: sent ? .8 : 1 }}
-            onClick={async () => {
-              try {
-                await inviteToBond.mutateAsync({ recipientId: userId });
-                setSent(true);
-                toast(`Bond invitation sent to ${firstName}.`);
-              } catch (err: unknown) {
-                const msg = err instanceof Error ? err.message : 'Could not send';
-                if (msg.includes('409') || msg.toLowerCase().includes('already')) {
-                  setSent(true);
-                  toast('You already have a Bond or pending invitation with this person.');
-                } else {
-                  toast(`Failed: ${msg}`);
-                }
-              }
-            }}>
-            {inviteToBond.isPending ? (
-              <><Spinner size={16} color="#fff"/> Sending…</>
-            ) : sent ? (
-              <><Icon name="check" size={16} stroke="#fff" sw={2.5}/> Bond invitation sent</>
-            ) : (
-              <>Bond with {firstName} <Icon name="arrow" stroke="#fff"/></>
-            )}
-          </button>
-          <p style={{ textAlign: 'center', fontSize: '.76rem', color: 'var(--ink-4)', marginTop: '-.4rem' }}>
-            {sent ? 'They\'ll see it in their notifications.' : 'A Bond is earned, not requested lightly.'}
-          </p>
+          {!isOwnProfile && (
+            <>
+              <button
+                disabled={sent || inviteToBond.isPending}
+                className="btn btn-primary btn-lg btn-block"
+                style={{ opacity: sent ? .8 : 1 }}
+                onClick={async () => {
+                  try {
+                    await inviteToBond.mutateAsync({ recipientId: userId });
+                    setSent(true);
+                    toast(`Bond invitation sent to ${firstName}.`);
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : 'Could not send';
+                    if (msg.includes('409') || msg.toLowerCase().includes('already')) {
+                      setSent(true);
+                      toast('You already have a Bond or pending invitation with this person.');
+                    } else {
+                      toast(`Failed: ${msg}`);
+                    }
+                  }
+                }}>
+                {inviteToBond.isPending ? (
+                  <><Spinner size={16} color="#fff"/> Sending…</>
+                ) : sent ? (
+                  <><Icon name="check" size={16} stroke="#fff" sw={2.5}/> Bond invitation sent</>
+                ) : (
+                  <>Bond with {firstName} <Icon name="arrow" stroke="#fff"/></>
+                )}
+              </button>
+              <p style={{ textAlign: 'center', fontSize: '.76rem', color: 'var(--ink-4)', marginTop: '-.4rem' }}>
+                {sent ? 'They\'ll see it in their notifications.' : 'A Bond is earned, not requested lightly.'}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
-      {viewLog && <LogViewer name={name || firstName} entries={logForViewer} onClose={() => setViewLog(false)}/>}
+      {viewLog && <LogViewer title={`${possessiveCap} Grouv Log`} entries={logForViewer} onClose={() => setViewLog(false)}/>}
     </div>
   );
 }

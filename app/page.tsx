@@ -31,7 +31,7 @@ export default function Splash() {
     }}>
       <div style={{ textAlign: 'center' }} className="fade-in">
         <div className="serif" style={{ fontSize: '4rem', fontWeight: 600, color: 'var(--ember)', lineHeight: 1 }}>
-          Grouw
+          Grouv
         </div>
         <div style={{ marginTop: '.9rem', color: 'var(--ink-3)', fontSize: '1.05rem' }}>
           Your chapter. Your circle.

@@ -8,10 +8,10 @@ import { useUserStore } from '@/store/useUserStore';
 
 const PLAN_FEATURES: [string, string, string][] = [
   ['spaces',  'All four Life Spaces',       'Hold up to four chapters at once'],
-  ['bonds',   'Grouw Bonds',                'Up to five deep 1:1 relationships'],
+  ['bonds',   'Grouv Bonds',                'Up to five deep 1:1 relationships'],
   ['sun',     'Morning Room',               'Daily Curio, prompts & reflections'],
   ['pin',     'Proximity',                  'Find your chapter, right where you are'],
-  ['book',    'The Grouw Log',              'Daily ritual + the Artifact at chapter close'],
+  ['book',    'The Grouv Log',              'Daily ritual + the Artifact at chapter close'],
   ['map',     'The Trail & Life Archive',   'Your living terrain, kept forever'],
 ];
 
@@ -78,7 +78,7 @@ export default function SubscribePage() {
                 14 days free, then choose to stay
               </span>
               <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7.5vw, 2.4rem)', fontWeight: 600, lineHeight: 1.1 }}>
-                Go deeper into Grouw.
+                Go deeper into Grouv.
               </h1>
               <p style={{ color: 'var(--ink-3)', marginTop: '.5rem' }}>
                 Start a 14-day trial. Full access from minute one.
@@ -89,7 +89,7 @@ export default function SubscribePage() {
             <div className="card" style={{ padding: '1.4rem 1.5rem', marginBottom: '1.4rem' }}>
               <div className="label-mono" style={{ marginBottom: '1.1rem' }}>How your trial works</div>
               {([
-                ['var(--ember)', 'Today',        'Full access unlocks',    'All of Grouw, free for 14 days.'],
+                ['var(--ember)', 'Today',        'Full access unlocks',    'All of Grouv, free for 14 days.'],
                 ['var(--amber)', REMIND_DATE,    'A gentle reminder',      "We'll email you 2 days before — no surprises."],
                 ['var(--sage)',  TRIAL_END,      'Membership begins',      `Your ${plan} plan starts unless you cancel.`],
               ] as [string, string, string, string][]).map(([color, date, title, desc], i, arr) => (
@@ -283,7 +283,7 @@ export default function SubscribePage() {
               Your 14 days start now.
             </h1>
             <p style={{ color: 'var(--ink-2)', marginTop: '.6rem', maxWidth: 380, marginInline: 'auto', lineHeight: 1.6 }}>
-              Full access to all of Grouw is unlocked. We'll remind you on {REMIND_DATE}, before your{' '}
+              Full access to all of Grouv is unlocked. We'll remind you on {REMIND_DATE}, before your{' '}
               {plan} membership begins.
             </p>
             <div className="card" style={{ padding: '1.1rem 1.4rem', margin: '1.8rem 0',
@@ -297,9 +297,9 @@ export default function SubscribePage() {
               </span>
             </div>
             <button className="btn btn-primary btn-lg btn-block"
-              onClick={() => { toast('Welcome in. Enjoy all of Grouw.'); router.push('/home'); }}
+              onClick={() => { toast('Welcome in. Enjoy all of Grouv.'); router.push('/home'); }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem' }}>
-              Enter Grouw <Icon name="arrow" stroke="#fff"/>
+              Enter Grouv <Icon name="arrow" stroke="#fff"/>
             </button>
             <button onClick={() => router.push('/settings')}
               style={{ marginTop: '1rem', fontSize: '.82rem', color: 'var(--ink-3)' }}>

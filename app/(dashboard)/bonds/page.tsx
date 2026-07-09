@@ -657,6 +657,7 @@ export default function BondsPage() {
   const declineInv = useDeclineBondInvitation();
   const inviteToBond = useInviteToBond();
   const [invited, setInvited] = useState<string[]>([]);
+  const [busyInvIds, setBusyInvIds] = useState<Set<string>>(new Set());
   const { data: sentInvitations } = useSentBondInvitations();
   const sentIds = new Set((sentInvitations ?? []).filter(i => i.status === 'pending').map(i => i.toUserId));
 
@@ -681,17 +682,35 @@ export default function BondsPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '.5rem' }}>
-                <button disabled={acceptInv.isPending} className="btn btn-primary"
+                <button disabled={busyInvIds.has(inv.id)} className="btn btn-primary"
                   style={{ flex: 1, padding: '.4rem', fontSize: '.8rem' }}
                   onClick={async () => {
-                    try { await acceptInv.mutateAsync(inv.id); toast(`${inv.fromUser?.displayName?.split(' ')[0]} is now in your Circle. Chat for 7 days to form a Bond.`); }
-                    catch { toast('Could not accept.'); }
+                    setBusyInvIds(s => new Set(s).add(inv.id));
+                    try {
+                      const result = await acceptInv.mutateAsync(inv.id);
+                      if (result.accepted === false) {
+                        toast('This invitation is no longer available.');
+                      } else {
+                        toast(`${inv.fromUser?.displayName?.split(' ')[0]} is now in your Circle. Chat for 7 days to form a Bond.`);
+                      }
+                    } catch (err) {
+                      const msg = err instanceof Error ? err.message : '';
+                      toast(msg ? `Could not accept: ${msg}` : 'Could not accept.');
+                    } finally {
+                      setBusyInvIds(s => { const n = new Set(s); n.delete(inv.id); return n; });
+                    }
                   }}>Accept</button>
-                <button disabled={declineInv.isPending} className="btn btn-soft"
+                <button disabled={busyInvIds.has(inv.id)} className="btn btn-soft"
                   style={{ flex: 1, padding: '.4rem', fontSize: '.8rem' }}
                   onClick={async () => {
+                    setBusyInvIds(s => new Set(s).add(inv.id));
                     try { await declineInv.mutateAsync(inv.id); }
-                    catch { toast('Could not decline.'); }
+                    catch (err) {
+                      const msg = err instanceof Error ? err.message : '';
+                      toast(msg ? `Could not decline: ${msg}` : 'Could not decline.');
+                    } finally {
+                      setBusyInvIds(s => { const n = new Set(s); n.delete(inv.id); return n; });
+                    }
                   }}>Decline</button>
               </div>
             </div>
@@ -699,7 +718,7 @@ export default function BondsPage() {
         </RPSection>
       )}
 
-      <RPSection label="Suggested for you">
+      <RPSection label="Suggested for you" suggested>
         {suggestions && suggestions.length > 0 ? suggestions.slice(0, 5).map(s => (
           <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '.6rem', padding: '.5rem 0' }}>
             <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl}/>

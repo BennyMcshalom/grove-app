@@ -13,9 +13,11 @@ interface AvatarProps {
   timePhase?: TimePhase;
   style?: React.CSSProperties;
   avatarUrl?: string | null;
+  /** Skip lazy-loading — use for above-the-fold hero images (e.g. onboarding scenes). */
+  priority?: boolean;
 }
 
-export function Avatar({ name = '', size = 44, ring, dot, anon, aura, timePhase, style, avatarUrl }: AvatarProps) {
+export function Avatar({ name = '', size = 44, ring, dot, anon, aura, timePhase, style, avatarUrl, priority }: AvatarProps) {
   const ringShadow = ring
     ? `0 0 0 2.5px var(--white), 0 0 0 ${2.5 + ring}px ${ring === 3 ? 'var(--ember)' : 'var(--border-2)'}`
     : 'none';
@@ -49,6 +51,7 @@ export function Avatar({ name = '', size = 44, ring, dot, anon, aura, timePhase,
         <div style={{ position: 'relative', width: size, height: size, borderRadius: '50%', overflow: 'hidden', boxShadow: ringShadow }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={avatarUrl} alt={name} width={size} height={size}
+            loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'}
             style={{ objectFit: 'cover', objectPosition: '50% 38%', display: 'block', width: size, height: size }}/>
           {phaseCfg && (
             <div style={{ position: 'absolute', inset: 0, background: phaseCfg.overlay, mixBlendMode: 'soft-light', pointerEvents: 'none' }}/>
@@ -66,7 +69,7 @@ export function Avatar({ name = '', size = 44, ring, dot, anon, aura, timePhase,
       <div style={{ position: 'relative', flexShrink: 0, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style }}>
         {auraEl}
         <div style={{ position: 'relative', width: size, height: size, borderRadius: '50%', overflow: 'hidden', boxShadow: ringShadow }}>
-          <Image src={staticImg} alt={name} width={size} height={size}
+          <Image src={staticImg} alt={name} width={size} height={size} priority={priority}
             style={{ objectFit: 'cover', objectPosition: '50% 38%', display: 'block' }}/>
           {phaseCfg && (
             <div style={{ position: 'absolute', inset: 0, background: phaseCfg.overlay, mixBlendMode: 'soft-light', pointerEvents: 'none' }}/>

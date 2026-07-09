@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { Avatar } from '@/components/ui/Avatar';
+import { AvatarCropper } from '@/components/ui/AvatarCropper';
 import { StageChip } from '@/components/ui/StageChip';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { Icon } from '@/components/ui/Icon';
@@ -16,6 +17,7 @@ import { spaceById } from '@/lib/data';
 export default function ProfilePage() {
   const router = useRouter();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const { user, setUser, clear: clearUser } = useUserStore();
   const { user: authUser, clear: clearAuth } = useAuthStore();
@@ -25,36 +27,16 @@ export default function ProfilePage() {
   async function handleAvatarChange(file: File) {
     setUploadingAvatar(true);
     try {
-      // Resize to max 512×512 before uploading — keeps transfer fast regardless of phone camera size
-      const resized = await resizeImage(file, 512);
-      const { avatarUrl } = await usersApi.uploadAvatar(resized);
+      // The cropper already outputs a fixed 512×512 JPEG — no separate resize step needed.
+      const { avatarUrl } = await usersApi.uploadAvatar(file);
       setUser(u => ({ ...u, avatar_url: avatarUrl }));
       toast('Profile photo updated.');
     } catch {
       toast('Upload failed. Try again.');
     } finally {
       setUploadingAvatar(false);
+      setCropFile(null);
     }
-  }
-
-  function resizeImage(file: File, maxPx: number): Promise<File> {
-    return new Promise((resolve, reject) => {
-      const img = new window.Image();
-      img.onload = () => {
-        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-        canvas.toBlob(blob => {
-          if (!blob) return reject(new Error('resize failed'));
-          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-        }, 'image/jpeg', 0.88);
-      };
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
-    });
   }
 
   return (
@@ -62,14 +44,19 @@ export default function ProfilePage() {
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 1.6rem 3rem' }}>
         {/* Hidden file input for avatar */}
         <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
-          onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarChange(f); e.target.value = ''; }}/>
+          onChange={e => { const f = e.target.files?.[0]; if (f) setCropFile(f); e.target.value = ''; }}/>
+        {cropFile && (
+          <AvatarCropper file={cropFile} saving={uploadingAvatar}
+            onCancel={() => setCropFile(null)}
+            onSave={handleAvatarChange}/>
+        )}
 
         <div className="card" style={{ overflow: 'hidden', marginBottom: '1.2rem' }}>
           <div style={{ height: 110, background: 'linear-gradient(120deg, var(--ember-soft), var(--c-relation), var(--c-creative))' }}/>
           <div style={{ padding: '0 1.6rem 1.6rem', marginTop: -48 }}>
             {/* Clickable avatar with upload overlay */}
             <div style={{ position: 'relative', display: 'inline-block' }}>
-              <Avatar name={user.name} size={96} ring={3} aura="open"
+              <Avatar name={user.name} size={96} ring={3} aura={user.aura ?? 'open'}
                 avatarUrl={user.avatar_url} style={{ cursor: 'pointer' }} />
               <button onClick={() => avatarInputRef.current?.click()}
                 style={{ position: 'absolute', bottom: 2, right: 2, width: 28, height: 28, borderRadius: '50%',
@@ -83,7 +70,7 @@ export default function ProfilePage() {
             </div>
             <button onClick={() => authUser && router.push(`/grove/${authUser.id}`)} className="btn btn-soft"
               style={{ marginTop: '1rem', fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: '.45rem' }}>
-              <Icon name="dots" size={14} stroke="var(--ink-2)" sw={2}/> Enter my Grouw — Life Rings view
+              <Icon name="dots" size={14} stroke="var(--ink-2)" sw={2}/> Enter my Grouv — Life Rings view
             </button>
           </div>
         </div>
@@ -117,7 +104,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="card" style={{ padding: '.4rem .6rem', marginBottom: '1.2rem' }}>
-          {[['View full archive →','archive'],['Chapter stats →','stats'],['Manage plan →','subscribe'],["Grouw's Promise →",'legal']].map(([l,scr]) => (
+          {[['View full archive →','archive'],['Chapter stats →','stats'],['Manage plan →','subscribe'],["Grouv's Promise →",'legal']].map(([l,scr]) => (
             <button key={l} onClick={() => router.push(`/${scr}`)}
               style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', padding: '.9rem 1rem', borderRadius: 'var(--r-md)', fontSize: '.92rem' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--surf-low)')}

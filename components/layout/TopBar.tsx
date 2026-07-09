@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { richText } from '@/lib/richText';
 import { useNotifications, useMarkNotifRead, useMarkAllNotifsRead } from '@/hooks/useNotifications';
 import type { NotifRecord } from '@/lib/api';
+import { formatRelativeTime } from '@/lib/mappers';
 
 interface TopBarProps { title: string; dark?: boolean; }
 
@@ -21,6 +22,7 @@ function notifLabel(n: NotifRecord): string {
     case 'wave':              return `Someone nearby waved at you.`;
     case 'morning_curio':     return 'Your morning card is ready.';
     case 'new_message':       return `New message from **${p.fromName ?? 'a Bond'}**.`;
+    case 'post_comment':      return `**${p.fromName ?? 'Someone'}** commented on your post.`;
     default:                  return p.message ?? n.type;
   }
 }
@@ -32,6 +34,7 @@ function notifRoute(n: NotifRecord): string {
     case 'new_message':   return '/bonds';
     case 'wave':          return '/nearby';
     case 'morning_curio': return '/morning';
+    case 'post_comment':  return '/home';
     default:              return '/home';
   }
 }
@@ -97,6 +100,7 @@ function NotifPanel({ onClose }: { onClose: () => void }) {
                     n.type === 'wave'            ? 'pin' :
                     n.type === 'morning_curio'   ? 'sun' :
                     n.type === 'new_message'     ? 'comment' :
+                    n.type === 'post_comment'    ? 'comment' :
                     n.type === 'bond_anniversary'? 'sprout' : 'bell'
                   }
                   size={15}
@@ -111,7 +115,7 @@ function NotifPanel({ onClose }: { onClose: () => void }) {
                   {richText(notifLabel(n))}
                 </p>
                 <div className="mono" style={{ fontSize: '.66rem', color: 'var(--ink-4)', marginTop: 3 }}>
-                  {new Date(n.createdAt).toLocaleDateString()}
+                  {formatRelativeTime(n.createdAt)}
                 </div>
               </div>
             </button>

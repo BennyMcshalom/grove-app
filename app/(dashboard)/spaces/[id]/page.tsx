@@ -217,7 +217,7 @@ function MyAskSection({ ask, submitAnswer, answerText, setAnswerText, userName, 
                 ))}
               </div>
               <p style={{ fontSize: '.72rem', color: 'var(--ink-4)', fontStyle: 'italic', textAlign: 'center', marginTop: '.9rem' }}>
-                Fully anonymous — even Grouw can&apos;t see who sent which reply.
+                Fully anonymous — even Grouv can&apos;t see who sent which reply.
               </p>
             </div>
           )}
@@ -557,7 +557,7 @@ function MyAskCard({ ask }: { ask: AnonAsk }) {
         <div style={{ borderTop: '1px solid var(--border)', padding: '.9rem 1.4rem 1.2rem' }}>
           {replies.map((a, i) => <AnswerCard key={a.id} answer={a} index={i}/>)}
           <p style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontStyle: 'italic', textAlign: 'center', marginTop: '.3rem' }}>
-            Fully anonymous — even Grouw can&apos;t see who sent which reply.
+            Fully anonymous — even Grouv can&apos;t see who sent which reply.
           </p>
         </div>
       )}

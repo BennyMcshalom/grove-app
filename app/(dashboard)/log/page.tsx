@@ -50,7 +50,7 @@ const LOG_PROMPTS: Record<string, string> = {
 };
 
 const LOG_VIS = [
-  ['public',  'Everyone',    'Anyone on Grouw in your spaces can scroll your log'],
+  ['public',  'Everyone',    'Anyone on Grouv in your spaces can scroll your log'],
   ['circle',  'My circle',   'People you\'re connected with can see it'],
   ['bonds',   'Bonds only',  'Only your Bonds can open your log'],
   ['private', 'Private',     'Just you. A closed door.'],
@@ -841,7 +841,7 @@ export default function LogPage() {
   );
 
   return (
-    <AppShell title="Grouw Log" right={right}>
+    <AppShell title="Grouv Log" right={right}>
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 1.6rem 3rem' }}>
 
         {/* Phase chip + mode toggle */}

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Logo } from '@/components/ui/Logo';
 import { Field } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
+import { PasswordChecklist, passwordMeetsRequirements } from '@/components/ui/PasswordChecklist';
 import { authApi, ApiError } from '@/lib/api';
 import { hydrateSession } from '@/lib/session';
 import { setupPush } from '@/lib/push';
@@ -48,7 +49,7 @@ function AuthForm() {
     setError('');
     if (!name.trim())        { setError('Please enter your first name.'); return; }
     if (!email.trim())       { setError('Please enter your email.'); return; }
-    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (!passwordMeetsRequirements(password)) { setError('Password must be at least 8 characters and include a letter and a number.'); return; }
     setLoading(true);
     try {
       await authApi.signup({ email: email.trim(), password, display_name: name.trim() });
@@ -149,7 +150,7 @@ function AuthForm() {
         </div>
 
         <p style={{ position: 'relative', zIndex: 1, fontSize: '.72rem', color: 'rgba(255,255,255,0.3)' }}>
-          © 2025 Grouw
+          © {new Date().getFullYear()} Grouv
         </p>
       </div>
 
@@ -201,12 +202,13 @@ function AuthForm() {
               <Field label="First name" value={name} onChange={setName} placeholder="What we'll call you" autoComplete="given-name"/>
               <Field label="Email address" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email"/>
               <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="At least 8 characters" autoComplete="new-password"/>
+              <PasswordChecklist password={password}/>
               <label style={{ display: 'flex', gap: '.6rem', alignItems: 'flex-start',
                 fontSize: '.82rem', color: 'var(--ink-2)', margin: '.4rem 0 1.4rem', cursor: 'pointer', lineHeight: 1.5 }}>
                 <input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)}
                   style={{ marginTop: 2, accentColor: 'var(--ember)', width: 15, height: 15, flexShrink: 0 }}/>
                 <span>
-                  I agree to Grouw&apos;s{' '}
+                  I agree to Grouv&apos;s{' '}
                   <a onClick={() => router.push('/legal')} style={{ color: 'var(--ember)', cursor: 'pointer' }}>Terms</a>{' '}
                   and{' '}
                   <a onClick={() => router.push('/legal')} style={{ color: 'var(--ember)', cursor: 'pointer' }}>Privacy Policy</a>.

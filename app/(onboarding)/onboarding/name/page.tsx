@@ -14,12 +14,9 @@ export default function ObName() {
   return (
     <OBShell step={2} onBack={() => router.push('/onboarding/welcome')}>
       <div style={{ textAlign: 'center', margin: 'auto 0', maxWidth: 420, marginInline: 'auto' }}>
-        <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7vw, 2.4rem)', fontWeight: 600, marginBottom: '.6rem' }}>
+        <h1 className="serif" style={{ fontSize: 'clamp(1.7rem, 7vw, 2.4rem)', fontWeight: 600, marginBottom: '2rem' }}>
           What do we call you?
         </h1>
-        <p style={{ color: 'var(--ink-2)', marginBottom: '2rem' }}>
-          Just your first name. No handle. No username.
-        </p>
         <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="First name"
           style={{ width: '100%', textAlign: 'center', padding: '1rem', fontSize: '1.3rem',
             background: 'var(--white)', border: '1.5px solid var(--border-2)',

@@ -332,7 +332,7 @@ export default function NearbyPage() {
             {status !== 'denied' ? (
               <>
                 <h2 className="serif" style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '.5rem' }}>
-                  Grouw Nearby
+                  Grouv Nearby
                 </h2>
                 <p style={{ color: 'var(--ink-3)', fontSize: '.9rem', lineHeight: 1.65,
                   maxWidth: 360, margin: '0 auto 1.4rem' }}>

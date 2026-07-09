@@ -495,6 +495,7 @@ export interface PatchUserPayload {
   sittingWith?: string | null;
   honestTension?: string | null;
   onboardingCompleted?: boolean;
+  aura?: string;
 }
 
 export interface Suggestion {
@@ -676,7 +677,7 @@ export const anonAsksApi = {
              api.post<AnonAnswerComment>(`/anon-asks/answers/${answerId}/comments`, { body }),
 };
 
-// ── Grouw Log ─────────────────────────────────────────────────────
+// ── Grouv Log ─────────────────────────────────────────────────────
 export interface LogEntry {
   id: string;
   userId: string;

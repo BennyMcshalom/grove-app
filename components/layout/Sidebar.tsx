@@ -29,7 +29,7 @@ export function Sidebar() {
   const NAV = [
     { id: 'home',    href: '/home',    label: 'Home',         icon: 'home' },
     { id: 'spaces',  href: '/spaces',  label: 'My Spaces',    icon: 'spaces' },
-    { id: 'log',     href: '/log',     label: 'Grouw Log',    icon: 'book' },
+    { id: 'log',     href: '/log',     label: 'Grouv Log',    icon: 'book' },
     { id: 'bonds',   href: '/bonds',   label: 'Bonds',        icon: 'bonds', badge: isInitialized ? bondCount : null },
     { id: 'morning', href: '/morning', label: 'Morning Room', icon: 'sun' },
     { id: 'nearby',  href: '/nearby',  label: 'Nearby',       icon: 'pin', heartbeat: true },
@@ -49,9 +49,9 @@ export function Sidebar() {
         onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--surf-low)'}
         onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
         <Avatar name={user.name} size={42} avatarUrl={user.avatar_url}/>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: '.92rem' }}>{user.name}</div>
-          <div style={{ fontSize: '.7rem', color: 'var(--ink-3)' }}>{spaceLabel}</div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontWeight: 600, fontSize: '.92rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+          <div style={{ fontSize: '.7rem', color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{spaceLabel}</div>
         </div>
       </Link>
 

@@ -5,6 +5,7 @@ import { Logo } from '@/components/ui/Logo';
 import { Field } from '@/components/ui/Field';
 import { Icon } from '@/components/ui/Icon';
 import { authApi, ApiError } from '@/lib/api';
+import { PasswordChecklist, passwordMeetsRequirements } from '@/components/ui/PasswordChecklist';
 
 function ResetPasswordInner() {
   const router = useRouter();
@@ -19,7 +20,7 @@ function ResetPasswordInner() {
 
   async function handleReset() {
     setError('');
-    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (!passwordMeetsRequirements(password)) { setError('Password must be at least 8 characters and include a letter and a number.'); return; }
     if (password !== confirm) { setError('Passwords do not match.'); return; }
     if (!token) { setError('Missing reset token. Request a new link.'); return; }
 
@@ -60,6 +61,7 @@ function ResetPasswordInner() {
                   padding: '.7rem 1rem', marginBottom: '1rem', fontSize: '.88rem', color: 'var(--red)' }}>{error}</div>
               )}
               <Field label="New password" type="password" value={password} onChange={setPassword} placeholder="At least 8 characters"/>
+              <PasswordChecklist password={password}/>
               <Field label="Confirm password" type="password" value={confirm} onChange={setConfirm} placeholder="Type it again"/>
               <button className="btn btn-primary btn-block" disabled={loading} onClick={handleReset}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem' }}>

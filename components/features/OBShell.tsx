@@ -11,7 +11,7 @@ interface OBShellProps {
   wide?: boolean;
 }
 
-export function OBShell({ step, total = 7, onBack, bg = 'var(--cream)', children, wide }: OBShellProps) {
+export function OBShell({ step, total = 6, onBack, bg = 'var(--cream)', children, wide }: OBShellProps) {
   return (
     <div className="scroll" style={{ height: '100vh', width: '100vw', background: bg, overflowY: 'auto' }}>
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column',

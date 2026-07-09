@@ -92,5 +92,6 @@ export interface User {
   open?: string;
   location?: string;
   avatar_url?: string;
+  aura?: AuraKey;
   onboardingCompleted?: boolean;
 }

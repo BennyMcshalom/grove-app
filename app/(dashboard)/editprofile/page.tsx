@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { Avatar } from '@/components/ui/Avatar';
+import { AvatarCropper } from '@/components/ui/AvatarCropper';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { useUserStore } from '@/store/useUserStore';
@@ -29,13 +30,14 @@ export default function EditProfilePage() {
 
   const [name,     setName]     = useState(user.name === 'You' ? '' : user.name);
   const [location, setLocation] = useState(user.location ?? '');
-  const [aura,     setAura]     = useState<AuraKey>('open');
+  const [aura,     setAura]     = useState<AuraKey>(user.aura ?? 'open');
   const [tension,  setTension]  = useState(user.tension ?? '');
   const [sitting,  setSitting]  = useState(user.sitting ?? '');
   const [openTo,   setOpenTo]   = useState(user.open ?? '');
   const [labels,   setLabels]   = useState<Record<string, string>>({ ...(user.stageLabels ?? {}) });
   const [saving,   setSaving]   = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   const handleAvatarChange = async (file: File) => {
     setUploading(true);
@@ -44,7 +46,7 @@ export default function EditProfilePage() {
       setUser(u => ({ ...u, avatar_url: avatarUrl }));
       toast('Photo updated.');
     } catch { toast('Upload failed. Try again.'); }
-    finally { setUploading(false); }
+    finally { setUploading(false); setCropFile(null); }
   };
 
   const save = async () => {
@@ -55,6 +57,7 @@ export default function EditProfilePage() {
         openTo:         openTo.trim() || null,
         sittingWith:    sitting.trim() || null,
         honestTension:  tension.trim() || null,
+        aura,
       });
       setUser(u => ({
         ...u,
@@ -64,6 +67,7 @@ export default function EditProfilePage() {
         sitting:      sitting.trim(),
         open:         openTo.trim(),
         stageLabels:  labels,
+        aura,
       }));
       toast('Profile updated.');
       router.push('/profile');
@@ -89,7 +93,12 @@ export default function EditProfilePage() {
     <AppShell title="Edit profile" noTopbar>
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '1.2rem 1.6rem 3rem' }}>
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
-          onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarChange(f); e.target.value = ''; }}/>
+          onChange={e => { const f = e.target.files?.[0]; if (f) setCropFile(f); e.target.value = ''; }}/>
+        {cropFile && (
+          <AvatarCropper file={cropFile} saving={uploading}
+            onCancel={() => setCropFile(null)}
+            onSave={handleAvatarChange}/>
+        )}
 
         {/* Top nav */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.4rem' }}>

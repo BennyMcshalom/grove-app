@@ -178,7 +178,7 @@ export default function SettingsPage() {
             marginBottom: '1.4rem', transition: 'opacity .15s' }}
           onMouseEnter={e => (e.currentTarget.style.opacity = '.85')}
           onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-          <Avatar name={user.name} size={56} avatarUrl={user.avatar_url} ring={2} aura="open"/>
+          <Avatar name={user.name} size={56} avatarUrl={user.avatar_url} ring={2} aura={user.aura ?? 'open'}/>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '.18rem' }}>{user.name}</div>
             <div style={{ fontSize: '.78rem', color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: '.35rem', flexWrap: 'wrap' }}>
@@ -263,7 +263,7 @@ export default function SettingsPage() {
             </div>
           ) : hasSub ? (
             <>
-              <Row label="Grouw membership"
+              <Row label="Grouv membership"
                 sub={
                   <span>
                     <span style={{ color: subColor(sub.status), fontWeight: 600 }}>
@@ -295,11 +295,11 @@ export default function SettingsPage() {
 
         {/* ── Privacy ── */}
         <Group label="Privacy">
-          <Row label="Log visibility" sub="Who can see your Grouw Log"
+          <Row label="Log visibility" sub="Who can see your Grouv Log"
             onClick={() => router.push('/log')}>
             <Icon name="arrow" size={16} stroke="var(--ink-4)"/>
           </Row>
-          <Row label="Grouw&apos;s Promise" onClick={() => router.push('/legal')}>
+          <Row label="Grouv&apos;s Promise" onClick={() => router.push('/legal')}>
             <Icon name="arrow" size={16} stroke="var(--ink-4)"/>
           </Row>
         </Group>
@@ -339,7 +339,7 @@ export default function SettingsPage() {
           <button onClick={() => router.push('/legal')}>Our Promise</button>
         </div>
         <div className="mono" style={{ textAlign: 'center', fontSize: '.68rem', color: 'var(--ink-4)' }}>
-          Grouw v1.0.0
+          Grouv v1.0.0
         </div>
 
         <button onClick={handleLogout} className="btn btn-ghost btn-block"

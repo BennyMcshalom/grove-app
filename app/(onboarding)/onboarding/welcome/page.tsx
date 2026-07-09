@@ -26,17 +26,17 @@ export default function ObWelcome() {
             fontSize: '1.5rem', zIndex: 3, filter: 'drop-shadow(0 4px 8px rgba(243,112,30,.4))',
             animation: 'breathe 3s ease-in-out infinite' }}>⦿</div>
           <div style={{ position: 'absolute', left: 14, bottom: 0, zIndex: 2 }}>
-            <Avatar name="Saanvi Rao" size={120} aura="open"
+            <Avatar name="Saanvi Rao" size={120} aura="open" priority
               style={{ boxShadow: '0 0 0 5px var(--cream), 0 16px 36px -10px rgba(26,26,26,.28)', borderRadius: '50%' }}/>
           </div>
           <div style={{ position: 'absolute', right: 14, top: 6, zIndex: 2 }}>
-            <Avatar name="Jonah Pierce" size={100} aura="reflective"
+            <Avatar name="Jonah Pierce" size={100} aura="reflective" priority
               style={{ boxShadow: '0 0 0 5px var(--cream), 0 16px 36px -10px rgba(26,26,26,.28)', borderRadius: '50%' }}/>
           </div>
         </div>
 
         <h1 className="serif" style={{ fontSize: 'clamp(1.9rem, 8vw, 2.8rem)', fontWeight: 600, lineHeight: 1.12, marginBottom: '1.1rem' }}>
-          This is not social media.
+          Depth, on purpose.
         </h1>
         <p style={{ fontSize: 'clamp(.95rem, 4vw, 1.15rem)', color: 'var(--ink-2)', lineHeight: 1.6 }}>
           It's a small circle of people in the same chapter as you. No audience. No performance. Just depth.
