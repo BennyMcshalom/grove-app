@@ -428,9 +428,7 @@ function BondThread({ bond }: { bond: BondRecord }) {
       : undefined;
     setDraft(''); setReplyTo(null);
     try {
-      // The hook's mutateAsync passes body only; for reply opts we extend bondsApi directly
-      // then the useBondMessages polling (every 5s) picks up the new message
-      await bondsApi.sendMessage(bond.id, text, replyOpts);
+      await sendMsg.mutateAsync({ body: text, ...replyOpts });
     } catch { toast('Message failed.'); setDraft(text); }
   };
 

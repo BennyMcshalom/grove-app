@@ -23,7 +23,8 @@ export function useBondMessages(bondId: string | undefined) {
 export function useSendBondMessage(bondId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: string) => bondsApi.sendMessage(bondId, body),
+    mutationFn: (opts: { body: string; replyToId?: string; replyPreview?: string }) =>
+      bondsApi.sendMessage(bondId, opts.body, { replyToId: opts.replyToId, replyPreview: opts.replyPreview }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['bond-messages', bondId] }),
   });
 }
