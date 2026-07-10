@@ -863,12 +863,6 @@ textarea:focus {
   }
 }
 
-@keyframes auraSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @keyframes mistDrift {
 
   0%,

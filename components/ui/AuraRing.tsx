@@ -19,7 +19,7 @@ export function AuraRing({ aura, size }: AuraRingProps) {
 
   if (aura === 'transition') return (
     <div style={{ ...common, width: out, height: out, transform: 'translate(-50%,-50%)',
-      border: `2px dashed ${c}`, opacity: .85, animation: 'auraSpin 14s linear infinite' }}/>
+      border: `2px dashed ${c}`, opacity: .85 }}/>
   );
 
   if (aura === 'active') return (
@@ -44,8 +44,12 @@ export function AuraRing({ aura, size }: AuraRingProps) {
   );
 
   return (
-    <div style={{ ...common, width: out, height: out, transform: 'translate(-50%,-50%)',
-      background: `radial-gradient(circle, ${c}33, transparent 70%)`,
-      animation: 'auraBreath 5s ease-in-out infinite' }}/>
+    <>
+      <div style={{ ...common, width: out, height: out, transform: 'translate(-50%,-50%)',
+        background: `radial-gradient(circle, ${c}55, transparent 70%)`,
+        animation: 'auraBreath 5s ease-in-out infinite' }}/>
+      <div style={{ ...common, width: size + 2, height: size + 2, transform: 'translate(-50%,-50%)',
+        boxShadow: `0 0 9px 1px ${c}70` }}/>
+    </>
   );
 }

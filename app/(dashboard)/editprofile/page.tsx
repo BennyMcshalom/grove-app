@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Avatar } from '@/components/ui/Avatar';
 import { AvatarCropper } from '@/components/ui/AvatarCropper';
 import { Icon } from '@/components/ui/Icon';
+import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { Spinner } from '@/components/ui/Spinner';
 import { useUserStore } from '@/store/useUserStore';
 import { useToastStore } from '@/store/useToastStore';
@@ -193,7 +194,7 @@ export default function EditProfilePage() {
             const opts = STAGES[id] ?? STAGES.career;
             return (
               <div key={id} style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.8rem' }}>
-                <span style={{ fontSize: '1.3rem' }}>{s.emoji}</span>
+                <SpaceIcon spaceId={id} size={16} pill pillSize={32}/>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500, fontSize: '.9rem', marginBottom: '.3rem' }}>{s.name}</div>
                   <select value={labels[id] ?? opts[0]} onChange={e => setLabels({ ...labels, [id]: e.target.value })}

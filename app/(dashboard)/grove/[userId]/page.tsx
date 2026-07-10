@@ -6,12 +6,13 @@ import { Icon } from '@/components/ui/Icon';
 import { StageChip } from '@/components/ui/StageChip';
 import { Waveform } from '@/components/ui/Waveform';
 import { Spinner } from '@/components/ui/Spinner';
-import { AURAS, nowPhase, PHASE, auraFor, spaceById } from '@/lib/data';
+import { AURAS, STAGES, nowPhase, PHASE, auraFor, spaceById } from '@/lib/data';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { groveApi, logApi } from '@/lib/api';
+import { useUserStore } from '@/store/useUserStore';
+import { groveApi, logApi, usersApi, spacesApi } from '@/lib/api';
 import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuraKey } from '@/lib/types';
 
 const RINGS = [
@@ -66,8 +67,10 @@ function LogViewer({ title, entries, onClose }: {
 export default function GrovePage() {
   const router = useRouter();
   const params = useParams();
+  const qc = useQueryClient();
   const { toast } = useToastStore();
   const { user: authUser } = useAuthStore();
+  const { setUser } = useUserStore();
   const userId = params.userId as string;
   const isOwnProfile = !!authUser?.id && authUser.id === userId;
 
@@ -78,6 +81,14 @@ export default function GrovePage() {
   const [viewLog, setViewLog] = useState(false);
   const [ambience, setAmbience] = useState(false);
   const [ci, setCi] = useState(0);
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [savingName, setSavingName] = useState(false);
+
+  const [editingRing, setEditingRing] = useState(false);
+  const [ringDraft, setRingDraft] = useState('');
+  const [savingRing, setSavingRing] = useState(false);
 
   const { data: grove, isLoading } = useQuery({
     queryKey: ['grove', userId],
@@ -124,11 +135,50 @@ export default function GrovePage() {
   }));
 
   const primarySpace = grove?.activeSpaces?.[0];
+  const primarySpaceSlug = primarySpace?.space?.slug;
+  const stageOptions = STAGES[primarySpaceSlug ?? 'career'] ?? STAGES.career;
 
   function getRingContent(key: 'inner' | 'middle' | 'outer'): string | null {
     if (!grove?.rings) return null;
     return { inner: grove.rings.struggling, middle: grove.rings.building, outer: grove.rings.openTo }[key] ?? null;
   }
+
+  const startEditName = () => { setNameDraft(name); setEditingName(true); };
+  const saveName = async () => {
+    const value = nameDraft.trim();
+    if (!value) return;
+    setSavingName(true);
+    try {
+      await usersApi.updateMe({ displayName: value });
+      setUser(u => ({ ...u, name: value }));
+      qc.setQueryData(['grove', userId], (old: typeof grove) => old && { ...old, profile: { ...old.profile, displayName: value } });
+      setEditingName(false);
+      toast('Name updated.');
+    } catch { toast('Could not save. Try again.'); }
+    finally { setSavingName(false); }
+  };
+
+  const startEditRing = () => { setRingDraft(getRingContent(active as 'inner' | 'middle' | 'outer') ?? ''); setEditingRing(true); };
+  const saveRing = async () => {
+    const ring = RINGS.find(r => r.key === active);
+    if (!ring) return;
+    setSavingRing(true);
+    try {
+      if (ring.field === 'struggling') {
+        await usersApi.updateMe({ honestTension: ringDraft.trim() || null });
+      } else if (ring.field === 'openTo') {
+        await usersApi.updateMe({ openTo: ringDraft.trim() || null });
+      } else if (ring.field === 'building' && primarySpace) {
+        await spacesApi.update(primarySpace.id, { stage: ringDraft || undefined });
+      }
+      await qc.invalidateQueries({ queryKey: ['grove', userId] });
+      setEditingRing(false);
+      toast('Updated.');
+    } catch { toast('Could not save. Try again.'); }
+    finally { setSavingRing(false); }
+  };
+
+  const selectRing = (key: string | null) => { setActive(key); setEditingRing(false); };
 
   return (
     <div className="scroll" style={{ height: '100vh', width: '100vw', overflowY: 'auto', overflowX: 'hidden',
@@ -164,11 +214,11 @@ export default function GrovePage() {
             {/* Rings — sized as % of the container so they scale with maxWidth/aspectRatio on mobile,
                 instead of a fixed pixel diameter that ignored the responsive container size. */}
             {[...RINGS].reverse().map(ring => {
-              const dPct = ring.r * 200; // diameter as % of container
+              const dPct = ring.r * 100; // diameter as % of container — matches rrPct below, which treats r=0.70 as literally 70%
               const on = active === ring.key;
               const hov = hover === ring.key;
               return (
-                <div key={ring.key} onClick={() => setActive(on ? null : ring.key)}
+                <div key={ring.key} onClick={() => selectRing(on ? null : ring.key)}
                   onMouseEnter={() => setHover(ring.key)} onMouseLeave={() => setHover(null)}
                   style={{ position: 'absolute', left: '50%', top: '50%', width: `${dPct}%`, height: `${dPct}%`, transform: 'translate(-50%,-50%)',
                     borderRadius: '50%', border: `2px solid ${ring.color}`, opacity: on || hov ? 1 : .5, cursor: 'pointer',
@@ -226,7 +276,7 @@ export default function GrovePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.9rem', justifyContent: 'center' }}>
                   <span style={{ fontSize: '.72rem', color: 'var(--ink-3)' }}>Now</span>
                   <input type="range" min="0" max={closedChapters.length - 1} value={ci}
-                    onChange={e => { setCi(+e.target.value); setActive(null); }}
+                    onChange={e => { setCi(+e.target.value); selectRing(null); }}
                     style={{ width: 'min(240px, 60vw)', accentColor: 'var(--ember)' }}/>
                   <span style={{ fontSize: '.72rem', color: 'var(--ink-3)' }}>Earlier</span>
                 </div>
@@ -252,7 +302,32 @@ export default function GrovePage() {
               </div>
             ) : (
               <>
-                <div className="serif" style={{ fontSize: '1.7rem', fontWeight: 600, lineHeight: 1.15, marginBottom: '.6rem' }}>{name}</div>
+                {editingName ? (
+                  <div style={{ marginBottom: '.6rem' }}>
+                    <input autoFocus value={nameDraft} onChange={e => setNameDraft(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
+                      style={{ width: '100%', padding: '.5rem .7rem', fontSize: '1.1rem', fontFamily: 'inherit',
+                        border: '1.5px solid var(--ember)', borderRadius: 'var(--r-md)', background: 'var(--surf-low)' }}/>
+                    <div style={{ display: 'flex', gap: '.5rem', marginTop: '.5rem' }}>
+                      <button onClick={saveName} disabled={savingName || !nameDraft.trim()} className="btn btn-primary"
+                        style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>
+                        {savingName ? <Spinner size={12} color="#fff"/> : 'Save'}
+                      </button>
+                      <button onClick={() => setEditingName(false)} disabled={savingName} className="btn btn-soft"
+                        style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '.6rem' }}>
+                    <div className="serif" style={{ fontSize: '1.7rem', fontWeight: 600, lineHeight: 1.15, marginBottom: '.6rem' }}>{name}</div>
+                    {isOwnProfile && (
+                      <button onClick={startEditName}
+                        style={{ fontSize: '.8rem', color: 'var(--ember)', fontWeight: 500, flexShrink: 0, marginTop: '.2rem' }}>
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                )}
                 {primarySpace?.space?.slug && (
                   <StageChip space={primarySpace.space.slug} stage={primarySpace.stage ?? primarySpace.space.name}/>
                 )}
@@ -272,10 +347,41 @@ export default function GrovePage() {
             const ring    = RINGS.find(r => r.key === active)!;
             const content = getRingContent(active as 'inner' | 'middle' | 'outer');
             const chapterLearning = active === 'inner' && chapter?.closingLearned;
+            const canEditRing = isOwnProfile && (ring.field !== 'building' || !!primarySpace);
             return (
               <div className="card fade-in" style={{ padding: '1.3rem 1.4rem', borderLeft: `4px solid ${ring.color}` }}>
-                <div className="label-mono" style={{ color: ring.color, marginBottom: '.5rem' }}>{ring.label}</div>
-                {content ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.5rem' }}>
+                  <div className="label-mono" style={{ color: ring.color }}>{ring.label}</div>
+                  {canEditRing && !editingRing && (
+                    <button onClick={startEditRing} style={{ fontSize: '.78rem', color: 'var(--ember)', fontWeight: 500 }}>Edit</button>
+                  )}
+                </div>
+
+                {editingRing ? (
+                  <div style={{ marginBottom: '1rem' }}>
+                    {ring.field === 'building' ? (
+                      <select value={ringDraft} onChange={e => setRingDraft(e.target.value)} autoFocus
+                        style={{ width: '100%', padding: '.6rem .7rem', fontSize: '.92rem', fontFamily: 'inherit',
+                          border: '1.5px solid var(--ember)', borderRadius: 'var(--r-md)', background: 'var(--surf-low)' }}>
+                        {stageOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : (
+                      <textarea autoFocus value={ringDraft} onChange={e => setRingDraft(e.target.value)} maxLength={300}
+                        placeholder="Only your Bonds will see this…"
+                        style={{ width: '100%', minHeight: 80, resize: 'vertical', padding: '.6rem .7rem', fontSize: '.92rem',
+                          fontFamily: 'inherit', lineHeight: 1.5, border: '1.5px solid var(--ember)', borderRadius: 'var(--r-md)',
+                          background: 'var(--surf-low)' }}/>
+                    )}
+                    <div style={{ display: 'flex', gap: '.5rem', marginTop: '.6rem' }}>
+                      <button onClick={saveRing} disabled={savingRing} className="btn btn-primary"
+                        style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>
+                        {savingRing ? <Spinner size={12} color="#fff"/> : 'Save'}
+                      </button>
+                      <button onClick={() => setEditingRing(false)} disabled={savingRing} className="btn btn-soft"
+                        style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>Cancel</button>
+                    </div>
+                  </div>
+                ) : content ? (
                   <p className="serif" style={{ fontSize: '1.3rem', fontWeight: 600, lineHeight: 1.3, marginBottom: '1rem' }}>"{content}"</p>
                 ) : (
                   <p style={{ color: 'var(--ink-3)', fontStyle: 'italic', marginBottom: '1rem' }}>
@@ -290,7 +396,7 @@ export default function GrovePage() {
                     </div>
                   </>
                 )}
-                <button onClick={() => setActive(null)} style={{ marginTop: '1rem', fontSize: '.8rem', color: 'var(--ink-3)' }}>← Step back out</button>
+                <button onClick={() => selectRing(null)} style={{ marginTop: '1rem', fontSize: '.8rem', color: 'var(--ink-3)' }}>← Step back out</button>
               </div>
             );
           })() : (

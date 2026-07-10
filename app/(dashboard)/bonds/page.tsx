@@ -87,15 +87,15 @@ function VoicePlayer({ url, dur, sent, myReaction, onReact }: {
   );
 }
 
-const REACTIONS: { emoji: string; icon: string; label: string }[] = [
-  { emoji: '❤️', icon: 'heart',      label: 'Love'   },
-  { emoji: '👍', icon: 'thumbs-up',  label: 'Like'   },
-  { emoji: '🔥', icon: 'fire',       label: 'Fire'   },
-  { emoji: '😂', icon: 'comment',    label: 'Haha'   },
-  { emoji: '😮', icon: 'eye',        label: 'Wow'    },
-  { emoji: '😢', icon: 'moon',       label: 'Sad'    },
-  { emoji: '🙏', icon: 'check',      label: 'Thanks' },
-  { emoji: '💪', icon: 'strong',     label: 'Strong' },
+const REACTIONS: { emoji: string; label: string }[] = [
+  { emoji: '❤️', label: 'Love'   },
+  { emoji: '👍', label: 'Like'   },
+  { emoji: '🔥', label: 'Fire'   },
+  { emoji: '😂', label: 'Haha'   },
+  { emoji: '😮', label: 'Wow'    },
+  { emoji: '😢', label: 'Sad'    },
+  { emoji: '🙏', label: 'Thanks' },
+  { emoji: '💪', label: 'Strong' },
 ];
 
 // ─────────────────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, onReply }
         {/* Column: bubble + reactions */}
         <div style={{ position: 'relative', maxWidth: '68%' }}>
 
-          {/* Dropdown chevron — fades in on hover at the top corner of the bubble */}
+          {/* Dropdown chevron — always usable on touch (no hover state there); brightens on hover for desktop */}
           <button
             onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); openMenu(r.left, r.bottom + 4); }}
             style={{
@@ -195,9 +195,8 @@ function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, onReply }
               background: sent ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.1)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer',
-              opacity: hovered ? 1 : 0,
+              opacity: hovered ? 1 : .55,
               transition: 'opacity .15s',
-              pointerEvents: hovered ? 'auto' : 'none',
             }}
           >
             <svg width="9" height="5" viewBox="0 0 9 5" fill="none">
@@ -258,7 +257,7 @@ function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, onReply }
                       border: active ? '1.5px solid var(--ember)' : '1px solid var(--border-2)',
                       boxShadow: 'var(--shadow-soft)', cursor: 'pointer',
                       color: active ? 'var(--ember)' : 'var(--ink-3)' }}>
-                    {r ? <Icon name={r.icon} size={13} stroke={active ? 'var(--ember)' : 'var(--ink-3)'} sw={2}/> : null}
+                    <span style={{ fontSize: '.85rem', lineHeight: 1 }}>{emoji}</span>
                     <span style={{ fontSize: '.72rem', fontWeight: 600 }}>{r?.label ?? emoji}</span>
                     {users.length > 1 && <span style={{ fontSize: '.68rem', fontWeight: 400 }}>{users.length}</span>}
                   </button>
@@ -313,7 +312,7 @@ function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, onReply }
                     color: myEmoji === r.emoji ? 'var(--ember)' : 'var(--ink-3)' }}
                   onMouseEnter={ev => (ev.currentTarget.style.transform = 'scale(1.2)')}
                   onMouseLeave={ev => (ev.currentTarget.style.transform = 'scale(1)')}>
-                  <Icon name={r.icon} size={16} stroke={myEmoji === r.emoji ? 'var(--ember)' : 'var(--ink-3)'} sw={1.8}/>
+                  <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{r.emoji}</span>
                 </button>
               ))}
             </div>
