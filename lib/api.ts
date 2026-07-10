@@ -852,7 +852,7 @@ export interface AdminUsersQuery {
   offset?: number;
   q?: string;
   status?: UserStatus;
-  role?: 'admin' | 'user';
+  role?: 'admin' | 'user' | 'moderator';
 }
 
 export interface AdminSpaceStat {
@@ -923,6 +923,73 @@ function qs<T extends object>(params: T): string {
   return parts.length ? `?${parts.join('&')}` : '';
 }
 
+export interface AdminBillingStats { total: number; byStatus: Record<string, number>; }
+
+export interface AdminSubscriptionRow {
+  id: string;
+  userId: string;
+  status: string;
+  priceId: string | null;
+  productId: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean | null;
+  trialEnd: string | null;
+  environment: string;
+  createdAt: string;
+  updatedAt: string;
+  displayName: string | null;
+  email: string | null;
+}
+export interface AdminSubscriptionsResponse { total: number; subscriptions: AdminSubscriptionRow[]; }
+
+export interface AdminContentResult {
+  type: 'post' | 'comment' | 'bond_message' | 'group_post';
+  id: string;
+  createdAt: string;
+  [key: string]: unknown;
+}
+
+export interface AdminGroup {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  lifePhase: string;
+  emoji: string;
+  coverColor: string;
+  createdBy: string | null;
+  memberCount: number;
+  postCount: number;
+  isSeeded: boolean;
+  createdAt: string;
+}
+export interface AdminGroupPost {
+  id: string;
+  groupId: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface AdminFeatureFlag {
+  key: string;
+  enabled: boolean;
+  description: string;
+  updatedBy: string | null;
+  updatedAt: string;
+}
+
+export interface AdminEmailLogEntry {
+  id: string;
+  toEmail: string;
+  subject: string;
+  status: 'sent' | 'failed';
+  error: string | null;
+  createdAt: string;
+}
+export interface AdminEmailLogResponse { total: number; entries: AdminEmailLogEntry[]; }
+
 export const adminApi = {
   stats:    () => api.get<AdminStats>('/admin/stats'),
   signups:  (days = 30) => api.get<AdminSeriesPoint[]>(`/admin/stats/signups${qs({ days })}`),
@@ -934,8 +1001,8 @@ export const adminApi = {
 
   setStatus: (id: string, status: UserStatus, reason?: string) =>
     api.patch<{ ok: true }>(`/admin/users/${id}/status`, { status, reason }),
-  setRole:   (id: string, role: 'admin' | 'user') =>
-    api.patch<{ ok: true }>(`/admin/users/${id}/role`, { role }),
+  setRole:   (id: string, role: 'admin' | 'moderator', grant: boolean) =>
+    api.patch<{ ok: true }>(`/admin/users/${id}/role`, { role, grant }),
   verifyEmail: (id: string) =>
     api.post<{ ok: true }>(`/admin/users/${id}/verify-email`),
   deleteUser:  (id: string) => api.delete<void>(`/admin/users/${id}`),
@@ -963,6 +1030,31 @@ export const adminApi = {
     api.get<AdminReportsResponse>(`/admin/reports${qs(params)}`),
   dismissReport:        (id: string) => api.patch<{ ok: true }>(`/admin/reports/${id}/dismiss`),
   removeReportedContent: (id: string) => api.patch<{ ok: true }>(`/admin/reports/${id}/remove`),
+
+  // Billing — read-only by design (see grove-api migration notes)
+  billingStats:  () => api.get<AdminBillingStats>('/admin/stats/billing'),
+  subscriptions: (params: { limit?: number; offset?: number; status?: string } = {}) =>
+    api.get<AdminSubscriptionsResponse>(`/admin/subscriptions${qs(params)}`),
+
+  // Content search
+  searchContent: (params: { q: string; type?: string }) =>
+    api.get<{ results: AdminContentResult[] }>(`/admin/content/search${qs(params)}`),
+
+  // Chapter Groups moderation
+  groups:          () => api.get<AdminGroup[]>('/admin/groups'),
+  groupPosts:      (groupId: string) => api.get<AdminGroupPost[]>(`/admin/groups/${groupId}/posts`),
+  removeGroupPost: (groupId: string, postId: string) => api.delete<void>(`/admin/groups/${groupId}/posts/${postId}`),
+  removeGroupMember: (groupId: string, userId: string) => api.delete<void>(`/admin/groups/${groupId}/members/${userId}`),
+  disbandGroup:    (groupId: string) => api.delete<void>(`/admin/groups/${groupId}`),
+
+  // Feature flags
+  featureFlags: () => api.get<AdminFeatureFlag[]>('/admin/feature-flags'),
+  setFeatureFlag: (key: string, enabled: boolean) =>
+    api.patch<AdminFeatureFlag>(`/admin/feature-flags/${key}`, { enabled }),
+
+  // Email delivery log
+  emailLog: (params: { limit?: number; offset?: number; status?: 'sent' | 'failed' } = {}) =>
+    api.get<AdminEmailLogResponse>(`/admin/email-log${qs(params)}`),
 };
 
 // ── Content reports (consumer-facing) ───────────────────────────────

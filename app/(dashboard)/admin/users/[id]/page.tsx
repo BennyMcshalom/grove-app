@@ -80,6 +80,7 @@ export default function AdminUserDetailPage() {
 
   const { user, profile, roles, subscription, bondCount, spaceCount, recentAudit } = data;
   const isAdminUser = roles.includes('admin');
+  const isModeratorUser = roles.includes('moderator');
   const needsTypeConfirm = pendingStatus === 'banned';
   const statusConfirmReady = !needsTypeConfirm || banConfirm === 'BAN';
 
@@ -97,8 +98,17 @@ export default function AdminUserDetailPage() {
 
   async function toggleAdmin() {
     try {
-      await setRole.mutateAsync(isAdminUser ? 'user' : 'admin');
+      await setRole.mutateAsync({ role: 'admin', grant: !isAdminUser });
       toast(isAdminUser ? 'Admin access revoked.' : 'Admin access granted.');
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : 'Could not update role.');
+    }
+  }
+
+  async function toggleModerator() {
+    try {
+      await setRole.mutateAsync({ role: 'moderator', grant: !isModeratorUser });
+      toast(isModeratorUser ? 'Moderator access revoked.' : 'Moderator access granted.');
     } catch (err) {
       toast(err instanceof ApiError ? err.message : 'Could not update role.');
     }
@@ -294,6 +304,23 @@ export default function AdminUserDetailPage() {
               <button disabled={setRole.isPending} onClick={toggleAdmin} className={isAdminUser ? 'btn btn-soft' : 'btn btn-primary'}
                 style={{ fontSize: '.82rem', flexShrink: 0 }}>
                 {setRole.isPending ? <Spinner size={14}/> : isAdminUser ? 'Revoke admin' : 'Grant admin'}
+              </button>
+            </div>
+
+            {/* ── Moderator role ── */}
+            <div className="card" style={{ padding: '1.2rem 1.3rem', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.3rem' }}>
+                  <Icon name="flag" size={13} stroke="var(--ink-3)"/>
+                  <div className="label-mono">Moderator access</div>
+                </div>
+                <p style={{ fontSize: '.82rem', color: 'var(--ink-3)' }}>
+                  {isModeratorUser ? 'Can review reports, search content, and moderate Chapter Groups.' : 'No content-moderation access.'}
+                </p>
+              </div>
+              <button disabled={setRole.isPending} onClick={toggleModerator} className={isModeratorUser ? 'btn btn-soft' : 'btn btn-primary'}
+                style={{ fontSize: '.82rem', flexShrink: 0 }}>
+                {setRole.isPending ? <Spinner size={14}/> : isModeratorUser ? 'Revoke moderator' : 'Grant moderator'}
               </button>
             </div>
 

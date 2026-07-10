@@ -17,7 +17,7 @@ export function Sidebar() {
   const theme = useTheme();
   const isDark = theme === 'dark';
   const { isInitialized, user: authUser } = useAuthStore();
-  const isAdmin = authUser?.roles.includes('admin') ?? false;
+  const isAdmin = authUser?.roles.some(r => r === 'admin' || r === 'moderator') ?? false;
   const { data: bondsData } = useBonds();
   const bondCount = bondsData?.length ?? 0;
 

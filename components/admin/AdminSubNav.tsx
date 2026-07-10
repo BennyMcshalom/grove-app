@@ -2,18 +2,33 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAdminStats } from '@/hooks/useAdmin';
+import { useAuthStore } from '@/store/useAuthStore';
 
-const TABS = [
-  { href: '/admin',          label: 'Overview' },
-  { href: '/admin/users',    label: 'Users' },
+const STAFF_TABS = [
   { href: '/admin/reports',  label: 'Reports' },
-  { href: '/admin/waitlist', label: 'Waitlist' },
-  { href: '/admin/audit',    label: 'Audit log' },
+  { href: '/admin/search',   label: 'Content search' },
+  { href: '/admin/groups',   label: 'Groups' },
+];
+
+const ADMIN_ONLY_TABS = [
+  { href: '/admin',              label: 'Overview' },
+  { href: '/admin/users',        label: 'Users' },
+  { href: '/admin/waitlist',     label: 'Waitlist' },
+  { href: '/admin/billing',      label: 'Billing' },
+  { href: '/admin/feature-flags', label: 'Feature flags' },
+  { href: '/admin/email-log',    label: 'Email log' },
+  { href: '/admin/audit',        label: 'Audit log' },
 ];
 
 export function AdminSubNav() {
   const pathname = usePathname();
-  const { data: stats } = useAdminStats();
+  const { user } = useAuthStore();
+  const isAdmin = user?.roles.includes('admin') ?? false;
+  const { data: stats } = useAdminStats(isAdmin);
+
+  const TABS = isAdmin
+    ? [ADMIN_ONLY_TABS[0], ...STAFF_TABS, ...ADMIN_ONLY_TABS.slice(1)]
+    : STAFF_TABS;
 
   return (
     <div className="scroll" style={{ display: 'flex', gap: '1.4rem', borderBottom: '1px solid var(--border)',

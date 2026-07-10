@@ -18,7 +18,7 @@ const ADMIN_ITEM = { href: '/admin', icon: 'shield', label: 'Admin' };
 export function MobileNav() {
   const pathname = usePathname();
   const { isInitialized, user } = useAuthStore();
-  const isAdmin = user?.roles.includes('admin') ?? false;
+  const isAdmin = user?.roles.some(r => r === 'admin' || r === 'moderator') ?? false;
   const { data: bondsData } = useBonds();
   const bondCount = bondsData?.length ?? 0;
   const items = isAdmin ? [...NAV, ADMIN_ITEM] : NAV;

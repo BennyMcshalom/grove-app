@@ -35,7 +35,7 @@ export default function AdminUsersPage() {
   const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<UserStatus | 'all'>('all');
-  const [role, setRole] = useState<'admin' | 'user' | 'all'>('all');
+  const [role, setRole] = useState<'admin' | 'moderator' | 'user' | 'all'>('all');
   const [page, setPage] = useState(0);
   const [exporting, setExporting] = useState(false);
 
@@ -110,7 +110,7 @@ export default function AdminUsersPage() {
             ))}
           </FilterGroup>
           <FilterGroup label="Role">
-            {(['all', 'admin', 'user'] as const).map(r => (
+            {(['all', 'admin', 'moderator', 'user'] as const).map(r => (
               <button key={r} onClick={() => { setRole(r); setPage(0); }} className="chip"
                 style={{ cursor: 'pointer', background: role === r ? 'var(--slate)' : 'var(--surf-high)',
                   color: role === r ? '#fff' : 'var(--ink-2)', fontWeight: 500, textTransform: 'capitalize' }}>
@@ -137,6 +137,11 @@ export default function AdminUsersPage() {
                     {u.roles.includes('admin') && (
                       <span className="chip" style={{ background: 'var(--slate-dim)', color: 'var(--slate)', fontSize: '.62rem', padding: '.1rem .5rem' }}>
                         Admin
+                      </span>
+                    )}
+                    {u.roles.includes('moderator') && (
+                      <span className="chip" style={{ background: 'var(--amber-dim)', color: 'var(--amber)', fontSize: '.62rem', padding: '.1rem .5rem' }}>
+                        Moderator
                       </span>
                     )}
                   </div>
