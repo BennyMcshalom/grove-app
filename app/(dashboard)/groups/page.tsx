@@ -340,7 +340,8 @@ export default function GroupsPage() {
           <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--green-dim))', maxWidth: 480, margin: '0 auto' }}>
             <EmptyState variant="groups"
               title={q ? `No groups match "${q}".` : 'No chapter groups yet.'}
-              body={q ? 'Try a different search, or start a new chapter.' : 'Chapter groups form around shared life phases. Start the first one.'}/>
+              body={q ? 'Try a different search, or start a new chapter.' : 'Chapter groups form around shared life phases. Start the first one.'}
+              action={{ label: 'Start a chapter →', onClick: () => setCreating(true) }}/>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.8rem' }}>
