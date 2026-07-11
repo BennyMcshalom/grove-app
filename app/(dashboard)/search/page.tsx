@@ -8,7 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { Spinner } from '@/components/ui/Spinner';
 import { searchApi } from '@/lib/api';
-import { useJoinGroup } from '@/hooks/useGroups';
+import { useRequestToJoinGroup } from '@/hooks/useGroups';
 import { useToastStore } from '@/store/useToastStore';
 import { SPACES, spaceById, groupIcon } from '@/lib/data';
 import { formatRelativeTime } from '@/lib/mappers';
@@ -21,8 +21,8 @@ export default function SearchPage() {
   const { toast } = useToastStore();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<'all'|'users'|'posts'|'groups'|'spaces'>('all');
-  const joinGroup = useJoinGroup();
-  const [joined, setJoined] = useState<string[]>([]);
+  const requestToJoin = useRequestToJoinGroup();
+  const [requested, setRequested] = useState<string[]>([]);
 
   const { data: results, isLoading } = useQuery({
     queryKey: ['search', q, filter],
@@ -151,13 +151,13 @@ export default function SearchPage() {
                         <div style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>{g.lifePhase} · {g.memberCount} members</div>
                       </div>
                       <button
-                        disabled={joined.includes(g.id) || joinGroup.isPending}
+                        disabled={requested.includes(g.id) || requestToJoin.isPending}
                         onClick={async () => {
-                          try { await joinGroup.mutateAsync(g.id); setJoined(j => [...j, g.id]); toast(`Joined ${g.name}.`); }
-                          catch { toast('Could not join.'); }
+                          try { await requestToJoin.mutateAsync(g.id); setRequested(j => [...j, g.id]); toast(`Requested to join ${g.name}.`); }
+                          catch { toast('Could not send request.'); }
                         }}
                         className="btn btn-ghost" style={{ padding: '.4rem .9rem', fontSize: '.8rem' }}>
-                        {joined.includes(g.id) ? 'Joined' : 'Join'}
+                        {requested.includes(g.id) ? 'Requested' : 'Request'}
                       </button>
                     </div>
                   ))}

@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { bondsApi } from '@/lib/api';
+import { humanDuration } from '@/lib/mappers';
 import { Suspense } from 'react';
 
 function BondReleaseInner() {
@@ -16,6 +18,12 @@ function BondReleaseInner() {
   const [begin, setBegin] = useState(false);
   const [ans, setAns] = useState(['', '', '']);
   const [held, setHeld] = useState(false);
+
+  const { data: bond } = useQuery({
+    queryKey: ['bond', bondId],
+    queryFn:  () => bondsApi.get(bondId),
+    enabled:  !!bondId,
+  });
 
   useEffect(() => {
     if (step === 0) { const t = setTimeout(() => setBegin(true), 2500); return () => clearTimeout(t); }
@@ -59,9 +67,13 @@ function BondReleaseInner() {
         })()}
         {step === 4 && (
           <>
-            <Avatar name={name} size={88} style={{ margin: '0 auto 1.4rem' }}/>
+            <Avatar name={name} size={88} avatarUrl={bond?.otherUser?.avatarUrl} style={{ margin: '0 auto 1.4rem' }}/>
             <h1 className="serif" style={{ fontSize: 'clamp(1.5rem, 6vw, 2rem)', fontWeight: 600 }}>{name.split(' ')[0]}'s Bond</h1>
-            <p style={{ color: 'var(--ink-3)', margin: '.5rem 0' }}>Oct 2025 – Today · 7 months</p>
+            <p style={{ color: 'var(--ink-3)', margin: '.5rem 0' }}>
+              {bond
+                ? `${new Date(bond.formedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} – Today · ${humanDuration(bond.formedAt)}`
+                : ' '}
+            </p>
             <div style={{ height: 60, marginTop: '2rem' }}>
               {held ? (
                 <button className="btn btn-ghost btn-lg btn-pill fade-in" disabled={releasing}

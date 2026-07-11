@@ -393,6 +393,10 @@ export const spacesApi = {
 };
 
 // ── Groups ────────────────────────────────────────────────────────────────────
+export interface GroupMemberProfile { id: string; displayName: string; avatarUrl: string | null; }
+export interface GroupMember { id: string; groupId: string; userId: string; role: 'admin' | 'member'; joinedAt: string; profile: GroupMemberProfile | null; }
+export interface GroupJoinRequest { id: string; groupId: string; userId: string; status: 'pending' | 'approved' | 'denied'; requestedAt: string; profile?: GroupMemberProfile | null; }
+
 export interface GroupRecord {
   id: string;
   name: string;
@@ -402,7 +406,10 @@ export interface GroupRecord {
   emoji: string;
   coverColor: string;
   memberCount: number;
-  members?: { userId: string }[];
+  members?: GroupMember[];
+  postCount?: number;
+  myRole?: 'admin' | 'member' | null;
+  myRequestStatus?: 'pending' | 'denied' | null;
 }
 
 export interface GroupPost {
@@ -411,15 +418,21 @@ export interface GroupPost {
   authorId: string;
   content: string;
   createdAt: string;
+  author?: GroupMemberProfile | null;
 }
 
 export const groupsApi = {
-  list:      () => api.get<GroupRecord[]>('/groups'),
-  get:       (id: string) => api.get<GroupRecord>(`/groups/${id}`),
-  join:      (id: string) => api.post<void>(`/groups/${id}/members`),
-  leave:     (id: string) => api.delete<void>(`/groups/${id}/members`),
-  posts:     (id: string) => api.get<GroupPost[]>(`/groups/${id}/posts`),
-  postMsg:   (id: string, content: string) => api.post<GroupPost>(`/groups/${id}/posts`, { content }),
+  list:          () => api.get<GroupRecord[]>('/groups'),
+  get:           (id: string) => api.get<GroupRecord>(`/groups/${id}`),
+  create:        (data: { name: string; slug: string; description: string; lifePhase: string; emoji: string; coverColor: string }) =>
+                   api.post<GroupRecord>('/groups', data),
+  leave:         (id: string) => api.delete<void>(`/groups/${id}/members`),
+  posts:         (id: string) => api.get<GroupPost[]>(`/groups/${id}/posts`),
+  postMsg:       (id: string, content: string) => api.post<GroupPost>(`/groups/${id}/posts`, { content }),
+  requestToJoin: (id: string) => api.post<GroupJoinRequest>(`/groups/${id}/join-requests`),
+  joinRequests:  (id: string) => api.get<GroupJoinRequest[]>(`/groups/${id}/join-requests`),
+  approveRequest: (id: string, requestId: string) => api.post<void>(`/groups/${id}/join-requests/${requestId}/approve`),
+  denyRequest:    (id: string, requestId: string) => api.post<void>(`/groups/${id}/join-requests/${requestId}/deny`),
 };
 
 // ── Notifications ─────────────────────────────────────────────────────────────

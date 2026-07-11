@@ -15,14 +15,14 @@ export function AppShell({ children, title, right, dark, noTopbar }: AppShellPro
   return (
     <div className="app-shell">
       <div className="app-sidebar">
-        <Sidebar/>
+        <Sidebar />
       </div>
 
       <main className="app-main"
         style={{ background: dark ? 'var(--forest)' : 'var(--bg)' }}>
-        {!noTopbar && <TopBar title={title} dark={dark}/>}
+        {!noTopbar && <TopBar title={title} dark={dark} />}
         {/* scroll lives here — TopBar is always above it, never overlaps */}
-        <div className="scroll app-content">
+        <div className="scroll app-content" style={{ marginTop: "20px" }}>
           {children}
         </div>
       </main>
@@ -34,7 +34,7 @@ export function AppShell({ children, title, right, dark, noTopbar }: AppShellPro
       )}
 
       {/* Mobile bottom nav — only visible on small screens via CSS */}
-      <MobileNav/>
+      <MobileNav />
     </div>
   );
 }

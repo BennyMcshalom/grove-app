@@ -51,3 +51,16 @@ export function formatRelativeTime(iso: string): string {
   if (h < 24) return `${h}h`;
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
+
+/** "7 months" / "2 years" / "3 days" — how long it's been since `sinceIso`. */
+export function humanDuration(sinceIso: string, to: Date = new Date()): string {
+  const from = new Date(sinceIso);
+  const months = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
+  if (months < 1) {
+    const days = Math.max(1, Math.floor((to.getTime() - from.getTime()) / 86_400_000));
+    return `${days} day${days === 1 ? '' : 's'}`;
+  }
+  if (months < 24) return `${months} month${months === 1 ? '' : 's'}`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years === 1 ? '' : 's'}`;
+}

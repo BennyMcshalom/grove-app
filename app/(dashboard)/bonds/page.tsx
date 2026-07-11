@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
+import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ReportModal } from '@/components/ui/ReportModal';
@@ -14,6 +15,7 @@ import { useBonds, useBondMessages, useSendBondMessage, useUploadVoice } from '@
 import { useBondInvitations, useAcceptBondInvitation, useDeclineBondInvitation, useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useSuggestions } from '@/hooks/useUsers';
 import { bondsApi } from '@/lib/api';
+import { humanDuration } from '@/lib/mappers';
 import type { BondRecord, BondMessage } from '@/lib/api';
 
 // ─────────────────────────────────────────────────────────────────
@@ -377,6 +379,44 @@ function RecordingBar({ elapsed, onSend, onCancel, sending }: {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// CALL OVERLAY — UI-only placeholder (no real audio/video connects);
+// shows a live elapsed timer for as long as it stays open.
+// ─────────────────────────────────────────────────────────────────
+function CallOverlay({ kind, name, avatarUrl, onEnd }: {
+  kind: 'voice' | 'video'; name: string; avatarUrl?: string | null; onEnd: () => void;
+}) {
+  const [t, setT] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setT(x => x + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const mm = String(Math.floor(t / 60)).padStart(2, '0');
+  const ss = String(t % 60).padStart(2, '0');
+
+  return (
+    <div className="fade-in" style={{ position: 'absolute', inset: 0, zIndex: 50,
+      background: kind === 'video' ? '#16231C' : 'rgba(26,26,26,.92)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--r-lg)' }}>
+      {kind === 'video' && (
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 35%, rgba(78,125,94,.35), transparent 60%)' }}/>
+      )}
+      <div style={{ position: 'relative', textAlign: 'center' }}>
+        <Avatar name={name} size={100} ring={2} avatarUrl={avatarUrl} style={{ margin: '0 auto 1.2rem' }}/>
+        <div className="serif" style={{ fontSize: '1.6rem', fontWeight: 600, color: '#fff' }}>{name}</div>
+        <div className="mono" style={{ color: 'rgba(255,255,255,.6)', marginTop: '.3rem' }}>
+          {kind === 'voice' ? 'Voice call' : 'Video call'} · {mm}:{ss}
+        </div>
+        <button onClick={onEnd} style={{ marginTop: '2rem', width: 56, height: 56, borderRadius: '50%',
+          background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 16px -4px rgba(186,26,26,.7)' }}>
+          <Icon name="phone" size={22} stroke="#fff"/>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
 // BOND THREAD
 // ─────────────────────────────────────────────────────────────────
 function BondThread({ bond }: { bond: BondRecord }) {
@@ -477,9 +517,18 @@ function BondThread({ bond }: { bond: BondRecord }) {
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: '.95rem' }}>{otherName}</div>
-          <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace' }}>
-            Bond since {new Date(bond.formedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-          </div>
+          {bond.status === 'bond' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginTop: '.15rem' }}>
+              <div style={{ width: 44 }}><ProgressBar value={bond.depthScore ?? 0}/></div>
+              <span style={{ fontSize: '.68rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace', whiteSpace: 'nowrap' }}>
+                Bond since {new Date(bond.formedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              </span>
+            </div>
+          ) : (
+            <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>
+              You started Grouving recently — keep showing up. Bonds grow from here.
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
           <button title="Voice call" onClick={() => setCall('voice')}
@@ -488,11 +537,19 @@ function BondThread({ bond }: { bond: BondRecord }) {
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <Icon name="phone" size={17} stroke="var(--slate)"/>
           </button>
-          <button onClick={() => router.push(`/bond-release?bond=${encodeURIComponent(otherName)}&bondId=${bond.id}`)}
-            style={{ fontSize: '.72rem', color: 'var(--ink-4)', padding: '.3rem .6rem',
-              borderRadius: 100, border: '1px solid var(--border-2)' }}>
-            Release
+          <button title="Video call" onClick={() => setCall('video')}
+            style={{ width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--slate-dim)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <Icon name="video" size={17} stroke="var(--slate)"/>
           </button>
+          {bond.status === 'bond' && (
+            <button onClick={() => router.push(`/bond-release?bond=${encodeURIComponent(otherName)}&bondId=${bond.id}`)}
+              style={{ fontSize: '.72rem', color: 'var(--ink-4)', padding: '.3rem .6rem',
+                borderRadius: 100, border: '1px solid var(--border-2)' }}>
+              Release
+            </button>
+          )}
         </div>
       </header>
 
@@ -511,6 +568,18 @@ function BondThread({ bond }: { bond: BondRecord }) {
       <div ref={threadRef} className="scroll" style={{ flex: 1, overflowY: 'auto',
         padding: '1rem', background: 'var(--bg)',
         backgroundImage: 'radial-gradient(circle at 20% 80%, var(--ember-soft) 0%, transparent 50%), radial-gradient(circle at 80% 20%, var(--surf-low) 0%, transparent 40%)' }}>
+
+        {bond.status === 'bond' && (bond.depthScore ?? 0) >= 70 && (
+          <div style={{ textAlign: 'center', margin: '.4rem 0 1rem', padding: '1rem',
+            background: 'linear-gradient(135deg, var(--ember-soft), var(--surf-low))',
+            border: '1px solid var(--ember-dim)', borderRadius: 'var(--r-md)' }}>
+            <div style={{ fontSize: '1.4rem', marginBottom: '.3rem' }}>🌳</div>
+            <div className="serif" style={{ fontWeight: 600, fontSize: '.95rem' }}>A deep Bond.</div>
+            <div style={{ fontSize: '.78rem', color: 'var(--ink-3)', marginTop: '.2rem' }}>
+              {humanDuration(bond.formedAt)} of showing up for each other.
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
@@ -620,19 +689,7 @@ function BondThread({ bond }: { bond: BondRecord }) {
       </div>
 
       {call && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: '#16231C', display: 'flex',
-          flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--r-lg)' }}>
-          <Avatar name={otherName} size={100} ring={2} style={{ marginBottom: '1.2rem' }} avatarUrl={bond.otherUser?.avatarUrl}/>
-          <div className="serif" style={{ fontSize: '1.6rem', fontWeight: 600, color: '#fff' }}>{otherName}</div>
-          <div style={{ color: 'rgba(255,255,255,.5)', marginTop: '.3rem', fontSize: '.88rem' }}>
-            {call === 'voice' ? 'Voice call' : 'Video call'} · calling…
-          </div>
-          <button onClick={() => setCall(null)} style={{ marginTop: '2rem', width: 56, height: 56, borderRadius: '50%',
-            background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 16px -4px rgba(186,26,26,.7)' }}>
-            <Icon name="phone" size={22} stroke="#fff"/>
-          </button>
-        </div>
+        <CallOverlay kind={call} name={otherName} avatarUrl={bond.otherUser?.avatarUrl} onEnd={() => setCall(null)}/>
       )}
     </div>
   );
@@ -751,7 +808,7 @@ export default function BondsPage() {
 
           {/* ── Bond list ── */}
           <div className={`bonds-list-col scroll${mobileView === 'thread' ? ' bonds-list-hidden-mobile' : ''}`}
-            style={{ width: 260, flexShrink: 0, overflowY: 'auto' }}>
+            style={{ width: '38%', minWidth: 280, maxWidth: 360, flexShrink: 0, overflowY: 'auto' }}>
             {isLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
             ) : allConnections.length === 0 ? (
@@ -794,9 +851,14 @@ export default function BondsPage() {
                         <div style={{ fontSize: '.72rem', color: 'var(--ink-4)' }}>
                           Since {new Date(b.formedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                         </div>
-                        <div style={{ marginTop: '.3rem', height: 2, borderRadius: 1, background: 'var(--surf-high)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${b.depthScore ?? 0}%`,
-                            background: active ? 'var(--ember)' : 'var(--ink-4)', transition: 'width .5s ease' }}/>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', marginTop: '.35rem' }}>
+                          <span style={{ fontSize: '.62rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace', whiteSpace: 'nowrap' }}>
+                            Bond depth
+                          </span>
+                          <div style={{ flex: 1, height: 2, borderRadius: 1, background: 'var(--surf-high)', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${b.depthScore ?? 0}%`,
+                              background: active ? 'var(--ember)' : 'var(--ink-4)', transition: 'width .5s ease' }}/>
+                          </div>
                         </div>
                       </div>
                     </button>
