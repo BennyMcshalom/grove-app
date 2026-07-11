@@ -279,6 +279,8 @@ export interface BondRecord {
   // joined by backend
   otherUser?: { id: string; displayName: string; avatarUrl: string | null; openTo: string | null; deepFocusActive?: boolean; deepFocusEndsAt?: string | null };
   depthScore?: number;
+  lastMessageAt?: string | null;
+  unreadCount?: number;
 }
 
 export interface BondMessage {
@@ -427,6 +429,7 @@ export const groupsApi = {
   create:        (data: { name: string; slug: string; description: string; lifePhase: string; emoji: string; coverColor: string }) =>
                    api.post<GroupRecord>('/groups', data),
   leave:         (id: string) => api.delete<void>(`/groups/${id}/members`),
+  invite:        (id: string, userId: string) => api.post<void>(`/groups/${id}/invite`, { userId }),
   posts:         (id: string) => api.get<GroupPost[]>(`/groups/${id}/posts`),
   postMsg:       (id: string, content: string) => api.post<GroupPost>(`/groups/${id}/posts`, { content }),
   requestToJoin: (id: string) => api.post<GroupJoinRequest>(`/groups/${id}/join-requests`),

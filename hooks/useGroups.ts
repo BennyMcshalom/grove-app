@@ -34,6 +34,17 @@ export function useRequestToJoinGroup() {
   });
 }
 
+export function useInviteToGroup(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => groupsApi.invite(id, userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['groups'] });
+      qc.invalidateQueries({ queryKey: ['group', id] });
+    },
+  });
+}
+
 export function useLeaveGroup() {
   const qc = useQueryClient();
   return useMutation({

@@ -15,7 +15,7 @@ import { useBonds, useBondMessages, useSendBondMessage, useUploadVoice } from '@
 import { useBondInvitations, useAcceptBondInvitation, useDeclineBondInvitation, useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useSuggestions } from '@/hooks/useUsers';
 import { bondsApi } from '@/lib/api';
-import { humanDuration } from '@/lib/mappers';
+import { humanDuration, formatRelativeTime } from '@/lib/mappers';
 import type { BondRecord, BondMessage } from '@/lib/api';
 
 // ─────────────────────────────────────────────────────────────────
@@ -510,47 +510,51 @@ function BondThread({ bond }: { bond: BondRecord }) {
       background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
 
       {/* ── Header ── */}
-      <header style={{ padding: '1rem 1.2rem', borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', gap: '.8rem', background: 'var(--white)' }}>
-        <button onClick={() => bond.otherUser?.id && router.push(`/grove/${bond.otherUser.id}`)}>
-          <Avatar name={otherName} size={42} aura={bond.otherUser ? 'reflective' : undefined} avatarUrl={bond.otherUser?.avatarUrl}/>
-        </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: '.95rem' }}>{otherName}</div>
-          {bond.status === 'bond' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginTop: '.15rem' }}>
-              <div style={{ width: 44 }}><ProgressBar value={bond.depthScore ?? 0}/></div>
-              <span style={{ fontSize: '.68rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace', whiteSpace: 'nowrap' }}>
-                Bond since {new Date(bond.formedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-              </span>
-            </div>
-          ) : (
-            <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>
-              You started Grouving recently — keep showing up. Bonds grow from here.
-            </div>
-          )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+      <header style={{ padding: '1.1rem 1.3rem', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
+          <button onClick={() => bond.otherUser?.id && router.push(`/grove/${bond.otherUser.id}`)} title="Enter their Grouv" style={{ flexShrink: 0 }}>
+            <Avatar name={otherName} size={46} aura={bond.otherUser ? 'reflective' : undefined} avatarUrl={bond.otherUser?.avatarUrl}/>
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <button onClick={() => bond.otherUser?.id && router.push(`/grove/${bond.otherUser.id}`)}
+              style={{ display: 'block', width: '100%', textAlign: 'left', fontWeight: 600, fontSize: '.95rem',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{otherName}</button>
+            {bond.otherUser?.openTo && (
+              <div style={{ fontSize: '.74rem', color: 'var(--ink-4)', marginTop: 2,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {bond.otherUser.openTo}
+              </div>
+            )}
+          </div>
           <button title="Voice call" onClick={() => setCall('voice')}
-            style={{ width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--slate-dim)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <Icon name="phone" size={17} stroke="var(--slate)"/>
+            <Icon name="phone" size={19} stroke="var(--slate)"/>
           </button>
           <button title="Video call" onClick={() => setCall('video')}
-            style={{ width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--slate-dim)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <Icon name="video" size={17} stroke="var(--slate)"/>
+            <Icon name="video" size={19} stroke="var(--slate)"/>
           </button>
-          {bond.status === 'bond' && (
-            <button onClick={() => router.push(`/bond-release?bond=${encodeURIComponent(otherName)}&bondId=${bond.id}`)}
-              style={{ fontSize: '.72rem', color: 'var(--ink-4)', padding: '.3rem .6rem',
-                borderRadius: 100, border: '1px solid var(--border-2)' }}>
-              Release
-            </button>
-          )}
+          {bond.status === 'circle'
+            ? <span style={{ fontSize: '.74rem', color: 'var(--ink-4)', marginLeft: '.2rem', flexShrink: 0 }}>Circle</span>
+            : <button onClick={() => router.push(`/bond-release?bond=${encodeURIComponent(otherName)}&bondId=${bond.id}`)}
+                style={{ fontSize: '.74rem', color: 'var(--ink-4)', marginLeft: '.2rem', flexShrink: 0, whiteSpace: 'nowrap' }}>Release</button>}
         </div>
+
+        {bond.status === 'circle' ? (
+          <div style={{ marginTop: '.9rem', fontSize: '.74rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>
+            You started Grouving recently. Keep showing up — Bonds grow from here.
+          </div>
+        ) : (
+          <div style={{ marginTop: '.9rem', display: 'flex', alignItems: 'center', gap: '.7rem' }}>
+            <span className="label-mono">Bond depth</span>
+            <div style={{ flex: 1 }}><ProgressBar value={bond.depthScore ?? 0}/></div>
+            <span style={{ fontSize: '.72rem', color: 'var(--ink-4)' }}>{humanDuration(bond.formedAt)}</span>
+          </div>
+        )}
       </header>
 
       {/* ── Deep Focus banner ── */}
@@ -566,18 +570,14 @@ function BondThread({ bond }: { bond: BondRecord }) {
 
       {/* ── Messages ── */}
       <div ref={threadRef} className="scroll" style={{ flex: 1, overflowY: 'auto',
-        padding: '1rem', background: 'var(--bg)',
-        backgroundImage: 'radial-gradient(circle at 20% 80%, var(--ember-soft) 0%, transparent 50%), radial-gradient(circle at 80% 20%, var(--surf-low) 0%, transparent 40%)' }}>
+        padding: '1.3rem', background: 'var(--surf-low)' }}>
 
-        {bond.status === 'bond' && (bond.depthScore ?? 0) >= 70 && (
-          <div style={{ textAlign: 'center', margin: '.4rem 0 1rem', padding: '1rem',
-            background: 'linear-gradient(135deg, var(--ember-soft), var(--surf-low))',
-            border: '1px solid var(--ember-dim)', borderRadius: 'var(--r-md)' }}>
-            <div style={{ fontSize: '1.4rem', marginBottom: '.3rem' }}>🌳</div>
-            <div className="serif" style={{ fontWeight: 600, fontSize: '.95rem' }}>A deep Bond.</div>
-            <div style={{ fontSize: '.78rem', color: 'var(--ink-3)', marginTop: '.2rem' }}>
-              {humanDuration(bond.formedAt)} of showing up for each other.
-            </div>
+        {bond.status === 'bond' && (bond.depthScore ?? 0) > 70 && (
+          <div className="card" style={{ padding: '1rem 1.2rem', marginBottom: '1.2rem',
+            background: 'var(--ember-dim)', border: '1px solid var(--ember-bdr)', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.4rem' }}>🎉</div>
+            <p style={{ fontWeight: 600, margin: '.3rem 0' }}>Your Bond with {otherName.split(' ')[0]} is {humanDuration(bond.formedAt)} old.</p>
+            <p style={{ fontSize: '.85rem', color: 'var(--ink-2)' }}>Reach out today.</p>
           </div>
         )}
 
@@ -717,8 +717,12 @@ export default function BondsPage() {
 
   const allConnections = bondsData ?? [];
   const realBonds = allConnections.filter(b => b.status === 'bond');
-  const circle    = allConnections.filter(b => b.status === 'circle');
-  const bonds     = realBonds; // keep alias for BondThread selection
+  // Circle: whoever you spoke to most recently rises to the top.
+  const circle    = allConnections.filter(b => b.status === 'circle')
+    .sort((a, b) => new Date(b.lastMessageAt ?? b.formedAt).getTime() - new Date(a.lastMessageAt ?? a.formedAt).getTime());
+  // Selection index (sel) is a position into THIS list — must stay in lockstep
+  // with the order list items render in, not the raw backend order.
+  const orderedList = [...realBonds, ...circle];
   const slots     = Math.max(0, 5 - realBonds.length);
   const pending   = (invitations ?? []).filter(i => i.status === 'pending');
 
@@ -826,40 +830,36 @@ export default function BondsPage() {
                   const active   = sel === i;
                   const inFocus  = !!b.otherUser?.deepFocusActive;
                   return (
-                    <button key={b.id} onClick={() => { setSel(i); setMobileView('thread'); }} style={{
-                      display: 'flex', alignItems: 'center', gap: '.7rem', width: '100%', textAlign: 'left',
-                      padding: '.8rem', borderRadius: 'var(--r-md)', marginBottom: '.4rem',
-                      background: active ? 'var(--ember-dim)' : 'transparent', transition: 'background .15s',
-                    }}
-                      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--surf-low)'; }}
-                      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
-                      <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <Avatar name={name} size={44} aura="reflective" avatarUrl={b.otherUser?.avatarUrl}/>
-                        {inFocus && (
-                          <div title="In Deep Focus" style={{ position: 'absolute', bottom: -1, right: -1,
-                            width: 16, height: 16, borderRadius: '50%', background: 'var(--ink)',
-                            border: '2px solid var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon name="moon" size={9} stroke="var(--cream)" sw={1.8}/>
-                          </div>
-                        )}
+                    <button key={b.id} onClick={() => { setSel(i); setMobileView('thread'); }} className="card" style={{
+                      display: 'block', width: '100%', textAlign: 'left', padding: '1rem', marginBottom: '.7rem',
+                      borderLeft: active ? '4px solid var(--ember)' : '4px solid transparent',
+                      boxShadow: active ? 'var(--shadow)' : 'var(--shadow-soft)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.7rem' }}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <Avatar name={name} size={50} aura="reflective" avatarUrl={b.otherUser?.avatarUrl}/>
+                          {inFocus && (
+                            <div title="In Deep Focus" style={{ position: 'absolute', bottom: -1, right: -1,
+                              width: 16, height: 16, borderRadius: '50%', background: 'var(--ink)',
+                              border: '2px solid var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Icon name="moon" size={9} stroke="var(--cream)" sw={1.8}/>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                          {inFocus ? (
+                            <span style={{ fontSize: '.7rem', color: 'var(--ink-3)', fontStyle: 'italic' }}>in focus</span>
+                          ) : b.otherUser?.openTo ? (
+                            <div style={{ fontSize: '.74rem', color: 'var(--ink-4)',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.otherUser.openTo}</div>
+                          ) : null}
+                        </div>
                       </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
-                          <span style={{ fontWeight: 600, fontSize: '.9rem', color: active ? 'var(--ember)' : 'var(--ink)' }}>{name}</span>
-                          {inFocus && <span style={{ fontSize: '.62rem', color: 'var(--ink-3)', fontStyle: 'italic' }}>in focus</span>}
-                        </div>
-                        <div style={{ fontSize: '.72rem', color: 'var(--ink-4)' }}>
-                          Since {new Date(b.formedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', marginTop: '.35rem' }}>
-                          <span style={{ fontSize: '.62rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace', whiteSpace: 'nowrap' }}>
-                            Bond depth
-                          </span>
-                          <div style={{ flex: 1, height: 2, borderRadius: 1, background: 'var(--surf-high)', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${b.depthScore ?? 0}%`,
-                              background: active ? 'var(--ember)' : 'var(--ink-4)', transition: 'width .5s ease' }}/>
-                          </div>
-                        </div>
+                      <ProgressBar value={b.depthScore ?? 0}/>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '.5rem', fontSize: '.72rem', color: 'var(--ink-3)' }}>
+                        <span>Bond depth</span>
+                        <span>{b.lastMessageAt ? `Last message: ${formatRelativeTime(b.lastMessageAt)}` : 'No messages yet'}</span>
                       </div>
                     </button>
                   );
@@ -872,64 +872,77 @@ export default function BondsPage() {
                   </div>
                 ))}
 
-                {/* ── Circle ── */}
+                {/* ── Circle: recent connections, sorted by last chatted ── */}
                 {circle.length > 0 && (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      margin: '1.1rem 0 .6rem', padding: '0 .2rem' }}>
+                      margin: '1.4rem 0 .6rem', padding: '0 .2rem' }}>
                       <div className="label-mono">Your Circle</div>
                       <span style={{ fontSize: '.7rem', color: 'var(--ink-4)' }}>{circle.length} connected</span>
                     </div>
-                    {circle.map((b, i) => {
-                      const name = b.otherUser?.displayName ?? 'Circle';
-                      const idx  = realBonds.length + i;
-                      const active = sel === idx;
-                      const streak = b.streakDays ?? 0;
-                      const pct    = Math.min(100, Math.round((streak / 7) * 100));
-                      const daysLeft = Math.max(0, 7 - streak);
-                      return (
-                        <button key={b.id} onClick={() => { setSel(idx); setMobileView('thread'); }} style={{
-                          display: 'flex', alignItems: 'center', gap: '.65rem', width: '100%',
-                          textAlign: 'left', padding: '.75rem .8rem', borderRadius: 'var(--r-md)',
-                          marginBottom: '.3rem',
-                          background: active ? 'var(--surf-low)' : 'transparent', transition: 'background .15s',
-                          borderLeft: active ? '3px solid var(--ember)' : '3px solid transparent',
-                        }}
-                          onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--surf-low)'; }}
-                          onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
-                          <div style={{ position: 'relative', flexShrink: 0 }}>
-                            <Avatar name={name} size={38} avatarUrl={b.otherUser?.avatarUrl}/>
-                            {b.otherUser?.deepFocusActive && (
-                              <div title="In Deep Focus" style={{ position: 'absolute', bottom: -1, right: -1,
-                                width: 14, height: 14, borderRadius: '50%', background: 'var(--ink)',
-                                border: '2px solid var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Icon name="moon" size={7} stroke="var(--cream)" sw={1.8}/>
+                    <div className="card" style={{ padding: '.3rem .4rem', boxShadow: 'var(--shadow-soft)' }}>
+                      {circle.map((b, i) => {
+                        const name = b.otherUser?.displayName ?? 'Circle';
+                        const idx  = realBonds.length + i;
+                        const active = sel === idx;
+                        const streak = b.streakDays ?? 0;
+                        const pct    = Math.min(100, Math.round((streak / 7) * 100));
+                        const daysLeft = Math.max(0, 7 - streak);
+                        const unread = b.unreadCount ?? 0;
+                        return (
+                          <button key={b.id} onClick={() => { setSel(idx); setMobileView('thread'); }} style={{
+                            display: 'block', width: '100%', textAlign: 'left', padding: '.6rem .6rem', borderRadius: 'var(--r-md)',
+                            background: active ? 'var(--ember-dim)' : 'transparent',
+                            borderBottom: i < circle.length - 1 ? '1px solid var(--border)' : 'none',
+                          }}
+                            onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--surf-low)'; }}
+                            onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem' }}>
+                              <div style={{ position: 'relative', flexShrink: 0 }}>
+                                <Avatar name={name} size={40} avatarUrl={b.otherUser?.avatarUrl}/>
+                                {b.otherUser?.deepFocusActive && (
+                                  <div title="In Deep Focus" style={{ position: 'absolute', bottom: -1, right: -1,
+                                    width: 14, height: 14, borderRadius: '50%', background: 'var(--ink)',
+                                    border: '2px solid var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Icon name="moon" size={7} stroke="var(--cream)" sw={1.8}/>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
-                              <span style={{ fontWeight: 600, fontSize: '.86rem', color: active ? 'var(--ember)' : 'var(--ink)' }}>{name}</span>
-                              {b.otherUser?.deepFocusActive && <span style={{ fontSize: '.6rem', color: 'var(--ink-3)', fontStyle: 'italic' }}>in focus</span>}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, fontSize: '.86rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+                                <div style={{ fontSize: '.72rem', color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {b.otherUser?.deepFocusActive ? 'in focus' : (b.otherUser?.openTo || ' ')}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontSize: '.66rem', color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>
+                                  {b.lastMessageAt ? formatRelativeTime(b.lastMessageAt) : 'new'}
+                                </div>
+                                {unread > 0 && (
+                                  <span style={{ display: 'inline-block', marginTop: 3, minWidth: 16, height: 16, lineHeight: '16px',
+                                    borderRadius: 100, background: 'var(--ember)', color: '#fff', fontSize: '.6rem', fontWeight: 600,
+                                    textAlign: 'center', padding: '0 4px' }}>{unread}</span>
+                                )}
+                              </div>
                             </div>
-                            {/* Streak bar — fills toward 7 days */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginTop: '.3rem' }}>
+                            {/* Streak — fills toward the 7-day Bond threshold */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginTop: '.4rem', paddingLeft: 50 }}>
                               <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'var(--surf-high)', overflow: 'hidden' }}>
                                 <div style={{ height: '100%', width: `${pct}%`,
                                   background: pct >= 85 ? 'var(--sage)' : 'var(--ink-4)',
                                   transition: 'width .5s ease' }}/>
                               </div>
-                              <span style={{ fontSize: '.64rem', color: 'var(--ink-4)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
-                                {streak}/7d
+                              <span style={{ fontSize: '.62rem', color: 'var(--ink-4)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
+                                {daysLeft === 0 ? 'becoming a Bond…' : `${daysLeft}d to Bond`}
                               </span>
                             </div>
-                            <div style={{ fontSize: '.68rem', color: 'var(--ink-4)', marginTop: '.15rem' }}>
-                              {daysLeft === 0 ? 'Becoming a Bond soon…' : `${daysLeft} more day${daysLeft === 1 ? '' : 's'} to Bond`}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p style={{ fontSize: '.72rem', color: 'var(--ink-4)', fontStyle: 'italic', margin: '.7rem .2rem 0', lineHeight: 1.45 }}>
+                      Everyone you&apos;ve started Grouving with. Whoever you spoke to most recently rises to the top.
+                    </p>
                   </>
                 )}
               </>
@@ -947,8 +960,8 @@ export default function BondsPage() {
                 fontSize: '.86rem', color: 'var(--ink-3)', fontWeight: 500 }}>
               <Icon name="back" size={16} stroke="var(--ink-3)"/> All bonds
             </button>
-            {allConnections.length > 0 ? (
-              <BondThread bond={allConnections[Math.min(sel, allConnections.length - 1)]}/>
+            {orderedList.length > 0 ? (
+              <BondThread bond={orderedList[Math.min(sel, orderedList.length - 1)]}/>
             ) : !isLoading ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
                 <div className="card" style={{
