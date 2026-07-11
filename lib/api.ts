@@ -134,6 +134,8 @@ export interface ProfileResponse {
   honestTension: string | null;
   deepFocusActive: boolean;
   notificationPrefs: Record<string, boolean>;
+  aura: string | null;
+  logStyle: string | null;
 }
 
 export const authApi = {
@@ -486,6 +488,7 @@ export interface PublicProfile {
   bio: string | null;
   openTo: string | null;
   honestTension: string | null;
+  aura: string | null;
 }
 
 export interface PatchUserPayload {
@@ -496,6 +499,7 @@ export interface PatchUserPayload {
   honestTension?: string | null;
   onboardingCompleted?: boolean;
   aura?: string;
+  logStyle?: string;
 }
 
 export interface Suggestion {
@@ -698,6 +702,7 @@ export interface CircleLogUser {
   userId: string;
   name: string;
   avatarUrl: string | null;
+  logStyle: string;
   spaceId: string | null;
   entries: LogEntry[];
 }
@@ -717,6 +722,10 @@ export const logApi = {
 
   addEntry: (spaceId: string, data: { body: string; mediaUrl?: string; mediaType?: string }) =>
     api.post<LogEntry>(`/log/${spaceId}`, data),
+
+  // Same-day only — the backend rejects with 409 once the entry's calendar day has passed.
+  updateEntry: (entryId: string, data: { body?: string; mediaUrl?: string; mediaType?: string }) =>
+    api.patch<LogEntry>(`/log/entries/${entryId}`, data),
 
   settings: (spaceId: string) =>
     api.get<LogSettings>(`/log/${spaceId}/settings`),

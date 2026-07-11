@@ -13,6 +13,7 @@
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUserStore } from '@/store/useUserStore';
 import { authApi, profilesApi, ApiError } from './api';
+import type { AuraKey, LogStyle } from './types';
 
 export interface SessionResult {
   authenticated: boolean;
@@ -67,6 +68,8 @@ export async function hydrateSession(): Promise<SessionResult> {
       sitting: profile.sittingWith ?? undefined,
       open: profile.openTo ?? undefined,
       deepFocus: profile.deepFocusActive,
+      aura: (profile.aura as AuraKey | null) ?? undefined,
+      logStyle: (profile.logStyle as LogStyle | null) ?? undefined,
       onboardingCompleted, // resolved value, not raw profile value
     }));
 

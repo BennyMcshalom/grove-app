@@ -78,6 +78,7 @@ export interface Notification {
 
 export type AuraKey = 'reflective' | 'open' | 'focus' | 'transition' | 'active';
 export type TimePhase = 'dawn' | 'day' | 'dusk' | 'night';
+export type LogStyle = 'A' | 'B' | 'C';
 
 export interface User {
   id?: string;
@@ -93,5 +94,6 @@ export interface User {
   location?: string;
   avatar_url?: string;
   aura?: AuraKey;
+  logStyle?: LogStyle;
   onboardingCompleted?: boolean;
 }

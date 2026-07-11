@@ -21,6 +21,17 @@ export function useAddLogEntry(spaceId: string | undefined) {
   });
 }
 
+export function useUpdateLogEntry(spaceId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { body?: string; mediaUrl?: string; mediaType?: string } }) =>
+      logApi.updateEntry(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['log-entries', spaceId] });
+    },
+  });
+}
+
 export function useLogSettings(spaceId: string | undefined) {
   return useQuery({
     queryKey: ['log-settings', spaceId],
