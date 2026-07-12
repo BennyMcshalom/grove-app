@@ -6,6 +6,7 @@ import { hydrateSession } from '@/lib/session';
 import { spacesApi, ApiError } from '@/lib/api';
 import { setupPush } from '@/lib/push';
 import { setupSystemThemeListener } from '@/lib/theme';
+import { initCalling } from '@/lib/calling';
 
 let _started = false;
 
@@ -26,7 +27,10 @@ export function AuthInitializer() {
 
     hydrateSession()
       .then(({ authenticated }) => {
-        if (authenticated) setupPush().catch(() => {});
+        if (authenticated) {
+          setupPush().catch(() => {});
+          initCalling();
+        }
       })
       .finally(() => {
         useAuthStore.getState().setInitialized();

@@ -15,6 +15,7 @@ import { useBonds, useBondMessages, useSendBondMessage, useUploadVoice } from '@
 import { useBondInvitations, useAcceptBondInvitation, useDeclineBondInvitation, useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useSuggestions } from '@/hooks/useUsers';
 import { bondsApi } from '@/lib/api';
+import { startCall } from '@/lib/calling';
 import { humanDuration, formatRelativeTime } from '@/lib/mappers';
 import type { BondRecord, BondMessage } from '@/lib/api';
 
@@ -379,44 +380,6 @@ function RecordingBar({ elapsed, onSend, onCancel, sending }: {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// CALL OVERLAY — UI-only placeholder (no real audio/video connects);
-// shows a live elapsed timer for as long as it stays open.
-// ─────────────────────────────────────────────────────────────────
-function CallOverlay({ kind, name, avatarUrl, onEnd }: {
-  kind: 'voice' | 'video'; name: string; avatarUrl?: string | null; onEnd: () => void;
-}) {
-  const [t, setT] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setT(x => x + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const mm = String(Math.floor(t / 60)).padStart(2, '0');
-  const ss = String(t % 60).padStart(2, '0');
-
-  return (
-    <div className="fade-in" style={{ position: 'absolute', inset: 0, zIndex: 50,
-      background: kind === 'video' ? '#16231C' : 'rgba(26,26,26,.92)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--r-lg)' }}>
-      {kind === 'video' && (
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 35%, rgba(78,125,94,.35), transparent 60%)' }}/>
-      )}
-      <div style={{ position: 'relative', textAlign: 'center' }}>
-        <Avatar name={name} size={100} ring={2} avatarUrl={avatarUrl} style={{ margin: '0 auto 1.2rem' }}/>
-        <div className="serif" style={{ fontSize: '1.6rem', fontWeight: 600, color: '#fff' }}>{name}</div>
-        <div className="mono" style={{ color: 'rgba(255,255,255,.6)', marginTop: '.3rem' }}>
-          {kind === 'voice' ? 'Voice call' : 'Video call'} · {mm}:{ss}
-        </div>
-        <button onClick={onEnd} style={{ marginTop: '2rem', width: 56, height: 56, borderRadius: '50%',
-          background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 16px -4px rgba(186,26,26,.7)' }}>
-          <Icon name="phone" size={22} stroke="#fff"/>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────
 // BOND THREAD
 // ─────────────────────────────────────────────────────────────────
 function BondThread({ bond }: { bond: BondRecord }) {
@@ -428,7 +391,6 @@ function BondThread({ bond }: { bond: BondRecord }) {
 
   const [draft, setDraft] = useState('');
   const [replyTo, setReplyTo] = useState<BondMessage | null>(null);
-  const [call, setCall] = useState<'voice' | 'video' | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
 
   // Voice recording
@@ -544,13 +506,13 @@ function BondThread({ bond }: { bond: BondRecord }) {
               </div>
             )}
           </div>
-          <button title="Voice call" onClick={() => setCall('voice')}
+          <button title="Voice call" onClick={() => startCall(bond, 'voice')}
             style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--slate-dim)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <Icon name="phone" size={19} stroke="var(--slate)"/>
           </button>
-          <button title="Video call" onClick={() => setCall('video')}
+          <button title="Video call" onClick={() => startCall(bond, 'video')}
             style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--slate-dim)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -705,10 +667,6 @@ function BondThread({ bond }: { bond: BondRecord }) {
           </div>
         )}
       </div>
-
-      {call && (
-        <CallOverlay kind={call} name={otherName} avatarUrl={bond.otherUser?.avatarUrl} onEnd={() => setCall(null)}/>
-      )}
     </div>
   );
 }

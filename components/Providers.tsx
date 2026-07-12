@@ -5,6 +5,7 @@ import { ToastLayer } from './ui/Toast';
 import { AuthInitializer } from './AuthInitializer';
 import { PageLoader } from './ui/PageLoader';
 import { OfflineBanner } from './ui/OfflineBanner';
+import { CallOverlay } from './calling/CallOverlay';
 import { ApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
@@ -45,6 +46,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <PageLoader />
       <AuthInitializer />
       {children}
+      <CallOverlay />
       <ToastLayer />
     </QueryClientProvider>
   );

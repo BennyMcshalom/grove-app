@@ -12,6 +12,7 @@ import { useUserStore } from '@/store/useUserStore';
 import { useTheme } from '@/hooks/useTheme';
 import { toggleTheme } from '@/lib/theme';
 import { authApi, profilesApi, usersApi, subscriptionsApi } from '@/lib/api';
+import { stopCalling } from '@/lib/calling';
 import { spaceById } from '@/lib/data';
 
 // ── Toggle component ───────────────────────────────────────────────
@@ -144,6 +145,7 @@ export default function SettingsPage() {
 
   async function handleLogout() {
     try { await authApi.logout(); } catch {}
+    stopCalling();
     clearAuth();
     clearUser();
     router.push('/auth');

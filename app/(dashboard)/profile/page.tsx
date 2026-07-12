@@ -12,6 +12,7 @@ import { useUserStore } from '@/store/useUserStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
 import { authApi, usersApi } from '@/lib/api';
+import { stopCalling } from '@/lib/calling';
 import { spaceById } from '@/lib/data';
 
 export default function ProfilePage() {
@@ -116,6 +117,7 @@ export default function ProfilePage() {
         <button
           onClick={async () => {
             try { await authApi.logout(); } catch {}
+            stopCalling();
             clearAuth();
             clearUser();
             router.push('/auth');
