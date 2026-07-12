@@ -56,6 +56,31 @@ function send(event: string, payload?: unknown): void {
   if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ event, payload }));
 }
 
+// connect() resolves once the ticket is fetched and the socket object exists —
+// NOT once it's actually open. Calling send() right after connect() (without
+// awaiting the handshake) silently drops the message if the socket is still
+// CONNECTING, which is exactly what happens on a cold start or right after a
+// reconnect. Every user-triggered action below waits for a truly open socket
+// (or fails loudly) instead of firing into the void.
+function waitForOpen(timeoutMs = 6000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      if (ws?.readyState === WebSocket.OPEN) { resolve(true); return; }
+      if (Date.now() - start > timeoutMs) { resolve(false); return; }
+      setTimeout(check, 150);
+    };
+    check();
+  });
+}
+
+async function sendReliable(event: string, payload?: unknown): Promise<boolean> {
+  await connect();
+  const ok = await waitForOpen();
+  if (ok) send(event, payload);
+  return ok;
+}
+
 let visibilityBound = false;
 export function initCalling(): void {
   manuallyClosed = false;
@@ -76,11 +101,17 @@ export function stopCalling(): void {
   ws = null;
 }
 
-// ── Ringtone (incoming call only — outgoing side just shows "Calling…") ──
-function startRingtone(): void {
+// ── Ringtone — plays on both sides: a pulsing tone for the callee while
+// incoming, and the same tone for the caller while waiting ("ringback").
+function startRingtone(pulseMs = 1500): void {
   if (ringAudio || typeof window === 'undefined') return;
   try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Ctx();
+    // AudioContext can start life 'suspended' when created outside a direct
+    // user-gesture handler (exactly the case here — it's created from an
+    // async WS message handler) and will never make a sound until resumed.
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
@@ -92,6 +123,7 @@ function startRingtone(): void {
     ringAudio = { osc, gain, ctx };
     const pulse = () => {
       if (!ringAudio) return;
+      if (ringAudio.ctx.state === 'suspended') ringAudio.ctx.resume().catch(() => {});
       const t = ringAudio.ctx.currentTime;
       ringAudio.gain.gain.cancelScheduledValues(t);
       ringAudio.gain.gain.setValueAtTime(0, t);
@@ -102,7 +134,7 @@ function startRingtone(): void {
     const interval = setInterval(() => {
       if (!ringAudio) { clearInterval(interval); return; }
       pulse();
-    }, 1500);
+    }, pulseMs);
   } catch { /* audio unsupported/blocked — silent ring is fine */ }
 }
 
@@ -263,36 +295,47 @@ function handleMessage(msg: { event: string; payload?: unknown }): void {
 }
 
 // ── Public actions (called from UI) ─────────────────────────────────────
-export function startCall(bond: BondRecord, kind: CallKind): void {
+export async function startCall(bond: BondRecord, kind: CallKind): Promise<void> {
   if (!bond.otherUser) return;
   if (useCallStore.getState().status !== 'idle') return;
   useCallStore.getState().setOutgoing({
     bondId: bond.id, kind,
     otherUser: { id: bond.otherUser.id, name: bond.otherUser.displayName, avatarUrl: bond.otherUser.avatarUrl },
   });
-  connect();
-  send('call:invite', { bondId: bond.id, kind });
+  startRingtone(); // ringback while we wait for them to answer
+  const ok = await sendReliable('call:invite', { bondId: bond.id, kind });
+  if (!ok) {
+    stopRingtone();
+    toast('Could not reach the server — check your connection and try again.');
+    useCallStore.getState().reset();
+  }
 }
 
-export function acceptCall(): void {
+export async function acceptCall(): Promise<void> {
   const s = useCallStore.getState();
   if (s.status !== 'incoming' || !s.callId) return;
   stopRingtone();
-  send('call:accept', { callId: s.callId });
   useCallStore.getState().setConnecting();
+  const ok = await sendReliable('call:accept', { callId: s.callId });
+  if (!ok) {
+    toast('Could not reach the server — check your connection and try again.');
+    useCallStore.getState().reset();
+  }
 }
 
 export function declineCall(): void {
   const s = useCallStore.getState();
   stopRingtone();
-  if (s.callId) send('call:decline', { callId: s.callId });
+  // Best-effort — clean up locally regardless of whether this reaches the
+  // server, so the UI never gets stuck waiting on a flaky connection.
+  if (s.callId) void sendReliable('call:decline', { callId: s.callId });
   cleanupPeerConnection();
   useCallStore.getState().reset();
 }
 
 export function hangUp(): void {
   const s = useCallStore.getState();
-  if (s.callId) send('call:end', { callId: s.callId });
+  if (s.callId) void sendReliable('call:end', { callId: s.callId });
   cleanupPeerConnection();
   useCallStore.getState().reset();
 }
