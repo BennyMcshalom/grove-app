@@ -163,6 +163,13 @@ export const authApi = {
   resendSignupCode: () =>
                     api.post<{ ok: boolean }>('/auth/resend-signup-code'),
   googleUrl:      () => `${BASE}/auth/google`,
+  wsTicket:       () => api.post<{ ticket: string }>('/auth/ws-ticket'),
+};
+
+// ── Calls (WebRTC signaling) ────────────────────────────────────────────────
+export interface IceServerConfig { urls: string | string[]; username?: string; credential?: string; }
+export const callsApi = {
+  iceServers: () => api.get<{ iceServers: IceServerConfig[] }>('/calls/ice-servers'),
 };
 
 // ── Profiles ──────────────────────────────────────────────────────────────────

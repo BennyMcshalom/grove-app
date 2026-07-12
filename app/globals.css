@@ -400,6 +400,15 @@ textarea:focus {
    layout, and those properties are no-ops unless the parent is a flex
    container. A lone block child from a normal page is unaffected (default
    align-items:stretch just matches its existing full-width block sizing). */
+.app-content > * {
+  /* Flex items default to min-width:auto (content-based), not 0 — without
+     this, a page with a horizontally-scrollable row (chip filters, etc.)
+     gets pushed wider than the viewport by that row's unwrapped content,
+     instead of the row scrolling within a properly clipped page width. */
+  min-width: 0;
+  width: 100%;
+}
+
 .app-content {
   display: flex;
   flex-direction: column;
