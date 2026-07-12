@@ -497,6 +497,19 @@ textarea:focus {
   .mobile-settings-btn {
     display: flex !important;
   }
+
+  .app-topbar {
+    padding: .7rem 1.1rem .6rem !important;
+    background: var(--white) !important;
+  }
+
+  .app-topbar-dark {
+    background: var(--forest) !important;
+  }
+
+  .app-topbar-title {
+    font-size: 1.4rem !important;
+  }
 }
 
 /* ── Auth page ── */

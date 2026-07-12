@@ -174,7 +174,7 @@ export function TopBar({ title, dark }: TopBarProps) {
 
   return (
     <>
-      <header style={{
+      <header className={`app-topbar${dark ? ' app-topbar-dark' : ''}`} style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '1.15rem 1.6rem .9rem', flexShrink: 0,
         background: dark ? 'var(--forest)' : 'var(--bg)',
@@ -182,7 +182,7 @@ export function TopBar({ title, dark }: TopBarProps) {
         boxShadow: scrolled ? 'var(--shadow-soft)' : 'none',
         transition: 'border-color .2s, box-shadow .2s',
       }}>
-        <h1 className="serif" style={{ fontSize: '1.9rem', fontWeight: 600, color: c,
+        <h1 className="serif app-topbar-title" style={{ fontSize: '1.9rem', fontWeight: 600, color: c,
           letterSpacing: '.005em', whiteSpace: 'nowrap' }}>{title}</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
           <button onClick={() => router.push('/search')}
