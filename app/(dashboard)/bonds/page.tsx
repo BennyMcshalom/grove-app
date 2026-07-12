@@ -449,6 +449,24 @@ function BondThread({ bond }: { bond: BondRecord }) {
     }
   }, [messages?.length]);
 
+  // On mobile the list/thread panes toggle via CSS display:none rather than
+  // unmount — a hidden element reports scrollHeight 0, so the effect above
+  // silently no-ops while messages load off-screen. Re-anchor to the bottom
+  // the moment this pane actually becomes visible (but only on that reveal,
+  // not on every resize, so it doesn't yank a mid-read scroll position).
+  const wasHiddenRef = useRef(true);
+  useEffect(() => {
+    const el = threadRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(([entry]) => {
+      const visible = entry.contentRect.height > 0;
+      if (visible && wasHiddenRef.current) el.scrollTop = el.scrollHeight;
+      wasHiddenRef.current = !visible;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // Mark read on open
   useEffect(() => { bondsApi.markRead(bond.id).catch(() => {}); }, [bond.id]);
 
@@ -506,7 +524,7 @@ function BondThread({ bond }: { bond: BondRecord }) {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative',
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, position: 'relative',
       background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
 
       {/* ── Header ── */}
@@ -951,7 +969,7 @@ export default function BondsPage() {
 
           {/* ── Thread ── */}
           <div className={`bonds-thread-col${mobileView === 'list' ? ' bonds-thread-hidden-mobile' : ''}`}
-            style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             {/* Mobile back button */}
             <button className="bonds-back-btn"
               onClick={() => setMobileView('list')}

@@ -177,6 +177,10 @@ body {
 .scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--border-2) transparent;
+  -webkit-overflow-scrolling: touch;
+  /* Stop momentum/rubber-band scroll from bleeding into the parent page
+     once a nested list (message thread, notif panel, etc.) hits its edge. */
+  overscroll-behavior: contain;
 }
 
 .scroll::-webkit-scrollbar {
@@ -390,8 +394,15 @@ textarea:focus {
   height: 100vh;
 }
 
-/* Content below the TopBar — this is what actually scrolls */
+/* Content below the TopBar — this is what actually scrolls.
+   display:flex here matters: pages like Bonds pass a child that sets
+   flex:1/min-height:0 to build its own fixed-header + internally-scrolling
+   layout, and those properties are no-ops unless the parent is a flex
+   container. A lone block child from a normal page is unaffected (default
+   align-items:stretch just matches its existing full-width block sizing). */
 .app-content {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
