@@ -1193,7 +1193,7 @@ export default function LogPage() {
 
         {/* Per-chapter log switcher — each space keeps its own separate log archive */}
         {userSpaces.length > 1 && (
-          <div className="scroll" style={{ display: 'flex', gap: '.5rem', overflowX: 'auto', marginTop: '-.2rem', marginBottom: '1.1rem', paddingBottom: 2 }}>
+          <div className="scroll" style={{ display: 'flex', gap: '.5rem', overflowX: 'auto', marginBottom: '1.1rem', paddingBottom: 2 }}>
             {userSpaces.map(id => {
               const s = spaceById(id);
               const on = id === activeSpaceSlug;
