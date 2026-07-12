@@ -6,11 +6,11 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useBonds } from '@/hooks/useBonds';
 
 const NAV = [
-  { href: '/home',     icon: 'home',    label: 'Home'     },
-  { href: '/spaces',   icon: 'spaces',  label: 'Spaces'   },
-  { href: '/bonds',    icon: 'bonds',   label: 'Bonds'    },
-  { href: '/nearby',   icon: 'pin',     label: 'Nearby'   },
-  { href: '/settings', icon: 'gear',    label: 'Settings' },
+  { href: '/home',     icon: 'home',    label: 'Home'   },
+  { href: '/spaces',   icon: 'spaces',  label: 'Spaces' },
+  { href: '/log',      icon: 'book',    label: 'Log'    },
+  { href: '/bonds',    icon: 'bonds',   label: 'Bonds'  },
+  { href: '/nearby',   icon: 'pin',     label: 'Nearby' },
 ];
 
 const ADMIN_ITEM = { href: '/admin', icon: 'shield', label: 'Admin' };
@@ -26,8 +26,7 @@ export function MobileNav() {
   return (
     <nav className="app-mobile-nav">
       {items.map(item => {
-        const active = pathname.startsWith(item.href)
-          || (item.href === '/settings' && pathname.startsWith('/profile'));
+        const active = pathname.startsWith(item.href);
         const showBadge = item.href === '/bonds' && isInitialized && bondCount > 0;
         return (
           <Link key={item.href} href={item.href}

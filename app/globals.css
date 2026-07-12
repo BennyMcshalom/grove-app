@@ -492,9 +492,9 @@ textarea:focus {
   transform: scale(.88);
 }
 
-/* Show theme toggle in topbar only on mobile */
+/* Show Settings shortcut in topbar only on mobile (desktop uses the sidebar) */
 @media (max-width: 768px) {
-  .mobile-theme-btn {
+  .mobile-settings-btn {
     display: flex !important;
   }
 }

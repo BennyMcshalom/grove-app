@@ -1,8 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '@/hooks/useTheme';
-import { toggleTheme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -152,8 +150,6 @@ export function TopBar({ title, dark }: TopBarProps) {
   const router = useRouter();
   const [notifs, setNotifs] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const theme = useTheme();
-  const isDark = theme === 'dark';
 
   // Listen to the scrollable content area below this header
   useEffect(() => {
@@ -201,12 +197,12 @@ export function TopBar({ title, dark }: TopBarProps) {
                 borderRadius: '50%', background: 'var(--ember)', border: '2px solid var(--white)' }}/>
             )}
           </button>
-          {/* Theme toggle — only shown on mobile where sidebar toggle is hidden */}
-          <button onClick={toggleTheme}
-            className="mobile-theme-btn"
+          {/* Settings — only shown on mobile where the sidebar (with its own Settings/theme access) is hidden */}
+          <button onClick={() => router.push('/settings')}
+            className="mobile-settings-btn"
             style={{ width: 40, height: 40, borderRadius: '50%', display: 'none',
               alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={isDark ? 'sun' : 'moon'} size={18} stroke={sub}/>
+            <Icon name="gear" size={18} stroke={sub}/>
           </button>
         </div>
       </header>
