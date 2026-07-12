@@ -519,7 +519,7 @@ textarea:focus {
   }
 
   .app-topbar {
-    padding: .7rem 1.1rem .6rem !important;
+    padding: .7rem 16px .6rem !important;
     background: var(--white) !important;
   }
 
@@ -529,6 +529,13 @@ textarea:focus {
 
   .app-topbar-title {
     font-size: 1.4rem !important;
+  }
+
+  /* Pages consistently pad their content wrapper at 1.6rem (25.6px) —
+     too wide on a phone screen. 16px matches the topbar's own edge. */
+  .app-content > * {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 }
 
