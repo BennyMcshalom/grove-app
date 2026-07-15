@@ -247,6 +247,7 @@ export const postsApi = {
     params.set('limit', '20');
     return api.get<PostRecord[]>(`/posts?${params}`);
   },
+  byUser:  (userId: string) => api.get<PostRecord[]>(`/posts/user/${userId}`),
   create:  (data: CreatePostPayload) => api.post<PostRecord>('/posts', data),
   update:  (id: string, data: { doing?: string; honestThing?: string; progress?: string }) =>
              api.patch<PostRecord>(`/posts/${id}`, data),

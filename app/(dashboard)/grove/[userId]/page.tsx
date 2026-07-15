@@ -10,7 +10,8 @@ import { AURAS, STAGES, nowPhase, PHASE, spaceById } from '@/lib/data';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUserStore } from '@/store/useUserStore';
-import { groveApi, logApi, usersApi, spacesApi } from '@/lib/api';
+import { groveApi, logApi, usersApi, spacesApi, postsApi } from '@/lib/api';
+import { formatRelativeTime } from '@/lib/mappers';
 import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuraKey } from '@/lib/types';
@@ -119,6 +120,12 @@ export default function GrovePage() {
   });
   const logEntries = logResult?.entries ?? [];
   const logVisible = logResult?.visible ?? true;
+
+  const { data: userPosts, isLoading: postsLoading } = useQuery({
+    queryKey: ['grove-posts', userId],
+    queryFn:  () => postsApi.byUser(userId),
+    staleTime: 60_000,
+  });
 
   const inviteToBond = useInviteToBond();
   const { data: sentInvitations } = useSentBondInvitations();
@@ -494,6 +501,34 @@ export default function GrovePage() {
               className="btn btn-soft btn-block" style={{ fontSize: '.85rem' }}>
               {isOwnProfile ? 'Scroll your log →' : 'Scroll their log →'}
             </button>
+          </div>
+
+          {/* Posts — everything posted (excluding anonymous ones, which stay anonymous here too) */}
+          <div className="card" style={{ padding: '1.1rem 1.2rem' }}>
+            <div className="label-mono" style={{ marginBottom: '.7rem' }}>{possessiveCap} Posts</div>
+            {userPosts && userPosts.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.8rem' }}>
+                {userPosts.slice(0, 5).map(p => (
+                  <div key={p.id} style={{ paddingBottom: '.8rem', borderBottom: '1px solid var(--border)' }}>
+                    <div className="mono" style={{ fontSize: '.66rem', color: 'var(--ink-4)', marginBottom: '.3rem' }}>
+                      {formatRelativeTime(p.createdAt)} {p.kind === 'just_grouw' && '· Just Grouv'}
+                    </div>
+                    {p.kind === 'just_grouw' ? (
+                      p.body && <p style={{ fontSize: '.88rem', color: 'var(--ink-2)', lineHeight: 1.45 }}>{p.body}</p>
+                    ) : (
+                      <>
+                        {p.doing && <p style={{ fontSize: '.88rem', fontWeight: 500, marginBottom: p.honestThing ? '.25rem' : 0 }}>{p.doing}</p>}
+                        {p.honestThing && <p style={{ fontSize: '.85rem', color: 'var(--ink-3)', fontStyle: 'italic', lineHeight: 1.4 }}>{p.honestThing}</p>}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: '.83rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>
+                {postsLoading ? 'Loading…' : isOwnProfile ? "You haven't posted anything yet." : `${firstName} hasn't posted anything yet.`}
+              </p>
+            )}
           </div>
 
           {!isOwnProfile && (
