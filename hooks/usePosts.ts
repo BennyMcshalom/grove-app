@@ -1,6 +1,6 @@
 'use client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { postsApi, type CreatePostPayload } from '@/lib/api';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { postsApi, type CreatePostPayload, type PostRecord } from '@/lib/api';
 
 export function usePostComments(postId: string | undefined) {
   return useQuery({
@@ -18,10 +18,17 @@ export function useAddComment(postId: string) {
   });
 }
 
+// Infinite-scroll feed: first page is the fresh 48h window (see the API's
+// own comment for why); once that's exhausted, each further page reaches
+// further into the past instead of the feed dead-ending, so there's always
+// more to pull as the reader keeps scrolling.
 export function usePosts(spaceId?: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['posts', spaceId ?? 'all'],
-    queryFn:  () => postsApi.list(spaceId),
+    queryFn:  ({ pageParam }: { pageParam?: string }) => postsApi.list(spaceId, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: PostRecord[]) =>
+      lastPage.length > 0 ? lastPage[lastPage.length - 1].createdAt : undefined,
   });
 }
 

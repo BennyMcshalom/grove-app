@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
@@ -916,7 +916,11 @@ export default function HomePage() {
 
   // Live data
   const spaceUuid = tab !== 'all' ? uuidBySlug(tab) : undefined;
-  const { data: postRecords, isLoading: postsLoading } = usePosts(spaceUuid);
+  const {
+    data: postPages, isLoading: postsLoading,
+    fetchNextPage, hasNextPage, isFetchingNextPage,
+  } = usePosts(spaceUuid);
+  const postRecords = postPages?.pages.flat();
   const { data: bondsData } = useBonds();
   const { data: groupsData } = useGroups();
   const { data: suggestions } = useSuggestions();
@@ -929,6 +933,20 @@ export default function HomePage() {
 
   const posts = useDisplayPosts(postRecords);
   const shown = posts; // already filtered by spaceId in the query
+
+  // Infinite scroll: once this sentinel (rendered right after the last
+  // post) enters the viewport, pull the next page instead of making the
+  // reader tap a "load more" button.
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el || !hasNextPage || isFetchingNextPage) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting) fetchNextPage();
+    }, { rootMargin: '400px' });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, shown.length]);
 
   // tabs: [id, name] — space icon rendered by SpaceIcon component
   const tabs = [['all', 'All'], ...user.spaces.map(id => [id, spaceById(id).name])];
@@ -1068,8 +1086,17 @@ export default function HomePage() {
             {i === 1 && tab === 'all' && <OverlapCard />}
           </React.Fragment>
         ))}
-        {/* End-of-feed — only shown when posts have loaded and there's something to catch up on */}
-        {!postsLoading && shown.length > 0 && (
+        {/* Infinite scroll — once the fresh window runs out, this sentinel
+            pulls older posts as it scrolls into view, so the feed keeps
+            going instead of dead-ending. */}
+        {!postsLoading && shown.length > 0 && hasNextPage && (
+          <div ref={loadMoreRef} style={{ display: 'flex', justifyContent: 'center', padding: '1.5rem 0' }}>
+            <Spinner size={20}/>
+          </div>
+        )}
+
+        {/* End-of-feed — only once there's truly nothing older left to pull */}
+        {!postsLoading && shown.length > 0 && !hasNextPage && (
           <div style={{ textAlign: 'center', padding: '3rem 1rem 1.5rem' }}>
             {/* Thin rule with centred mark */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>

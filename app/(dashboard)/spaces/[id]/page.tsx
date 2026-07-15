@@ -584,8 +584,9 @@ export default function SpaceDetailPage() {
   const [answerText, setAnswerText] = useState('');
 
   // ── Live data ──
-  const { data: postRecords, isLoading: postsLoading } = usePosts(spaceUuid);
-  const { data: openPostRecords, isLoading: openLoading } = usePosts(spaceUuid);
+  const { data: postPages, isLoading: postsLoading } = usePosts(spaceUuid);
+  const { isLoading: openLoading } = usePosts(spaceUuid);
+  const postRecords = postPages?.pages.flat();
   const { data: members, isLoading: membersLoading } = useSpaceMembers(spaceUuid);
   const { data: allAsks } = useAllAsks(spaceUuid);
   const myAsk    = allAsks?.find(a => a.isOwn) ?? null;
