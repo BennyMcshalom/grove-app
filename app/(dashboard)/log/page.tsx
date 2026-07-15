@@ -11,13 +11,13 @@ import { useUserStore } from '@/store/useUserStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
-import { spaceById, auraFor } from '@/lib/data';
+import { spaceById } from '@/lib/data';
 import { postsApi, usersApi } from '@/lib/api';
 import { useBonds } from '@/hooks/useBonds';
 import { useMyLogEntries, useAddLogEntry, useUpdateLogEntry, useLogSettings, useUpdateLogSettings, useCircleLogs } from '@/hooks/useLog';
 import { useBondLogToday, usePostBondLog, useMarkBondResonance, useBondLogHistory } from '@/hooks/useBondLog';
 import type { LogEntry as ApiLogEntry, CircleLogUser } from '@/lib/api';
-import type { Space, LogStyle } from '@/lib/types';
+import type { Space, LogStyle, AuraKey } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────
 type LogEntry = {
@@ -32,6 +32,7 @@ type LogEntry = {
 type OtherLog = {
   name: string;
   avatarUrl?: string | null;
+  aura?: AuraKey | null;
   space: string;
   phase: string;
   vis: string;
@@ -741,7 +742,7 @@ function BondReveal({ bonds }: { bonds: { id: string; name: string; avatarUrl?: 
                     </div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <Avatar name={partner?.name ?? ''} size={52} avatarUrl={partner?.avatarUrl} aura="reflective" />
+                    <Avatar name={partner?.name ?? ''} size={52} avatarUrl={partner?.avatarUrl} aura={partner?.aura ?? undefined} />
                     <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: 5 }}>
                       Hasn&apos;t posted yet
                     </div>
@@ -772,16 +773,16 @@ function BondReveal({ bonds }: { bonds: { id: string; name: string; avatarUrl?: 
                 </div>
                 <div className="grid-2-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.9rem', marginBottom: '1rem' }}>
                   {([
-                    ['You', myEntry.body ?? '', true, undefined, myResonance],
-                    [partner?.name ?? '', partnerEntry.body ?? '', false, partner?.avatarUrl, partnerResonance],
-                  ] as [string, string, boolean, string | null | undefined, boolean][]).map(([who, txt, me, av, res], i) => (
+                    ['You', myEntry.body ?? '', true, undefined, myResonance, undefined],
+                    [partner?.name ?? '', partnerEntry.body ?? '', false, partner?.avatarUrl, partnerResonance, partner?.aura],
+                  ] as [string, string, boolean, string | null | undefined, boolean, AuraKey | null | undefined][]).map(([who, txt, me, av, res, auraVal], i) => (
                     <div key={i} className="rise" style={{
                       animationDelay: `${i * 0.1}s`,
                       background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '1rem 1.1rem',
                       borderTop: `3px solid ${me ? 'var(--ember)' : 'var(--sage)'}`
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.6rem' }}>
-                        <Avatar name={me ? 'You' : (who ?? '')} size={28} avatarUrl={me ? undefined : (av ?? undefined)} aura={me ? undefined : 'reflective'} />
+                        <Avatar name={me ? 'You' : (who ?? '')} size={28} avatarUrl={me ? undefined : (av ?? undefined)} aura={me ? undefined : (auraVal ?? undefined)} />
                         <div style={{ flex: 1 }}>
                           <span style={{ fontWeight: 600, fontSize: '.82rem' }}>{me ? 'You' : who?.split(' ')[0]}</span>
                         </div>
@@ -896,7 +897,7 @@ function LogViewer({ log, onClose }: { log: OtherLog; onClose: () => void }) {
           position: 'sticky', top: 0, zIndex: 2, background: 'var(--cream)', borderBottom: '1px solid var(--border)',
           padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', gap: '.8rem'
         }}>
-          <Avatar name={log.name} size={44} avatarUrl={log.avatarUrl} aura={auraFor(log.name)} />
+          <Avatar name={log.name} size={44} avatarUrl={log.avatarUrl} aura={log.aura ?? undefined} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 600 }}>{first}&apos;s Log</div>
             <div style={{ fontSize: '.76rem', color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: '.3rem' }}>
@@ -939,7 +940,7 @@ function CircleLogFeed({ logs, onOpen }: { logs: OtherLog[]; onOpen: (log: Other
         {logs.map((log, li) => (
           <article key={li} className="card" style={{ overflow: 'hidden' }}>
             <header style={{ display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.9rem 1.1rem' }}>
-              <Avatar name={log.name} size={42} avatarUrl={log.avatarUrl} aura={auraFor(log.name)} />
+              <Avatar name={log.name} size={42} avatarUrl={log.avatarUrl} aura={log.aura ?? undefined} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: '.92rem' }}>{log.name}</div>
                 <div style={{ fontSize: '.74rem', color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: '.3rem' }}>
@@ -1053,6 +1054,7 @@ export default function LogPage() {
   const circleUsers: OtherLog[] = (circleData ?? []).map((u: CircleLogUser) => ({
     name: u.name,
     avatarUrl: u.avatarUrl,
+    aura: u.aura,
     space: activeSpaceSlug,
     phase,
     vis: 'public',

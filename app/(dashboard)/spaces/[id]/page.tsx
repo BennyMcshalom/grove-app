@@ -599,6 +599,7 @@ export default function SpaceDetailPage() {
     name: r.isAnonymous ? undefined : (r.authorName ?? r.userId),
     userId: r.userId,
     avatarUrl: r.isAnonymous ? null : (r.authorAvatar ?? null),
+    aura: r.isAnonymous ? null : (r.authorAura ?? null),
     time: formatRelativeTime(r.createdAt), doing: r.doing ?? '', honest: r.honestThing ?? '',
     progress: r.progress ?? '',
     media: r.mediaUrl ? { type: (r.mediaType?.startsWith('video') ? 'video' : 'image') as 'image'|'video', src: r.mediaUrl } : undefined,
@@ -615,7 +616,7 @@ export default function SpaceDetailPage() {
               gap: '.7rem', padding: '.45rem .3rem', borderRadius: 'var(--r-md)' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--surf-low)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <Avatar name={m.displayName} size={36} avatarUrl={m.avatarUrl}/>
+            <Avatar name={m.displayName} size={36} avatarUrl={m.avatarUrl} aura={m.aura ?? undefined}/>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 500, fontSize: '.84rem' }}>{m.displayName}</div>
               {m.stage && <div style={{ fontSize: '.72rem', color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.stage}</div>}
@@ -708,7 +709,7 @@ export default function SpaceDetailPage() {
             ) : posts.map(p => (
               <article key={p.id} className="card" style={{ padding: '1.1rem 1.2rem', marginBottom: '.8rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.7rem' }}>
-                  <Avatar name={p.name ?? ''} anon={p.anon} size={38} avatarUrl={p.anon ? undefined : p.avatarUrl}/>
+                  <Avatar name={p.name ?? ''} anon={p.anon} size={38} avatarUrl={p.anon ? undefined : p.avatarUrl} aura={p.anon ? undefined : (p.aura ?? undefined)}/>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '.88rem' }}>{p.anon ? 'Someone in your space' : p.name}</div>
                     <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace' }}>{p.time}</div>
@@ -746,7 +747,7 @@ export default function SpaceDetailPage() {
             ) : posts.map(p => (
               <article key={p.id} className="card" style={{ padding: '1.1rem 1.2rem', marginBottom: '.8rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.7rem' }}>
-                  <Avatar name={p.name ?? ''} anon={p.anon} size={38} avatarUrl={p.anon ? undefined : p.avatarUrl}/>
+                  <Avatar name={p.name ?? ''} anon={p.anon} size={38} avatarUrl={p.anon ? undefined : p.avatarUrl} aura={p.anon ? undefined : (p.aura ?? undefined)}/>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: '.88rem' }}>{p.anon ? 'Someone in this chapter' : p.name}</div>
                     <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace' }}>{p.time}</div>
@@ -795,7 +796,7 @@ export default function SpaceDetailPage() {
               {members.map(m => (
                 <div key={m.id} className="card" style={{ padding: '.85rem 1.1rem', display: 'flex', alignItems: 'center', gap: '.8rem', boxShadow: 'var(--shadow-soft)' }}>
                   <button onClick={() => router.push(`/grove/${m.id}`)}>
-                    <Avatar name={m.displayName} size={44} avatarUrl={m.avatarUrl}/>
+                    <Avatar name={m.displayName} size={44} avatarUrl={m.avatarUrl} aura={m.aura ?? undefined}/>
                   </button>
                   <button onClick={() => router.push(`/grove/${m.id}`)}
                     style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>

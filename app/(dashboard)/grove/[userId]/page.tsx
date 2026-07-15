@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { StageChip } from '@/components/ui/StageChip';
 import { Waveform } from '@/components/ui/Waveform';
 import { Spinner } from '@/components/ui/Spinner';
-import { AURAS, STAGES, nowPhase, PHASE, auraFor, spaceById } from '@/lib/data';
+import { AURAS, STAGES, nowPhase, PHASE, spaceById } from '@/lib/data';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUserStore } from '@/store/useUserStore';
@@ -115,6 +115,7 @@ export default function GrovePage() {
 
   const name      = grove?.profile?.displayName ?? '';
   const firstName = name.split(' ')[0] || '…';
+  const realAura  = (grove?.profile?.aura ?? undefined) as AuraKey | undefined;
   const avatarUrl = grove?.profile?.avatarUrl ?? null;
   const possessiveCap = isOwnProfile ? 'Your' : `${firstName}'s`;
   const hasntFilled    = isOwnProfile ? "You haven't filled this in yet." : `${firstName} hasn't filled this in yet.`;
@@ -255,7 +256,7 @@ export default function GrovePage() {
             {/* Center portrait */}
             <button onMouseDown={() => setAmbience(true)} onMouseUp={() => setAmbience(false)} onMouseLeave={() => setAmbience(false)}
               style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', borderRadius: '50%', zIndex: 6 }}>
-              <Avatar name={name || '?'} size={150} timePhase={phase} aura={auraFor(name) as AuraKey} ring={2} avatarUrl={avatarUrl}/>
+              <Avatar name={name || '?'} size={150} timePhase={phase} aura={realAura} ring={2} avatarUrl={avatarUrl}/>
             </button>
 
             {ambience && (
@@ -331,12 +332,12 @@ export default function GrovePage() {
                 {primarySpace?.space?.slug && (
                   <StageChip space={primarySpace.space.slug} stage={primarySpace.stage ?? primarySpace.space.name}/>
                 )}
-                {name && (
+                {realAura && (
                   <div style={{ marginTop: '.8rem', display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.8rem', color: 'var(--ink-3)' }}>
                     <span style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
-                      background: AURAS[auraFor(name) as AuraKey].color,
-                      boxShadow: `0 0 8px ${AURAS[auraFor(name) as AuraKey].color}`, display: 'block' }}/>
-                    {AURAS[auraFor(name) as AuraKey].label} — <span style={{ fontStyle: 'italic' }}>{AURAS[auraFor(name) as AuraKey].hint}</span>
+                      background: AURAS[realAura].color,
+                      boxShadow: `0 0 8px ${AURAS[realAura].color}`, display: 'block' }}/>
+                    {AURAS[realAura].label} — <span style={{ fontStyle: 'italic' }}>{AURAS[realAura].hint}</span>
                   </div>
                 )}
               </>

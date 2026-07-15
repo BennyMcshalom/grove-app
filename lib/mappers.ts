@@ -30,6 +30,8 @@ export function mapPost(record: PostRecord, authorName?: string): Post {
       src: record.mediaUrl,
     } : undefined,
     avatarUrl: record.isAnonymous ? null : (record.authorAvatar ?? null),
+    aura: record.isAnonymous ? null : (record.authorAura ?? null),
+    clock: formatClock(record.createdAt),
     roots: record.rootCount ?? 0,
     comments: 0,
     rooted: record.userReacted ?? false,
@@ -40,6 +42,12 @@ export function mapPost(record: PostRecord, authorName?: string): Post {
     _id: record.id,
     _spaceId: record.spaceId,
   } as Post & { _id: string; _spaceId: string };
+}
+
+/** "14:07" in the viewer's local time — the actual moment a post was made, not "now". */
+export function formatClock(iso: string): string {
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
 export function formatRelativeTime(iso: string): string {

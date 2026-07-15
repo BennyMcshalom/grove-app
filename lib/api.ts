@@ -1,3 +1,5 @@
+import type { AuraKey } from './types';
+
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 let isRefreshing = false;
@@ -207,6 +209,7 @@ export interface PostRecord {
   // joined fields — always present in list responses
   authorName?: string;
   authorAvatar?: string | null;
+  authorAura?: AuraKey | null;
   rootCount?: number;
   commentCount?: number;
   userReacted?: boolean;
@@ -231,6 +234,7 @@ export interface PostComment {
   userId: string;
   authorName: string;
   authorAvatar?: string | null;
+  authorAura?: AuraKey | null;
   body: string;
   createdAt: string;
 }
@@ -284,7 +288,7 @@ export interface BondRecord {
   status: 'circle' | 'bond';     // 'circle' until 7 chat days; then 'bond'
   streakDays: number;             // distinct calendar days with ≥1 message exchanged
   // joined by backend
-  otherUser?: { id: string; displayName: string; avatarUrl: string | null; openTo: string | null; deepFocusActive?: boolean; deepFocusEndsAt?: string | null };
+  otherUser?: { id: string; displayName: string; avatarUrl: string | null; openTo: string | null; deepFocusActive?: boolean; deepFocusEndsAt?: string | null; aura?: AuraKey | null };
   depthScore?: number;
   lastMessageAt?: string | null;
   unreadCount?: number;
@@ -377,6 +381,7 @@ export interface SpaceMember {
   displayName: string;
   avatarUrl: string | null;
   openTo: string | null;
+  aura?: AuraKey | null;
   stage: string | null;
 }
 
@@ -402,7 +407,7 @@ export const spacesApi = {
 };
 
 // ── Groups ────────────────────────────────────────────────────────────────────
-export interface GroupMemberProfile { id: string; displayName: string; avatarUrl: string | null; }
+export interface GroupMemberProfile { id: string; displayName: string; avatarUrl: string | null; aura?: AuraKey | null; }
 export interface GroupMember { id: string; groupId: string; userId: string; role: 'admin' | 'member'; joinedAt: string; profile: GroupMemberProfile | null; }
 export interface GroupJoinRequest { id: string; groupId: string; userId: string; status: 'pending' | 'approved' | 'denied'; requestedAt: string; profile?: GroupMemberProfile | null; }
 
@@ -511,7 +516,7 @@ export interface PublicProfile {
   bio: string | null;
   openTo: string | null;
   honestTension: string | null;
-  aura: string | null;
+  aura: AuraKey | null;
 }
 
 export interface PatchUserPayload {
@@ -531,6 +536,7 @@ export interface Suggestion {
   avatarUrl: string | null;
   honestTension: string | null;
   openTo: string | null;
+  aura?: AuraKey | null;
   reason: string;
 }
 
@@ -541,12 +547,12 @@ export interface BondInvitation {
   message: string | null;
   status: 'pending' | 'accepted' | 'declined';
   createdAt: string;
-  fromUser?: { id: string; displayName: string; avatarUrl: string | null; openTo: string | null } | null;
+  fromUser?: { id: string; displayName: string; avatarUrl: string | null; openTo: string | null; aura?: AuraKey | null } | null;
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
 export interface SearchResults {
-  users:  Array<{ id: string; displayName: string; avatarUrl: string | null; openTo: string | null }>;
+  users:  Array<{ id: string; displayName: string; avatarUrl: string | null; openTo: string | null; aura?: AuraKey | null }>;
   posts:  PostRecord[];
   groups: Array<{ id: string; name: string; lifePhase: string; emoji: string; coverColor: string; memberCount: number }>;
   spaces: Array<{ id: string; name: string; slug: string; iconEmoji: string; colorHex: string }>;
@@ -558,7 +564,7 @@ export const searchApi = {
 
 // ── Grove (Life Rings) ────────────────────────────────────────────────────────
 export interface GroveData {
-  profile: { id: string; displayName: string; avatarUrl: string | null; honestTension: string | null; sittingWith: string | null; openTo: string | null };
+  profile: { id: string; displayName: string; avatarUrl: string | null; honestTension: string | null; sittingWith: string | null; openTo: string | null; aura?: AuraKey | null };
   activeSpaces: Array<{ id: string; spaceId: string; stage: string | null; space: { slug: string; name: string; iconEmoji: string; colorHex: string } | null }>;
   closedChapters: Array<{ id: string; openedAt: string; closedAt: string | null; closingLearned: string | null; space: { slug: string; name: string } | null }>;
   rings: { struggling: string | null; building: string | null; openTo: string | null };
@@ -586,6 +592,7 @@ export interface NearbyUser {
   displayName: string;
   avatarUrl: string | null;
   openTo: string | null;
+  aura?: AuraKey | null;
   spaces: string[];
 }
 
@@ -725,6 +732,7 @@ export interface CircleLogUser {
   userId: string;
   name: string;
   avatarUrl: string | null;
+  aura?: AuraKey | null;
   logStyle: string;
   spaceId: string | null;
   entries: LogEntry[];
@@ -775,7 +783,7 @@ export interface BondLogSession {
 
 export interface BondLogToday {
   session:      BondLogSession;
-  partner:      { id: string; name: string; avatarUrl: string | null };
+  partner:      { id: string; name: string; avatarUrl: string | null; aura?: AuraKey | null };
   myEntry:      BondLogEntry | null;
   partnerEntry: BondLogEntry | null;  // body=null when partner posted but I haven't yet
   revealed:     boolean;

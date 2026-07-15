@@ -891,15 +891,19 @@ textarea:focus {
   }
 }
 
+/* Parameterized by --aura-glow-dim/--aura-glow-strong (8-digit hex, set
+   inline per aura color) so every aura gets the same pulsing glow "open"
+   originally had — not just orange. Defaults keep old orange behavior for
+   any caller that doesn't set the properties. */
 @keyframes auraGlow {
 
   0%,
   100% {
-    box-shadow: 0 0 14px 2px rgba(243, 112, 30, .55);
+    box-shadow: 0 0 14px 2px var(--aura-glow-dim, rgba(243, 112, 30, .55));
   }
 
   50% {
-    box-shadow: 0 0 30px 7px rgba(243, 112, 30, .8);
+    box-shadow: 0 0 30px 7px var(--aura-glow-strong, rgba(243, 112, 30, .8));
   }
 }
 

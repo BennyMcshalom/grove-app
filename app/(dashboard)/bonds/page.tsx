@@ -493,7 +493,7 @@ function BondThread({ bond }: { bond: BondRecord }) {
       <header style={{ padding: '1.1rem 1.3rem', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
           <button onClick={() => bond.otherUser?.id && router.push(`/grove/${bond.otherUser.id}`)} title="Enter their Grouv" style={{ flexShrink: 0 }}>
-            <Avatar name={otherName} size={46} aura={bond.otherUser ? 'reflective' : undefined} avatarUrl={bond.otherUser?.avatarUrl}/>
+            <Avatar name={otherName} size={46} aura={bond.otherUser?.aura ?? undefined} avatarUrl={bond.otherUser?.avatarUrl}/>
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <button onClick={() => bond.otherUser?.id && router.push(`/grove/${bond.otherUser.id}`)}
@@ -709,7 +709,7 @@ export default function BondsPage() {
           {pending.map(inv => (
             <div key={inv.id} className="card" style={{ padding: '.85rem', marginBottom: '.6rem', boxShadow: 'var(--shadow-soft)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.7rem' }}>
-                <Avatar name={inv.fromUser?.displayName ?? '?'} size={40} avatarUrl={inv.fromUser?.avatarUrl}/>
+                <Avatar name={inv.fromUser?.displayName ?? '?'} size={40} avatarUrl={inv.fromUser?.avatarUrl} aura={inv.fromUser?.aura ?? undefined}/>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '.86rem' }}>{inv.fromUser?.displayName ?? 'Someone'}</div>
                   {inv.message && <div style={{ fontSize: '.72rem', color: 'var(--ink-3)', fontStyle: 'italic' }}>{inv.message}</div>}
@@ -755,7 +755,7 @@ export default function BondsPage() {
       <RPSection label="Suggested for you" suggested>
         {suggestions && suggestions.length > 0 ? suggestions.slice(0, 5).map(s => (
           <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '.6rem', padding: '.5rem 0' }}>
-            <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl}/>
+            <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl} aura={s.aura ?? undefined}/>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 500, fontSize: '.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.displayName}</div>
               <div style={{ fontSize: '.7rem', color: 'var(--ember)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.reason}</div>
@@ -813,7 +813,7 @@ export default function BondsPage() {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.7rem' }}>
                         <div style={{ position: 'relative', flexShrink: 0 }}>
-                          <Avatar name={name} size={50} aura="reflective" avatarUrl={b.otherUser?.avatarUrl}/>
+                          <Avatar name={name} size={50} aura={b.otherUser?.aura ?? undefined} avatarUrl={b.otherUser?.avatarUrl}/>
                           {inFocus && (
                             <div title="In Deep Focus" style={{ position: 'absolute', bottom: -1, right: -1,
                               width: 16, height: 16, borderRadius: '50%', background: 'var(--ink)',
@@ -875,7 +875,7 @@ export default function BondsPage() {
                             onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem' }}>
                               <div style={{ position: 'relative', flexShrink: 0 }}>
-                                <Avatar name={name} size={40} avatarUrl={b.otherUser?.avatarUrl}/>
+                                <Avatar name={name} size={40} avatarUrl={b.otherUser?.avatarUrl} aura={b.otherUser?.aura ?? undefined}/>
                                 {b.otherUser?.deepFocusActive && (
                                   <div title="In Deep Focus" style={{ position: 'absolute', bottom: -1, right: -1,
                                     width: 14, height: 14, borderRadius: '50%', background: 'var(--ink)',

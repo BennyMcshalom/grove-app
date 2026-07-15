@@ -21,11 +21,11 @@ import { useSuggestions } from '@/hooks/useUsers';
 import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useBonds } from '@/hooks/useBonds';
 import { useGroups } from '@/hooks/useGroups';
-import { PROGRESS, spaceById, auraFor, groupIcon } from '@/lib/data';
+import { PROGRESS, spaceById, groupIcon } from '@/lib/data';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { postsApi, type PostRecord } from '@/lib/api';
 import { VideoPlayer } from '@/components/ui/VideoPlayer';
-import { formatRelativeTime } from '@/lib/mappers';
+import { formatRelativeTime, formatClock } from '@/lib/mappers';
 import type { Post } from '@/lib/types';
 
 // ── Post Card ──
@@ -130,7 +130,7 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
     <article className="card" style={{ padding: '1.3rem 1.4rem', marginBottom: '.9rem', position: 'relative' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: '.8rem', marginBottom: '.9rem' }}>
         <button onClick={() => { if (!post.anon && post.userId) router.push(`/grove/${post.userId}`); }}>
-          <Avatar name={post.anon ? '' : name} anon={post.anon} size={46} aura={post.anon ? undefined : auraFor(name)} avatarUrl={post.anon ? undefined : post.avatarUrl}/>
+          <Avatar name={post.anon ? '' : name} anon={post.anon} size={46} aura={post.anon ? undefined : (post.aura ?? undefined)} avatarUrl={post.anon ? undefined : post.avatarUrl}/>
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
@@ -266,7 +266,7 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
         <div className="fade-in" style={{ marginTop: '.8rem', paddingTop: '.9rem', borderTop: '1px solid var(--border)' }}>
           {comments.map(c => (
             <div key={c.id} style={{ display: 'flex', gap: '.6rem', marginBottom: '.8rem' }}>
-              <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar}/>
+              <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar} aura={c.authorAura ?? undefined}/>
               <div style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1,
                 display: 'flex', alignItems: 'flex-start', gap: '.5rem' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -344,8 +344,8 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
 
   const uploadMedia = async () => {
     if (!media?.file) return { mediaUrl: undefined, mediaType: undefined };
-    if (media.file.size > 500 * 1024 * 1024) {
-      toast('Video is too large (max 500 MB). Try trimming it first.');
+    if (media.file.size > 50 * 1024 * 1024) {
+      toast('Video is too large (max 50 MB). Try trimming it first.');
       throw new Error('too large');
     }
     const result = await postsApi.uploadViaProxy(media.file);
@@ -362,7 +362,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       if (!msg.includes('too large')) {
-        if (msg.includes('413')) toast('Video is too large (max 500 MB).');
+        if (msg.includes('413')) toast('Video is too large (max 50 MB).');
         else if (msg.includes('Unsupported')) toast("That file type isn't supported. Use MP4, MOV, or WebM.");
         else toast('Upload failed — check your connection and try again.');
       }
@@ -643,7 +643,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
     <article className="card" style={{ padding: '1.1rem 1.1rem 1.3rem', marginBottom: '.9rem' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.8rem' }}>
         <button onClick={() => { if (!post.anon && post.userId) router.push(`/grove/${post.userId}`); }}>
-          <Avatar name={post.anon ? '' : name} anon={post.anon} size={40} avatarUrl={post.avatarUrl}/>
+          <Avatar name={post.anon ? '' : name} anon={post.anon} size={40} avatarUrl={post.avatarUrl} aura={post.anon ? undefined : (post.aura ?? undefined)}/>
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: '.92rem' }}>{name}</div>
@@ -757,7 +757,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
         <div className="fade-in" style={{ marginTop: '.8rem', paddingTop: '.9rem', borderTop: '1px solid var(--border)' }}>
           {comments.map(c => (
             <div key={c.id} style={{ display: 'flex', gap: '.6rem', marginBottom: '.8rem' }}>
-              <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar}/>
+              <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar} aura={c.authorAura ?? undefined}/>
               <div style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1,
                 display: 'flex', alignItems: 'flex-start', gap: '.5rem' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -886,6 +886,8 @@ function useDisplayPosts(records: PostRecord[] | undefined) {
     anon: r.isAnonymous,
     userId: r.userId,
     avatarUrl: r.isAnonymous ? null : (r.authorAvatar ?? null),
+    aura: r.isAnonymous ? null : (r.authorAura ?? null),
+    clock: formatClock(r.createdAt),
     space: slugById(r.spaceId) ?? 'career',
     progress: r.progress ?? '',
     time: formatRelativeTime(r.createdAt),

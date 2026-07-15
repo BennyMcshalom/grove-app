@@ -19,6 +19,7 @@ export interface Post {
   name?: string;
   anon?: boolean;
   avatarUrl?: string | null;
+  aura?: AuraKey | null;
   userId?: string;
   space: string;
   progress: string;

@@ -39,17 +39,23 @@ export function AuraRing({ aura, size }: AuraRingProps) {
         background: `radial-gradient(circle, ${c}40, transparent 68%)`,
         animation: 'auraBreath 3s ease-in-out infinite' }}/>
       <div style={{ ...common, width: size + 2, height: size + 2, transform: 'translate(-50%,-50%)',
-        boxShadow: `0 0 10px 1px ${c}88`, animation: 'auraGlow 2.6s ease-in-out infinite' }}/>
+        ['--aura-glow-dim' as string]: `${c}8C`, ['--aura-glow-strong' as string]: `${c}CC`,
+        animation: 'auraGlow 2.6s ease-in-out infinite' } as React.CSSProperties}/>
     </>
   );
 
+  // Default / 'reflective' — was a flat, unanimated box-shadow with no glow
+  // pulse at all (auraGlow only worked for 'open' since its color was
+  // hardcoded orange). Same glow treatment, slower/dimmer to read as a
+  // "slow pulse, turned inward" rather than open's brighter reach-out pulse.
   return (
     <>
       <div style={{ ...common, width: out, height: out, transform: 'translate(-50%,-50%)',
         background: `radial-gradient(circle, ${c}55, transparent 70%)`,
         animation: 'auraBreath 5s ease-in-out infinite' }}/>
       <div style={{ ...common, width: size + 2, height: size + 2, transform: 'translate(-50%,-50%)',
-        boxShadow: `0 0 9px 1px ${c}70` }}/>
+        ['--aura-glow-dim' as string]: `${c}70`, ['--aura-glow-strong' as string]: `${c}A8`,
+        animation: 'auraGlow 4.5s ease-in-out infinite' } as React.CSSProperties}/>
     </>
   );
 }

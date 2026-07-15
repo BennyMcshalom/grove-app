@@ -55,7 +55,7 @@ function NearbyCard({ person, mySpaces, onWave }: {
       borderLeft: hasShared ? '3px solid var(--sage)' : '3px solid transparent' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '.85rem' }}>
         <button onClick={() => router.push(`/grove/${person.userId}`)}>
-          <Avatar name={person.displayName} size={46} avatarUrl={person.avatarUrl} aura="active"/>
+          <Avatar name={person.displayName} size={46} avatarUrl={person.avatarUrl} aura={person.aura ?? undefined}/>
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: '.92rem' }}>{person.displayName}</div>

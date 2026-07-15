@@ -140,7 +140,7 @@ function InvitePicker({ groupId, members, onClose }: { groupId: string; members:
             const done = invited.includes(id);
             return (
               <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '.6rem', padding: '.35rem 0' }}>
-                <Avatar name={name} size={30} avatarUrl={b.otherUser?.avatarUrl}/>
+                <Avatar name={name} size={30} avatarUrl={b.otherUser?.avatarUrl} aura={b.otherUser?.aura ?? undefined}/>
                 <span style={{ flex: 1, minWidth: 0, fontSize: '.86rem', fontWeight: 500 }}>{name}</span>
                 <button disabled={done || invite.isPending}
                   onClick={async () => {
@@ -216,7 +216,7 @@ function GroupDetail({ group: groupStub, onClose }: { group: GroupRecord; onClos
                 <div style={{ display: 'flex' }}>
                   {members.slice(0, 5).map((m, i) => (
                     <div key={m.id} style={{ marginLeft: i ? -10 : 0 }}>
-                      <Avatar name={m.profile?.displayName ?? 'Member'} size={28} avatarUrl={m.profile?.avatarUrl}/>
+                      <Avatar name={m.profile?.displayName ?? 'Member'} size={28} avatarUrl={m.profile?.avatarUrl} aura={m.profile?.aura ?? undefined}/>
                     </div>
                   ))}
                 </div>
@@ -235,7 +235,7 @@ function GroupDetail({ group: groupStub, onClose }: { group: GroupRecord; onClos
                 <div className="fade-in scroll" style={{ marginTop: '.7rem', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '.5rem .8rem', maxHeight: 220, overflowY: 'auto' }}>
                   {members.map(m => (
                     <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '.6rem', padding: '.4rem 0' }}>
-                      <Avatar name={m.profile?.displayName ?? 'Member'} size={30} avatarUrl={m.profile?.avatarUrl}/>
+                      <Avatar name={m.profile?.displayName ?? 'Member'} size={30} avatarUrl={m.profile?.avatarUrl} aura={m.profile?.aura ?? undefined}/>
                       <span style={{ flex: 1, minWidth: 0, fontSize: '.86rem', fontWeight: 500 }}>{m.profile?.displayName ?? 'Member'}</span>
                       {m.role === 'admin' && <span className="chip" style={{ background: 'var(--surf-high)', fontSize: '.62rem', flexShrink: 0 }}>Admin</span>}
                     </div>
@@ -290,7 +290,7 @@ function GroupDetail({ group: groupStub, onClose }: { group: GroupRecord; onClos
               <div className="label-mono" style={{ marginBottom: '.7rem' }}>Pending requests ({pendingRequests.length})</div>
               {pendingRequests.map(r => (
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.6rem' }}>
-                  <Avatar name={r.profile?.displayName ?? 'Someone'} size={32} avatarUrl={r.profile?.avatarUrl}/>
+                  <Avatar name={r.profile?.displayName ?? 'Someone'} size={32} avatarUrl={r.profile?.avatarUrl} aura={r.profile?.aura ?? undefined}/>
                   <div style={{ flex: 1, minWidth: 0, fontSize: '.86rem', fontWeight: 500 }}>{r.profile?.displayName ?? 'Someone'}</div>
                   <button onClick={() => deny.mutate(r.id)} disabled={deny.isPending || approve.isPending}
                     title="Deny" style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--white)' }}>

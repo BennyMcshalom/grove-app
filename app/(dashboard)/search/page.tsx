@@ -103,7 +103,7 @@ export default function SearchPage() {
                   {results.users.map(u => (
                     <div key={u.id} className="card" style={{ padding: '.9rem 1.1rem', display: 'flex', alignItems: 'center', gap: '.8rem', boxShadow: 'var(--shadow-soft)' }}>
                       <button onClick={() => router.push(`/grove/${u.id}`)}>
-                        <Avatar name={u.displayName} size={44} avatarUrl={u.avatarUrl}/>
+                        <Avatar name={u.displayName} size={44} avatarUrl={u.avatarUrl} aura={u.aura ?? undefined}/>
                       </button>
                       <button onClick={() => router.push(`/grove/${u.id}`)}
                         style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
