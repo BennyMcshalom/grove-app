@@ -503,85 +503,6 @@ export default function GrovePage() {
             </button>
           </div>
 
-          {/* Posts — everything posted (excluding anonymous ones, which stay anonymous here too) */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 .2rem .6rem' }}>
-              <div className="label-mono">{possessiveCap} Posts</div>
-              {!!userPosts?.length && <span style={{ fontSize: '.7rem', color: 'var(--ink-4)' }}>{userPosts.length} shared</span>}
-            </div>
-
-            {postsLoading ? (
-              <div className="card" style={{ padding: '1.4rem', display: 'flex', justifyContent: 'center' }}>
-                <Spinner size={18}/>
-              </div>
-            ) : userPosts && userPosts.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '.7rem' }}>
-                {userPosts.slice(0, 5).map(p => {
-                  const isGrouv = p.kind === 'just_grouw';
-                  return (
-                    <article key={p.id} className="card" style={{ overflow: 'hidden', padding: 0 }}>
-                      {p.mediaUrl && (
-                        <div style={{ position: 'relative', height: 150, background: 'var(--surf-high)' }}>
-                          {p.mediaType?.startsWith('video') ? (
-                            <video src={p.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} muted/>
-                          ) : (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={p.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
-                          )}
-                          {p.mediaType?.startsWith('video') && (
-                            <span style={{ position: 'absolute', top: 8, right: 8, width: 26, height: 26, borderRadius: '50%',
-                              background: 'rgba(20,14,8,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Icon name="video" size={13} stroke="#fff"/>
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      <div style={{ padding: '.9rem 1.1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.5rem' }}>
-                          <span className="mono" style={{ fontSize: '.66rem', color: 'var(--ink-4)' }}>{formatRelativeTime(p.createdAt)}</span>
-                          {isGrouv && <span className="chip" style={{ background: 'var(--ember-dim)', color: 'var(--ember-deep)', fontSize: '.62rem' }}>Just Grouv</span>}
-                        </div>
-
-                        {isGrouv ? (
-                          p.body && <p className="serif" style={{ fontSize: '1.05rem', fontWeight: 500, lineHeight: 1.4, color: 'var(--ink)' }}>{p.body}</p>
-                        ) : (
-                          <>
-                            {p.doing && <p style={{ fontSize: '.95rem', fontWeight: 600, lineHeight: 1.35, marginBottom: p.honestThing ? '.35rem' : 0 }}>{p.doing}</p>}
-                            {p.honestThing && (
-                              <p style={{ fontSize: '.87rem', color: 'var(--ink-3)', fontStyle: 'italic', lineHeight: 1.45 }}>&ldquo;{p.honestThing}&rdquo;</p>
-                            )}
-                          </>
-                        )}
-
-                        {((p.rootCount ?? 0) > 0 || (p.commentCount ?? 0) > 0) && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '.7rem', paddingTop: '.6rem', borderTop: '1px solid var(--border)' }}>
-                            {(p.rootCount ?? 0) > 0 && (
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.78rem', color: 'var(--ink-3)' }}>
-                                <Icon name="sprout" size={14} stroke="var(--sage)"/> {p.rootCount}
-                              </span>
-                            )}
-                            {(p.commentCount ?? 0) > 0 && (
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.78rem', color: 'var(--ink-3)' }}>
-                                <Icon name="comment" size={13} stroke="var(--ink-3)"/> {p.commentCount}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="card" style={{ padding: '1.6rem 1.4rem', textAlign: 'center', background: 'linear-gradient(160deg, var(--white), var(--surf-low))' }}>
-                <div style={{ fontSize: '1.3rem', marginBottom: '.3rem' }}>🌱</div>
-                <p style={{ fontSize: '.85rem', color: 'var(--ink-3)', fontStyle: 'italic' }}>
-                  {isOwnProfile ? "You haven't posted anything yet." : `${firstName} hasn't posted anything yet.`}
-                </p>
-              </div>
-            )}
-          </div>
-
           {!isOwnProfile && (
             <>
               <button
@@ -617,6 +538,86 @@ export default function GrovePage() {
             </>
           )}
         </div>
+      </div>
+
+      {/* Posts — everything posted (excluding anonymous ones, which stay anonymous here too).
+          Centered full-width below the two-column layout, not squeezed into the right rail. */}
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 clamp(1rem, 4vw, 1.6rem) 3rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.6rem', marginBottom: '1rem' }}>
+          <div className="label-mono">{possessiveCap} Posts</div>
+          {!!userPosts?.length && <span style={{ fontSize: '.7rem', color: 'var(--ink-4)' }}>· {userPosts.length} shared</span>}
+        </div>
+
+        {postsLoading ? (
+          <div className="card" style={{ padding: '1.4rem', display: 'flex', justifyContent: 'center' }}>
+            <Spinner size={18}/>
+          </div>
+        ) : userPosts && userPosts.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+            {userPosts.slice(0, 6).map(p => {
+              const isGrouv = p.kind === 'just_grouw';
+              return (
+                <article key={p.id} className="card" style={{ overflow: 'hidden', padding: 0 }}>
+                  {p.mediaUrl && (
+                    <div style={{ position: 'relative', height: 150, background: 'var(--surf-high)' }}>
+                      {p.mediaType?.startsWith('video') ? (
+                        <video src={p.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} muted/>
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+                      )}
+                      {p.mediaType?.startsWith('video') && (
+                        <span style={{ position: 'absolute', top: 8, right: 8, width: 26, height: 26, borderRadius: '50%',
+                          background: 'rgba(20,14,8,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon name="video" size={13} stroke="#fff"/>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div style={{ padding: '.9rem 1.1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.5rem' }}>
+                      <span className="mono" style={{ fontSize: '.66rem', color: 'var(--ink-4)' }}>{formatRelativeTime(p.createdAt)}</span>
+                      {isGrouv && <span className="chip" style={{ background: 'var(--ember-dim)', color: 'var(--ember-deep)', fontSize: '.62rem' }}>Just Grouv</span>}
+                    </div>
+
+                    {isGrouv ? (
+                      p.body && <p className="serif" style={{ fontSize: '1.05rem', fontWeight: 500, lineHeight: 1.4, color: 'var(--ink)' }}>{p.body}</p>
+                    ) : (
+                      <>
+                        {p.doing && <p style={{ fontSize: '.95rem', fontWeight: 600, lineHeight: 1.35, marginBottom: p.honestThing ? '.35rem' : 0 }}>{p.doing}</p>}
+                        {p.honestThing && (
+                          <p style={{ fontSize: '.87rem', color: 'var(--ink-3)', fontStyle: 'italic', lineHeight: 1.45 }}>&ldquo;{p.honestThing}&rdquo;</p>
+                        )}
+                      </>
+                    )}
+
+                    {((p.rootCount ?? 0) > 0 || (p.commentCount ?? 0) > 0) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '.7rem', paddingTop: '.6rem', borderTop: '1px solid var(--border)' }}>
+                        {(p.rootCount ?? 0) > 0 && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.78rem', color: 'var(--ink-3)' }}>
+                            <Icon name="sprout" size={14} stroke="var(--sage)"/> {p.rootCount}
+                          </span>
+                        )}
+                        {(p.commentCount ?? 0) > 0 && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.78rem', color: 'var(--ink-3)' }}>
+                            <Icon name="comment" size={13} stroke="var(--ink-3)"/> {p.commentCount}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="card" style={{ padding: '1.6rem 1.4rem', textAlign: 'center', maxWidth: 420, margin: '0 auto', background: 'linear-gradient(160deg, var(--white), var(--surf-low))' }}>
+            <div style={{ fontSize: '1.3rem', marginBottom: '.3rem' }}>🌱</div>
+            <p style={{ fontSize: '.85rem', color: 'var(--ink-3)', fontStyle: 'italic' }}>
+              {isOwnProfile ? "You haven't posted anything yet." : `${firstName} hasn't posted anything yet.`}
+            </p>
+          </div>
+        )}
       </div>
 
       {viewLog && <LogViewer title={`${possessiveCap} Grouv Log`} entries={logForViewer} onClose={() => setViewLog(false)}/>}
