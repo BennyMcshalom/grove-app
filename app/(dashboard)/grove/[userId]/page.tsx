@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
@@ -90,6 +90,20 @@ export default function GrovePage() {
   const [ringDraft, setRingDraft] = useState('');
   const [savingRing, setSavingRing] = useState(false);
 
+  // The orbit stage's own width is CSS-responsive (width:STAGE, maxWidth:92vw),
+  // but the center avatar was a fixed 150px regardless — on any container
+  // narrower than ~500px that made the avatar's radius bigger than the inner
+  // ring's radius, so the avatar (z-index above the rings) covered the inner
+  // ring's "Struggling with" label entirely. Track viewport width so the
+  // avatar can shrink in step with the rings instead.
+  const [viewportW, setViewportW] = useState(1024);
+  useEffect(() => {
+    const update = () => setViewportW(window.innerWidth);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
   const { data: grove, isLoading } = useQuery({
     queryKey: ['grove', userId],
     queryFn:  () => groveApi.get(userId),
@@ -112,6 +126,13 @@ export default function GrovePage() {
   const sent = sentLocal || alreadySent;
   const phase = nowPhase();
   const STAGE = 540;
+  // Mirrors the CSS `width:STAGE, maxWidth:92vw` the stage itself uses, so the
+  // avatar can be sized as a safe fraction of the SAME effective width — 0.28
+  // keeps it just inside the inner ring's radius (0.30) at every size, matching
+  // the ~150px desktop avatar exactly at STAGE=540 while actually shrinking on
+  // narrow viewports instead of staying fixed.
+  const stageWidth = Math.min(STAGE, viewportW * 0.92);
+  const avatarSize = Math.round(Math.min(150, stageWidth * 0.28));
 
   const name      = grove?.profile?.displayName ?? '';
   const firstName = name.split(' ')[0] || '…';
@@ -239,8 +260,16 @@ export default function GrovePage() {
                 same fixed-pixel-vs-responsive-container mismatch as the rings above) */}
             <div style={{ position: 'absolute', inset: 0, animation: 'orbit 48s linear infinite', pointerEvents: 'none' }}>
               {uniqueSpaceIds.map((id, i) => {
-                const ang = (i / uniqueSpaceIds.length) * Math.PI * 2 - Math.PI / 2;
-                const rrPct = 70; // matches the outer ring's r=0.70
+                // Offset by half a segment so icons land between the cardinal points
+                // instead of at top/bottom-center, where the ring labels and the
+                // ambience indicator already sit.
+                const ang = (i / uniqueSpaceIds.length) * Math.PI * 2 - Math.PI / 2 + Math.PI / uniqueSpaceIds.length;
+                // The outer ring's r (0.70) is its diameter as a fraction of the
+                // container — i.e. the ring itself is rendered at width/height:70%.
+                // Orbit radius is half that. Using 70 directly here (instead of 35)
+                // put icons at 50±70% — up to 120%, well outside the container —
+                // which scattered them across the page instead of on the ring.
+                const rrPct = (RINGS.find(r => r.key === 'outer')!.r * 100) / 2;
                 const xPct = 50 + Math.cos(ang) * rrPct, yPct = 50 + Math.sin(ang) * rrPct;
                 const s = spaceById(id);
                 return (
@@ -256,7 +285,7 @@ export default function GrovePage() {
             {/* Center portrait */}
             <button onMouseDown={() => setAmbience(true)} onMouseUp={() => setAmbience(false)} onMouseLeave={() => setAmbience(false)}
               style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', borderRadius: '50%', zIndex: 6 }}>
-              <Avatar name={name || '?'} size={150} timePhase={phase} aura={realAura} ring={2} avatarUrl={avatarUrl}/>
+              <Avatar name={name || '?'} size={avatarSize} timePhase={phase} aura={realAura} ring={2} avatarUrl={avatarUrl}/>
             </button>
 
             {ambience && (
