@@ -42,7 +42,7 @@ type OtherLog = {
 };
 
 const LOG_PROMPTS: Record<string, string> = {
-  career: 'What did you build today — even a little?',
+  career: 'What did you build today, even a little?',
   creative: 'What did you make today, finished or not?',
   health: 'What did your body ask of you today?',
   wealth: 'What did today cost, and what did it buy?',
@@ -536,7 +536,7 @@ function MemoriesGallery({ entries, space, style, onStyleChange }: {
       </div>
       {filled.length === 0 ? (
         <div className="card" style={{ padding: '2.2rem 1.5rem', textAlign: 'center' }}>
-          <p style={{ color: 'var(--ink-3)', fontSize: '.9rem' }}>No moments yet — write today&apos;s entry above to start your Log.</p>
+          <p style={{ color: 'var(--ink-3)', fontSize: '.9rem' }}>No moments yet. Write today&apos;s entry above to start your Log.</p>
         </div>
       ) : (
         <div className="swap-in" key={space.id + style}>
@@ -556,7 +556,7 @@ function Artifact({ spaceId, phase, entries, onClose }: {
 }) {
   const space = spaceById(spaceId);
   const filled = entries.filter(e => !e.missed);
-  const range = filled.length ? `${filled[0].date} — ${filled[filled.length - 1].date} · ` : '';
+  const range = filled.length ? `${filled[0].date}, ${filled[filled.length - 1].date} · ` : '';
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 7000, background: 'rgba(26,26,26,.5)',
@@ -605,7 +605,7 @@ function Artifact({ spaceId, phase, entries, onClose }: {
             </article>
           ))}
           <div style={{ textAlign: 'center', color: 'var(--ink-3)', fontStyle: 'italic', fontSize: '.9rem' }}>
-            This is a preview. The Artifact unlocks for real when you close the chapter — then it&apos;s yours, permanently, in your Life Archive.
+            This is a preview. The Artifact unlocks for real when you close the chapter, then it&apos;s yours, permanently, in your Life Archive.
           </div>
         </div>
       </div>
@@ -719,7 +719,7 @@ function BondReveal({ bonds }: { bonds: { id: string; name: string; avatarUrl?: 
                   onClick={handlePost}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.4rem' }}>
                   {postEntry.isPending ? <Spinner size={14} color="#fff" /> : null}
-                  {theyPosted ? 'Post my entry — reveal both' : 'Post my entry'}
+                  {theyPosted ? 'Post my entry, reveal both' : 'Post my entry'}
                 </button>
                 {theyPosted && (
                   <p style={{ fontSize: '.76rem', color: 'var(--sage)', fontWeight: 500, textAlign: 'center', marginTop: '.5rem' }}>
@@ -768,7 +768,7 @@ function BondReveal({ bonds }: { bonds: { id: string; name: string; avatarUrl?: 
                     background: 'var(--mint)', color: 'var(--forest)',
                     display: 'inline-flex', alignItems: 'center', gap: 5
                   }}>
-                    <Icon name="check" size={12} stroke="var(--forest)" sw={2.5} /> Both posted — revealed
+                    <Icon name="check" size={12} stroke="var(--forest)" sw={2.5} /> Both posted, revealed
                   </span>
                 </div>
                 <div className="grid-2-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.9rem', marginBottom: '1rem' }}>
@@ -1102,7 +1102,7 @@ export default function LogPage() {
       toast('Today\'s moment updated.');
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('409')) toast('That entry is sealed — it can only be edited on the day it was posted.');
+      if (msg.includes('409')) toast('That entry is sealed, it can only be edited on the day it was posted.');
       else toast('Could not save. Try again.');
     }
   };
@@ -1182,8 +1182,8 @@ export default function LogPage() {
 
       <RPSection label="The ritual">
         <p style={{ fontSize: '.84rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
-          One photo. One honest line. Every day you're in this chapter. Choose how you view your past moments
-          — and who else gets to scroll them.
+          One photo. One honest line. Every day you're in this chapter. Choose how you view your past moments,
+          and who else gets to scroll them.
         </p>
       </RPSection>
     </>
@@ -1264,7 +1264,7 @@ export default function LogPage() {
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, fontSize: '.9rem', color: 'var(--ember-deep)' }}>The Artifact</div>
             <div style={{ fontSize: '.76rem', color: 'var(--ink-3)' }}>
-              Unlocks when you close this chapter — your whole log, stitched into one piece.
+              Unlocks when you close this chapter, your whole log, stitched into one piece.
             </div>
           </div>
           <span style={{ fontSize: '.8rem', color: 'var(--ember)', fontWeight: 500 }}>Preview →</span>

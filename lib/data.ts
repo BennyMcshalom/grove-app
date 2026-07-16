@@ -16,7 +16,7 @@ export function spaceById(id: string): Space {
 }
 
 export const STAGES: Record<string, string[]> = {
-  career:    ['First job – figuring it out','Side hustle, building something','Career pivot in progress','Building a business (early)','Freelance / consulting','Growing a team','Burned out, searching','Starting over'],
+  career:    ['First job, figuring it out','Side hustle, building something','Career pivot in progress','Building a business (early)','Freelance / consulting','Growing a team','Burned out, searching','Starting over'],
   spiritual: ['Newly questioning','Deepening a practice','In a dry season','Returning after a while','Building a discipline','Holding doubt and faith'],
   wealth:    ['Getting out of debt','Building a first cushion','Investing seriously','Saving for something big','Rebuilding after a loss','Learning the basics'],
   adventure: ['Planning the leap','On the road now','Back, integrating it','Saving for the next one','First solo trip','Relocating somewhere new'],
@@ -87,7 +87,7 @@ export const ARCHIVE: ArchiveEntry[] = [
   { space:'career', range:'March 2024 – November 2024', months:'8 months',
     stages:['Side hustle','Career pivot in progress','Starting over'],
     people:['Cole Bennett','Jonah Pierce','David Okonkwo'],
-    q1:'That leaving wasn\'t the brave part – staying gone was.',
+    q1:'That leaving wasn\'t the brave part, staying gone was.',
     q2:'You will not feel ready. Ready is something you feel afterward, looking back.',
     q3:'Cole, who told me the truth when I needed it and not when it was easy.',
     counts:'34 posts · 9 Curio reads · 4 Wander saves', release:'Bond with Jonah released.' },

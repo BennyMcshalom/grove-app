@@ -33,7 +33,7 @@ export default function ArchivePage() {
         ) : closed.length === 0 ? (
           <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--green-dim))', maxWidth: 480, margin: '0 auto' }}>
             <EmptyState variant="archive"
-              body="When you close a space, the reflections you wrote will live here — private and permanent."/>
+              body="When you close a space, the reflections you wrote will live here, private and permanent."/>
           </div>
         ) : closed.map(c => {
           const slug = c.space?.slug ?? slugById(c.spaceId) ?? 'career';

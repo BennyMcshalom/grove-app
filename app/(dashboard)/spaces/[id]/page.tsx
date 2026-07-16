@@ -187,7 +187,7 @@ function MyAskSection({ ask, submitAnswer, answerText, setAnswerText, userName, 
                 color: replies.length > 0 ? 'var(--sage)' : 'var(--ink-4)', fontWeight: 500 }}>
               <Icon name="lock" size={13} stroke={replies.length > 0 ? 'var(--sage)' : 'var(--ink-4)'} sw={2}/>
               {replies.length === 0
-                ? 'No replies yet — check back soon'
+                ? 'No replies yet. Check back soon'
                 : `${replies.length} honest repl${replies.length === 1 ? 'y' : 'ies'} · ${expanded ? 'hide' : 'read'}`}
               {replies.length > 0 && (
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--sage)" strokeWidth="2.5" strokeLinecap="round"
@@ -217,7 +217,7 @@ function MyAskSection({ ask, submitAnswer, answerText, setAnswerText, userName, 
                 ))}
               </div>
               <p style={{ fontSize: '.72rem', color: 'var(--ink-4)', fontStyle: 'italic', textAlign: 'center', marginTop: '.9rem' }}>
-                Fully anonymous — even Grouv can&apos;t see who sent which reply.
+                Fully anonymous. Even Grouv can&apos;t see who sent which reply.
               </p>
             </div>
           )}
@@ -243,7 +243,7 @@ function MyAskSection({ ask, submitAnswer, answerText, setAnswerText, userName, 
               transition: 'opacity .15s' }}
             disabled={!answerText.trim() || submitAnswer.isPending}
             onClick={async () => {
-              toast('This section posts your question, not a reply — use the space feed for replies.');
+              toast('This section posts your question, not a reply. Use the space feed for replies.');
             }}>
             <Icon name="lock" size={15} stroke="#fff" sw={2}/>
             Ask the space
@@ -380,7 +380,7 @@ function SpaceAskCard({ ask, userName, toast }: {
           ) : (answers ?? []).length === 0 ? (
             <p style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontStyle: 'italic', textAlign: 'center',
               padding: '.5rem 0' }}>
-              No replies yet — be the first.
+              No replies yet. Be the first.
             </p>
           ) : (
             <>
@@ -499,7 +499,7 @@ function AskBoard({ spaceUuid, myAsk, otherAsks, askText, setAskText, answerText
           ))}
           <p style={{ fontSize: '.72rem', color: 'var(--ink-4)', fontStyle: 'italic',
             textAlign: 'center', lineHeight: 1.5 }}>
-            Your replies are anonymous — no one in the space, including the asker, knows it&apos;s you.
+            Your replies are anonymous, no one in the space, including the asker, knows it&apos;s you.
           </p>
         </section>
       )}
@@ -557,7 +557,7 @@ function MyAskCard({ ask }: { ask: AnonAsk }) {
         <div style={{ borderTop: '1px solid var(--border)', padding: '.9rem 1.4rem 1.2rem' }}>
           {replies.map((a, i) => <AnswerCard key={a.id} answer={a} index={i}/>)}
           <p style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontStyle: 'italic', textAlign: 'center', marginTop: '.3rem' }}>
-            Fully anonymous — even Grouv can&apos;t see who sent which reply.
+            Fully anonymous. Even Grouv can&apos;t see who sent which reply.
           </p>
         </div>
       )}
@@ -737,7 +737,7 @@ export default function SpaceDetailPage() {
         {tab === 'open' && (
           <>
             <p style={{ color: 'var(--ink-3)', marginBottom: '1rem', fontSize: '.9rem' }}>
-              Posts from everyone in this space — not just your circle.
+              Posts from everyone in this space, not just your circle.
             </p>
             {openLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>

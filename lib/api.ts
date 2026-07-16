@@ -36,7 +36,7 @@ async function req<T>(
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError(0, 'Network error — API unreachable');
+    throw new ApiError(0, 'Network error. API unreachable');
   }
 
   // 502/503/504 mean the backend is down — treat the same as a network failure
@@ -77,7 +77,7 @@ async function req<T>(
   const contentType = res.headers.get('content-type') ?? '';
   if (!contentType.includes('application/json')) {
     throw new ApiError(res.status,
-      `Expected JSON but got ${contentType || 'unknown'} — is NEXT_PUBLIC_API_URL correct?`);
+      `Expected JSON but got ${contentType || 'unknown'}. Is NEXT_PUBLIC_API_URL correct?`);
   }
 
   return res.json();

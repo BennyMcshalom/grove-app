@@ -33,7 +33,7 @@ export default function AdminBillingPage() {
         <AdminSubNav/>
 
         <p style={{ color: 'var(--ink-3)', fontSize: '.86rem', marginTop: '-.4rem', marginBottom: '1.2rem' }}>
-          Read-only — subscription visibility only. No refund/cancel actions live here; use Stripe directly for those.
+          Read-only. Subscription visibility only. No refund/cancel actions live here; use Stripe directly for those.
         </p>
 
         {statsLoading ? (

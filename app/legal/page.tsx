@@ -41,7 +41,7 @@ export default function LegalPage() {
                 <p style={{ color: 'var(--ink-2)', lineHeight: 1.7 }}>{b}</p>
               </div>
             ))}
-            <p className="serif" style={{ fontSize: '1.3rem', fontStyle: 'italic', marginTop: '2rem', color: 'var(--ink)' }}>— The Grouv team</p>
+            <p className="serif" style={{ fontSize: '1.3rem', fontStyle: 'italic', marginTop: '2rem', color: 'var(--ink)' }}>The Grouv team</p>
           </article>
         )}
 

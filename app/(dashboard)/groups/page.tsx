@@ -130,7 +130,7 @@ function InvitePicker({ groupId, members, onClose }: { groupId: string; members:
         <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}><Spinner size={16}/></div>
       ) : candidates.length === 0 ? (
         <p style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontStyle: 'italic', margin: 0 }}>
-          {bonds && bonds.length > 0 ? "Everyone you're connected to is already here." : 'Form a Bond or Circle connection first — then you can bring them in.'}
+          {bonds && bonds.length > 0 ? "Everyone you're connected to is already here." : 'Form a Bond or Circle connection first, then you can bring them in.'}
         </p>
       ) : (
         <div className="scroll" style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '.15rem' }}>
@@ -349,7 +349,7 @@ function GroupDetail({ group: groupStub, onClose }: { group: GroupRecord; onClos
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span className="chip" style={{ background: 'var(--white)', boxShadow: 'var(--shadow)', padding: '.6rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '.4rem' }}>
                   <Icon name="lock" size={13} stroke="var(--ink-3)"/>
-                  {(g.postCount ?? 0) > 0 ? `${g.postCount} message${g.postCount === 1 ? '' : 's'} — join to read` : 'Join to read the conversation'}
+                  {(g.postCount ?? 0) > 0 ? `${g.postCount} message${g.postCount === 1 ? '' : 's'}, join to read` : 'Join to read the conversation'}
                 </span>
               </div>
             </div>
@@ -402,7 +402,7 @@ export default function GroupsPage() {
   return (
     <AppShell title="Chapter Groups" right={right}>
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 1.6rem 3rem' }}>
-        <p style={{ color: 'var(--ink-3)', marginTop: '-.4rem', marginBottom: '1.2rem' }}>Life-phase rooms. Request to join — an admin lets you in.</p>
+        <p style={{ color: 'var(--ink-3)', marginTop: '-.4rem', marginBottom: '1.2rem' }}>Life-phase rooms. Request to join, an admin lets you in.</p>
         <div style={{ position: 'relative', marginBottom: '1.4rem' }}>
           <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}><Icon name="search" size={17} stroke="var(--ink-4)"/></span>
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search chapters…"

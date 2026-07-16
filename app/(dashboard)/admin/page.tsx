@@ -69,7 +69,7 @@ export default function AdminOverviewPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginTop: '-.4rem', marginBottom: '1.4rem', flexWrap: 'wrap', gap: '.8rem' }}>
           <p style={{ color: 'var(--ink-3)', fontSize: '.88rem' }}>
-            A read-and-act operating view of Grouv — not visible to regular members.
+            A read-and-act operating view of Grouv, not visible to regular members.
           </p>
           <button className="btn btn-soft" onClick={() => router.push('/admin/audit')}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '.4rem', fontSize: '.84rem' }}>

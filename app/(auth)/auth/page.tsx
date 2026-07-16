@@ -137,7 +137,7 @@ function AuthForm() {
             A small, intentional app for people<br/>navigating real life chapters.
           </p>
           {[
-            'Up to 5 Bonds — earned, not added',
+            'Up to 5 Bonds, earned not added',
             'Private reflections that stay yours',
             'People in the same chapter as you',
           ].map(t => (

@@ -227,7 +227,7 @@ function ChapterCloseInner() {
                   borderRadius: 'var(--r-md)', resize: 'vertical', marginBottom: '.2rem', textAlign: 'left' }}
               />
               <p style={{ fontSize: '.78rem', color: 'var(--ink-4)', marginBottom: 0, textAlign: 'right' }}>
-                Optional — write as much or as little as you need.
+                Optional. Write as much or as little as you need.
               </p>
               <NavRow onContinue={next} continueLabel={idx === PRESETS.length - 1 ? 'One last thing' : 'Continue'}/>
             </>

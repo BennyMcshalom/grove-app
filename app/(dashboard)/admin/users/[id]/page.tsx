@@ -201,7 +201,7 @@ export default function AdminUserDetailPage() {
             </div>
             <p style={{ fontSize: '.8rem', color: 'var(--ink-3)', marginBottom: '.8rem', lineHeight: 1.5 }}>
               These accounts have logged in from the same IP at least once. Could be a shared
-              network, a VPN, or a family member — not proof on its own.
+              network, a VPN, or a family member, not proof on its own.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
               {relatedAccounts.map(r => (
@@ -234,7 +234,7 @@ export default function AdminUserDetailPage() {
         {isSelf ? (
           <div className="card" style={{ padding: '1rem 1.2rem', marginBottom: '1.1rem', background: 'var(--surf-low)' }}>
             <p style={{ fontSize: '.84rem', color: 'var(--ink-3)', lineHeight: 1.55 }}>
-              This is your own account — status, role, and deletion actions are disabled here to
+              This is your own account. Status, role, and deletion actions are disabled here to
               prevent locking yourself out. Manage your account from Settings instead.
             </p>
           </div>
@@ -298,7 +298,7 @@ export default function AdminUserDetailPage() {
                   <div className="label-mono">Admin access</div>
                 </div>
                 <p style={{ fontSize: '.82rem', color: 'var(--ink-3)' }}>
-                  {isAdminUser ? 'Can see and use the Admin dashboard.' : 'Regular member — no admin access.'}
+                  {isAdminUser ? 'Can see and use the Admin dashboard.' : 'Regular member, no admin access.'}
                 </p>
               </div>
               <button disabled={setRole.isPending} onClick={toggleAdmin} className={isAdminUser ? 'btn btn-soft' : 'btn btn-primary'}
@@ -400,7 +400,7 @@ export default function AdminUserDetailPage() {
                 <div key={a.id} className="card" style={{ padding: '.7rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: 'var(--shadow-soft)' }}>
                   <div style={{ fontSize: '.82rem' }}>
                     {ACTION_LABEL[a.action] ?? a.action}
-                    {a.reason && <span style={{ color: 'var(--ink-3)' }}> — &ldquo;{a.reason}&rdquo;</span>}
+                    {a.reason && <span style={{ color: 'var(--ink-3)' }}>, &ldquo;{a.reason}&rdquo;</span>}
                   </div>
                   <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', flexShrink: 0, fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
                     {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

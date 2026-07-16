@@ -90,7 +90,7 @@ export default function SubscribePage() {
               <div className="label-mono" style={{ marginBottom: '1.1rem' }}>How your trial works</div>
               {([
                 ['var(--ember)', 'Today',        'Full access unlocks',    'All of Grouv, free for 14 days.'],
-                ['var(--amber)', REMIND_DATE,    'A gentle reminder',      "We'll email you 2 days before — no surprises."],
+                ['var(--amber)', REMIND_DATE,    'A gentle reminder',      "We'll email you 2 days before, no surprises."],
                 ['var(--sage)',  TRIAL_END,      'Membership begins',      `Your ${plan} plan starts unless you cancel.`],
               ] as [string, string, string, string][]).map(([color, date, title, desc], i, arr) => (
                 <div key={date} style={{ display: 'flex', gap: '.9rem' }}>
@@ -154,7 +154,7 @@ export default function SubscribePage() {
               Start my 14 free days <Icon name="arrow" stroke="#fff"/>
             </button>
             <p style={{ textAlign: 'center', fontSize: '.78rem', color: 'var(--ink-3)', marginTop: '.8rem' }}>
-              No card needed. We'll remind you before {TRIAL_END} — keep going only if you want to.
+              No card needed. We'll remind you before {TRIAL_END}, keep going only if you want to.
             </p>
 
             {/* Features */}
@@ -262,7 +262,7 @@ export default function SubscribePage() {
 
             <button className="btn btn-primary btn-lg btn-block" disabled={!cardReady} onClick={startTrial}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem' }}>
-              <Icon name="lock" size={17} stroke="#fff"/> Start trial — $0.00 today
+              <Icon name="lock" size={17} stroke="#fff"/> Start trial. $0.00 today
             </button>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.4rem',
               marginTop: '.9rem', fontSize: '.76rem', color: 'var(--ink-4)' }}>

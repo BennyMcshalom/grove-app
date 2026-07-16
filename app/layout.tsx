@@ -26,7 +26,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Grouv – Your chapter. Your circle.',
+  title: 'Grouv. Your chapter. Your circle.',
   description: 'A small circle of people in the same chapter as you.',
 };
 

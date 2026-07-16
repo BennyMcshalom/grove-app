@@ -33,7 +33,7 @@ export default function AdminFeatureFlagsPage() {
         <AdminSubNav/>
 
         <p style={{ color: 'var(--ink-3)', fontSize: '.86rem', marginTop: '-.4rem', marginBottom: '1.2rem' }}>
-          Operational toggles — take effect immediately, no deploy needed.
+          Operational toggles. Take effect immediately, no deploy needed.
         </p>
 
         {isLoading ? (

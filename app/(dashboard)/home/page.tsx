@@ -69,7 +69,7 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
     } catch (err) {
       setDraft(text);
       const msg = err instanceof Error ? err.message : '';
-      toast(msg ? `Comment failed: ${msg}` : 'Comment failed — try again.');
+      toast(msg ? `Comment failed: ${msg}` : 'Comment failed. Try again.');
     }
   };
 
@@ -78,7 +78,7 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
     const url = `${window.location.origin}/home`;
     try {
       await navigator.clipboard.writeText(url);
-      toast('Link copied — share it with a Bond.');
+      toast('Link copied, share it with a Bond.');
     } catch {
       toast('Could not copy link.');
     }
@@ -364,7 +364,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
       if (!msg.includes('too large')) {
         if (msg.includes('413')) toast('Video is too large (max 50 MB).');
         else if (msg.includes('Unsupported')) toast("That file type isn't supported. Use MP4, MOV, or WebM.");
-        else toast('Upload failed — check your connection and try again.');
+        else toast('Upload failed. Check your connection and try again.');
       }
       setUploading(false);
       return;
@@ -598,7 +598,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
       setCommentCount(n => n + 1);
     } catch {
       setDraft(text);
-      toast('Comment failed — try again.');
+      toast('Comment failed. Try again.');
     }
   };
 
@@ -630,7 +630,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/home`);
-      toast('Link copied — share it with a Bond.');
+      toast('Link copied, share it with a Bond.');
     } catch { toast('Could not copy link.'); }
   };
 

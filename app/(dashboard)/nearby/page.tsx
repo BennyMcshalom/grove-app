@@ -383,7 +383,7 @@ export default function NearbyPage() {
                 padding: '.5rem .9rem', marginBottom: '1.1rem', border: '1px solid var(--border)' }}>
                 <Icon name="pin" size={14} stroke="var(--ink-3)"/>
                 <span style={{ fontSize: '.76rem', color: 'var(--ink-3)', lineHeight: 1.4 }}>
-                  Approximate location — nearby radius is wider than usual.
+                  Approximate location. Nearby radius is wider than usual.
                 </span>
               </div>
             )}
@@ -444,7 +444,7 @@ export default function NearbyPage() {
                   <div style={{ display: 'flex', gap: '.5rem' }}>
                     <input value={newRoom} onChange={e => setNewRoom(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') createRoom(); }}
-                      placeholder="Name it — e.g. &quot;founders breakfast&quot;"
+                      placeholder="Name it, e.g. &quot;founders breakfast&quot;"
                       style={{ flex: 1, padding: '.65rem .9rem', borderRadius: 'var(--r-md)', fontSize: '.9rem',
                         border: '1.5px solid var(--ember-bdr)', background: 'var(--white)' }}
                       onFocus={e => { e.target.style.borderColor = 'var(--ember)'; }}

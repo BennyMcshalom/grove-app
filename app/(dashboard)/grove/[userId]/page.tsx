@@ -373,7 +373,7 @@ export default function GrovePage() {
                     <span style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
                       background: AURAS[realAura].color,
                       boxShadow: `0 0 8px ${AURAS[realAura].color}`, display: 'block' }}/>
-                    {AURAS[realAura].label} — <span style={{ fontStyle: 'italic' }}>{AURAS[realAura].hint}</span>
+                    {AURAS[realAura].label}, <span style={{ fontStyle: 'italic' }}>{AURAS[realAura].hint}</span>
                   </div>
                 )}
               </>
@@ -441,7 +441,7 @@ export default function GrovePage() {
               <p style={{ color: 'var(--ink-2)', lineHeight: 1.6, fontSize: '.95rem' }}>
                 {isOwnProfile
                   ? "You're standing in the middle of your own Grouv."
-                  : `You're standing in the middle of ${firstName}'s Grouv.`} Each ring is a layer of where {isOwnProfile ? 'you are' : 'they are'} —{' '}
+                  : `You're standing in the middle of ${firstName}'s Grouv.`} Each ring is a layer of where {isOwnProfile ? 'you are' : 'they are'},{' '}
                 <span style={{ color: '#B1454F' }}>struggling</span>, <span style={{ color: 'var(--ember)' }}>building</span>,{' '}
                 <span style={{ color: 'var(--sage)' }}>open to</span>. Step into one.
               </p>

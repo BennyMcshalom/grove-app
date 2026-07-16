@@ -165,7 +165,7 @@ export default function SettingsPage() {
     : null;
 
   const focusEndsLabel = deepFocusEndsAt
-    ? `Active — ends ${new Date(deepFocusEndsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+    ? `Active, ends ${new Date(deepFocusEndsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
     : deepFocusActive ? 'Active' : 'Off';
 
   return (
@@ -240,7 +240,7 @@ export default function SettingsPage() {
                 <Toggle on={prefs.wave ?? true}
                   onChange={v => updatePref('wave', v)}/>
               </Row>
-              <Row label="Bond invitation" sub="Always on — required for safety">
+              <Row label="Bond invitation" sub="Always on, required for safety">
                 <Toggle on={true} locked/>
               </Row>
             </>

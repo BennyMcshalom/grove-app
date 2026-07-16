@@ -30,7 +30,7 @@ export default function AdminContentSearchPage() {
         <AdminSubNav/>
 
         <p style={{ color: 'var(--ink-3)', fontSize: '.86rem', marginTop: '-.4rem', marginBottom: '1.2rem' }}>
-          Look up content directly — by id, or by text — without waiting for a report first.
+          Look up content directly, by id, or by text, without waiting for a report first.
         </p>
 
         <div style={{ position: 'relative', marginBottom: '.9rem' }}>

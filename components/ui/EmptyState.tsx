@@ -66,7 +66,7 @@ const VARIANTS = {
 
   archive: {
     title: 'No closed chapters yet.',
-    body: 'When you close a space, your reflections will live here — permanently.',
+    body: 'When you close a space, your reflections will live here, permanently.',
     illustration: (
       <svg width="88" height="88" viewBox="0 0 88 88" fill="none">
         <circle cx="44" cy="44" r="40" fill="var(--surf-low)"/>
@@ -88,7 +88,7 @@ const VARIANTS = {
 
   stats: {
     title: 'Nothing to measure yet.',
-    body: 'Show up honestly — the numbers will follow. Stats appear after your first full month.',
+    body: 'Show up honestly. The numbers will follow. Stats appear after your first full month.',
     illustration: (
       <svg width="88" height="88" viewBox="0 0 88 88" fill="none">
         <circle cx="44" cy="44" r="40" fill="var(--surf-low)"/>
@@ -159,7 +159,7 @@ const VARIANTS = {
 
   ask: {
     title: 'No active ask.',
-    body: 'Ask something honest and your space will respond — without names.',
+    body: 'Ask something honest and your space will respond, without names.',
     illustration: (
       <svg width="88" height="88" viewBox="0 0 88 88" fill="none">
         <circle cx="44" cy="44" r="40" fill="var(--surf-low)"/>

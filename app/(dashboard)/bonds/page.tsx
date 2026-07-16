@@ -526,7 +526,7 @@ function BondThread({ bond }: { bond: BondRecord }) {
 
         {bond.status === 'circle' ? (
           <div style={{ marginTop: '.9rem', fontSize: '.74rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>
-            You started Grouving recently. Keep showing up — Bonds grow from here.
+            You started Grouving recently. Keep showing up, Bonds grow from here.
           </div>
         ) : (
           <div style={{ marginTop: '.9rem', display: 'flex', alignItems: 'center', gap: '.7rem' }}>
@@ -543,7 +543,7 @@ function BondThread({ bond }: { bond: BondRecord }) {
           display: 'flex', alignItems: 'center', gap: '.5rem' }}>
           <Icon name="moon" size={13} stroke="var(--cream)" sw={1.8}/>
           <span style={{ fontSize: '.78rem', color: 'var(--cream)', fontWeight: 500 }}>
-            {bond.otherUser.displayName?.split(' ')[0]} is in Deep Focus — they&apos;ll see your message when they return.
+            {bond.otherUser.displayName?.split(' ')[0]} is in Deep Focus. They&apos;ll see your message when they return.
           </span>
         </div>
       )}
@@ -945,7 +945,7 @@ export default function BondsPage() {
                   boxShadow: 'var(--shadow-lg)', maxWidth: 420, width: '100%',
                 }}>
                   <EmptyState variant="bonds" title="Your first Bond is waiting."
-                    body="Show up consistently for someone in your circle. It can't be rushed — but it's worth it."
+                    body="Show up consistently for someone in your circle. It can't be rushed, but it's worth it."
                     action={{ label: 'Explore spaces →', onClick: () => router.push('/spaces') }}/>
                 </div>
               </div>

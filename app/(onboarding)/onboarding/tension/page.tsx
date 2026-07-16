@@ -64,7 +64,7 @@ export default function ObTension() {
             This is what makes your profile yours.
           </h1>
           <p style={{ color: 'var(--ink-2)' }}>
-            A few honest answers. Only your Bonds will ever see these — skip anything you're not ready to share yet.
+            A few honest answers. Only your Bonds will ever see these, skip anything you're not ready to share yet.
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '.9rem' }}>

@@ -306,7 +306,7 @@ export async function startCall(bond: BondRecord, kind: CallKind): Promise<void>
   const ok = await sendReliable('call:invite', { bondId: bond.id, kind });
   if (!ok) {
     stopRingtone();
-    toast('Could not reach the server — check your connection and try again.');
+    toast('Could not reach the server. Check your connection and try again.');
     useCallStore.getState().reset();
   }
 }
@@ -318,7 +318,7 @@ export async function acceptCall(): Promise<void> {
   useCallStore.getState().setConnecting();
   const ok = await sendReliable('call:accept', { callId: s.callId });
   if (!ok) {
-    toast('Could not reach the server — check your connection and try again.');
+    toast('Could not reach the server. Check your connection and try again.');
     useCallStore.getState().reset();
   }
 }

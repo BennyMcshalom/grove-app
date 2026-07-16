@@ -29,7 +29,7 @@ const PROMPTS = [
 ];
 
 const WEEKLY_QUESTIONS = [
-  'When did you last feel genuinely proud of yourself — and did you let it land?',
+  'When did you last feel genuinely proud of yourself, and did you let it land?',
   'What is the honest story underneath the story you\'ve been telling?',
   'What chapter of your life is quietly ending right now?',
   'Who have you been, and who are you becoming?',

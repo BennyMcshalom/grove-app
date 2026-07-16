@@ -22,7 +22,7 @@ export default function AdminEmailLogPage() {
         <AdminSubNav/>
 
         <p style={{ color: 'var(--ink-3)', fontSize: '.86rem', marginTop: '-.4rem', marginBottom: '1.2rem' }}>
-          Every outbound email attempt, success or failure — so delivery problems show up here instead of requiring a support complaint first.
+          Every outbound email attempt, success or failure, so delivery problems show up here instead of requiring a support complaint first.
         </p>
 
         <div style={{ display: 'flex', gap: '.5rem', marginBottom: '1.2rem' }}>

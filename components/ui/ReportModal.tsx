@@ -29,7 +29,7 @@ export function ReportModal({ contentType, contentId, onClose }: ReportModalProp
     if (!reason) return;
     try {
       await submitReport.mutateAsync({ contentType, contentId, reason, details: details.trim() || undefined });
-      toast('Thanks — we\'ll take a look.');
+      toast('Thanks, we\'ll take a look.');
       onClose();
     } catch (err) {
       toast(err instanceof ApiError && err.status === 409 ? 'You\'ve already reported this.' : 'Could not submit report.');

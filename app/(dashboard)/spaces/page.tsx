@@ -107,7 +107,7 @@ export default function SpacesPage() {
         </button>
       )) : (
         <p style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>
-          No groups yet — browse to join one.
+          No groups yet. Browse to join one.
         </p>
       )}
     </RPSection>

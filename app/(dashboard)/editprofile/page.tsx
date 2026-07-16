@@ -151,7 +151,7 @@ export default function EditProfilePage() {
         </Section>
 
         {/* Aura */}
-        <Section label="Your aura — how your circle reads you">
+        <Section label="Your aura, how your circle reads you">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.5rem' }}>
             {(Object.entries(AURAS) as [AuraKey, typeof AURAS[AuraKey]][]).map(([k, a]) => (
               <button key={k} onClick={() => setAura(k)}

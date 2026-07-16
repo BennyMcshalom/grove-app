@@ -71,7 +71,7 @@ export default function ProfilePage() {
             </div>
             <button onClick={() => authUser && router.push(`/grove/${authUser.id}`)} className="btn btn-soft"
               style={{ marginTop: '1rem', fontSize: '.85rem', display: 'inline-flex', alignItems: 'center', gap: '.45rem' }}>
-              <Icon name="dots" size={14} stroke="var(--ink-2)" sw={2}/> Enter my Grouv — Life Rings view
+              <Icon name="dots" size={14} stroke="var(--ink-2)" sw={2}/> Enter my Grouv. Life Rings view
             </button>
           </div>
         </div>

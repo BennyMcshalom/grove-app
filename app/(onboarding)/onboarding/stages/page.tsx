@@ -32,7 +32,7 @@ export default function ObStages() {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '.5rem' }}>
             <SpaceIcon spaceId={space.id} size={22} pill pillSize={40}/>
             {space.name}
-          </span> — where are you?
+          </span>, where are you?
         </h1>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
           {opts.map(o => {

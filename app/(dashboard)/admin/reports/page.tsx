@@ -78,7 +78,7 @@ export default function AdminReportsPage() {
         ) : !data?.reports.length ? (
           <EmptyState variant="notifications"
             title={status === 'pending' ? 'Nothing to review.' : `No ${status} reports.`}
-            body={status === 'pending' ? "You're all caught up — new reports will show up here." : 'Nothing matches this filter yet.'}/>
+            body={status === 'pending' ? "You're all caught up. New reports will show up here." : 'Nothing matches this filter yet.'}/>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem', marginBottom: '1.4rem' }}>
             {data.reports.map(r => (

@@ -17,8 +17,8 @@ const CURIO_LIBRARY: Record<string, CurioEntry> = {
   'On the unglamorous middle': {
     kind: 'Curio', read: '2 min read', seed: 'curioMid',
     body: [
-      'Most of any meaningful chapter is the middle — the long, unphotographed stretch between the decision and the result.',
-      "It rarely feels like progress while you're in it. The beginning had adrenaline. The end will have a story. The middle has neither — just the same desk, the same doubt, the same small unglamorous act repeated past the point where it feels meaningful.",
+      'Most of any meaningful chapter is the middle, the long, unphotographed stretch between the decision and the result.',
+      "It rarely feels like progress while you're in it. The beginning had adrenaline. The end will have a story. The middle has neither, just the same desk, the same doubt, the same small unglamorous act repeated past the point where it feels meaningful.",
       "But the middle is not a delay before the real thing. It is the real thing. The people who finish are simply the ones who stayed in the middle a little longer than felt reasonable.",
       "So if you are in the middle of something right now and it feels like nothing is happening: that flatness is not failure. It is the texture of the work. Stay.",
     ],
@@ -37,7 +37,7 @@ const CURIO_LIBRARY: Record<string, CurioEntry> = {
     kind: 'Wander', read: 'Saved place', seed: 'wanderCabin',
     body: [
       'Somewhere on a coast where the season has already turned, there is a small cabin with a wood stove and a window that faces only weather.',
-      "You saved this not because you will go tomorrow, but because something in you needed to know the option exists — that there is a version of your life with more silence in it.",
+      "You saved this not because you will go tomorrow, but because something in you needed to know the option exists, that there is a version of your life with more silence in it.",
       "Keep it on the shelf. Some doors are worth leaving open just to feel the draft.",
     ],
     quote: "Some doors are worth leaving open just to feel the draft.",
