@@ -11,6 +11,7 @@ import { Waveform } from '@/components/ui/Waveform';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ReportModal } from '@/components/ui/ReportModal';
+import { ShareModal } from '@/components/ui/ShareModal';
 import { useUserStore } from '@/store/useUserStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
@@ -74,15 +75,7 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
   };
 
   // ── Share ──
-  const handleShare = async () => {
-    const url = `${window.location.origin}/home`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast('Link copied, share it with a Bond.');
-    } catch {
-      toast('Could not copy link.');
-    }
-  };
+  const [sharing, setSharing] = useState(false);
 
   // ── Menu / Edit / Delete ──
   const [menu, setMenu]           = useState(false);
@@ -256,11 +249,13 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
         }}>
           <Icon name="comment" size={16} stroke={showC ? 'var(--slate)' : 'var(--ink-3)'} /> Comment {commentCount}
         </button>
-        <button onClick={handleShare}
+        <button onClick={() => setSharing(true)}
           style={{ display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.45rem .8rem', borderRadius: 100, fontSize: '.84rem', fontWeight: 500, color: 'var(--ink-3)' }}>
           <Icon name="share" size={16} stroke="var(--ink-3)" /> Share
         </button>
       </footer>
+
+      {sharing && <ShareModal post={post} onClose={() => setSharing(false)}/>}
 
       {showC && (
         <div className="fade-in" style={{ marginTop: '.8rem', paddingTop: '.9rem', borderTop: '1px solid var(--border)' }}>
@@ -576,6 +571,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
   const router = useRouter();
   const { toast } = useToastStore();
   const postUuid = String(post.id);
+  const postId = (post as Post & { _id?: string })._id ?? String(post.id);
   const [playing, setPlaying] = useState(false);
   const [rooted, setRooted] = useState(!!post.rooted);
   const [roots, setRoots]   = useState(post.roots ?? 0);
@@ -588,6 +584,43 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
   const comments                    = fetchedComments ?? [];
   const [reportingPost, setReportingPost] = useState(false);
   const [reportingComment, setReportingComment] = useState<string | null>(null);
+
+  // ── Menu / Edit / Delete (own posts only) ──
+  const isOwn = !!myId && post.userId === myId;
+  const [menu, setMenu]           = useState(false);
+  const [menuPos, setMenuPos]     = useState<{ top: number; right: number } | null>(null);
+  const [editing, setEditing]     = useState(false);
+  const [confirmDel, setConfirm]  = useState(false);
+  const [editCaption, setEditCaption] = useState(post.caption ?? '');
+  const updatePost = useUpdatePost();
+  const deletePost = useDeletePost();
+
+  const saveEdit = async () => {
+    if (!editCaption.trim()) return;
+    try {
+      await updatePost.mutateAsync({ id: postId, data: { body: editCaption.trim() } });
+      setEditing(false);
+      toast('Grouv updated.');
+    } catch { toast('Could not save changes.'); }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deletePost.mutateAsync(postId);
+      toast('Grouv deleted.');
+    } catch { toast('Could not delete post.'); }
+  };
+
+  const menuRow = (label: string, action: () => void, danger = false) => (
+    <button key={label} onClick={action}
+      style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left',
+        padding: '.65rem 1rem', fontSize: '.86rem', color: danger ? 'var(--red)' : 'var(--ink-2)',
+        gap: '.55rem' }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surf-low)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+      {label}
+    </button>
+  );
 
   const submitComment = async () => {
     if (!draft.trim() || addCommentMutation.isPending) return;
@@ -627,12 +660,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/home`);
-      toast('Link copied, share it with a Bond.');
-    } catch { toast('Could not copy link.'); }
-  };
+  const [sharing, setSharing] = useState(false);
 
   const nowClock = () => {
     const d = new Date();
@@ -652,11 +680,77 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
         <span className="chip" style={{ background: 'var(--ember-dim)', color: 'var(--ember-deep)', fontSize: '.62rem' }}>
           Just Grouv
         </span>
-        <button onClick={() => setReportingPost(true)} title="Report"
-          style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name="flag" size={15} stroke="var(--ink-4)"/>
-        </button>
+        {isOwn ? (
+          <button
+            onClick={e => {
+              if (menu) { setMenu(false); return; }
+              const btn = e.currentTarget.getBoundingClientRect();
+              const MENU_H = 160, MENU_W = 180, PAD = 8;
+              const vw = window.innerWidth, vh = window.innerHeight;
+              const top = btn.bottom + MENU_H > vh - PAD ? btn.top - MENU_H : btn.bottom + 4;
+              const right = Math.max(PAD, vw - btn.right);
+              setMenuPos({ top: Math.max(PAD, top), right });
+              setMenu(true);
+              setConfirm(false);
+            }}
+            style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="dots" size={15} stroke="var(--ink-4)"/>
+          </button>
+        ) : (
+          <button onClick={() => setReportingPost(true)} title="Report"
+            style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="flag" size={15} stroke="var(--ink-4)"/>
+          </button>
+        )}
       </header>
+
+      {menu && menuPos && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)}/>
+          <div className="fade-in" style={{
+            position: 'fixed', top: menuPos.top, right: menuPos.right, zIndex: 20,
+            background: 'var(--white)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--border)', overflow: 'hidden',
+            width: 'min(180px, calc(100vw - 20px))' }}>
+            {menuRow('Edit caption', () => { setMenu(false); setEditing(true); setEditCaption(post.caption ?? ''); })}
+            {menuRow('Delete post', () => { setMenu(false); setConfirm(true); }, true)}
+            <div style={{ borderTop: '1px solid var(--border)' }}/>
+            {menuRow('Report', () => { setMenu(false); setReportingPost(true); }, true)}
+          </div>
+        </>
+      )}
+
+      {confirmDel && (
+        <div className="fade-in" style={{ background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
+          padding: '.75rem 1rem', marginBottom: '.8rem', display: 'flex', alignItems: 'center', gap: '.8rem',
+          border: '1px solid var(--red-bdr)' }}>
+          <span style={{ flex: 1, fontSize: '.86rem', color: 'var(--red)', fontWeight: 500 }}>Delete this post?</span>
+          <button onClick={handleDelete} disabled={deletePost.isPending}
+            className="btn btn-primary" style={{ padding: '.35rem .8rem', fontSize: '.8rem',
+              background: 'var(--red)', boxShadow: 'none' }}>
+            {deletePost.isPending ? 'Deleting…' : 'Delete'}
+          </button>
+          <button onClick={() => setConfirm(false)} className="btn btn-soft"
+            style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>Cancel</button>
+        </div>
+      )}
+
+      {editing && (
+        <div style={{ marginBottom: '.8rem' }}>
+          <textarea value={editCaption} onChange={e => setEditCaption(e.target.value)} maxLength={200} autoFocus
+            style={{ width: '100%', resize: 'vertical', minHeight: 60, padding: '.6rem .8rem',
+              fontSize: '1rem', lineHeight: 1.5, borderRadius: 'var(--r-sm)',
+              border: '1.5px solid var(--ember)', background: 'var(--surf-low)', marginBottom: '.5rem' }}/>
+          <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
+            <button onClick={() => setEditing(false)} className="btn btn-soft"
+              style={{ padding: '.4rem .9rem', fontSize: '.82rem' }}>Cancel</button>
+            <button onClick={saveEdit} disabled={updatePost.isPending || !editCaption.trim()} className="btn btn-primary"
+              style={{ padding: '.4rem .9rem', fontSize: '.82rem' }}>
+              {updatePost.isPending ? 'Saving…' : 'Save changes'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {reportingPost && (
         <ReportModal contentType="post" contentId={postUuid} onClose={() => setReportingPost(false)}/>
@@ -716,7 +810,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
           )}
 
           {/* Caption */}
-          {post.caption && (
+          {post.caption && !editing && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0,
               padding: '1.4rem 1.3rem 1.5rem', textAlign: 'center', pointerEvents: 'none' }}>
               <p className="serif" style={{ color: '#fff', fontSize: '1.35rem', fontStyle: 'italic',
@@ -746,12 +840,14 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
           <Icon name="comment" size={16} stroke={showC ? 'var(--slate)' : 'var(--ink-3)'}/>
           Comment <span style={{ fontVariantNumeric: 'tabular-nums' }}>{commentCount}</span>
         </button>
-        <button onClick={handleShare}
+        <button onClick={() => setSharing(true)}
           style={{ display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.45rem .8rem',
             borderRadius: 100, fontSize: '.84rem', fontWeight: 500, color: 'var(--ink-3)' }}>
           <Icon name="share" size={16} stroke="var(--ink-3)"/> Share
         </button>
       </footer>
+
+      {sharing && <ShareModal post={post} onClose={() => setSharing(false)}/>}
 
       {showC && (
         <div className="fade-in" style={{ marginTop: '.8rem', paddingTop: '.9rem', borderTop: '1px solid var(--border)' }}>

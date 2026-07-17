@@ -249,7 +249,7 @@ export const postsApi = {
   },
   byUser:  (userId: string) => api.get<PostRecord[]>(`/posts/user/${userId}`),
   create:  (data: CreatePostPayload) => api.post<PostRecord>('/posts', data),
-  update:  (id: string, data: { doing?: string; honestThing?: string; progress?: string }) =>
+  update:  (id: string, data: { doing?: string; honestThing?: string; progress?: string; body?: string }) =>
              api.patch<PostRecord>(`/posts/${id}`, data),
   delete:  (id: string) => api.delete<void>(`/posts/${id}`),
   react:   (id: string, emoji: string) => api.post<void>(`/posts/${id}/reactions`, { emoji }),

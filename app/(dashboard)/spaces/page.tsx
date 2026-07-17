@@ -11,7 +11,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
 import { useMySpaces, useOpenSpace, useCloseSpace, useUpdateSpace } from '@/hooks/useSpaces';
 import { useGroups } from '@/hooks/useGroups';
-import { SPACES, spaceById, groupIcon } from '@/lib/data';
+import { SPACES, STAGES, spaceById, groupIcon } from '@/lib/data';
 import type { UserSpaceRecord } from '@/lib/api';
 
 const STAGE_MARKERS = ['Just started', 'In progress', 'Thick of it', 'Wrapping up'];
@@ -80,6 +80,8 @@ export default function SpacesPage() {
   const { toast } = useToastStore();
   const { uuidBySlug } = useSpaceStore();
   const [filter, setFilter] = useState('all');
+  const [opening, setOpening] = useState<string | null>(null); // space id being named
+  const [chapter, setChapter] = useState('');
 
   const { data: mySpaces, isLoading } = useMySpaces();
   const { data: groupsData } = useGroups();
@@ -89,6 +91,20 @@ export default function SpacesPage() {
   // Spaces not yet opened by this user
   const activeSlugs = activeSlots.map(s => s.space?.slug ?? '').filter(Boolean);
   const dirSpaces = SPACES.filter(s => !activeSlugs.includes(s.id));
+
+  const openChapter = async (slug: string, label: string) => {
+    const uuid = uuidBySlug(slug);
+    if (!uuid) { toast('Space not available right now.'); return; }
+    if (activeSlots.length >= 4) { toast('You can have at most 4 open chapters.'); return; }
+    try {
+      await openSpace.mutateAsync({ spaceId: uuid, stage: label.trim() || undefined, isPrimary: activeSlots.length === 0 });
+      setOpening(null);
+      setChapter('');
+      toast(`You opened the ${spaceById(slug).name} chapter.`);
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Could not open space.');
+    }
+  };
 
   const right = (
     <RPSection label="Suggested for your chapter">
@@ -180,22 +196,29 @@ export default function SpacesPage() {
                 <div style={{ padding: '1rem 1.1rem' }}>
                   <div className="serif" style={{ fontSize: '1.2rem', fontWeight: 600 }}>{s.name}</div>
                   <div style={{ fontSize: '.82rem', color: 'var(--ink-3)', marginBottom: '.8rem' }}>{s.desc}</div>
-                  <button
-                    disabled={openSpace.isPending}
-                    onClick={async () => {
-                      const uuid = uuidBySlug(s.id);
-                      if (!uuid) { toast('Space not available right now.'); return; }
-                      if (activeSlots.length >= 4) { toast('You can have at most 4 open chapters.'); return; }
-                      try {
-                        await openSpace.mutateAsync({ spaceId: uuid, isPrimary: activeSlots.length === 0 });
-                        toast(`You opened the ${s.name} chapter.`);
-                      } catch (e: unknown) {
-                        toast(e instanceof Error ? e.message : 'Could not open space.');
-                      }
-                    }}
-                    className="btn btn-ghost" style={{ padding: '.4rem .9rem', fontSize: '.82rem' }}>
-                    {openSpace.isPending ? '…' : 'Open chapter'}
-                  </button>
+                  {opening === s.id ? (
+                    <div className="fade-in">
+                      <div className="label-mono" style={{ marginBottom: '.4rem' }}>Name your chapter</div>
+                      <input autoFocus value={chapter} onChange={e => setChapter(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') openChapter(s.id, chapter); }}
+                        placeholder={`e.g. ${(STAGES[s.id] ?? ['Just starting'])[0]}`}
+                        style={{ width: '100%', padding: '.6rem .8rem', fontSize: '.88rem', background: 'var(--surf-low)',
+                          border: '1.5px solid var(--border-2)', borderRadius: 'var(--r-md)', marginBottom: '.5rem' }}
+                        onFocus={e => { e.target.style.borderColor = 'var(--ember)'; }}
+                        onBlur={e => { e.target.style.borderColor = 'var(--border-2)'; }}/>
+                      <div style={{ display: 'flex', gap: '.4rem' }}>
+                        <button onClick={() => openChapter(s.id, chapter)} disabled={openSpace.isPending}
+                          className="btn btn-primary" style={{ flex: 1, padding: '.45rem', fontSize: '.82rem' }}>
+                          {openSpace.isPending ? '…' : 'Open chapter'}
+                        </button>
+                        <button onClick={() => { setOpening(null); setChapter(''); }}
+                          className="btn btn-soft" style={{ padding: '.45rem .7rem', fontSize: '.82rem' }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setOpening(s.id); setChapter(''); }}
+                      className="btn btn-ghost" style={{ padding: '.4rem .9rem', fontSize: '.82rem' }}>Join</button>
+                  )}
                 </div>
               </div>
             ))}

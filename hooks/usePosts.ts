@@ -53,7 +53,7 @@ export function useReactToPost() {
 export function useUpdatePost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { doing?: string; honestThing?: string; progress?: string } }) =>
+    mutationFn: ({ id, data }: { id: string; data: { doing?: string; honestThing?: string; progress?: string; body?: string } }) =>
       postsApi.update(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['posts'] }),
   });

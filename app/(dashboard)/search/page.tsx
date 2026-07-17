@@ -14,13 +14,13 @@ import { SPACES, spaceById, groupIcon } from '@/lib/data';
 import { formatRelativeTime } from '@/lib/mappers';
 
 const SUGGESTIONS = ['New to freelance', 'Relocating solo', 'Career pivot', 'Deep in recovery', 'Going pro'];
-const TYPES = [['all','All'],['users','People'],['posts','Posts'],['groups','Groups'],['spaces','Spaces']] as const;
+const TYPES = [['all', 'All'], ['users', 'People'], ['posts', 'Posts'], ['groups', 'Groups'], ['spaces', 'Spaces']] as const;
 
 export default function SearchPage() {
   const router = useRouter();
   const { toast } = useToastStore();
   const [q, setQ] = useState('');
-  const [filter, setFilter] = useState<'all'|'users'|'posts'|'groups'|'spaces'>('all');
+  const [filter, setFilter] = useState<'all' | 'users' | 'posts' | 'groups' | 'spaces'>('all');
   const requestToJoin = useRequestToJoinGroup();
   const [requested, setRequested] = useState<string[]>([]);
 
@@ -43,19 +43,21 @@ export default function SearchPage() {
         {/* Search input */}
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
           <span style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)' }}>
-            <Icon name="search" size={19} stroke="var(--ink-4)"/>
+            <Icon name="search" size={19} stroke="var(--ink-4)" />
           </span>
           <input
             autoFocus value={q} onChange={e => setQ(e.target.value)}
             placeholder="Search people, posts, groups, spaces…"
-            style={{ width: '100%', padding: '1rem 1.2rem 1rem 3rem', borderRadius: 100,
-              border: '1.5px solid var(--border-2)', background: 'var(--white)', fontSize: '1.05rem' }}
+            style={{
+              width: '100%', padding: '1rem 1.2rem 1rem 3rem', borderRadius: 100,
+              border: '1.5px solid var(--border-2)', background: 'var(--white)', fontSize: '1.05rem'
+            }}
             onFocus={e => { e.target.style.borderColor = 'var(--ember)'; e.target.style.boxShadow = '0 0 0 3px var(--ember-dim)'; }}
-            onBlur={e  => { e.target.style.borderColor = 'var(--border-2)'; e.target.style.boxShadow = 'none'; }}
+            onBlur={e => { e.target.style.borderColor = 'var(--border-2)'; e.target.style.boxShadow = 'none'; }}
           />
           {q && (
             <button onClick={() => setQ('')} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)' }}>
-              <Icon name="close" size={16} stroke="var(--ink-3)"/>
+              <Icon name="close" size={16} stroke="var(--ink-3)" />
             </button>
           )}
         </div>
@@ -64,9 +66,11 @@ export default function SearchPage() {
         <div style={{ display: 'flex', gap: '.5rem', marginBottom: '1.4rem', flexWrap: 'wrap' }}>
           {TYPES.map(([id, label]) => (
             <button key={id} onClick={() => setFilter(id)} className="chip"
-              style={{ cursor: 'pointer', padding: '.45rem .9rem',
+              style={{
+                cursor: 'pointer', padding: '.45rem .9rem',
                 background: filter === id ? 'var(--slate)' : 'var(--surf-high)',
-                color: filter === id ? '#fff' : 'var(--ink-2)' }}>{label}</button>
+                color: filter === id ? '#fff' : 'var(--ink-2)'
+              }}>{label}</button>
           ))}
         </div>
 
@@ -86,7 +90,7 @@ export default function SearchPage() {
             </div>
           </div>
         ) : isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Spinner/></div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Spinner /></div>
         ) : !hasResults ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--ink-3)' }}>
             <p className="serif" style={{ fontSize: '1.2rem', marginBottom: '.4rem' }}>No results for "{q}"</p>
@@ -103,7 +107,7 @@ export default function SearchPage() {
                   {results.users.map(u => (
                     <div key={u.id} className="card" style={{ padding: '.9rem 1.1rem', display: 'flex', alignItems: 'center', gap: '.8rem', boxShadow: 'var(--shadow-soft)' }}>
                       <button onClick={() => router.push(`/grove/${u.id}`)}>
-                        <Avatar name={u.displayName} size={44} avatarUrl={u.avatarUrl} aura={u.aura ?? undefined}/>
+                        <Avatar name={u.displayName} size={44} avatarUrl={u.avatarUrl} aura={u.aura ?? undefined} />
                       </button>
                       <button onClick={() => router.push(`/grove/${u.id}`)}
                         style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
@@ -112,7 +116,7 @@ export default function SearchPage() {
                       </button>
                       <button onClick={() => router.push(`/grove/${u.id}`)}
                         className="btn btn-ghost" style={{ padding: '.4rem .9rem', fontSize: '.8rem' }}>
-                        View Grove
+                        View Grouv
                       </button>
                     </div>
                   ))}
@@ -145,7 +149,7 @@ export default function SearchPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
                   {results.groups.map(g => (
                     <div key={g.id} className="card" style={{ padding: '.9rem 1.1rem', display: 'flex', alignItems: 'center', gap: '.8rem', boxShadow: 'var(--shadow-soft)' }}>
-                      <span style={{ width: 44, height: 44, borderRadius: '50%', background: g.coverColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={groupIcon(g.emoji)} size={20} stroke="#fff" sw={1.4}/></span>
+                      <span style={{ width: 44, height: 44, borderRadius: '50%', background: g.coverColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={groupIcon(g.emoji)} size={20} stroke="#fff" sw={1.4} /></span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600 }}>{g.name}</div>
                         <div style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>{g.lifePhase} · {g.memberCount} members</div>
@@ -174,7 +178,7 @@ export default function SearchPage() {
                     const local = SPACES.find(sp => sp.id === s.slug);
                     return (
                       <div key={s.id} className="card" style={{ padding: '.9rem 1.1rem', display: 'flex', alignItems: 'center', gap: '.8rem', boxShadow: 'var(--shadow-soft)' }}>
-                        <SpaceIcon spaceId={s.slug} size={20} pill pillSize={44}/>
+                        <SpaceIcon spaceId={s.slug} size={20} pill pillSize={44} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600 }}>{s.name}</div>
                           {local && <div style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>{local.desc}</div>}
