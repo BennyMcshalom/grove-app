@@ -16,6 +16,7 @@ import { useUserStore } from '@/store/useUserStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
 import { usePosts, useCreatePost, useReactToPost, usePostComments, useAddComment, useUpdatePost, useDeletePost } from '@/hooks/usePosts';
+import { useMySpaces } from '@/hooks/useSpaces';
 import { useQuery } from '@tanstack/react-query';
 import { spacesApi } from '@/lib/api';
 import { useSuggestions } from '@/hooks/useUsers';
@@ -322,6 +323,10 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
 function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) => void }) {
   const { user } = useUserStore();
   const { toast } = useToastStore();
+  // user.spaces is a one-time onboarding snapshot, never updated when a
+  // space is opened/closed later — mySpaceSlugs is the real, live list.
+  const { data: mySpaces } = useMySpaces();
+  const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
   const [mode, setMode] = useState<'root' | 'justgrouw'>('root');
   // Root mode
   const [doing, setDoing] = useState("I'm ");
@@ -382,7 +387,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
       if (mode === 'root') {
         await onPost?.({
           id: Date.now(), name: user.name, anon,
-          space: user.spaces[0] || 'career', progress: prog ?? '',
+          space: mySpaceSlugs[0] || 'career', progress: prog ?? '',
           time: 'just now', doing: doing.trim(), honest: honest.trim(),
           media: mediaUrl ? { type: (mediaType?.startsWith('video') ? 'video' : 'image'), src: mediaUrl } : undefined,
           roots: 0, comments: 0, kind: 'roots',
@@ -394,7 +399,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
         const userLocation = user.location;
         await onPost?.({
           id: Date.now(), name: user.name, anon,
-          space: user.spaces[0] || 'career', progress: '',
+          space: mySpaceSlugs[0] || 'career', progress: '',
           time: 'just now', doing: '', honest: '',
           media: mediaUrl ? { type: (mediaType?.startsWith('video') ? 'video' : 'image'), src: mediaUrl } : undefined,
           roots: 0, comments: 0, kind: 'just_grouw',
@@ -1069,6 +1074,10 @@ export default function HomePage() {
   const [tab, setTab] = useState('all');
 
   // Live data
+  // user.spaces is a one-time onboarding snapshot, never updated when a
+  // space is opened/closed later — mySpaceSlugs is the real, live list.
+  const { data: mySpaces } = useMySpaces();
+  const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
   const spaceUuid = tab !== 'all' ? uuidBySlug(tab) : undefined;
   const {
     data: postPages, isLoading: postsLoading,
@@ -1119,7 +1128,7 @@ export default function HomePage() {
   }, [sentinelVisible]);
 
   // tabs: [id, name] — space icon rendered by SpaceIcon component
-  const tabs = [['all', 'All'], ...user.spaces.map(id => [id, spaceById(id).name])];
+  const tabs = [['all', 'All'], ...mySpaceSlugs.map(id => [id, spaceById(id).name])];
 
   const right = (
     <>
@@ -1213,7 +1222,7 @@ export default function HomePage() {
           ))}
         </div>
         <RootsComposer onPost={async (p) => {
-          const spaceSlug = p.space ?? user.spaces[0] ?? 'career';
+          const spaceSlug = p.space ?? mySpaceSlugs[0] ?? 'career';
           const spaceUuid2 = uuidBySlug(spaceSlug);
           if (!spaceUuid2) { toast('Open a space first to post.'); throw new Error('No space open'); }
 
