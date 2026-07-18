@@ -1,3 +1,5 @@
+import type { Region } from './regions';
+
 export interface Space {
   id: string;
   emoji: string;
@@ -97,4 +99,6 @@ export interface User {
   aura?: AuraKey;
   logStyle?: LogStyle;
   onboardingCompleted?: boolean;
+  region?: Region;
+  countryCode?: string;
 }

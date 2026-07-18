@@ -2,11 +2,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { spacesApi } from '@/lib/api';
 
-export function useSpaceMembers(spaceId: string | undefined) {
+export function useSpaceMembers(spaceId: string | undefined, opts?: { region?: string; enabled?: boolean }) {
   return useQuery({
-    queryKey: ['space-members', spaceId],
-    queryFn:  () => spacesApi.members(spaceId!),
-    enabled:  !!spaceId,
+    queryKey: ['space-members', spaceId, opts?.region ?? null],
+    queryFn:  () => spacesApi.members(spaceId!, opts?.region),
+    enabled:  !!spaceId && (opts?.enabled ?? true),
     staleTime: 2 * 60_000,
   });
 }

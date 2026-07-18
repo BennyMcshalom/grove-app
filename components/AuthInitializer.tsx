@@ -2,13 +2,36 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
+import { useUserStore } from '@/store/useUserStore';
 import { hydrateSession } from '@/lib/session';
-import { spacesApi, ApiError } from '@/lib/api';
+import { spacesApi, usersApi, ApiError } from '@/lib/api';
 import { setupPush } from '@/lib/push';
 import { setupSystemThemeListener } from '@/lib/theme';
 import { initCalling } from '@/lib/calling';
+import type { Region } from '@/lib/regions';
 
 let _started = false;
+
+// Best-effort, silent: derive the user's region from IP geolocation the
+// first time they're seen with none set yet. Never overwrites an existing
+// value, never surfaces an error to the user — matches the coarse "region"
+// use case (cross-region browsing on Spaces), not anything precision-
+// sensitive like the Nearby feature.
+async function backfillRegion() {
+  if (useUserStore.getState().user.region) return;
+  try {
+    const res = await fetch('/api/locate');
+    if (!res.ok) return;
+    const { countryCode } = await res.json();
+    if (!countryCode) return;
+    const updated = await usersApi.updateMe({ countryCode });
+    useUserStore.getState().setUser(u => ({
+      ...u,
+      region: (updated.region as Region | null) ?? undefined,
+      countryCode: updated.countryCode ?? undefined,
+    }));
+  } catch { /* best-effort */ }
+}
 
 export function AuthInitializer() {
   useEffect(() => {
@@ -30,6 +53,7 @@ export function AuthInitializer() {
         if (authenticated) {
           setupPush().catch(() => {});
           initCalling();
+          backfillRegion();
         }
       })
       .finally(() => {

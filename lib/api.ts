@@ -138,6 +138,8 @@ export interface ProfileResponse {
   notificationPrefs: Record<string, boolean>;
   aura: string | null;
   logStyle: string | null;
+  countryCode: string | null;
+  region: string | null;
 }
 
 export const authApi = {
@@ -240,10 +242,11 @@ export interface PostComment {
 }
 
 export const postsApi = {
-  list:    (spaceId?: string, cursor?: string) => {
+  list:    (spaceId?: string, cursor?: string, region?: string) => {
     const params = new URLSearchParams();
     if (spaceId) params.set('spaceId', spaceId);
     if (cursor)  params.set('cursor', cursor);
+    if (region)  params.set('region', region);
     params.set('limit', '20');
     return api.get<PostRecord[]>(`/posts?${params}`);
   },
@@ -384,6 +387,7 @@ export interface SpaceMember {
   openTo: string | null;
   aura?: AuraKey | null;
   stage: string | null;
+  region?: string | null;
 }
 
 export interface SpaceOverlap {
@@ -401,7 +405,8 @@ export const spacesApi = {
   update:  (id: string, data: { stage?: string; currentMarker?: string | null; visibility?: string; promptDismissed?: boolean }) =>
              api.patch<UserSpaceRecord>(`/spaces/mine/${id}`, data),
   close:   (id: string) => api.delete<void>(`/spaces/mine/${id}`),
-  members:          (spaceId: string) => api.get<SpaceMember[]>(`/spaces/${spaceId}/members`),
+  members:          (spaceId: string, region?: string) =>
+                      api.get<SpaceMember[]>(`/spaces/${spaceId}/members${region ? `?region=${encodeURIComponent(region)}` : ''}`),
   overlap:          ()                => api.get<SpaceOverlap | null>('/spaces/overlap'),
   dismissOverlap:   (id: string)      => api.post<void>(`/spaces/overlap/${id}/dismiss`),
   introduceOverlap: (id: string)      => api.post<{ introduced: boolean }>(`/spaces/overlap/${id}/introduce`),
@@ -529,6 +534,7 @@ export interface PatchUserPayload {
   onboardingCompleted?: boolean;
   aura?: string;
   logStyle?: string;
+  countryCode?: string | null;
 }
 
 export interface Suggestion {

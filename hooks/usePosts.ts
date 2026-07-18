@@ -18,11 +18,12 @@ export function useAddComment(postId: string) {
   });
 }
 
-export function usePosts(spaceId?: string) {
+export function usePosts(spaceId?: string, opts?: { region?: string; enabled?: boolean }) {
   return useInfiniteQuery({
-    queryKey: ['posts', spaceId ?? 'all'],
-    queryFn: ({ pageParam }: { pageParam?: string }) => postsApi.list(spaceId, pageParam),
+    queryKey: ['posts', spaceId ?? 'all', opts?.region ?? 'none'],
+    queryFn: ({ pageParam }: { pageParam?: string }) => postsApi.list(spaceId, pageParam, opts?.region),
     initialPageParam: undefined as string | undefined,
+    enabled: opts?.enabled ?? true,
     getNextPageParam: (lastPage: PostRecord[], allPages) => {
       if (lastPage.length > 0) return lastPage[lastPage.length - 1].createdAt;
       if (allPages.length === 1) return new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();

@@ -17,12 +17,14 @@ import { useSpaceStore } from '@/store/useSpaceStore';
 import { usePosts, useCreatePost, useUpdatePost, useDeletePost } from '@/hooks/usePosts';
 import { useSpaceMembers } from '@/hooks/useSpaces';
 import { useAllAsks, useAskAnswers, usePostAsk, useSubmitAnswer, useLikeAnswer, useAnswerComments, useAddAnswerComment } from '@/hooks/useAnonAsks';
+import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { spaceById } from '@/lib/data';
 import { formatRelativeTime } from '@/lib/mappers';
-import type { AnonAsk, AnonAskAnswer } from '@/lib/api';
+import { REGIONS, type Region } from '@/lib/regions';
+import type { AnonAsk, AnonAskAnswer, PostRecord } from '@/lib/api';
 import type { AuraKey } from '@/lib/types';
 
-// ── Answer colors — rotated per reply for visual variation ────────
+
 const ANSWER_COLORS = ['var(--sage)', 'var(--slate)', 'var(--ember)', 'var(--c-spiritual)', 'var(--c-wealth)'];
 
 // ── A single "roots" post within a space feed, with edit/delete for the owner ──
@@ -31,6 +33,19 @@ interface SpacePostView {
   avatarUrl?: string | null; aura?: AuraKey | null; time: string;
   doing: string; honest: string; progress: string;
   media?: { type: 'image' | 'video'; src: string };
+}
+
+function mapToSpacePost(r: PostRecord): SpacePostView {
+  return {
+    id: r.id, anon: r.isAnonymous,
+    name: r.isAnonymous ? undefined : (r.authorName ?? r.userId),
+    userId: r.userId,
+    avatarUrl: r.isAnonymous ? null : (r.authorAvatar ?? null),
+    aura: r.isAnonymous ? null : (r.authorAura ?? null),
+    time: formatRelativeTime(r.createdAt), doing: r.doing ?? '', honest: r.honestThing ?? '',
+    progress: r.progress ?? '',
+    media: r.mediaUrl ? { type: (r.mediaType?.startsWith('video') ? 'video' : 'image') as 'image' | 'video', src: r.mediaUrl } : undefined,
+  };
 }
 
 function SpacePostCard({ post: p, myId, showViewGrouv }: {
@@ -80,18 +95,19 @@ function SpacePostCard({ post: p, myId, showViewGrouv }: {
         {isOwn && (
           <button onClick={() => { setMenu(m => !m); setConfirm(false); }}
             style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name="dots" size={16} stroke="var(--ink-4)"/>
+            <Icon name="dots" size={16} stroke="var(--ink-4)" />
           </button>
         )}
       </div>
 
       {menu && (
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)}/>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)} />
           <div className="fade-in" style={{
             position: 'absolute', top: 44, right: 12, zIndex: 20,
             background: 'var(--white)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-lg)',
-            border: '1px solid var(--border)', overflow: 'hidden', width: 160 }}>
+            border: '1px solid var(--border)', overflow: 'hidden', width: 160
+          }}>
             <button onClick={() => { setMenu(false); setEditing(true); setEditDoing(p.doing); setEditHonest(p.honest); }}
               style={{ display: 'flex', width: '100%', textAlign: 'left', padding: '.65rem 1rem', fontSize: '.86rem', color: 'var(--ink-2)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--surf-low)')}
@@ -109,9 +125,11 @@ function SpacePostCard({ post: p, myId, showViewGrouv }: {
       )}
 
       {confirmDel && (
-        <div className="fade-in" style={{ background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
+        <div className="fade-in" style={{
+          background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
           padding: '.75rem 1rem', marginBottom: '.8rem', display: 'flex', alignItems: 'center', gap: '.8rem',
-          border: '1px solid var(--red-bdr)' }}>
+          border: '1px solid var(--red-bdr)'
+        }}>
           <span style={{ flex: 1, fontSize: '.86rem', color: 'var(--red)', fontWeight: 500 }}>Delete this post?</span>
           <button onClick={handleDelete} disabled={deletePost.isPending}
             className="btn btn-primary" style={{ padding: '.35rem .8rem', fontSize: '.8rem', background: 'var(--red)', boxShadow: 'none' }}>
@@ -124,13 +142,17 @@ function SpacePostCard({ post: p, myId, showViewGrouv }: {
       {editing ? (
         <div style={{ marginBottom: '.4rem' }}>
           <textarea value={editDoing} onChange={e => setEditDoing(e.target.value)} maxLength={200}
-            style={{ width: '100%', resize: 'vertical', minHeight: 50, padding: '.55rem .7rem', fontSize: '.92rem',
+            style={{
+              width: '100%', resize: 'vertical', minHeight: 50, padding: '.55rem .7rem', fontSize: '.92rem',
               fontWeight: 500, lineHeight: 1.5, borderRadius: 'var(--r-sm)', border: '1.5px solid var(--ember)',
-              background: 'var(--surf-low)', marginBottom: '.5rem' }}/>
+              background: 'var(--surf-low)', marginBottom: '.5rem'
+            }} />
           <textarea value={editHonest} onChange={e => setEditHonest(e.target.value)} maxLength={300}
-            style={{ width: '100%', resize: 'vertical', minHeight: 50, padding: '.55rem .7rem', fontSize: '.88rem',
+            style={{
+              width: '100%', resize: 'vertical', minHeight: 50, padding: '.55rem .7rem', fontSize: '.88rem',
               fontStyle: 'italic', lineHeight: 1.55, borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border-2)',
-              background: 'var(--surf-low)', marginBottom: '.6rem' }}/>
+              background: 'var(--surf-low)', marginBottom: '.6rem'
+            }} />
           <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
             <button onClick={() => setEditing(false)} className="btn btn-soft" style={{ padding: '.4rem .8rem', fontSize: '.8rem' }}>Cancel</button>
             <button onClick={saveEdit} disabled={updatePost.isPending} className="btn btn-primary" style={{ padding: '.4rem .8rem', fontSize: '.8rem' }}>
@@ -791,29 +813,36 @@ export default function SpaceDetailPage() {
   const [honest, setHonest] = useState('');
   const [askText, setAskText] = useState('');
   const [answerText, setAnswerText] = useState('');
+  const [openRegion, setOpenRegion] = useState<Region | null>(null);
+  const [invited, setInvited] = useState<string[]>([]);
+  const [openView, setOpenView] = useState<'people' | 'posts'>('posts');
 
   // ── Live data ──
   const { data: postPages, isLoading: postsLoading } = usePosts(spaceUuid);
-  const { isLoading: openLoading } = usePosts(spaceUuid);
   const postRecords = postPages?.pages.flat();
   const { data: members, isLoading: membersLoading } = useSpaceMembers(spaceUuid);
+  const { data: openMembers, isLoading: openMembersLoading } = useSpaceMembers(spaceUuid, {
+    region: openRegion ?? undefined,
+    enabled: tab === 'open' && openView === 'people' && !!openRegion,
+  });
+  const { data: openPostPages, isLoading: openPostsLoading } = usePosts(spaceUuid, {
+    region: openRegion ?? undefined,
+    enabled: tab === 'open' && openView === 'posts' && !!openRegion,
+  });
+  const openPosts = openPostPages?.pages.flat() ?? [];
   const { data: allAsks } = useAllAsks(spaceUuid);
   const myAsk = allAsks?.find(a => a.isOwn) ?? null;
   const otherAsks = allAsks?.filter(a => !a.isOwn) ?? [];
   const createPost = useCreatePost();
   const postAsk = usePostAsk();
   const submitAnswer = useSubmitAnswer();
+  const inviteToBond = useInviteToBond();
+  const { data: sentInvitations } = useSentBondInvitations();
 
-  const posts = (postRecords ?? []).map(r => ({
-    id: r.id, anon: r.isAnonymous,
-    name: r.isAnonymous ? undefined : (r.authorName ?? r.userId),
-    userId: r.userId,
-    avatarUrl: r.isAnonymous ? null : (r.authorAvatar ?? null),
-    aura: r.isAnonymous ? null : (r.authorAura ?? null),
-    time: formatRelativeTime(r.createdAt), doing: r.doing ?? '', honest: r.honestThing ?? '',
-    progress: r.progress ?? '',
-    media: r.mediaUrl ? { type: (r.mediaType?.startsWith('video') ? 'video' : 'image') as 'image' | 'video', src: r.mediaUrl } : undefined,
-  }));
+  const posts = (postRecords ?? []).map(mapToSpacePost);
+  const openSpacePosts = openPosts.map(mapToSpacePost);
+  const alreadySentTo = (id: string) =>
+    invited.includes(id) || (sentInvitations?.some(i => i.toUserId === id && i.status === 'pending') ?? false);
 
   const right = (
     <RPSection label="In this space">
@@ -923,26 +952,90 @@ export default function SpaceDetailPage() {
                 <EmptyState variant="feed" title={`Nothing rooted in ${s.name} yet.`} body="Be the first to root a thought here." />
               </div>
             ) : posts.map(p => (
-              <SpacePostCard key={p.id} post={p} myId={user.id}/>
+              <SpacePostCard key={p.id} post={p} myId={user.id} />
             ))}
           </>
         )}
 
-        {/* ── Open tab — posts visible to all (from anyone in this space) ── */}
+        {/* ── Open tab — browse this space beyond your circle, by region ── */}
         {tab === 'open' && (
           <>
             <p style={{ color: 'var(--ink-3)', marginBottom: '1rem', fontSize: '.9rem' }}>
-              Posts from everyone in this space, not just your circle.
+              Browse this space in another part of the world.
             </p>
-            {openLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner /></div>
-            ) : posts.length === 0 ? (
-              <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
-                <EmptyState variant="feed" title="Nothing shared yet." body="Posts from this space will appear here." />
+
+            <div className="scroll" style={{ display: 'flex', gap: '.4rem', overflowX: 'auto', marginBottom: '.9rem' }}>
+              {REGIONS.map(r => (
+                <button key={r.key} onClick={() => setOpenRegion(cur => cur === r.key ? null : r.key)}
+                  className="chip" style={{ cursor: 'pointer', flexShrink: 0,
+                    background: openRegion === r.key ? 'var(--ember)' : 'var(--surf-high)',
+                    color: openRegion === r.key ? '#fff' : 'var(--ink-2)' }}>
+                  {r.emoji} {r.label}
+                </button>
+              ))}
+            </div>
+
+            {openRegion && (
+              <div style={{ display: 'flex', gap: '.4rem', marginBottom: '1.1rem' }}>
+                {([['posts', 'Roots & Grouvs'], ['people', 'People']] as const).map(([id, label]) => (
+                  <button key={id} onClick={() => setOpenView(id)}
+                    style={{ flex: 1, padding: '.5rem', borderRadius: 'var(--r-md)', fontSize: '.82rem', fontWeight: 600,
+                      background: openView === id ? 'var(--slate-dim)' : 'var(--surf-low)',
+                      color: openView === id ? 'var(--slate)' : 'var(--ink-3)' }}>
+                    {label}
+                  </button>
+                ))}
               </div>
-            ) : posts.map(p => (
-              <SpacePostCard key={p.id} post={p} myId={user.id} showViewGrouv/>
-            ))}
+            )}
+
+            {!openRegion ? (
+              <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
+                <EmptyState variant="feed" title="Pick a region." body="Choose a region above to browse people and posts from elsewhere in this space." />
+              </div>
+            ) : openView === 'posts' ? (
+              openPostsLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner /></div>
+              ) : openSpacePosts.length === 0 ? (
+                <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
+                  <EmptyState variant="feed" title="Nothing shared yet." body="No posts from this space in that region yet." />
+                </div>
+              ) : openSpacePosts.map(p => (
+                <SpacePostCard key={p.id} post={p} myId={user.id} showViewGrouv />
+              ))
+            ) : (
+              openMembersLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner /></div>
+              ) : !openMembers || openMembers.length === 0 ? (
+                <div className="card" style={{ background: 'linear-gradient(160deg, var(--slate-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
+                  <EmptyState variant="groups" title="No one here yet." body="No one in this space from that region yet." />
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
+                  {openMembers.map(m => (
+                    <div key={m.id} className="card" style={{ padding: '.85rem 1.1rem', display: 'flex', alignItems: 'center', gap: '.8rem', boxShadow: 'var(--shadow-soft)' }}>
+                      <Avatar name={m.displayName} size={44} avatarUrl={m.avatarUrl} aura={m.aura ?? undefined} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600 }}>{m.displayName}</div>
+                        {m.stage && <div style={{ fontSize: '.76rem', color: 'var(--ink-3)', marginTop: 2 }}>{m.stage}</div>}
+                        {m.openTo && <div style={{ fontSize: '.74rem', color: 'var(--ink-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.openTo}</div>}
+                      </div>
+                      <button
+                        disabled={alreadySentTo(m.id) || inviteToBond.isPending}
+                        onClick={async () => {
+                          try {
+                            await inviteToBond.mutateAsync({ recipientId: m.id });
+                            setInvited(v => [...v, m.id]);
+                            toast(`Bond invitation sent to ${m.displayName.split(' ')[0]}.`);
+                          } catch { toast('Could not send invitation.'); }
+                        }}
+                        className="btn btn-soft" style={{ padding: '.45rem .8rem', fontSize: '.8rem' }}>
+                        {alreadySentTo(m.id) ? 'Sent' : 'Connect'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
           </>
         )}
 

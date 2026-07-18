@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useUserStore } from '@/store/useUserStore';
 import { authApi, profilesApi, ApiError } from './api';
 import type { AuraKey, LogStyle } from './types';
+import type { Region } from './regions';
 
 export interface SessionResult {
   authenticated: boolean;
@@ -70,6 +71,8 @@ export async function hydrateSession(): Promise<SessionResult> {
       deepFocus: profile.deepFocusActive,
       aura: (profile.aura as AuraKey | null) ?? undefined,
       logStyle: (profile.logStyle as LogStyle | null) ?? undefined,
+      region: (profile.region as Region | null) ?? undefined,
+      countryCode: profile.countryCode ?? undefined,
       onboardingCompleted, // resolved value, not raw profile value
     }));
 

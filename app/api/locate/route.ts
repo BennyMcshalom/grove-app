@@ -1,7 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-// Server-side IP geolocation fallback for when browser geolocation fails
-// (common on macOS desktops without GPS / WiFi positioning issues).
 export async function GET(req: NextRequest) {
   const forwarded = req.headers.get('x-forwarded-for');
   const ip = forwarded?.split(',')[0].trim() ?? '';
@@ -11,9 +9,7 @@ export async function GET(req: NextRequest) {
     ip.startsWith('10.') || ip.startsWith('172.16.') || ip.startsWith('192.168.');
 
   if (isLocal) {
-    // Dev fallback — return a plausible location so the feature works on localhost.
-    // Both users on the same dev machine will share this and see each other nearby.
-    return NextResponse.json({ lat: 6.5244, lng: 3.3792, city: 'Lagos', approximate: true });
+    return NextResponse.json({ lat: 6.5244, lng: 3.3792, city: 'Lagos', countryCode: 'NG', approximate: true });
   }
 
   try {
@@ -27,10 +23,11 @@ export async function GET(req: NextRequest) {
         lat: data.latitude,
         lng: data.longitude,
         city: data.city ?? null,
+        countryCode: typeof data.country_code === 'string' ? data.country_code : null,
         approximate: true,
       });
     }
-  } catch {}
+  } catch { }
 
   return NextResponse.json({ error: 'Location unavailable' }, { status: 503 });
 }
