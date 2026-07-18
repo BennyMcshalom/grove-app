@@ -1105,7 +1105,7 @@ export default function HomePage() {
   useEffect(() => {
     paginationStateRef.current = { hasNextPage, isFetchingNextPage, fetchNextPage };
   });
-  const sentinelVisible = !postsLoading && shown.length > 0 && hasNextPage;
+  const sentinelVisible = !postsLoading && hasNextPage;
   useEffect(() => {
     if (!sentinelVisible) return;
     const el = loadMoreRef.current;
@@ -1243,23 +1243,31 @@ export default function HomePage() {
           <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
             <Spinner size={24} />
           </div>
-        ) : shown.length === 0 ? (
+        ) : shown.length === 0 && !hasNextPage ? (
+          // Only the true empty state — every page (including the older-
+          // post fallback) has been checked and there's genuinely nothing.
           <div className="card" style={{ background: 'linear-gradient(160deg, var(--green-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
             <EmptyState variant="feed"
               body={tab === 'all' ? 'Your circle hasn\'t posted yet. Root a thought above to get things going.' : 'No posts in this space yet. Be the first.'} />
           </div>
-        ) : shown.map((p, i) => (
-          <React.Fragment key={p.id}>
-            {p.kind === 'just_grouw'
-              ? <JustGrouvCard post={p} myId={user.id} />
-              : <PostCard post={p} myId={user.id} />}
-            {i === 1 && tab === 'all' && <OverlapCard />}
-          </React.Fragment>
-        ))}
+        ) : (
+          shown.map((p, i) => (
+            <React.Fragment key={p.id}>
+              {p.kind === 'just_grouw'
+                ? <JustGrouvCard post={p} myId={user.id} />
+                : <PostCard post={p} myId={user.id} />}
+              {i === 1 && tab === 'all' && <OverlapCard />}
+            </React.Fragment>
+          ))
+        )}
         {/* Infinite scroll — once the fresh window runs out, this sentinel
             pulls older posts as it scrolls into view, so the feed keeps
-            going instead of dead-ending. */}
-        {!postsLoading && shown.length > 0 && hasNextPage && (
+            going instead of dead-ending. It has to render even while
+            shown is still empty — the fresh 48h window can legitimately
+            come back with nothing before older history is checked, and
+            gating this on shown.length > 0 would mean that fetch never
+            happens, permanently hiding real older posts. */}
+        {!postsLoading && hasNextPage && (
           <div ref={loadMoreRef} style={{ display: 'flex', justifyContent: 'center', padding: '1.5rem 0' }}>
             <Spinner size={20} />
           </div>
