@@ -14,7 +14,7 @@ import { ReportModal } from '@/components/ui/ReportModal';
 import { useToastStore } from '@/store/useToastStore';
 import { useUserStore } from '@/store/useUserStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
-import { usePosts, useCreatePost, useUpdatePost, useDeletePost } from '@/hooks/usePosts';
+import { usePosts, useUpdatePost, useDeletePost } from '@/hooks/usePosts';
 import { useSpaceMembers } from '@/hooks/useSpaces';
 import { useAllAsks, useAskAnswers, usePostAsk, useSubmitAnswer, useLikeAnswer, useAnswerComments, useAddAnswerComment } from '@/hooks/useAnonAsks';
 import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
@@ -808,9 +808,6 @@ export default function SpaceDetailPage() {
   const spaceUuid = uuidBySlug(slug);
 
   const [tab, setTab] = useState('roots');
-  const [composing, setComposing] = useState(false);
-  const [draft, setDraft] = useState("I'm ");
-  const [honest, setHonest] = useState('');
   const [askText, setAskText] = useState('');
   const [answerText, setAnswerText] = useState('');
   const [openRegion, setOpenRegion] = useState<Region | null>(null);
@@ -818,29 +815,26 @@ export default function SpaceDetailPage() {
   const [openView, setOpenView] = useState<'people' | 'posts'>('posts');
 
   // ── Live data ──
-  const { data: postPages, isLoading: postsLoading } = usePosts(spaceUuid);
-  const postRecords = postPages?.pages.flat();
+  const { data: postRecords, isLoading: postsLoading } = usePosts(spaceUuid);
   const { data: members, isLoading: membersLoading } = useSpaceMembers(spaceUuid);
   const { data: openMembers, isLoading: openMembersLoading } = useSpaceMembers(spaceUuid, {
     region: openRegion ?? undefined,
     enabled: tab === 'open' && openView === 'people' && !!openRegion,
   });
-  const { data: openPostPages, isLoading: openPostsLoading } = usePosts(spaceUuid, {
+  const { data: openPosts, isLoading: openPostsLoading } = usePosts(spaceUuid, {
     region: openRegion ?? undefined,
     enabled: tab === 'open' && openView === 'posts' && !!openRegion,
   });
-  const openPosts = openPostPages?.pages.flat() ?? [];
   const { data: allAsks } = useAllAsks(spaceUuid);
   const myAsk = allAsks?.find(a => a.isOwn) ?? null;
   const otherAsks = allAsks?.filter(a => !a.isOwn) ?? [];
-  const createPost = useCreatePost();
   const postAsk = usePostAsk();
   const submitAnswer = useSubmitAnswer();
   const inviteToBond = useInviteToBond();
   const { data: sentInvitations } = useSentBondInvitations();
 
   const posts = (postRecords ?? []).map(mapToSpacePost);
-  const openSpacePosts = openPosts.map(mapToSpacePost);
+  const openSpacePosts = (openPosts ?? []).map(mapToSpacePost);
   const alreadySentTo = (id: string) =>
     invited.includes(id) || (sentInvitations?.some(i => i.toUserId === id && i.status === 'pending') ?? false);
 
@@ -908,43 +902,6 @@ export default function SpaceDetailPage() {
         {/* ── Roots tab ── */}
         {tab === 'roots' && (
           <>
-            {/* Quick composer */}
-            {!composing ? (
-              <button onClick={() => setComposing(true)} className="card"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '.8rem', width: '100%', textAlign: 'left',
-                  padding: '1rem 1.2rem', marginBottom: '1rem', boxShadow: 'var(--shadow-soft)'
-                }}>
-                <Avatar name={user.name} size={36} avatarUrl={user.avatar_url} />
-                <span style={{ color: 'var(--ink-4)', fontSize: '.9rem' }}>Root a thought in {s.name}…</span>
-              </button>
-            ) : (
-              <div className="card" style={{ padding: '1.2rem', marginBottom: '1rem', boxShadow: 'var(--shadow-soft)' }}>
-                <textarea value={draft} onChange={e => setDraft(e.target.value)}
-                  placeholder="What are you doing right now?"
-                  style={{ width: '100%', minHeight: 60, resize: 'vertical', border: 'none', background: 'transparent', fontSize: '.95rem', lineHeight: 1.5, marginBottom: '.6rem' }} />
-                <textarea value={honest} onChange={e => setHonest(e.target.value)}
-                  placeholder="The honest thing is…"
-                  style={{ width: '100%', minHeight: 60, resize: 'vertical', border: 'none', background: 'transparent', fontSize: '.95rem', lineHeight: 1.5, borderTop: '1px solid var(--border)', paddingTop: '.6rem' }} />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '.5rem', marginTop: '.8rem' }}>
-                  <button onClick={() => { setComposing(false); setDraft("I'm "); setHonest(''); }} className="btn btn-soft" style={{ padding: '.4rem .8rem', fontSize: '.82rem' }}>Cancel</button>
-                  <button
-                    disabled={!draft.trim() || !honest.trim() || createPost.isPending || !spaceUuid}
-                    onClick={async () => {
-                      if (!spaceUuid) return;
-                      try {
-                        await createPost.mutateAsync({ spaceId: spaceUuid, kind: 'roots', doing: draft.trim(), honestThing: honest.trim() });
-                        setComposing(false); setDraft("I'm "); setHonest('');
-                        toast('Rooted in ' + s.name);
-                      } catch { toast('Could not post.'); }
-                    }}
-                    className="btn btn-primary" style={{ padding: '.4rem .9rem', fontSize: '.82rem' }}>
-                    {createPost.isPending ? 'Posting…' : 'Root this'}
-                  </button>
-                </div>
-              </div>
-            )}
-
             {postsLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner /></div>
             ) : posts.length === 0 ? (

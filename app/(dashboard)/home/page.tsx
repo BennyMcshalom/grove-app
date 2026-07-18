@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
@@ -1107,11 +1107,7 @@ export default function HomePage() {
   const { data: mySpaces } = useMySpaces();
   const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
   const spaceUuid = tab !== 'all' ? uuidBySlug(tab) : undefined;
-  const {
-    data: postPages, isLoading: postsLoading,
-    fetchNextPage, hasNextPage, isFetchingNextPage,
-  } = usePosts(spaceUuid);
-  const postRecords = postPages?.pages.flat();
+  const { data: postRecords, isLoading: postsLoading } = usePosts(spaceUuid);
   const { data: bondsData } = useBonds();
   const { data: groupsData } = useGroups();
   const { data: suggestions } = useSuggestions();
@@ -1124,36 +1120,6 @@ export default function HomePage() {
 
   const posts = useDisplayPosts(postRecords);
   const shown = posts;
-
-  // The observer must NOT be torn down and recreated on every render —
-  // fetchNextPage's identity and shown.length both change often (e.g. any
-  // of the unrelated useBonds/useGroups/useSuggestions queries resolving
-  // nearby re-renders this component), and a freshly created
-  // IntersectionObserver always fires an initial callback immediately with
-  // the current intersection state. If the sentinel is still in view when
-  // that happens, each recreation re-fires fetchNextPage, which changes
-  // shown.length, which recreates the observer again — a feedback loop
-  // that spams duplicate page fetches instead of pagination behaving
-  // predictably. Reading the latest values from a ref inside the
-  // callback, and only recreating the observer when the sentinel itself
-  // mounts/unmounts, fixes that.
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const paginationStateRef = useRef({ hasNextPage, isFetchingNextPage, fetchNextPage });
-  useEffect(() => {
-    paginationStateRef.current = { hasNextPage, isFetchingNextPage, fetchNextPage };
-  });
-  const sentinelVisible = !postsLoading && hasNextPage;
-  useEffect(() => {
-    if (!sentinelVisible) return;
-    const el = loadMoreRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(entries => {
-      const s = paginationStateRef.current;
-      if (entries[0]?.isIntersecting && s.hasNextPage && !s.isFetchingNextPage) s.fetchNextPage();
-    }, { rootMargin: '400px' });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [sentinelVisible]);
 
   // tabs: [id, name] — space icon rendered by SpaceIcon component
   const tabs = [['all', 'All'], ...mySpaceSlugs.map(id => [id, spaceById(id).name])];
@@ -1280,9 +1246,7 @@ export default function HomePage() {
           <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
             <Spinner size={24} />
           </div>
-        ) : shown.length === 0 && !hasNextPage ? (
-          // Only the true empty state — every page (including the older-
-          // post fallback) has been checked and there's genuinely nothing.
+        ) : shown.length === 0 ? (
           <div className="card" style={{ background: 'linear-gradient(160deg, var(--green-dim), var(--ember-dim))', maxWidth: 480, margin: '0 auto' }}>
             <EmptyState variant="feed"
               body={tab === 'all' ? 'Your circle hasn\'t posted yet. Root a thought above to get things going.' : 'No posts in this space yet. Be the first.'} />
@@ -1297,21 +1261,9 @@ export default function HomePage() {
             </React.Fragment>
           ))
         )}
-        {/* Infinite scroll — once the fresh window runs out, this sentinel
-            pulls older posts as it scrolls into view, so the feed keeps
-            going instead of dead-ending. It has to render even while
-            shown is still empty — the fresh 48h window can legitimately
-            come back with nothing before older history is checked, and
-            gating this on shown.length > 0 would mean that fetch never
-            happens, permanently hiding real older posts. */}
-        {!postsLoading && hasNextPage && (
-          <div ref={loadMoreRef} style={{ display: 'flex', justifyContent: 'center', padding: '1.5rem 0' }}>
-            <Spinner size={20} />
-          </div>
-        )}
 
-        {/* End-of-feed — only once there's truly nothing older left to pull */}
-        {!postsLoading && shown.length > 0 && !hasNextPage && (
+        {/* End-of-feed — the feed only ever shows the fresh 48h window, no infinite scroll */}
+        {!postsLoading && shown.length > 0 && (
           <div style={{ textAlign: 'center', padding: '3rem 1rem 1.5rem' }}>
             {/* Thin rule with centred mark */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>

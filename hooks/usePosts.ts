@@ -1,6 +1,6 @@
 'use client';
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { postsApi, type CreatePostPayload, type PostRecord } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { postsApi, type CreatePostPayload } from '@/lib/api';
 
 export function usePostComments(postId: string | undefined) {
   return useQuery({
@@ -18,17 +18,12 @@ export function useAddComment(postId: string) {
   });
 }
 
+// Single page only — the fresh 48h window, no infinite scroll.
 export function usePosts(spaceId?: string, opts?: { region?: string; enabled?: boolean }) {
-  return useInfiniteQuery({
+  return useQuery({
     queryKey: ['posts', spaceId ?? 'all', opts?.region ?? 'none'],
-    queryFn: ({ pageParam }: { pageParam?: string }) => postsApi.list(spaceId, pageParam, opts?.region),
-    initialPageParam: undefined as string | undefined,
+    queryFn: () => postsApi.list(spaceId, undefined, opts?.region),
     enabled: opts?.enabled ?? true,
-    getNextPageParam: (lastPage: PostRecord[], allPages) => {
-      if (lastPage.length > 0) return lastPage[lastPage.length - 1].createdAt;
-      if (allPages.length === 1) return new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-      return undefined;
-    },
   });
 }
 
