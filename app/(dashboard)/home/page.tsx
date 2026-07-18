@@ -327,6 +327,10 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
   // space is opened/closed later — mySpaceSlugs is the real, live list.
   const { data: mySpaces } = useMySpaces();
   const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
+  const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
+  // Falls back to the first open space if nothing's been picked yet, or if
+  // the previously picked one was closed since.
+  const activeSpace = selectedSpace && mySpaceSlugs.includes(selectedSpace) ? selectedSpace : (mySpaceSlugs[0] ?? 'career');
   const [mode, setMode] = useState<'root' | 'justgrouw'>('root');
   // Root mode
   const [doing, setDoing] = useState("I'm ");
@@ -387,7 +391,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
       if (mode === 'root') {
         await onPost?.({
           id: Date.now(), name: user.name, anon,
-          space: mySpaceSlugs[0] || 'career', progress: prog ?? '',
+          space: activeSpace, progress: prog ?? '',
           time: 'just now', doing: doing.trim(), honest: honest.trim(),
           media: mediaUrl ? { type: (mediaType?.startsWith('video') ? 'video' : 'image'), src: mediaUrl } : undefined,
           roots: 0, comments: 0, kind: 'roots',
@@ -399,7 +403,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
         const userLocation = user.location;
         await onPost?.({
           id: Date.now(), name: user.name, anon,
-          space: mySpaceSlugs[0] || 'career', progress: '',
+          space: activeSpace, progress: '',
           time: 'just now', doing: '', honest: '',
           media: mediaUrl ? { type: (mediaType?.startsWith('video') ? 'video' : 'image'), src: mediaUrl } : undefined,
           roots: 0, comments: 0, kind: 'just_grouw',
@@ -442,6 +446,30 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
           ))}
         </div>
       </div>
+
+      {/* Which of my open spaces this post goes into — shared by both modes */}
+      {mySpaceSlugs.length > 0 && (
+        <div style={{ marginBottom: '1rem' }}>
+          <div className="label-mono" style={{ marginBottom: '.4rem' }}>Posting to</div>
+          <div className="scroll" style={{ display: 'flex', gap: '.4rem', overflowX: 'auto', paddingBottom: 2 }}>
+            {mySpaceSlugs.map(slug => {
+              const sp = spaceById(slug);
+              const active = slug === activeSpace;
+              return (
+                <button key={slug} onClick={() => setSelectedSpace(slug)} className="chip"
+                  style={{
+                    cursor: 'pointer', flexShrink: 0,
+                    background: active ? 'var(--ember-dim)' : 'var(--surf-high)',
+                    border: active ? '1.5px solid var(--ember)' : '1.5px solid transparent',
+                    color: active ? 'var(--ember-deep)' : 'var(--ink-2)', fontWeight: 500
+                  }}>
+                  <SpaceIcon spaceId={slug} size={12} pill pillSize={20} /> {sp.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {mode === 'root' ? (
         <>
