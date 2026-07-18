@@ -78,10 +78,10 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
   const [sharing, setSharing] = useState(false);
 
   // ── Menu / Edit / Delete ──
-  const [menu, setMenu]           = useState(false);
-  const [menuPos, setMenuPos]     = useState<{ top: number; right: number } | null>(null);
-  const [editing, setEditing]     = useState(false);
-  const [confirmDel, setConfirm]  = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [confirmDel, setConfirm] = useState(false);
   const [editDoing, setEditDoing] = useState(post.doing);
   const [editHonest, setEditHonest] = useState(post.honest);
   const [reportingPost, setReportingPost] = useState(false);
@@ -110,9 +110,11 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
 
   const menuRow = (label: string, action: () => void, danger = false) => (
     <button key={label} onClick={action}
-      style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left',
+      style={{
+        display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left',
         padding: '.65rem 1rem', fontSize: '.86rem', color: danger ? 'var(--red)' : 'var(--ink-2)',
-        gap: '.55rem' }}
+        gap: '.55rem'
+      }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--surf-low)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
       {label}
@@ -123,7 +125,7 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
     <article className="card" style={{ padding: '1.3rem 1.4rem', marginBottom: '.9rem', position: 'relative' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: '.8rem', marginBottom: '.9rem' }}>
         <button onClick={() => { if (!post.anon && post.userId) router.push(`/grove/${post.userId}`); }}>
-          <Avatar name={post.anon ? '' : name} anon={post.anon} size={46} aura={post.anon ? undefined : (post.aura ?? undefined)} avatarUrl={post.anon ? undefined : post.avatarUrl}/>
+          <Avatar name={post.anon ? '' : name} anon={post.anon} size={46} aura={post.anon ? undefined : (post.aura ?? undefined)} avatarUrl={post.anon ? undefined : post.avatarUrl} />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
@@ -142,7 +144,7 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
             const vw = window.innerWidth;
             const vh = window.innerHeight;
             // Anchor below button, flip up if not enough space below
-            const top  = btn.bottom + MENU_H > vh - PAD ? btn.top - MENU_H : btn.bottom + 4;
+            const top = btn.bottom + MENU_H > vh - PAD ? btn.top - MENU_H : btn.bottom + 4;
             // Align right edge of menu to right edge of button, clamp to screen
             const right = Math.max(PAD, vw - btn.right);
             setMenuPos({ top: Math.max(PAD, top), right });
@@ -156,7 +158,7 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
 
       {menu && menuPos && (
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)}/>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)} />
           <div className="fade-in" style={{
             position: 'fixed',
             top: menuPos.top,
@@ -164,11 +166,12 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
             zIndex: 20,
             background: 'var(--white)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-lg)',
             border: '1px solid var(--border)', overflow: 'hidden',
-            width: 'min(180px, calc(100vw - 20px))' }}>
+            width: 'min(180px, calc(100vw - 20px))'
+          }}>
             {isOwn && <>
               {menuRow('Edit post', () => { setMenu(false); setEditing(true); setEditDoing(post.doing); setEditHonest(post.honest); })}
               {menuRow('Delete post', () => { setMenu(false); setConfirm(true); }, true)}
-              <div style={{ borderTop: '1px solid var(--border)' }}/>
+              <div style={{ borderTop: '1px solid var(--border)' }} />
             </>}
             {menuRow('Save to a Bond', () => { setMenu(false); toast('Saved.'); })}
             {menuRow('Report', () => { setMenu(false); setReportingPost(true); }, true)}
@@ -177,18 +180,22 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
       )}
 
       {reportingPost && (
-        <ReportModal contentType="post" contentId={postUuid} onClose={() => setReportingPost(false)}/>
+        <ReportModal contentType="post" contentId={postUuid} onClose={() => setReportingPost(false)} />
       )}
 
       {/* Delete confirmation */}
       {confirmDel && (
-        <div className="fade-in" style={{ background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
+        <div className="fade-in" style={{
+          background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
           padding: '.75rem 1rem', marginBottom: '.8rem', display: 'flex', alignItems: 'center', gap: '.8rem',
-          border: '1px solid var(--red-bdr)' }}>
+          border: '1px solid var(--red-bdr)'
+        }}>
           <span style={{ flex: 1, fontSize: '.86rem', color: 'var(--red)', fontWeight: 500 }}>Delete this post?</span>
           <button onClick={handleDelete} disabled={deletePost.isPending}
-            className="btn btn-primary" style={{ padding: '.35rem .8rem', fontSize: '.8rem',
-              background: 'var(--red)', boxShadow: 'none' }}>
+            className="btn btn-primary" style={{
+              padding: '.35rem .8rem', fontSize: '.8rem',
+              background: 'var(--red)', boxShadow: 'none'
+            }}>
             {deletePost.isPending ? 'Deleting…' : 'Delete'}
           </button>
           <button onClick={() => setConfirm(false)} className="btn btn-soft"
@@ -199,13 +206,17 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
       {editing ? (
         <div style={{ marginBottom: '.8rem' }}>
           <textarea value={editDoing} onChange={e => setEditDoing(e.target.value)} maxLength={200}
-            style={{ width: '100%', resize: 'vertical', minHeight: 60, padding: '.6rem .8rem',
+            style={{
+              width: '100%', resize: 'vertical', minHeight: 60, padding: '.6rem .8rem',
               fontSize: '1rem', fontWeight: 500, lineHeight: 1.5, borderRadius: 'var(--r-sm)',
-              border: '1.5px solid var(--ember)', background: 'var(--surf-low)', marginBottom: '.5rem' }}/>
+              border: '1.5px solid var(--ember)', background: 'var(--surf-low)', marginBottom: '.5rem'
+            }} />
           <textarea value={editHonest} onChange={e => setEditHonest(e.target.value)} maxLength={300}
-            style={{ width: '100%', resize: 'vertical', minHeight: 56, padding: '.6rem .8rem',
+            style={{
+              width: '100%', resize: 'vertical', minHeight: 56, padding: '.6rem .8rem',
               fontSize: '.95rem', fontStyle: 'italic', lineHeight: 1.6, borderRadius: 'var(--r-sm)',
-              border: '1.5px solid var(--border-2)', background: 'var(--surf-low)', marginBottom: '.7rem' }}/>
+              border: '1.5px solid var(--border-2)', background: 'var(--surf-low)', marginBottom: '.7rem'
+            }} />
           <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
             <button onClick={() => setEditing(false)} className="btn btn-soft"
               style={{ padding: '.4rem .9rem', fontSize: '.82rem' }}>Cancel</button>
@@ -225,11 +236,11 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
       {post.media && (
         <div style={{ margin: '.9rem 0 .2rem' }}>
           {post.media.type === 'video'
-            ? <VideoPlayer src={post.media.src}/>
+            ? <VideoPlayer src={post.media.src} />
             : <div style={{ borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--surf-high)' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={post.media.src} alt="" style={{ width: '100%', display: 'block', maxHeight: 320, objectFit: 'cover' }}/>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={post.media.src} alt="" style={{ width: '100%', display: 'block', maxHeight: 320, objectFit: 'cover' }} />
+            </div>
           }
         </div>
       )}
@@ -255,15 +266,17 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
         </button>
       </footer>
 
-      {sharing && <ShareModal post={post} onClose={() => setSharing(false)}/>}
+      {sharing && <ShareModal post={post} onClose={() => setSharing(false)} />}
 
       {showC && (
         <div className="fade-in" style={{ marginTop: '.8rem', paddingTop: '.9rem', borderTop: '1px solid var(--border)' }}>
           {comments.map(c => (
             <div key={c.id} style={{ display: 'flex', gap: '.6rem', marginBottom: '.8rem' }}>
-              <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar} aura={c.authorAura ?? undefined}/>
-              <div style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1,
-                display: 'flex', alignItems: 'flex-start', gap: '.5rem' }}>
+              <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar} aura={c.authorAura ?? undefined} />
+              <div style={{
+                background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1,
+                display: 'flex', alignItems: 'flex-start', gap: '.5rem'
+              }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '.8rem' }}>{c.authorName}</div>
                   <div style={{ fontSize: '.86rem', color: 'var(--ink-2)', lineHeight: 1.45 }}>{c.body}</div>
@@ -272,13 +285,13 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
                   style={{ flexShrink: 0, opacity: .5, marginTop: 1 }}
                   onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
                   onMouseLeave={e => (e.currentTarget.style.opacity = '.5')}>
-                  <Icon name="flag" size={12} stroke="var(--ink-4)"/>
+                  <Icon name="flag" size={12} stroke="var(--ink-4)" />
                 </button>
               </div>
             </div>
           ))}
           {reportingComment && (
-            <ReportModal contentType="comment" contentId={reportingComment} onClose={() => setReportingComment(null)}/>
+            <ReportModal contentType="comment" contentId={reportingComment} onClose={() => setReportingComment(null)} />
           )}
           {comments.length === 0 && !addCommentMutation.isPending && (
             <p style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontStyle: 'italic', marginBottom: '.8rem' }}>
@@ -411,14 +424,16 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
 
       {/* Header: avatar + mode toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '1rem' }}>
-        <Avatar name={user.name} size={40} avatarUrl={user.avatar_url}/>
+        <Avatar name={user.name} size={40} avatarUrl={user.avatar_url} />
         <div style={{ display: 'flex', gap: 4, background: 'var(--surf-high)', borderRadius: 100, padding: 3 }}>
           {([['root', 'Root a thought'], ['justgrouw', 'Just Grouv']] as ['root' | 'justgrouw', string][]).map(([id, l]) => (
             <button key={id} onClick={() => { setMode(id); setMedia(null); }}
-              style={{ padding: '.4rem .85rem', borderRadius: 100, fontSize: '.8rem', fontWeight: 500,
+              style={{
+                padding: '.4rem .85rem', borderRadius: 100, fontSize: '.8rem', fontWeight: 500,
                 background: mode === id ? 'var(--white)' : 'transparent',
                 color: mode === id ? 'var(--ember)' : 'var(--ink-3)',
-                boxShadow: mode === id ? 'var(--shadow-soft)' : 'none' }}>{l}</button>
+                boxShadow: mode === id ? 'var(--shadow-soft)' : 'none'
+              }}>{l}</button>
           ))}
         </div>
       </div>
@@ -439,9 +454,11 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
             <div className="scroll" style={{ display: 'flex', gap: '.5rem', overflowX: 'auto', paddingBottom: 2 }}>
               {PROGRESS.map(p => (
                 <button key={p} onClick={() => setProg(prog === p ? null : p)} className="chip"
-                  style={{ cursor: 'pointer', flexShrink: 0, padding: '.45rem .85rem',
+                  style={{
+                    cursor: 'pointer', flexShrink: 0, padding: '.45rem .85rem',
                     background: prog === p ? 'var(--ember)' : 'var(--surf-high)',
-                    color: prog === p ? '#fff' : 'var(--ink-2)', fontWeight: 500 }}>{p}</button>
+                    color: prog === p ? '#fff' : 'var(--ink-2)', fontWeight: 500
+                  }}>{p}</button>
               ))}
             </div>
           </div>
@@ -489,10 +506,12 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
             <div style={{ display: 'flex', gap: '.8rem', marginBottom: '.9rem' }}>
               {([['image', 'Photo', 'image'], ['video', 'Video', 'video']] as [string, string, string][]).map(([kind, label, icon]) => (
                 <button key={kind} onClick={() => (kind === 'image' ? imageRef : videoRef).current?.click()}
-                  style={{ flex: 1, padding: '1.6rem 1rem', borderRadius: 'var(--r-md)', border: '1.5px dashed var(--border-2)',
-                    background: 'var(--surf-low)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.5rem' }}>
+                  style={{
+                    flex: 1, padding: '1.6rem 1rem', borderRadius: 'var(--r-md)', border: '1.5px dashed var(--border-2)',
+                    background: 'var(--surf-low)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.5rem'
+                  }}>
                   <span style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--ember-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name={icon} size={20} stroke="var(--ember)"/>
+                    <Icon name={icon} size={20} stroke="var(--ember)" />
                   </span>
                   <span style={{ fontWeight: 600, fontSize: '.88rem' }}>{label}</span>
                   <span style={{ fontSize: '.7rem', color: 'var(--ink-4)' }}>Upload from device</span>
@@ -511,22 +530,24 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
               ) : (
-                <img src={media.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                <img src={media.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               )}
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,12,4,.5) 0%, transparent 30%, transparent 55%, rgba(20,12,4,.8) 100%)', pointerEvents: 'none' }}/>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,12,4,.5) 0%, transparent 30%, transparent 55%, rgba(20,12,4,.8) 100%)', pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', top: 12, left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
                 <div className="mono" style={{ color: '#fff', fontSize: '.8rem', letterSpacing: '.12em' }}>{nowClock()}</div>
                 {user.location && (
-                  <div style={{ color: 'rgba(255,255,255,.7)', fontSize: '.66rem', marginTop: 3,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-                    <Icon name="pin" size={11} stroke="rgba(255,255,255,.7)"/> {user.location}
+                  <div style={{
+                    color: 'rgba(255,255,255,.7)', fontSize: '.66rem', marginTop: 3,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3
+                  }}>
+                    <Icon name="pin" size={11} stroke="rgba(255,255,255,.7)" /> {user.location}
                   </div>
                 )}
               </div>
               {media.type === 'video' && (
                 <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                   <span style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="play" size={22} stroke="var(--ink)"/>
+                    <Icon name="play" size={22} stroke="var(--ink)" />
                   </span>
                 </span>
               )}
@@ -537,7 +558,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
               </div>
               <button onClick={() => { URL.revokeObjectURL(media.src); setMedia(null); }}
                 style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', background: 'rgba(26,26,26,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="close" size={16} stroke="#fff"/>
+                <Icon name="close" size={16} stroke="#fff" />
               </button>
             </div>
           )}
@@ -574,23 +595,23 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
   const postId = (post as Post & { _id?: string })._id ?? String(post.id);
   const [playing, setPlaying] = useState(false);
   const [rooted, setRooted] = useState(!!post.rooted);
-  const [roots, setRoots]   = useState(post.roots ?? 0);
+  const [roots, setRoots] = useState(post.roots ?? 0);
   const videoRef = React.useRef<HTMLVideoElement>(null);
-  const [showC, setShowC]           = useState(false);
-  const [draft, setDraft]           = useState('');
+  const [showC, setShowC] = useState(false);
+  const [draft, setDraft] = useState('');
   const [commentCount, setCommentCount] = useState(post.comments ?? 0);
-  const { data: fetchedComments }   = usePostComments(showC ? postUuid : undefined);
-  const addCommentMutation          = useAddComment(postUuid);
-  const comments                    = fetchedComments ?? [];
+  const { data: fetchedComments } = usePostComments(showC ? postUuid : undefined);
+  const addCommentMutation = useAddComment(postUuid);
+  const comments = fetchedComments ?? [];
   const [reportingPost, setReportingPost] = useState(false);
   const [reportingComment, setReportingComment] = useState<string | null>(null);
 
   // ── Menu / Edit / Delete (own posts only) ──
   const isOwn = !!myId && post.userId === myId;
-  const [menu, setMenu]           = useState(false);
-  const [menuPos, setMenuPos]     = useState<{ top: number; right: number } | null>(null);
-  const [editing, setEditing]     = useState(false);
-  const [confirmDel, setConfirm]  = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [confirmDel, setConfirm] = useState(false);
   const [editCaption, setEditCaption] = useState(post.caption ?? '');
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
@@ -613,9 +634,11 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
 
   const menuRow = (label: string, action: () => void, danger = false) => (
     <button key={label} onClick={action}
-      style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left',
+      style={{
+        display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left',
         padding: '.65rem 1rem', fontSize: '.86rem', color: danger ? 'var(--red)' : 'var(--ink-2)',
-        gap: '.55rem' }}
+        gap: '.55rem'
+      }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--surf-low)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
       {label}
@@ -639,7 +662,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
     const v = videoRef.current;
     if (!v) return;
     if (v.paused) {
-      v.play().then(() => setPlaying(true)).catch(() => {});
+      v.play().then(() => setPlaying(true)).catch(() => { });
     } else {
       v.pause();
       setPlaying(false);
@@ -653,7 +676,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
     setRoots(n => next ? n + 1 : n - 1);
     try {
       if (next) await postsApi.react(postUuid, '🌱');
-      else      await postsApi.unreact(postUuid, '🌱');
+      else await postsApi.unreact(postUuid, '🌱');
     } catch {
       setRooted(!next);
       setRoots(n => next ? n - 1 : n + 1);
@@ -671,7 +694,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
     <article className="card" style={{ padding: '1.1rem 1.1rem 1.3rem', marginBottom: '.9rem' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.8rem' }}>
         <button onClick={() => { if (!post.anon && post.userId) router.push(`/grove/${post.userId}`); }}>
-          <Avatar name={post.anon ? '' : name} anon={post.anon} size={40} avatarUrl={post.avatarUrl} aura={post.anon ? undefined : (post.aura ?? undefined)}/>
+          <Avatar name={post.anon ? '' : name} anon={post.anon} size={40} avatarUrl={post.avatarUrl} aura={post.anon ? undefined : (post.aura ?? undefined)} />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: '.92rem' }}>{name}</div>
@@ -694,40 +717,45 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
               setConfirm(false);
             }}
             style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name="dots" size={15} stroke="var(--ink-4)"/>
+            <Icon name="dots" size={15} stroke="var(--ink-4)" />
           </button>
         ) : (
           <button onClick={() => setReportingPost(true)} title="Report"
             style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name="flag" size={15} stroke="var(--ink-4)"/>
+            <Icon name="flag" size={15} stroke="var(--ink-4)" />
           </button>
         )}
       </header>
 
       {menu && menuPos && (
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)}/>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)} />
           <div className="fade-in" style={{
             position: 'fixed', top: menuPos.top, right: menuPos.right, zIndex: 20,
             background: 'var(--white)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-lg)',
             border: '1px solid var(--border)', overflow: 'hidden',
-            width: 'min(180px, calc(100vw - 20px))' }}>
+            width: 'min(180px, calc(100vw - 20px))'
+          }}>
             {menuRow('Edit caption', () => { setMenu(false); setEditing(true); setEditCaption(post.caption ?? ''); })}
             {menuRow('Delete post', () => { setMenu(false); setConfirm(true); }, true)}
-            <div style={{ borderTop: '1px solid var(--border)' }}/>
+            <div style={{ borderTop: '1px solid var(--border)' }} />
             {menuRow('Report', () => { setMenu(false); setReportingPost(true); }, true)}
           </div>
         </>
       )}
 
       {confirmDel && (
-        <div className="fade-in" style={{ background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
+        <div className="fade-in" style={{
+          background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
           padding: '.75rem 1rem', marginBottom: '.8rem', display: 'flex', alignItems: 'center', gap: '.8rem',
-          border: '1px solid var(--red-bdr)' }}>
+          border: '1px solid var(--red-bdr)'
+        }}>
           <span style={{ flex: 1, fontSize: '.86rem', color: 'var(--red)', fontWeight: 500 }}>Delete this post?</span>
           <button onClick={handleDelete} disabled={deletePost.isPending}
-            className="btn btn-primary" style={{ padding: '.35rem .8rem', fontSize: '.8rem',
-              background: 'var(--red)', boxShadow: 'none' }}>
+            className="btn btn-primary" style={{
+              padding: '.35rem .8rem', fontSize: '.8rem',
+              background: 'var(--red)', boxShadow: 'none'
+            }}>
             {deletePost.isPending ? 'Deleting…' : 'Delete'}
           </button>
           <button onClick={() => setConfirm(false)} className="btn btn-soft"
@@ -738,9 +766,11 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
       {editing && (
         <div style={{ marginBottom: '.8rem' }}>
           <textarea value={editCaption} onChange={e => setEditCaption(e.target.value)} maxLength={200} autoFocus
-            style={{ width: '100%', resize: 'vertical', minHeight: 60, padding: '.6rem .8rem',
+            style={{
+              width: '100%', resize: 'vertical', minHeight: 60, padding: '.6rem .8rem',
               fontSize: '1rem', lineHeight: 1.5, borderRadius: 'var(--r-sm)',
-              border: '1.5px solid var(--ember)', background: 'var(--surf-low)', marginBottom: '.5rem' }}/>
+              border: '1.5px solid var(--ember)', background: 'var(--surf-low)', marginBottom: '.5rem'
+            }} />
           <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
             <button onClick={() => setEditing(false)} className="btn btn-soft"
               style={{ padding: '.4rem .9rem', fontSize: '.82rem' }}>Cancel</button>
@@ -753,15 +783,17 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
       )}
 
       {reportingPost && (
-        <ReportModal contentType="post" contentId={postUuid} onClose={() => setReportingPost(false)}/>
+        <ReportModal contentType="post" contentId={postUuid} onClose={() => setReportingPost(false)} />
       )}
 
       {/* Portrait frame */}
       {post.media && (
         <div onClick={() => post.media?.type === 'video' && togglePlay()}
-          style={{ position: 'relative', borderRadius: 18, overflow: 'hidden',
+          style={{
+            position: 'relative', borderRadius: 18, overflow: 'hidden',
             aspectRatio: '4 / 5', background: '#2a1d12',
-            cursor: post.media.type === 'video' ? 'pointer' : 'default' }}>
+            cursor: post.media.type === 'video' ? 'pointer' : 'default'
+          }}>
 
           {post.media.type === 'video' ? (
             <video
@@ -776,45 +808,59 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
             />
           ) : (
             <img src={post.media.src} alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           )}
 
-          <div style={{ position: 'absolute', inset: 0,
+          <div style={{
+            position: 'absolute', inset: 0,
             background: 'linear-gradient(180deg, rgba(20,12,4,.55) 0%, rgba(20,12,4,.05) 28%, rgba(20,12,4,.12) 55%, rgba(20,12,4,.82) 100%)',
-            pointerEvents: 'none' }}/>
+            pointerEvents: 'none'
+          }} />
 
           {/* Clock + location */}
-          <div style={{ position: 'absolute', top: 14, left: 0, right: 0,
-            textAlign: 'center', pointerEvents: 'none' }}>
+          <div style={{
+            position: 'absolute', top: 14, left: 0, right: 0,
+            textAlign: 'center', pointerEvents: 'none'
+          }}>
             <div className="mono" style={{ color: 'rgba(255,255,255,.92)', fontSize: '.82rem', letterSpacing: '.12em' }}>
               {post.clock ?? nowClock()}
             </div>
             {post.location && (
-              <div style={{ color: 'rgba(255,255,255,.7)', fontSize: '.66rem', marginTop: 3,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-                <Icon name="pin" size={11} stroke="rgba(255,255,255,.7)"/> {post.location}
+              <div style={{
+                color: 'rgba(255,255,255,.7)', fontSize: '.66rem', marginTop: 3,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3
+              }}>
+                <Icon name="pin" size={11} stroke="rgba(255,255,255,.7)" /> {post.location}
               </div>
             )}
           </div>
 
           {/* Play/pause button — videos only */}
           {post.media.type === 'video' && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <div style={{ width: 58, height: 58, borderRadius: '50%', background: 'rgba(255,255,255,.9)',
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'
+            }}>
+              <div style={{
+                width: 58, height: 58, borderRadius: '50%', background: 'rgba(255,255,255,.9)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: playing ? 0 : 1, transition: 'opacity .25s' }}>
-                <Icon name="play" size={24} stroke="var(--ink)"/>
+                opacity: playing ? 0 : 1, transition: 'opacity .25s'
+              }}>
+                <Icon name="play" size={24} stroke="var(--ink)" />
               </div>
             </div>
           )}
 
           {/* Caption */}
           {post.caption && !editing && (
-            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0,
-              padding: '1.4rem 1.3rem 1.5rem', textAlign: 'center', pointerEvents: 'none' }}>
-              <p className="serif" style={{ color: '#fff', fontSize: '1.35rem', fontStyle: 'italic',
-                fontWeight: 500, lineHeight: 1.3, textShadow: '0 2px 12px rgba(0,0,0,.4)' }}>
+            <div style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0,
+              padding: '1.4rem 1.3rem 1.5rem', textAlign: 'center', pointerEvents: 'none'
+            }}>
+              <p className="serif" style={{
+                color: '#fff', fontSize: '1.35rem', fontStyle: 'italic',
+                fontWeight: 500, lineHeight: 1.3, textShadow: '0 2px 12px rgba(0,0,0,.4)'
+              }}>
                 {post.caption}
               </p>
             </div>
@@ -825,37 +871,45 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
       {/* Footer */}
       <footer style={{ marginTop: '.8rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
         <button onClick={toggleRoot}
-          style={{ display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.45rem .8rem',
+          style={{
+            display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.45rem .8rem',
             borderRadius: 100, fontSize: '.84rem', fontWeight: 500,
             color: rooted ? 'var(--ember)' : 'var(--ink-3)',
-            background: rooted ? 'var(--ember-dim)' : 'transparent' }}>
-          <Icon name="sprout" size={17} stroke={rooted ? 'var(--ember)' : 'var(--ink-3)'}/>
+            background: rooted ? 'var(--ember-dim)' : 'transparent'
+          }}>
+          <Icon name="sprout" size={17} stroke={rooted ? 'var(--ember)' : 'var(--ink-3)'} />
           Root <span style={{ fontVariantNumeric: 'tabular-nums' }}>{roots}</span>
         </button>
         <button onClick={() => setShowC(s => !s)}
-          style={{ display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.45rem .8rem',
+          style={{
+            display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.45rem .8rem',
             borderRadius: 100, fontSize: '.84rem', fontWeight: 500,
             color: showC ? 'var(--slate)' : 'var(--ink-3)',
-            background: showC ? 'var(--slate-dim)' : 'transparent' }}>
-          <Icon name="comment" size={16} stroke={showC ? 'var(--slate)' : 'var(--ink-3)'}/>
+            background: showC ? 'var(--slate-dim)' : 'transparent'
+          }}>
+          <Icon name="comment" size={16} stroke={showC ? 'var(--slate)' : 'var(--ink-3)'} />
           Comment <span style={{ fontVariantNumeric: 'tabular-nums' }}>{commentCount}</span>
         </button>
         <button onClick={() => setSharing(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.45rem .8rem',
-            borderRadius: 100, fontSize: '.84rem', fontWeight: 500, color: 'var(--ink-3)' }}>
-          <Icon name="share" size={16} stroke="var(--ink-3)"/> Share
+          style={{
+            display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.45rem .8rem',
+            borderRadius: 100, fontSize: '.84rem', fontWeight: 500, color: 'var(--ink-3)'
+          }}>
+          <Icon name="share" size={16} stroke="var(--ink-3)" /> Share
         </button>
       </footer>
 
-      {sharing && <ShareModal post={post} onClose={() => setSharing(false)}/>}
+      {sharing && <ShareModal post={post} onClose={() => setSharing(false)} />}
 
       {showC && (
         <div className="fade-in" style={{ marginTop: '.8rem', paddingTop: '.9rem', borderTop: '1px solid var(--border)' }}>
           {comments.map(c => (
             <div key={c.id} style={{ display: 'flex', gap: '.6rem', marginBottom: '.8rem' }}>
-              <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar} aura={c.authorAura ?? undefined}/>
-              <div style={{ background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1,
-                display: 'flex', alignItems: 'flex-start', gap: '.5rem' }}>
+              <Avatar name={c.authorName} size={32} avatarUrl={c.authorAvatar} aura={c.authorAura ?? undefined} />
+              <div style={{
+                background: 'var(--surf-low)', borderRadius: 'var(--r-md)', padding: '.55rem .8rem', flex: 1,
+                display: 'flex', alignItems: 'flex-start', gap: '.5rem'
+              }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '.8rem' }}>{c.authorName}</div>
                   <div style={{ fontSize: '.86rem', color: 'var(--ink-2)', lineHeight: 1.45 }}>{c.body}</div>
@@ -864,13 +918,13 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
                   style={{ flexShrink: 0, opacity: .5, marginTop: 1 }}
                   onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
                   onMouseLeave={e => (e.currentTarget.style.opacity = '.5')}>
-                  <Icon name="flag" size={12} stroke="var(--ink-4)"/>
+                  <Icon name="flag" size={12} stroke="var(--ink-4)" />
                 </button>
               </div>
             </div>
           ))}
           {reportingComment && (
-            <ReportModal contentType="comment" contentId={reportingComment} onClose={() => setReportingComment(null)}/>
+            <ReportModal contentType="comment" contentId={reportingComment} onClose={() => setReportingComment(null)} />
           )}
           {comments.length === 0 && !addCommentMutation.isPending && (
             <p style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontStyle: 'italic', marginBottom: '.8rem' }}>
@@ -883,12 +937,12 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
               placeholder="Add a comment…"
               style={{ flex: 1, padding: '.6rem .9rem', borderRadius: 100, border: '1.5px solid var(--border-2)', background: 'var(--surf-low)', fontSize: '.88rem' }}
               onFocus={e => { e.target.style.borderColor = 'var(--ember)'; }}
-              onBlur={e => { e.target.style.borderColor = 'var(--border-2)'; }}/>
+              onBlur={e => { e.target.style.borderColor = 'var(--border-2)'; }} />
             <button onClick={submitComment}
               disabled={!draft.trim() || addCommentMutation.isPending}
               className="btn btn-primary"
               style={{ padding: '.5rem .7rem', opacity: draft.trim() ? 1 : .5 }}>
-              <Icon name="send" size={16} stroke="#fff"/>
+              <Icon name="send" size={16} stroke="#fff" />
             </button>
           </div>
         </div>
@@ -903,7 +957,7 @@ function OverlapCard() {
   const { toast } = useToastStore();
   const { data: overlap, isLoading } = useQuery({
     queryKey: ['space-overlap'],
-    queryFn:  () => spacesApi.overlap(),
+    queryFn: () => spacesApi.overlap(),
     staleTime: 5 * 60_000,
   });
   const [state, setState] = useState<'idle' | 'introduced' | 'dismissed'>('idle');
@@ -915,10 +969,12 @@ function OverlapCard() {
   const nameB = overlap.connectionB?.displayName ?? 'Someone';
 
   if (state === 'introduced') return (
-    <div className="card fade-in" style={{ padding: '1.2rem 1.4rem', marginBottom: '.9rem',
+    <div className="card fade-in" style={{
+      padding: '1.2rem 1.4rem', marginBottom: '.9rem',
       background: 'var(--green-dim)', border: '1px solid rgba(46,107,58,.2)',
-      display: 'flex', alignItems: 'center', gap: '.6rem' }}>
-      <Icon name="check" size={18} stroke="var(--green)"/>
+      display: 'flex', alignItems: 'center', gap: '.6rem'
+    }}>
+      <Icon name="check" size={18} stroke="var(--green)" />
       <span style={{ color: 'var(--ink-2)', fontSize: '.92rem' }}>
         Introduced. {nameA.split(' ')[0]} and {nameB.split(' ')[0]} will each get a notification.
       </span>
@@ -926,18 +982,20 @@ function OverlapCard() {
   );
 
   return (
-    <div className="card" style={{ padding: '1.2rem 1.4rem', marginBottom: '.9rem',
+    <div className="card" style={{
+      padding: '1.2rem 1.4rem', marginBottom: '.9rem',
       background: 'linear-gradient(135deg, var(--cream), var(--ember-soft))',
-      border: '1px solid var(--ember-bdr)' }}>
+      border: '1px solid var(--ember-bdr)'
+    }}>
       <div className="label-mono" style={{ color: 'var(--ember-deep)', marginBottom: '.6rem' }}>
         A quiet observation
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.8rem' }}>
         <button onClick={() => overlap.connectionA?.id && router.push(`/grove/${overlap.connectionA.id}`)}>
-          <Avatar name={nameA} size={40} avatarUrl={overlap.connectionA?.avatarUrl}/>
+          <Avatar name={nameA} size={40} avatarUrl={overlap.connectionA?.avatarUrl} />
         </button>
         <button onClick={() => overlap.connectionB?.id && router.push(`/grove/${overlap.connectionB.id}`)} style={{ marginLeft: -12 }}>
-          <Avatar name={nameB} size={40} avatarUrl={overlap.connectionB?.avatarUrl}/>
+          <Avatar name={nameB} size={40} avatarUrl={overlap.connectionB?.avatarUrl} />
         </button>
         <p style={{ fontSize: '.92rem', color: 'var(--ink-2)' }}>
           <strong style={{ color: 'var(--ink)' }}>{nameA.split(' ')[0]}</strong> and{' '}
@@ -963,7 +1021,7 @@ function OverlapCard() {
         <button disabled={busy} className="btn btn-soft" style={{ padding: '.5rem 1rem', fontSize: '.85rem' }}
           onClick={() => {
             setState('dismissed');
-            spacesApi.dismissOverlap(overlap.id!).catch(() => {});
+            spacesApi.dismissOverlap(overlap.id!).catch(() => { });
           }}>
           Not now
         </button>
@@ -1028,21 +1086,37 @@ export default function HomePage() {
   const reactToPost = useReactToPost();
 
   const posts = useDisplayPosts(postRecords);
-  const shown = posts; // already filtered by spaceId in the query
+  const shown = posts;
 
-  // Infinite scroll: once this sentinel (rendered right after the last
-  // post) enters the viewport, pull the next page instead of making the
-  // reader tap a "load more" button.
+  // The observer must NOT be torn down and recreated on every render —
+  // fetchNextPage's identity and shown.length both change often (e.g. any
+  // of the unrelated useBonds/useGroups/useSuggestions queries resolving
+  // nearby re-renders this component), and a freshly created
+  // IntersectionObserver always fires an initial callback immediately with
+  // the current intersection state. If the sentinel is still in view when
+  // that happens, each recreation re-fires fetchNextPage, which changes
+  // shown.length, which recreates the observer again — a feedback loop
+  // that spams duplicate page fetches instead of pagination behaving
+  // predictably. Reading the latest values from a ref inside the
+  // callback, and only recreating the observer when the sentinel itself
+  // mounts/unmounts, fixes that.
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const paginationStateRef = useRef({ hasNextPage, isFetchingNextPage, fetchNextPage });
   useEffect(() => {
+    paginationStateRef.current = { hasNextPage, isFetchingNextPage, fetchNextPage };
+  });
+  const sentinelVisible = !postsLoading && shown.length > 0 && hasNextPage;
+  useEffect(() => {
+    if (!sentinelVisible) return;
     const el = loadMoreRef.current;
-    if (!el || !hasNextPage || isFetchingNextPage) return;
+    if (!el) return;
     const observer = new IntersectionObserver(entries => {
-      if (entries[0]?.isIntersecting) fetchNextPage();
+      const s = paginationStateRef.current;
+      if (entries[0]?.isIntersecting && s.hasNextPage && !s.isFetchingNextPage) s.fetchNextPage();
     }, { rootMargin: '400px' });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, shown.length]);
+  }, [sentinelVisible]);
 
   // tabs: [id, name] — space icon rendered by SpaceIcon component
   const tabs = [['all', 'All'], ...user.spaces.map(id => [id, spaceById(id).name])];
@@ -1053,7 +1127,7 @@ export default function HomePage() {
         {suggestions && suggestions.length > 0 ? (
           suggestions.slice(0, 4).map(s => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.5rem .4rem' }}>
-              <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl}/>
+              <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 500, fontSize: '.86rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.displayName}</div>
                 <div style={{ fontSize: '.7rem', color: 'var(--ember)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1083,7 +1157,7 @@ export default function HomePage() {
         {bondsData?.length ? bondsData.slice(0, 3).map(b => (
           <button key={b.id} onClick={() => router.push('/bonds')}
             style={{ display: 'flex', width: '100%', alignItems: 'center', gap: '.7rem', padding: '.55rem 0', textAlign: 'left' }}>
-            <Avatar name={b.otherUser?.displayName ?? '?'} size={38} avatarUrl={b.otherUser?.avatarUrl}/>
+            <Avatar name={b.otherUser?.displayName ?? '?'} size={38} avatarUrl={b.otherUser?.avatarUrl} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 500, fontSize: '.86rem' }}>{b.otherUser?.displayName ?? 'Bond'}</div>
               <div style={{ fontSize: '.72rem', color: 'var(--ink-3)' }}>
@@ -1106,7 +1180,7 @@ export default function HomePage() {
           <button key={g.id} onClick={() => router.push('/groups')} className="card"
             style={{ display: 'block', width: '100%', textAlign: 'left', padding: '.85rem', marginBottom: '.6rem', boxShadow: 'var(--shadow-soft)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.45rem' }}>
-              <span style={{ width: 34, height: 34, borderRadius: '50%', background: g.coverColor ?? 'var(--ember-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={groupIcon(g.emoji)} size={17} stroke="#fff" sw={1.5}/></span>
+              <span style={{ width: 34, height: 34, borderRadius: '50%', background: g.coverColor ?? 'var(--ember-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={groupIcon(g.emoji)} size={17} stroke="#fff" sw={1.5} /></span>
               <div style={{ fontWeight: 600, fontSize: '.86rem', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name}</div>
             </div>
             <div style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>{g.lifePhase}</div>
@@ -1134,7 +1208,7 @@ export default function HomePage() {
               color: tab === id ? 'var(--ember)' : 'var(--ink-3)',
               borderBottom: tab === id ? '2px solid var(--ember)' : '2px solid transparent', marginBottom: -1
             }}>
-              {id !== 'all' && <SpaceIcon spaceId={id} size={12}/>} {name}
+              {id !== 'all' && <SpaceIcon spaceId={id} size={12} />} {name}
             </button>
           ))}
         </div>
@@ -1149,13 +1223,13 @@ export default function HomePage() {
             await createPost.mutateAsync({
               spaceId: spaceUuid2,
               kind: isJustGrouv ? 'just_grouw' : 'roots',
-              ...(p.doing     && { doing: p.doing }),
-              ...(p.progress  && { progress: p.progress as Parameters<typeof createPost.mutateAsync>[0]['progress'] }),
-              ...(p.honest    && { honestThing: p.honest }),
-              ...(isJustGrouv && p.caption   && { body: p.caption }),
-              ...(isJustGrouv && p.location  && { authorLocation: p.location }),
+              ...(p.doing && { doing: p.doing }),
+              ...(p.progress && { progress: p.progress as Parameters<typeof createPost.mutateAsync>[0]['progress'] }),
+              ...(p.honest && { honestThing: p.honest }),
+              ...(isJustGrouv && p.caption && { body: p.caption }),
+              ...(isJustGrouv && p.location && { authorLocation: p.location }),
               isAnonymous: p.anon,
-              ...(extended._mediaUrl  && { mediaUrl: extended._mediaUrl }),
+              ...(extended._mediaUrl && { mediaUrl: extended._mediaUrl }),
               ...(extended._mediaType && { mediaType: extended._mediaType as 'image' | 'video' }),
             });
             toast(isJustGrouv ? 'Posted to Grouv.' : 'Rooted. Your circle will see it.');
@@ -1177,8 +1251,8 @@ export default function HomePage() {
         ) : shown.map((p, i) => (
           <React.Fragment key={p.id}>
             {p.kind === 'just_grouw'
-              ? <JustGrouvCard post={p} myId={user.id}/>
-              : <PostCard post={p} myId={user.id}/>}
+              ? <JustGrouvCard post={p} myId={user.id} />
+              : <PostCard post={p} myId={user.id} />}
             {i === 1 && tab === 'all' && <OverlapCard />}
           </React.Fragment>
         ))}
@@ -1187,7 +1261,7 @@ export default function HomePage() {
             going instead of dead-ending. */}
         {!postsLoading && shown.length > 0 && hasNextPage && (
           <div ref={loadMoreRef} style={{ display: 'flex', justifyContent: 'center', padding: '1.5rem 0' }}>
-            <Spinner size={20}/>
+            <Spinner size={20} />
           </div>
         )}
 
@@ -1196,9 +1270,9 @@ export default function HomePage() {
           <div style={{ textAlign: 'center', padding: '3rem 1rem 1.5rem' }}>
             {/* Thin rule with centred mark */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border-2)', flexShrink: 0 }}/>
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border-2)', flexShrink: 0 }} />
+              <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             </div>
             <p className="serif" style={{
               fontSize: '1.35rem', fontWeight: 600, fontStyle: 'italic',
