@@ -240,7 +240,7 @@ function PostCard({ post, myId }: { post: Post; myId?: string }) {
             ? <VideoPlayer src={post.media.src} />
             : <div style={{ borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--surf-high)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={post.media.src} alt="" style={{ width: '100%', display: 'block', maxHeight: 320, objectFit: 'cover' }} />
+              <img src={post.media.src} alt="" style={{ width: '100%', display: 'block', maxHeight: 320, objectFit: 'contain' }} />
             </div>
           }
         </div>
@@ -508,7 +508,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
           {media && (
             <div style={{ position: 'relative', marginBottom: '.8rem', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
               {media.type === 'image'
-                ? <img src={media.src} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }} />
+                ? <img src={media.src} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block' }} />
                 : <video src={media.src} style={{ width: '100%', maxHeight: 200, display: 'block' }} controls={false} />}
               {media.type === 'video' && (
                 <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.2)' }}>
@@ -563,7 +563,7 @@ function RootsComposer({ onPost }: { onPost?: (p: Post & { _mediaFile?: File }) 
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
               ) : (
-                <img src={media.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={media.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               )}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,12,4,.5) 0%, transparent 30%, transparent 55%, rgba(20,12,4,.8) 100%)', pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', top: 12, left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
@@ -841,7 +841,7 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
             />
           ) : (
             <img src={post.media.src} alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           )}
 
           <div style={{
