@@ -292,7 +292,7 @@ export interface BondRecord {
   status: 'circle' | 'bond';     // 'circle' until 7 chat days; then 'bond'
   streakDays: number;             // distinct calendar days with ≥1 message exchanged
   // joined by backend
-  otherUser?: { id: string; displayName: string; avatarUrl: string | null; openTo: string | null; deepFocusActive?: boolean; deepFocusEndsAt?: string | null; aura?: AuraKey | null };
+  otherUser?: { id: string; displayName: string; avatarUrl: string | null; openTo: string | null; deepFocusActive?: boolean; deepFocusEndsAt?: string | null; aura?: AuraKey | null; lastActiveAt?: string | null };
   depthScore?: number;
   lastMessageAt?: string | null;
   unreadCount?: number;

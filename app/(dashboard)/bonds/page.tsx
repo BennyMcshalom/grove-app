@@ -16,7 +16,7 @@ import { useBondInvitations, useAcceptBondInvitation, useDeclineBondInvitation, 
 import { useSuggestions } from '@/hooks/useUsers';
 import { bondsApi } from '@/lib/api';
 import { startCall } from '@/lib/calling';
-import { humanDuration, formatRelativeTime } from '@/lib/mappers';
+import { humanDuration, formatRelativeTime, formatLastSeen } from '@/lib/mappers';
 import type { BondRecord, BondMessage } from '@/lib/api';
 
 // ─────────────────────────────────────────────────────────────────
@@ -863,7 +863,6 @@ export default function BondsPage() {
                         const active = sel === idx;
                         const streak = b.streakDays ?? 0;
                         const pct    = Math.min(100, Math.round((streak / 7) * 100));
-                        const daysLeft = Math.max(0, 7 - streak);
                         const unread = b.unreadCount ?? 0;
                         return (
                           <button key={b.id} onClick={() => { setSel(idx); setMobileView('thread'); }} style={{
@@ -909,7 +908,7 @@ export default function BondsPage() {
                                   transition: 'width .5s ease' }}/>
                               </div>
                               <span style={{ fontSize: '.62rem', color: 'var(--ink-4)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
-                                {daysLeft === 0 ? 'becoming a Bond…' : `${daysLeft}d to Bond`}
+                                {formatLastSeen(b.otherUser?.lastActiveAt)}
                               </span>
                             </div>
                           </button>

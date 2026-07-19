@@ -60,6 +60,19 @@ export function formatRelativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+export function formatLastSeen(iso?: string | null): string {
+  if (!iso) return 'last seen a while ago';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60_000);
+  if (m < 5) return 'active now';
+  if (m < 60) return `active ${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `active ${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `active ${d}d ago`;
+  return `last seen ${new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+}
+
 /** "7 months" / "2 years" / "3 days" — how long it's been since `sinceIso`. */
 export function humanDuration(sinceIso: string, to: Date = new Date()): string {
   const from = new Date(sinceIso);
