@@ -430,6 +430,7 @@ export interface GroupRecord {
   postCount?: number;
   myRole?: 'admin' | 'member' | null;
   myRequestStatus?: 'pending' | 'denied' | null;
+  isSeeded?: boolean;
 }
 
 export interface GroupPost {
@@ -447,6 +448,7 @@ export const groupsApi = {
   create:        (data: { name: string; slug: string; description: string; lifePhase: string; emoji: string; coverColor: string }) =>
                    api.post<GroupRecord>('/groups', data),
   leave:         (id: string) => api.delete<void>(`/groups/${id}/members`),
+  delete:        (id: string) => api.delete<void>(`/groups/${id}`),
   invite:        (id: string, userId: string) => api.post<void>(`/groups/${id}/invite`, { userId }),
   posts:         (id: string) => api.get<GroupPost[]>(`/groups/${id}/posts`),
   postMsg:       (id: string, content: string) => api.post<GroupPost>(`/groups/${id}/posts`, { content }),

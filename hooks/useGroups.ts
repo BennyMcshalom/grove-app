@@ -56,6 +56,14 @@ export function useLeaveGroup() {
   });
 }
 
+export function useDeleteGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => groupsApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['groups'] }),
+  });
+}
+
 export function useGroupJoinRequests(id: string | undefined, enabled: boolean) {
   return useQuery({
     queryKey: ['group-join-requests', id],

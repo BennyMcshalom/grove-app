@@ -10,7 +10,7 @@ import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUserStore } from '@/store/useUserStore';
 import {
-  useGroups, useGroup, useCreateGroup, useRequestToJoinGroup, useLeaveGroup,
+  useGroups, useGroup, useCreateGroup, useRequestToJoinGroup, useLeaveGroup, useDeleteGroup,
   useGroupJoinRequests, useApproveJoinRequest, useDenyJoinRequest,
   useGroupPosts, usePostToGroup, useInviteToGroup,
 } from '@/hooks/useGroups';
@@ -171,9 +171,11 @@ function GroupDetail({ group: groupStub, onClose }: { group: GroupRecord; onClos
 
   const requestToJoin = useRequestToJoinGroup();
   const leave = useLeaveGroup();
+  const deleteGroup = useDeleteGroup();
   const [draft, setDraft] = useState('');
   const [showMembers, setShowMembers] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: posts, isLoading: postsLoading } = useGroupPosts(g.id, isMember);
   const postMsg = usePostToGroup(g.id);
@@ -210,19 +212,28 @@ function GroupDetail({ group: groupStub, onClose }: { group: GroupRecord; onClos
           </div>
           <p style={{ color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: '1rem' }}>{g.description}</p>
 
-          {members.length > 0 && (
+          {g.memberCount > 0 && (
             <div style={{ marginBottom: '1.2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                <div style={{ display: 'flex' }}>
-                  {members.slice(0, 5).map((m, i) => (
-                    <div key={m.id} style={{ marginLeft: i ? -10 : 0 }}>
-                      <Avatar name={m.profile?.displayName ?? 'Member'} size={28} avatarUrl={m.profile?.avatarUrl} aura={m.profile?.aura ?? undefined}/>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={() => setShowMembers(v => !v)} style={{ fontSize: '.78rem', color: 'var(--ink-3)', textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                  {g.memberCount} member{g.memberCount === 1 ? '' : 's'} · {showMembers ? 'Hide' : 'See all'}
-                </button>
+                {/* Roster (avatars, names) is member-only — the backend only sends `members` to members */}
+                {members.length > 0 && (
+                  <div style={{ display: 'flex' }}>
+                    {members.slice(0, 5).map((m, i) => (
+                      <div key={m.id} style={{ marginLeft: i ? -10 : 0 }}>
+                        <Avatar name={m.profile?.displayName ?? 'Member'} size={28} avatarUrl={m.profile?.avatarUrl} aura={m.profile?.aura ?? undefined}/>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {isMember ? (
+                  <button onClick={() => setShowMembers(v => !v)} style={{ fontSize: '.78rem', color: 'var(--ink-3)', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                    {g.memberCount} member{g.memberCount === 1 ? '' : 's'} · {showMembers ? 'Hide' : 'See all'}
+                  </button>
+                ) : (
+                  <span style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>
+                    {g.memberCount} member{g.memberCount === 1 ? '' : 's'}
+                  </span>
+                )}
                 {isMember && (
                   <button onClick={() => setShowInvite(v => !v)}
                     style={{ marginLeft: 'auto', fontSize: '.78rem', color: 'var(--ember)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '.25rem', flexShrink: 0 }}>
@@ -231,7 +242,7 @@ function GroupDetail({ group: groupStub, onClose }: { group: GroupRecord; onClos
                 )}
               </div>
 
-              {showMembers && (
+              {showMembers && isMember && (
                 <div className="fade-in scroll" style={{ marginTop: '.7rem', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '.5rem .8rem', maxHeight: 220, overflowY: 'auto' }}>
                   {members.map(m => (
                     <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '.6rem', padding: '.4rem 0' }}>
@@ -282,6 +293,27 @@ function GroupDetail({ group: groupStub, onClose }: { group: GroupRecord; onClos
             }} style={{ fontSize: '.78rem', color: 'var(--ink-4)', marginBottom: '1rem' }}>
               Leave this chapter
             </button>
+          )}
+
+          {/* ── Admin: delete the chapter (not available for seeded/default groups) ── */}
+          {isAdmin && !g.isSeeded && (
+            confirmDelete ? (
+              <div className="card fade-in" style={{ padding: '.9rem 1rem', background: 'var(--red-dim)', border: '1px solid var(--red-bdr)', boxShadow: 'none', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '.7rem' }}>
+                <span style={{ flex: 1, fontSize: '.83rem', color: 'var(--red)', fontWeight: 500 }}>Delete this chapter? This can&apos;t be undone.</span>
+                <button onClick={async () => {
+                  try { await deleteGroup.mutateAsync(g.id); toast(`${g.name} deleted.`); onClose(); }
+                  catch { toast('Could not delete chapter.'); }
+                }} disabled={deleteGroup.isPending}
+                  className="btn btn-primary" style={{ background: 'var(--red)', padding: '.4rem .8rem', fontSize: '.8rem', boxShadow: 'none' }}>
+                  {deleteGroup.isPending ? 'Deleting…' : 'Delete'}
+                </button>
+                <button onClick={() => setConfirmDelete(false)} disabled={deleteGroup.isPending} className="btn btn-soft" style={{ padding: '.4rem .8rem', fontSize: '.8rem' }}>Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmDelete(true)} style={{ fontSize: '.78rem', color: 'var(--red)', marginBottom: '1rem' }}>
+                Delete this chapter
+              </button>
+            )
           )}
 
           {/* ── Admin: pending requests queue ── */}
