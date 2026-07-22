@@ -1,8 +1,3 @@
-/* ─────────────────────────────────────────────────────
-   GROUW – Design Tokens, Base, Dark Mode, Mobile
-───────────────────────────────────────────────────── */
-
-/* ── Light mode (default) ── */
 :root {
   /* Brand */
   --ember: #F3701E;
@@ -21,6 +16,9 @@
   --forest-3: #36523F;
   --sage: #4E7D5E;
   --mint: #8DD4A4;
+
+  /* Grove page's "struggling" ring — muted rose, distinct from the --red status color */
+  --ring-struggling: #B1454F;
 
   --charcoal: #1A1A1A;
 
@@ -87,6 +85,9 @@
 
   --sage: #6AAD82;
   --mint: #7EC896;
+
+  /* Brighter than the light-mode value for contrast against a near-black pill */
+  --ring-struggling: #E0808A;
 
   /* Surfaces — true black */
   --bg: #000000;
@@ -611,6 +612,7 @@ textarea:focus {
     transform: scale(.88);
   }
 }
+
 @media (max-width: 400px) {
   .grove-orbit-stage {
     transform: scale(.74);
@@ -962,8 +964,15 @@ textarea:focus {
 }
 
 @keyframes swapIn {
-  from { opacity: 0; transform: scale(.97) translateY(4px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(.97) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .log-card-shadow {
@@ -971,9 +980,20 @@ textarea:focus {
 }
 
 @keyframes stamp {
-  0%   { opacity: 0; transform: scale(1.6) rotate(-14deg); }
-  60%  { opacity: 1; transform: scale(.94) rotate(-2deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  0% {
+    opacity: 0;
+    transform: scale(1.6) rotate(-14deg);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(.94) rotate(-2deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 /* ── Screen jumper ── */

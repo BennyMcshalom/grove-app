@@ -16,14 +16,22 @@ import { formatRelativeTime } from '@/lib/mappers';
 import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useBonds } from '@/hooks/useBonds';
 import { useUpdatePost, useDeletePost } from '@/hooks/usePosts';
+import { useTheme } from '@/hooks/useTheme';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuraKey } from '@/lib/types';
 
-const RINGS = [
-  { key: 'inner',  label: 'Struggling with', field: 'struggling', color: '#B1454F', r: 0.30 },
-  { key: 'middle', label: 'Building',         field: 'building',   color: '#F3701E', r: 0.50 },
-  { key: 'outer',  label: 'Open to',          field: 'openTo',     color: '#4E7D5E', r: 0.70 },
-];
+
+const RING_COLORS: Record<string, { light: string; dark: string }> = {
+  inner: { light: '#B1454F', dark: '#E0808A' }, // matches --ring-struggling
+  middle: { light: '#F3701E', dark: '#F3701E' }, // matches --ember
+  outer: { light: '#4E7D5E', dark: '#6AAD82' }, // matches --sage
+};
+
+const RINGS_BASE = [
+  { key: 'inner', label: 'Struggling with', field: 'struggling', r: 0.30 },
+  { key: 'middle', label: 'Building', field: 'building', r: 0.50 },
+  { key: 'outer', label: 'Open to', field: 'openTo', r: 0.70 },
+] as const;
 
 // ── A single post card on the Grove profile, with edit/delete for the owner ──
 function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: boolean }) {
@@ -32,12 +40,12 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
   const qc = useQueryClient();
   const { slugById } = useSpaceStore();
   const isGrouv = p.kind === 'just_grouw';
-  const [menu, setMenu]           = useState(false);
-  const [editing, setEditing]     = useState(false);
-  const [confirmDel, setConfirm]  = useState(false);
-  const [editDoing, setEditDoing]   = useState(p.doing ?? '');
+  const [menu, setMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [confirmDel, setConfirm] = useState(false);
+  const [editDoing, setEditDoing] = useState(p.doing ?? '');
   const [editHonest, setEditHonest] = useState(p.honestThing ?? '');
-  const [editBody, setEditBody]     = useState(p.body ?? '');
+  const [editBody, setEditBody] = useState(p.body ?? '');
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
 
@@ -46,9 +54,6 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
     if (slug) router.push(`/spaces/${slug}?post=${p.id}`);
   };
 
-  // useUpdatePost/useDeletePost only invalidate the ['posts'] feed query —
-  // this page's list lives under its own ['grove-posts', userId] key, so it
-  // needs its own invalidation to pick up the change.
   const saveEdit = async () => {
     try {
       if (isGrouv) {
@@ -77,15 +82,17 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
       {p.mediaUrl && !editing && (
         <div onClick={openPost} style={{ position: 'relative', height: 150, background: 'var(--surf-high)', cursor: 'pointer' }}>
           {p.mediaType?.startsWith('video') ? (
-            <video src={p.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} muted/>
+            <video src={p.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} muted />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+            <img src={p.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           )}
           {p.mediaType?.startsWith('video') && (
-            <span style={{ position: 'absolute', top: 8, right: 8, width: 26, height: 26, borderRadius: '50%',
-              background: 'rgba(20,14,8,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="video" size={13} stroke="#fff"/>
+            <span style={{
+              position: 'absolute', top: 8, right: 8, width: 26, height: 26, borderRadius: '50%',
+              background: 'rgba(20,14,8,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Icon name="video" size={13} stroke="#fff" />
             </span>
           )}
         </div>
@@ -98,7 +105,7 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
             {canManage && (
               <button onClick={() => { setMenu(m => !m); setConfirm(false); }}
                 style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="dots" size={14} stroke="var(--ink-4)"/>
+                <Icon name="dots" size={14} stroke="var(--ink-4)" />
               </button>
             )}
           </div>
@@ -106,11 +113,12 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
 
         {menu && (
           <>
-            <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)}/>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)} />
             <div className="fade-in" style={{
               position: 'absolute', top: 40, right: 12, zIndex: 20,
               background: 'var(--white)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-lg)',
-              border: '1px solid var(--border)', overflow: 'hidden', width: 160 }}>
+              border: '1px solid var(--border)', overflow: 'hidden', width: 160
+            }}>
               <button onClick={() => { setMenu(false); setEditing(true); setEditDoing(p.doing ?? ''); setEditHonest(p.honestThing ?? ''); setEditBody(p.body ?? ''); }}
                 style={{ display: 'flex', width: '100%', textAlign: 'left', padding: '.65rem 1rem', fontSize: '.86rem', color: 'var(--ink-2)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--surf-low)')}
@@ -128,9 +136,11 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
         )}
 
         {confirmDel && (
-          <div className="fade-in" style={{ background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
+          <div className="fade-in" style={{
+            background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
             padding: '.6rem .8rem', marginBottom: '.6rem', display: 'flex', alignItems: 'center', gap: '.6rem',
-            border: '1px solid var(--red-bdr)' }}>
+            border: '1px solid var(--red-bdr)'
+          }}>
             <span style={{ flex: 1, fontSize: '.8rem', color: 'var(--red)', fontWeight: 500 }}>Delete this post?</span>
             <button onClick={handleDelete} disabled={deletePost.isPending}
               className="btn btn-primary" style={{ padding: '.3rem .7rem', fontSize: '.76rem', background: 'var(--red)', boxShadow: 'none' }}>
@@ -144,9 +154,11 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
           isGrouv ? (
             <div>
               <textarea value={editBody} onChange={e => setEditBody(e.target.value)} maxLength={200} autoFocus
-                style={{ width: '100%', resize: 'vertical', minHeight: 56, padding: '.55rem .7rem', fontSize: '.95rem',
+                style={{
+                  width: '100%', resize: 'vertical', minHeight: 56, padding: '.55rem .7rem', fontSize: '.95rem',
                   lineHeight: 1.5, borderRadius: 'var(--r-sm)', border: '1.5px solid var(--ember)',
-                  background: 'var(--surf-low)', marginBottom: '.5rem' }}/>
+                  background: 'var(--surf-low)', marginBottom: '.5rem'
+                }} />
               <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
                 <button onClick={() => setEditing(false)} className="btn btn-soft" style={{ padding: '.35rem .75rem', fontSize: '.78rem' }}>Cancel</button>
                 <button onClick={saveEdit} disabled={updatePost.isPending || !editBody.trim()} className="btn btn-primary" style={{ padding: '.35rem .75rem', fontSize: '.78rem' }}>
@@ -157,13 +169,17 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
           ) : (
             <div>
               <textarea value={editDoing} onChange={e => setEditDoing(e.target.value)} maxLength={200}
-                style={{ width: '100%', resize: 'vertical', minHeight: 46, padding: '.5rem .65rem', fontSize: '.9rem',
+                style={{
+                  width: '100%', resize: 'vertical', minHeight: 46, padding: '.5rem .65rem', fontSize: '.9rem',
                   fontWeight: 600, lineHeight: 1.4, borderRadius: 'var(--r-sm)', border: '1.5px solid var(--ember)',
-                  background: 'var(--surf-low)', marginBottom: '.4rem' }}/>
+                  background: 'var(--surf-low)', marginBottom: '.4rem'
+                }} />
               <textarea value={editHonest} onChange={e => setEditHonest(e.target.value)} maxLength={300}
-                style={{ width: '100%', resize: 'vertical', minHeight: 46, padding: '.5rem .65rem', fontSize: '.85rem',
+                style={{
+                  width: '100%', resize: 'vertical', minHeight: 46, padding: '.5rem .65rem', fontSize: '.85rem',
                   fontStyle: 'italic', lineHeight: 1.45, borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border-2)',
-                  background: 'var(--surf-low)', marginBottom: '.5rem' }}/>
+                  background: 'var(--surf-low)', marginBottom: '.5rem'
+                }} />
               <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
                 <button onClick={() => setEditing(false)} className="btn btn-soft" style={{ padding: '.35rem .75rem', fontSize: '.78rem' }}>Cancel</button>
                 <button onClick={saveEdit} disabled={updatePost.isPending || !editDoing.trim() || !editHonest.trim()} className="btn btn-primary" style={{ padding: '.35rem .75rem', fontSize: '.78rem' }}>
@@ -189,12 +205,12 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '.7rem', paddingTop: '.6rem', borderTop: '1px solid var(--border)' }}>
                 {(p.rootCount ?? 0) > 0 && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.78rem', color: 'var(--ink-3)' }}>
-                    <Icon name="sprout" size={14} stroke="var(--sage)"/> {p.rootCount}
+                    <Icon name="sprout" size={14} stroke="var(--sage)" /> {p.rootCount}
                   </span>
                 )}
                 {(p.commentCount ?? 0) > 0 && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.78rem', color: 'var(--ink-3)' }}>
-                    <Icon name="comment" size={13} stroke="var(--ink-3)"/> {p.commentCount}
+                    <Icon name="comment" size={13} stroke="var(--ink-3)" /> {p.commentCount}
                   </span>
                 )}
               </div>
@@ -212,19 +228,27 @@ function LogViewer({ title, entries, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 7000, background: 'rgba(26,26,26,.5)',
-      backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 7000, background: 'rgba(26,26,26,.5)',
+      backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end'
+    }}
       onClick={onClose}>
-      <div className="scroll" style={{ width: 'min(520px, 94vw)', height: '100%', background: 'var(--white)',
-        overflowY: 'auto', animation: 'slideIn .3s ease both' }}
+      <div className="scroll" style={{
+        width: 'min(520px, 94vw)', height: '100%', background: 'var(--white)',
+        overflowY: 'auto', animation: 'slideIn .3s ease both'
+      }}
         onClick={e => e.stopPropagation()}>
-        <div style={{ position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2,
+        <div style={{
+          position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2,
           borderBottom: '1px solid var(--border)', padding: '1.1rem 1.4rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
           <div className="label-mono">{title}</div>
-          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="close" stroke="var(--ink-3)"/>
+          <button onClick={onClose} style={{
+            width: 36, height: 36, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <Icon name="close" stroke="var(--ink-3)" />
           </button>
         </div>
         <div style={{ padding: '1.4rem' }}>
@@ -232,12 +256,14 @@ function LogViewer({ title, entries, onClose }: {
             <p style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>No log entries yet.</p>
           )}
           {entries.map((e, i) => (
-            <article key={i} style={{ marginBottom: '1.8rem', paddingBottom: '1.8rem',
-              borderBottom: i < entries.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            <article key={i} style={{
+              marginBottom: '1.8rem', paddingBottom: '1.8rem',
+              borderBottom: i < entries.length - 1 ? '1px solid var(--border)' : 'none'
+            }}>
               <div className="label-mono" style={{ marginBottom: '.6rem' }}>Day {entries.length - i} · {e.date}</div>
               {e.mediaUrl && (
                 <div style={{ borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: '.8rem' }}>
-                  <img src={e.mediaUrl} alt="" style={{ width: '100%', objectFit: 'cover', display: 'block', maxHeight: 240 }}/>
+                  <img src={e.mediaUrl} alt="" style={{ width: '100%', objectFit: 'cover', display: 'block', maxHeight: 240 }} />
                 </div>
               )}
               <p className="serif" style={{ fontSize: '1.15rem', lineHeight: 1.5 }}>{e.body}</p>
@@ -258,6 +284,8 @@ export default function GrovePage() {
   const { setUser } = useUserStore();
   const userId = params.userId as string;
   const isOwnProfile = !!authUser?.id && authUser.id === userId;
+  const isDark = useTheme() === 'dark';
+  const RINGS = RINGS_BASE.map(r => ({ ...r, color: RING_COLORS[r.key][isDark ? 'dark' : 'light'] }));
 
   const [active, setActive] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
@@ -275,12 +303,6 @@ export default function GrovePage() {
   const [ringDraft, setRingDraft] = useState('');
   const [savingRing, setSavingRing] = useState(false);
 
-  // The orbit stage's own width is CSS-responsive (width:STAGE, maxWidth:92vw),
-  // but the center avatar was a fixed 150px regardless — on any container
-  // narrower than ~500px that made the avatar's radius bigger than the inner
-  // ring's radius, so the avatar (z-index above the rings) covered the inner
-  // ring's "Struggling with" label entirely. Track viewport width so the
-  // avatar can shrink in step with the rings instead.
   const [viewportW, setViewportW] = useState(1024);
   useEffect(() => {
     const update = () => setViewportW(window.innerWidth);
@@ -291,15 +313,15 @@ export default function GrovePage() {
 
   const { data: grove, isLoading } = useQuery({
     queryKey: ['grove', userId],
-    queryFn:  () => groveApi.get(userId),
+    queryFn: () => groveApi.get(userId),
     staleTime: 5 * 60_000,
   });
 
   const primarySpaceId = grove?.activeSpaces?.[0]?.spaceId ?? null;
   const { data: logResult } = useQuery({
     queryKey: ['grove-log', userId, primarySpaceId],
-    queryFn:  () => logApi.userEntries(primarySpaceId!, userId),
-    enabled:  !!primarySpaceId,
+    queryFn: () => logApi.userEntries(primarySpaceId!, userId),
+    enabled: !!primarySpaceId,
     staleTime: 5 * 60_000,
   });
   const logEntries = logResult?.entries ?? [];
@@ -307,7 +329,7 @@ export default function GrovePage() {
 
   const { data: userPosts, isLoading: postsLoading } = useQuery({
     queryKey: ['grove-posts', userId],
-    queryFn:  () => postsApi.byUser(userId),
+    queryFn: () => postsApi.byUser(userId),
     staleTime: 60_000,
   });
 
@@ -327,13 +349,13 @@ export default function GrovePage() {
   const stageWidth = Math.min(STAGE, viewportW * 0.92);
   const avatarSize = Math.round(Math.min(150, stageWidth * 0.28));
 
-  const name      = grove?.profile?.displayName ?? '';
+  const name = grove?.profile?.displayName ?? '';
   const firstName = name.split(' ')[0] || '…';
-  const realAura  = (grove?.profile?.aura ?? undefined) as AuraKey | undefined;
+  const realAura = (grove?.profile?.aura ?? undefined) as AuraKey | undefined;
   const avatarUrl = grove?.profile?.avatarUrl ?? null;
   const possessiveCap = isOwnProfile ? 'Your' : `${firstName}'s`;
-  const hasntFilled    = isOwnProfile ? "You haven't filled this in yet." : `${firstName} hasn't filled this in yet.`;
-  const hasntPosted     = isOwnProfile ? "You haven't posted any log entries yet." : `${firstName} hasn't posted any log entries yet.`;
+  const hasntFilled = isOwnProfile ? "You haven't filled this in yet." : `${firstName} hasn't filled this in yet.`;
+  const hasntPosted = isOwnProfile ? "You haven't posted any log entries yet." : `${firstName} hasn't posted any log entries yet.`;
 
   const uniqueSpaceIds = (
     grove?.activeSpaces.map(s => s.space?.slug).filter(Boolean) as string[] | undefined
@@ -341,12 +363,12 @@ export default function GrovePage() {
   ).filter((v, i, a) => a.indexOf(v) === i).slice(0, 4);
 
   const closedChapters = grove?.closedChapters ?? [];
-  const chapter        = closedChapters[Math.min(ci, Math.max(closedChapters.length - 1, 0))];
+  const chapter = closedChapters[Math.min(ci, Math.max(closedChapters.length - 1, 0))];
 
   const logForViewer = logEntries.slice(0, 10).map(e => ({
-    date:     new Date(e.entryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: new Date(e.entryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     mediaUrl: e.mediaUrl,
-    body:     e.body,
+    body: e.body,
   }));
 
   const primarySpace = grove?.activeSpaces?.[0];
@@ -396,17 +418,21 @@ export default function GrovePage() {
   const selectRing = (key: string | null) => { setActive(key); setEditingRing(false); };
 
   return (
-    <div className="scroll" style={{ height: '100vh', width: '100vw', overflowY: 'auto', overflowX: 'hidden',
-      background: 'radial-gradient(circle at 50% 38%, #FBF8F3, var(--bg) 70%)' }}>
+    <div className="scroll" style={{
+      height: '100vh', width: '100vw', overflowY: 'auto', overflowX: 'hidden',
+      background: 'radial-gradient(circle at 50% 38%, var(--surf-high), var(--bg) 70%)'
+    }}>
 
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.6rem', padding: '1.2rem clamp(1rem, 4vw, 1.6rem)' }}>
         <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '.4rem', color: 'var(--ink-3)', fontSize: '.9rem', flexShrink: 0 }}>
-          <Icon name="back" size={18} stroke="var(--ink-3)"/> Back
+          <Icon name="back" size={18} stroke="var(--ink-3)" /> Back
         </button>
-        <div className="label-mono" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem',
-          flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {isLoading ? <Spinner size={12}/> : isOwnProfile ? (
+        <div className="label-mono" style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem',
+          flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+        }}>
+          {isLoading ? <Spinner size={12} /> : isOwnProfile ? (
             <span style={{ color: 'var(--ember)', fontWeight: 600 }}>This is your Grouv</span>
           ) : (
             <><span>You're inside</span> <span style={{ color: 'var(--ember)', fontWeight: 600 }}>{firstName}'s Grouv</span></>
@@ -415,7 +441,7 @@ export default function GrovePage() {
         {!isOwnProfile && (
           <button onClick={() => setShowOverlap(s => !s)} className="chip"
             style={{ cursor: 'pointer', flexShrink: 0, background: showOverlap ? 'var(--ember-dim)' : 'var(--surf-high)', color: showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)' }}>
-            <Icon name="dots" size={14} stroke={showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)'} sw={2}/> Overlap
+            <Icon name="dots" size={14} stroke={showOverlap ? 'var(--ember-deep)' : 'var(--ink-2)'} sw={2} /> Overlap
           </button>
         )}
       </div>
@@ -425,24 +451,25 @@ export default function GrovePage() {
         {/* Orbit stage */}
         <div style={{ flex: '1 1 540px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div className="grove-orbit-stage" style={{ position: 'relative', width: STAGE, maxWidth: '92vw', aspectRatio: '1' }}>
-
-            {/* Rings — sized as % of the container so they scale with maxWidth/aspectRatio on mobile,
-                instead of a fixed pixel diameter that ignored the responsive container size. */}
             {[...RINGS].reverse().map(ring => {
-              const dPct = ring.r * 100; // diameter as % of container — matches rrPct below, which treats r=0.70 as literally 70%
+              const dPct = ring.r * 100;
               const on = active === ring.key;
               const hov = hover === ring.key;
               return (
                 <div key={ring.key} onClick={() => selectRing(on ? null : ring.key)}
                   onMouseEnter={() => setHover(ring.key)} onMouseLeave={() => setHover(null)}
-                  style={{ position: 'absolute', left: '50%', top: '50%', width: `${dPct}%`, height: `${dPct}%`, transform: 'translate(-50%,-50%)',
+                  style={{
+                    position: 'absolute', left: '50%', top: '50%', width: `${dPct}%`, height: `${dPct}%`, transform: 'translate(-50%,-50%)',
                     borderRadius: '50%', border: `2px solid ${ring.color}`, opacity: on || hov ? 1 : .5, cursor: 'pointer',
                     boxShadow: on ? `0 0 26px -2px ${ring.color}99, inset 0 0 26px -6px ${ring.color}66` : 'none',
                     background: hov && !on ? `radial-gradient(circle, transparent 60%, ${ring.color}14)` : 'transparent',
-                    transition: 'opacity .25s, box-shadow .25s, background .2s' }}>
-                  <div style={{ position: 'absolute', left: '50%', top: -1, transform: 'translate(-50%,-55%)',
+                    transition: 'opacity .25s, box-shadow .25s, background .2s'
+                  }}>
+                  <div style={{
+                    position: 'absolute', left: '50%', top: -6, transform: 'translate(-50%,-100%)',
                     background: 'var(--white)', borderRadius: 100, padding: '.25rem .7rem', boxShadow: 'var(--shadow-soft)',
-                    fontSize: '.66rem', fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase' as const, color: ring.color, whiteSpace: 'nowrap' as const }}>
+                    fontSize: '.66rem', fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase' as const, color: ring.color, whiteSpace: 'nowrap' as const
+                  }}>
                     {ring.label}
                   </div>
                 </div>
@@ -468,7 +495,7 @@ export default function GrovePage() {
                 return (
                   <div key={id} style={{ position: 'absolute', left: `${xPct}%`, top: `${yPct}%`, transform: 'translate(-50%,-50%)', animation: 'orbitR 48s linear infinite' }}>
                     <div style={{ width: 44, height: 44, borderRadius: '50%', background: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow)', animation: 'groveFloat 4s ease-in-out infinite' }}>
-                      <Icon name={s.icon} size={20} stroke={s.ink} sw={1.6}/>
+                      <Icon name={s.icon} size={20} stroke={s.ink} sw={1.6} />
                     </div>
                   </div>
                 );
@@ -478,13 +505,15 @@ export default function GrovePage() {
             {/* Center portrait */}
             <button onMouseDown={() => setAmbience(true)} onMouseUp={() => setAmbience(false)} onMouseLeave={() => setAmbience(false)}
               style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', borderRadius: '50%', zIndex: 6 }}>
-              <Avatar name={name || '?'} size={avatarSize} timePhase={phase} aura={realAura} ring={2} avatarUrl={avatarUrl}/>
+              <Avatar name={name || '?'} size={avatarSize} timePhase={phase} aura={realAura} ring={2} avatarUrl={avatarUrl} />
             </button>
 
             {ambience && (
-              <div style={{ position: 'absolute', left: '50%', bottom: 8, transform: 'translateX(-50%)', zIndex: 7,
-                display: 'flex', alignItems: 'center', gap: '.5rem', background: 'var(--white)', borderRadius: 100, padding: '.4rem .8rem', boxShadow: 'var(--shadow)' }}>
-                <div style={{ width: 54 }}><Waveform color="var(--sage)" playing bars={14} height={18}/></div>
+              <div style={{
+                position: 'absolute', left: '50%', bottom: 8, transform: 'translateX(-50%)', zIndex: 7,
+                display: 'flex', alignItems: 'center', gap: '.5rem', background: 'var(--white)', borderRadius: 100, padding: '.4rem .8rem', boxShadow: 'var(--shadow)'
+              }}>
+                <div style={{ width: 54 }}><Waveform color="var(--sage)" playing bars={14} height={18} /></div>
                 <span style={{ fontSize: '.72rem', color: 'var(--ink-2)' }}>{possessiveCap} ambience</span>
               </div>
             )}
@@ -500,7 +529,7 @@ export default function GrovePage() {
                   <span style={{ fontSize: '.72rem', color: 'var(--ink-3)' }}>Now</span>
                   <input type="range" min="0" max={closedChapters.length - 1} value={ci}
                     onChange={e => { setCi(+e.target.value); selectRing(null); }}
-                    style={{ width: 'min(240px, 60vw)', accentColor: 'var(--ember)' }}/>
+                    style={{ width: 'min(240px, 60vw)', accentColor: 'var(--ember)' }} />
                   <span style={{ fontSize: '.72rem', color: 'var(--ink-3)' }}>Earlier</span>
                 </div>
                 {chapter && (
@@ -520,8 +549,8 @@ export default function GrovePage() {
           <div className="card" style={{ padding: '1.3rem 1.4rem' }}>
             {isLoading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
-                <div style={{ height: 28, width: '65%', background: 'var(--surf-high)', borderRadius: 6, animation: 'pulse 1.5s ease infinite' }}/>
-                <div style={{ height: 18, width: '40%', background: 'var(--surf-high)', borderRadius: 6, animation: 'pulse 1.5s ease infinite' }}/>
+                <div style={{ height: 28, width: '65%', background: 'var(--surf-high)', borderRadius: 6, animation: 'pulse 1.5s ease infinite' }} />
+                <div style={{ height: 18, width: '40%', background: 'var(--surf-high)', borderRadius: 6, animation: 'pulse 1.5s ease infinite' }} />
               </div>
             ) : (
               <>
@@ -529,12 +558,14 @@ export default function GrovePage() {
                   <div style={{ marginBottom: '.6rem' }}>
                     <input autoFocus value={nameDraft} onChange={e => setNameDraft(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
-                      style={{ width: '100%', padding: '.5rem .7rem', fontSize: '1.1rem', fontFamily: 'inherit',
-                        border: '1.5px solid var(--ember)', borderRadius: 'var(--r-md)', background: 'var(--surf-low)' }}/>
+                      style={{
+                        width: '100%', padding: '.5rem .7rem', fontSize: '1.1rem', fontFamily: 'inherit',
+                        border: '1.5px solid var(--ember)', borderRadius: 'var(--r-md)', background: 'var(--surf-low)'
+                      }} />
                     <div style={{ display: 'flex', gap: '.5rem', marginTop: '.5rem' }}>
                       <button onClick={saveName} disabled={savingName || !nameDraft.trim()} className="btn btn-primary"
                         style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>
-                        {savingName ? <Spinner size={12} color="#fff"/> : 'Save'}
+                        {savingName ? <Spinner size={12} color="#fff" /> : 'Save'}
                       </button>
                       <button onClick={() => setEditingName(false)} disabled={savingName} className="btn btn-soft"
                         style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>Cancel</button>
@@ -552,13 +583,15 @@ export default function GrovePage() {
                   </div>
                 )}
                 {primarySpace?.space?.slug && (
-                  <StageChip space={primarySpace.space.slug} stage={primarySpace.stage ?? primarySpace.space.name}/>
+                  <StageChip space={primarySpace.space.slug} stage={primarySpace.stage ?? primarySpace.space.name} />
                 )}
                 {realAura && (
                   <div style={{ marginTop: '.8rem', display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.8rem', color: 'var(--ink-3)' }}>
-                    <span style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
+                    <span style={{
+                      width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
                       background: AURAS[realAura].color,
-                      boxShadow: `0 0 8px ${AURAS[realAura].color}`, display: 'block' }}/>
+                      boxShadow: `0 0 8px ${AURAS[realAura].color}`, display: 'block'
+                    }} />
                     {AURAS[realAura].label}, <span style={{ fontStyle: 'italic' }}>{AURAS[realAura].hint}</span>
                   </div>
                 )}
@@ -567,7 +600,7 @@ export default function GrovePage() {
           </div>
 
           {active ? (() => {
-            const ring    = RINGS.find(r => r.key === active)!;
+            const ring = RINGS.find(r => r.key === active)!;
             const content = getRingContent(active as 'inner' | 'middle' | 'outer');
             const chapterLearning = active === 'inner' && chapter?.closingLearned;
             const canEditRing = isOwnProfile && (ring.field !== 'building' || !!primarySpace);
@@ -584,21 +617,25 @@ export default function GrovePage() {
                   <div style={{ marginBottom: '1rem' }}>
                     {ring.field === 'building' ? (
                       <select value={ringDraft} onChange={e => setRingDraft(e.target.value)} autoFocus
-                        style={{ width: '100%', padding: '.6rem .7rem', fontSize: '.92rem', fontFamily: 'inherit',
-                          border: '1.5px solid var(--ember)', borderRadius: 'var(--r-md)', background: 'var(--surf-low)' }}>
+                        style={{
+                          width: '100%', padding: '.6rem .7rem', fontSize: '.92rem', fontFamily: 'inherit',
+                          border: '1.5px solid var(--ember)', borderRadius: 'var(--r-md)', background: 'var(--surf-low)'
+                        }}>
                         {stageOptions.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     ) : (
                       <textarea autoFocus value={ringDraft} onChange={e => setRingDraft(e.target.value)} maxLength={300}
                         placeholder="Only your Bonds will see this…"
-                        style={{ width: '100%', minHeight: 80, resize: 'vertical', padding: '.6rem .7rem', fontSize: '.92rem',
+                        style={{
+                          width: '100%', minHeight: 80, resize: 'vertical', padding: '.6rem .7rem', fontSize: '.92rem',
                           fontFamily: 'inherit', lineHeight: 1.5, border: '1.5px solid var(--ember)', borderRadius: 'var(--r-md)',
-                          background: 'var(--surf-low)' }}/>
+                          background: 'var(--surf-low)'
+                        }} />
                     )}
                     <div style={{ display: 'flex', gap: '.5rem', marginTop: '.6rem' }}>
                       <button onClick={saveRing} disabled={savingRing} className="btn btn-primary"
                         style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>
-                        {savingRing ? <Spinner size={12} color="#fff"/> : 'Save'}
+                        {savingRing ? <Spinner size={12} color="#fff" /> : 'Save'}
                       </button>
                       <button onClick={() => setEditingRing(false)} disabled={savingRing} className="btn btn-soft"
                         style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>Cancel</button>
@@ -628,7 +665,7 @@ export default function GrovePage() {
                 {isOwnProfile
                   ? "You're standing in the middle of your own Grouv."
                   : `You're standing in the middle of ${firstName}'s Grouv.`} Each ring is a layer of where {isOwnProfile ? 'you are' : 'they are'},{' '}
-                <span style={{ color: '#B1454F' }}>struggling</span>, <span style={{ color: 'var(--ember)' }}>building</span>,{' '}
+                <span style={{ color: 'var(--ring-struggling)' }}>struggling</span>, <span style={{ color: 'var(--ember)' }}>building</span>,{' '}
                 <span style={{ color: 'var(--sage)' }}>open to</span>. Step into one.
               </p>
             </div>
@@ -637,7 +674,7 @@ export default function GrovePage() {
           {showOverlap && (
             <div className="card fade-in" style={{ padding: '1.2rem 1.4rem', background: 'var(--ember-dim)', border: '1px solid var(--ember-bdr)' }}>
               <div className="label-mono" style={{ color: 'var(--ember-deep)', marginBottom: '.4rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
-                <Icon name="dots" size={12} stroke="var(--ember-deep)" sw={2}/> Where your Grouvs overlap
+                <Icon name="dots" size={12} stroke="var(--ember-deep)" sw={2} /> Where your Grouvs overlap
               </div>
               {grove?.activeSpaces?.length ? (
                 <p style={{ color: 'var(--ink-2)', lineHeight: 1.55, fontSize: '.92rem' }}>
@@ -661,8 +698,8 @@ export default function GrovePage() {
                     <div style={{ height: 120, position: 'relative', background: 'var(--surf-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {e.mediaUrl ? (
                         <>
-                          <img src={e.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(20,14,8,.75))' }}/>
+                          <img src={e.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(20,14,8,.75))' }} />
                         </>
                       ) : (
                         <span style={{ fontSize: '.65rem', color: 'var(--ink-3)', padding: '.3rem', textAlign: 'center', lineHeight: 1.4 }}>
@@ -711,11 +748,11 @@ export default function GrovePage() {
                   }
                 }}>
                 {inviteToBond.isPending ? (
-                  <><Spinner size={16} color="#fff"/> Sending…</>
+                  <><Spinner size={16} color="#fff" /> Sending…</>
                 ) : sent ? (
-                  <><Icon name="check" size={16} stroke="#fff" sw={2.5}/> Bond invitation sent</>
+                  <><Icon name="check" size={16} stroke="#fff" sw={2.5} /> Bond invitation sent</>
                 ) : (
-                  <>Bond with {firstName} <Icon name="arrow" stroke="#fff"/></>
+                  <>Bond with {firstName} <Icon name="arrow" stroke="#fff" /></>
                 )}
               </button>
               <p style={{ textAlign: 'center', fontSize: '.76rem', color: 'var(--ink-4)', marginTop: '-.4rem' }}>
@@ -736,12 +773,12 @@ export default function GrovePage() {
 
         {postsLoading ? (
           <div className="card" style={{ padding: '1.4rem', display: 'flex', justifyContent: 'center' }}>
-            <Spinner size={18}/>
+            <Spinner size={18} />
           </div>
         ) : userPosts && userPosts.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
             {userPosts.slice(0, 6).map(p => (
-              <GrovePostCard key={p.id} post={p} canManage={isOwnProfile}/>
+              <GrovePostCard key={p.id} post={p} canManage={isOwnProfile} />
             ))}
           </div>
         ) : (
@@ -754,7 +791,7 @@ export default function GrovePage() {
         )}
       </div>
 
-      {viewLog && <LogViewer title={`${possessiveCap} Grouv Log`} entries={logForViewer} onClose={() => setViewLog(false)}/>}
+      {viewLog && <LogViewer title={`${possessiveCap} Grouv Log`} entries={logForViewer} onClose={() => setViewLog(false)} />}
     </div>
   );
 }
