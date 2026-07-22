@@ -301,13 +301,14 @@ export interface BondRecord {
 
 export interface BondMessage {
   id: string;
-  kind: 'text' | 'voice' | 'call_missed_voice' | 'call_missed_video';
+  kind: 'text' | 'voice' | 'call_missed_voice' | 'call_missed_video' | 'shared_post';
   senderId: string;
   recipientId: string;
   body?: string | null;
   storagePath?: string | null;
   audioUrl?: string | null;
   durationSeconds?: number | null;
+  sharedPostId?: string | null;
   readAt: string | null;
   createdAt: string;
   // threading
@@ -330,7 +331,7 @@ export const bondsApi = {
   list:        () => api.get<BondRecord[]>('/bonds'),
   get:         (id: string) => api.get<BondRecord>(`/bonds/${id}`),
   messages:    (id: string) => api.get<BondMessage[]>(`/bonds/${id}/messages`),
-  sendMessage: (id: string, body: string, opts?: { replyToId?: string; replyPreview?: string }) =>
+  sendMessage: (id: string, body?: string, opts?: { replyToId?: string; replyPreview?: string; postId?: string }) =>
                  api.post<BondMessage>(`/bonds/${id}/messages`, { body, ...opts }),
   markRead:    (id: string) => api.post<void>(`/bonds/${id}/read`),
   react:       (bondId: string, msgId: string, emoji: string) =>

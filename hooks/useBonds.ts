@@ -23,9 +23,21 @@ export function useBondMessages(bondId: string | undefined) {
 export function useSendBondMessage(bondId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (opts: { body: string; replyToId?: string; replyPreview?: string }) =>
-      bondsApi.sendMessage(bondId, opts.body, { replyToId: opts.replyToId, replyPreview: opts.replyPreview }),
+    mutationFn: (opts: { body?: string; replyToId?: string; replyPreview?: string; postId?: string }) =>
+      bondsApi.sendMessage(bondId, opts.body, { replyToId: opts.replyToId, replyPreview: opts.replyPreview, postId: opts.postId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['bond-messages', bondId] }),
+  });
+}
+
+// For "Save to a Bond" — the target bond isn't known until the user picks
+// one from a list, so (unlike useSendBondMessage) it takes bondId as a
+// mutation variable instead of being scoped to one bond at hook-creation time.
+export function useSharePostToBond() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bondId, postId }: { bondId: string; postId: string }) =>
+      bondsApi.sendMessage(bondId, undefined, { postId }),
+    onSuccess: (_, { bondId }) => qc.invalidateQueries({ queryKey: ['bond-messages', bondId] }),
   });
 }
 

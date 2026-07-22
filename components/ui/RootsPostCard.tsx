@@ -7,6 +7,7 @@ import { StageChip } from './StageChip';
 import { VideoPlayer } from './VideoPlayer';
 import { ReportModal } from './ReportModal';
 import { ShareModal } from './ShareModal';
+import { SaveToBondModal } from './SaveToBondModal';
 import { useToastStore } from '@/store/useToastStore';
 import { usePostComments, useAddComment, useUpdatePost, useDeletePost } from '@/hooks/usePosts';
 import { postsApi } from '@/lib/api';
@@ -61,6 +62,7 @@ export function PostCard({ post, myId, showViewGrouv }: { post: Post; myId?: str
 
   // ── Share ──
   const [sharing, setSharing] = useState(false);
+  const [savingToBond, setSavingToBond] = useState(false);
 
   // ── Menu / Edit / Delete ──
   const [menu, setMenu] = useState(false);
@@ -164,7 +166,7 @@ export function PostCard({ post, myId, showViewGrouv }: { post: Post; myId?: str
               {menuRow('Delete post', () => { setMenu(false); setConfirm(true); }, true)}
               <div style={{ borderTop: '1px solid var(--border)' }} />
             </>}
-            {menuRow('Save to a Bond', () => { setMenu(false); toast('Saved.'); })}
+            {menuRow('Save to a Bond', () => { setMenu(false); setSavingToBond(true); })}
             {menuRow('Report', () => { setMenu(false); setReportingPost(true); }, true)}
           </div>
         </>
@@ -258,6 +260,7 @@ export function PostCard({ post, myId, showViewGrouv }: { post: Post; myId?: str
       </footer>
 
       {sharing && <ShareModal post={post} onClose={() => setSharing(false)} />}
+      {savingToBond && <SaveToBondModal postId={postId} onClose={() => setSavingToBond(false)} />}
 
       {showC && (
         <div className="fade-in" style={{ marginTop: '.8rem', paddingTop: '.9rem', borderTop: '1px solid var(--border)' }}>
