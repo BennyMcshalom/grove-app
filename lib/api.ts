@@ -301,7 +301,7 @@ export interface BondRecord {
 
 export interface BondMessage {
   id: string;
-  kind: 'text' | 'voice';
+  kind: 'text' | 'voice' | 'call_missed_voice' | 'call_missed_video';
   senderId: string;
   recipientId: string;
   body?: string | null;

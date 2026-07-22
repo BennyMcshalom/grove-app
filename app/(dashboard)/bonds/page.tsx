@@ -119,6 +119,23 @@ function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, onReply }
   const [hovered, setHovered] = useState(false);
   const [reporting, setReporting] = useState(false);
 
+  // System row — a missed call log entry, not a real message: no bubble,
+  // no reactions/reply/menu, just a centered pill like WhatsApp/iMessage.
+  if (msg.kind === 'call_missed_voice' || msg.kind === 'call_missed_video') {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '.7rem 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', padding: '.35rem .85rem',
+          borderRadius: 100, background: 'var(--surf-high)', fontSize: '.76rem', color: 'var(--ink-3)' }}>
+          <Icon name={msg.kind === 'call_missed_video' ? 'video' : 'phone'} size={12} stroke="var(--ink-4)"/>
+          {msg.kind === 'call_missed_video' ? 'Missed video call' : 'Missed voice call'}
+          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '.66rem', color: 'var(--ink-4)' }}>
+            {formatRelativeTime(msg.createdAt)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   const myEmoji = Object.entries(localReactions).find(([, users]) => users.includes(myId))?.[0];
   const reactionList = Object.entries(localReactions).filter(([, users]) => users.length > 0);
 
