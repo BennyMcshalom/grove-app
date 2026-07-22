@@ -39,6 +39,52 @@ export default function EditProfilePage() {
   const [saving,   setSaving]   = useState(false);
   const [uploading, setUploading] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
+  const [locating, setLocating] = useState(false);
+
+  // Reverse-geocodes coordinates into a "City, Country" label. Coordinates
+  // are only ever used to compute this string, never saved or sent onward.
+  async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+    try {
+      const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      const city = data.city || data.locality || data.principalSubdivision || null;
+      const country = data.countryName || null;
+      if (city && country) return `${city}, ${country}`;
+      return country || city || null;
+    } catch { return null; }
+  }
+
+  async function detectLocation() {
+    setLocating(true);
+    try {
+      const gps = await new Promise<{ lat: number; lng: number } | null>(resolve => {
+        if (!navigator.geolocation) { resolve(null); return; }
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => resolve(null),
+          { enableHighAccuracy: false, timeout: 10_000, maximumAge: 120_000 },
+        );
+      });
+      let coords = gps;
+      if (!coords) {
+        // GPS denied/unavailable — fall back to coarser IP-based coordinates
+        try {
+          const res = await fetch('/api/locate');
+          if (res.ok) {
+            const data = await res.json();
+            if (typeof data.lat === 'number' && typeof data.lng === 'number') coords = { lat: data.lat, lng: data.lng };
+          }
+        } catch { /* fall through to error toast below */ }
+      }
+      if (!coords) { toast('Could not detect your location.'); return; }
+      const label = await reverseGeocode(coords.lat, coords.lng);
+      if (label) setLocation(label);
+      else toast('Could not detect your location.');
+    } finally {
+      setLocating(false);
+    }
+  }
 
   const handleAvatarChange = async (file: File) => {
     setUploading(true);
@@ -142,10 +188,16 @@ export default function EditProfilePage() {
                 <Icon name="pin" size={16} stroke="var(--ink-4)"/>
               </span>
               <input value={location} onChange={e => setLocation(e.target.value)} placeholder="City, country"
-                style={{ ...fieldStyle, paddingLeft: '2.3rem' }} onFocus={focusStyle} onBlur={blurStyle}/>
+                style={{ ...fieldStyle, paddingLeft: '2.3rem', paddingRight: '2.6rem' }} onFocus={focusStyle} onBlur={blurStyle}/>
+              <button type="button" onClick={detectLocation} disabled={locating} title="Use current location"
+                style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                  width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: locating ? 'default' : 'pointer' }}>
+                {locating ? <Spinner size={14} color="var(--ember)"/> : <Icon name="locate" size={16} stroke="var(--ember)"/>}
+              </button>
             </div>
             <div style={{ fontSize: '.74rem', color: 'var(--ink-4)', marginTop: '.4rem' }}>
-              Used only to surface people in your chapter nearby. Never shared precisely.
+              Used only to surface people in your chapter nearby. Never shared precisely. Tap the target icon to detect it automatically.
             </div>
           </div>
         </Section>
