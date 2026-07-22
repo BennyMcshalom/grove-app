@@ -79,7 +79,6 @@ export default function SpacesPage() {
   const router = useRouter();
   const { toast } = useToastStore();
   const { uuidBySlug } = useSpaceStore();
-  const [filter, setFilter] = useState('all');
   const [opening, setOpening] = useState<string | null>(null); // space id being named
   const [chapter, setChapter] = useState('');
 
@@ -176,19 +175,8 @@ export default function SpacesPage() {
           </h2>
           <p style={{ color: 'var(--ink-3)', marginBottom: '1rem' }}>Chapters you could open next.</p>
 
-          <div className="scroll" style={{ display: 'flex', gap: '.5rem', overflowX: 'auto', marginBottom: '1.1rem' }}>
-            {['all', ...SPACES.map(s => s.id)].map(id => (
-              <button key={id} onClick={() => setFilter(id)} className="chip"
-                style={{ cursor: 'pointer', flexShrink: 0, padding: '.45rem .9rem',
-                  background: filter === id ? 'var(--slate)' : 'var(--surf-high)',
-                  color: filter === id ? '#fff' : 'var(--ink-2)' }}>
-                {id === 'all' ? 'All' : spaceById(id).name}
-              </button>
-            ))}
-          </div>
-
           <div className="spaces-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            {dirSpaces.filter(s => filter === 'all' || s.id === filter).map(s => (
+            {dirSpaces.map(s => (
               <div key={s.id} className="card" style={{ overflow: 'hidden' }}>
                 <div style={{ height: 88, background: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name={s.icon} size={32} stroke={s.ink} sw={1.6}/>
