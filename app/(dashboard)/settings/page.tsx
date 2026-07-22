@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUserStore } from '@/store/useUserStore';
+import { useMySpaces } from '@/hooks/useSpaces';
 import { useTheme } from '@/hooks/useTheme';
 import { toggleTheme } from '@/lib/theme';
 import { authApi, profilesApi, usersApi, subscriptionsApi } from '@/lib/api';
@@ -151,7 +152,11 @@ export default function SettingsPage() {
     router.push('/auth');
   }
 
-  const firstSpace  = user.spaces[0];
+  // user.spaces is a one-time onboarding snapshot, never updated when a
+  // space is opened/closed later — mySpaceSlugs is the real, live list.
+  const { data: mySpaces } = useMySpaces();
+  const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
+  const firstSpace  = mySpaceSlugs[0];
   const spaceLabel  = firstSpace
     ? user.stageLabels?.[firstSpace] || spaceById(firstSpace).name
     : 'Your chapter';

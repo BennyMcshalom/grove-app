@@ -5,8 +5,8 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Spinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import { useToastStore } from '@/store/useToastStore';
-import { useUserStore } from '@/store/useUserStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
+import { useMySpaces } from '@/hooks/useSpaces';
 import { useTodayCurio, useSaveCurio } from '@/hooks/useCurio';
 import { useCreatePost } from '@/hooks/usePosts';
 
@@ -61,10 +61,13 @@ function fmtDate() {
 export default function MorningPage() {
   const router = useRouter();
   const { toast } = useToastStore();
-  const { user } = useUserStore();
   const { uuidBySlug } = useSpaceStore();
 
-  const primarySlug = user.spaces[0] ?? 'career';
+  // user.spaces is a one-time onboarding snapshot, never updated when a
+  // space is opened/closed later — mySpaceSlugs is the real, live list.
+  const { data: mySpaces } = useMySpaces();
+  const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
+  const primarySlug = mySpaceSlugs[0] ?? 'career';
   const primaryUuid = uuidBySlug(primarySlug);
   const { data: curio, isLoading } = useTodayCurio(primaryUuid);
   const saveCurio   = useSaveCurio();

@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useUserStore } from '@/store/useUserStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToastStore } from '@/store/useToastStore';
+import { useMySpaces } from '@/hooks/useSpaces';
 import { authApi, usersApi } from '@/lib/api';
 import { stopCalling } from '@/lib/calling';
 import { spaceById } from '@/lib/data';
@@ -23,7 +24,11 @@ export default function ProfilePage() {
   const { user, setUser, clear: clearUser } = useUserStore();
   const { user: authUser, clear: clearAuth } = useAuthStore();
   const { toast } = useToastStore();
-  const spaces = user.spaces.length ? user.spaces : ['career', 'creative'];
+  // user.spaces is a one-time onboarding snapshot, never updated when a
+  // space is opened/closed later — mySpaceSlugs is the real, live list.
+  const { data: mySpaces } = useMySpaces();
+  const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
+  const spaces = mySpaceSlugs.length ? mySpaceSlugs : ['career', 'creative'];
 
   async function handleAvatarChange(file: File) {
     setUploadingAvatar(true);

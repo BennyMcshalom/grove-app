@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { useUserStore } from '@/store/useUserStore';
 import { useToastStore } from '@/store/useToastStore';
+import { useMySpaces } from '@/hooks/useSpaces';
 import { gatheringApi, type NearbyUser, type GatheringRoom, ApiError } from '@/lib/api';
 
 // ── Geohash encoder ────────────────────────────────────────────────
@@ -303,9 +304,14 @@ export default function NearbyPage() {
     return () => { stopProximity(true); };
   }, [stopProximity]);
 
+  // user.spaces is a one-time onboarding snapshot, never updated when a
+  // space is opened/closed later — mySpaceSlugs is the real, live list.
+  const { data: mySpaces } = useMySpaces();
+  const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
+
   const isOn  = status === 'active';
   const shown = mode === 'stage'
-    ? nearby.filter(p => p.spaces.some(s => user.spaces.includes(s)))
+    ? nearby.filter(p => p.spaces.some(s => mySpaceSlugs.includes(s)))
     : nearby;
 
   const createRoom = async () => {
@@ -426,7 +432,7 @@ export default function NearbyPage() {
                     {shown.length} {shown.length === 1 ? 'person' : 'people'} in this ring
                   </div>
                   {shown.map(p => (
-                    <NearbyCard key={p.userId} person={p} mySpaces={user.spaces}
+                    <NearbyCard key={p.userId} person={p} mySpaces={mySpaceSlugs}
                       onWave={id => gatheringApi.wave(id, p.spaces[0]).then(() => {})}/>
                   ))}
                 </>

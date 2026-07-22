@@ -9,6 +9,7 @@ import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { Spinner } from '@/components/ui/Spinner';
 import { useUserStore } from '@/store/useUserStore';
 import { useToastStore } from '@/store/useToastStore';
+import { useMySpaces } from '@/hooks/useSpaces';
 import { usersApi } from '@/lib/api';
 import { AURAS, STAGES, spaceById } from '@/lib/data';
 import type { AuraKey } from '@/lib/types';
@@ -27,7 +28,11 @@ export default function EditProfilePage() {
   const { user, setUser } = useUserStore();
   const { toast } = useToastStore();
   const fileRef = useRef<HTMLInputElement>(null);
-  const spaces = user.spaces.length ? user.spaces : ['career', 'creative'];
+  // user.spaces is a one-time onboarding snapshot, never updated when a
+  // space is opened/closed later — mySpaceSlugs is the real, live list.
+  const { data: mySpaces } = useMySpaces();
+  const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
+  const spaces = mySpaceSlugs.length ? mySpaceSlugs : ['career', 'creative'];
 
   const [name,     setName]     = useState(user.name === 'You' ? '' : user.name);
   const [location, setLocation] = useState(user.location ?? '');
