@@ -725,7 +725,7 @@ export default function SpaceDetailPage() {
       {membersLoading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}><Spinner size={18} /></div>
       ) : members && members.length > 0 ? (
-        members.slice(0, 6).map(m => (
+        members.slice(0, 5).map(m => (
           <button key={m.id} onClick={() => router.push(`/grove/${m.id}`)}
             style={{
               display: 'flex', width: '100%', textAlign: 'left', alignItems: 'center',
@@ -743,7 +743,7 @@ export default function SpaceDetailPage() {
       ) : (
         <p style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>No one else here yet.</p>
       )}
-      {members && members.length > 6 && (
+      {members && members.length > 5 && (
         <button onClick={() => setTab('members')} style={{ fontSize: '.78rem', color: 'var(--ember)', fontWeight: 500, marginTop: '.4rem' }}>
           View all {members.length} members →
         </button>
