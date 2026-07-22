@@ -891,8 +891,8 @@ function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
               padding: '1.4rem 1.3rem 1.5rem', textAlign: 'center', pointerEvents: 'none'
             }}>
               <p className="serif" style={{
-                color: '#fff', fontSize: '1.35rem', fontStyle: 'italic',
-                fontWeight: 500, lineHeight: 1.3, textShadow: '0 2px 12px rgba(0,0,0,.4)'
+                color: '#fff', fontSize: '16px', fontStyle: 'italic',
+                fontWeight: 500, lineHeight: 1.2, textShadow: '0 2px 12px rgba(0,0,0,.4)'
               }}>
                 {post.caption}
               </p>
