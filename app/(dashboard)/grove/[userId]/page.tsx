@@ -10,9 +10,11 @@ import { AURAS, STAGES, nowPhase, PHASE, spaceById } from '@/lib/data';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUserStore } from '@/store/useUserStore';
+import { useSpaceStore } from '@/store/useSpaceStore';
 import { groveApi, logApi, usersApi, spacesApi, postsApi, type PostRecord } from '@/lib/api';
 import { formatRelativeTime } from '@/lib/mappers';
 import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
+import { useBonds } from '@/hooks/useBonds';
 import { useUpdatePost, useDeletePost } from '@/hooks/usePosts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuraKey } from '@/lib/types';
@@ -25,8 +27,10 @@ const RINGS = [
 
 // ── A single post card on the Grove profile, with edit/delete for the owner ──
 function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: boolean }) {
+  const router = useRouter();
   const { toast } = useToastStore();
   const qc = useQueryClient();
+  const { slugById } = useSpaceStore();
   const isGrouv = p.kind === 'just_grouw';
   const [menu, setMenu]           = useState(false);
   const [editing, setEditing]     = useState(false);
@@ -36,6 +40,11 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
   const [editBody, setEditBody]     = useState(p.body ?? '');
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
+
+  const openPost = () => {
+    const slug = slugById(p.spaceId);
+    if (slug) router.push(`/spaces/${slug}?post=${p.id}`);
+  };
 
   // useUpdatePost/useDeletePost only invalidate the ['posts'] feed query —
   // this page's list lives under its own ['grove-posts', userId] key, so it
@@ -66,7 +75,7 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
   return (
     <article className="card" style={{ overflow: 'hidden', padding: 0, position: 'relative' }}>
       {p.mediaUrl && !editing && (
-        <div style={{ position: 'relative', height: 150, background: 'var(--surf-high)' }}>
+        <div onClick={openPost} style={{ position: 'relative', height: 150, background: 'var(--surf-high)', cursor: 'pointer' }}>
           {p.mediaType?.startsWith('video') ? (
             <video src={p.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} muted/>
           ) : (
@@ -164,7 +173,7 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
             </div>
           )
         ) : (
-          <>
+          <div onClick={openPost} style={{ cursor: 'pointer' }}>
             {isGrouv ? (
               p.body && <p className="serif" style={{ fontSize: '1.05rem', fontWeight: 500, lineHeight: 1.4, color: 'var(--ink)' }}>{p.body}</p>
             ) : (
@@ -190,7 +199,7 @@ function GrovePostCard({ post: p, canManage }: { post: PostRecord; canManage: bo
                 )}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </article>
@@ -304,7 +313,9 @@ export default function GrovePage() {
 
   const inviteToBond = useInviteToBond();
   const { data: sentInvitations } = useSentBondInvitations();
+  const { data: bondsData } = useBonds();
   const alreadySent = sentInvitations?.some(i => i.toUserId === userId && i.status === 'pending') ?? false;
+  const alreadyConnected = bondsData?.some(b => b.otherUser?.id === userId) ?? false;
   const sent = sentLocal || alreadySent;
   const phase = nowPhase();
   const STAGE = 540;
@@ -678,7 +689,7 @@ export default function GrovePage() {
             </button>
           </div>
 
-          {!isOwnProfile && (
+          {!isOwnProfile && !alreadyConnected && (
             <>
               <button
                 disabled={sent || inviteToBond.isPending}
