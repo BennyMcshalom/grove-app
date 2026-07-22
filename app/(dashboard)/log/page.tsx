@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
+import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -1018,7 +1019,7 @@ function buildStrip(apiEntries: ApiLogEntry[]): LogEntry[] {
 }
 
 // ── Main page ─────────────────────────────────────────────────────
-export default function LogPage() {
+function LogPageInner() {
   const { user, setUser } = useUserStore();
   const { toast } = useToastStore();
   const { uuidBySlug } = useSpaceStore();
@@ -1286,5 +1287,13 @@ export default function LogPage() {
       )}
       {viewLog && <LogViewer log={viewLog} onClose={() => setViewLog(null)} />}
     </AppShell>
+  );
+}
+
+export default function LogPage() {
+  return (
+    <FeatureGate flagKey="nav_log">
+      <LogPageInner />
+    </FeatureGate>
   );
 }

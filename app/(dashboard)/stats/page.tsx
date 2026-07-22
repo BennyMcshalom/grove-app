@@ -1,12 +1,13 @@
 'use client';
 import { AppShell } from '@/components/layout/AppShell';
+import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useChapterStats } from '@/hooks/useChapters';
 import { useState } from 'react';
 
-export default function StatsPage() {
+function StatsPageInner() {
   const { data: stats, isLoading } = useChapterStats();
   const [mi, setMi] = useState(0);
 
@@ -73,5 +74,13 @@ export default function StatsPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+export default function StatsPage() {
+  return (
+    <FeatureGate flagKey="nav_stats">
+      <StatsPageInner />
+    </FeatureGate>
   );
 }

@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Logo } from '@/components/ui/Logo';
 import { useUserStore } from '@/store/useUserStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useFeatureFlagStore } from '@/store/useFeatureFlagStore';
 import { useBonds } from '@/hooks/useBonds';
 import { useMySpaces } from '@/hooks/useSpaces';
 import { spaceById } from '@/lib/data';
@@ -21,6 +22,7 @@ export function Sidebar() {
   const isAdmin = authUser?.roles.some(r => r === 'admin' || r === 'moderator') ?? false;
   const { data: bondsData } = useBonds();
   const bondCount = bondsData?.length ?? 0;
+  const isEnabled = useFeatureFlagStore(s => s.isEnabled);
 
   // user.spaces is a one-time onboarding snapshot, never updated when a
   // space is opened/closed later — mySpaceSlugs is the real, live list.
@@ -31,16 +33,18 @@ export function Sidebar() {
     ? user.stageLabels?.[firstSpace] || spaceById(firstSpace).name
     : 'Your chapter';
 
+  // flag: undefined means always shown (Home is the fallback destination a
+  // blocked route redirects to, so it can't itself be turned off).
   const NAV = [
     { id: 'home', href: '/home', label: 'Home', icon: 'home' },
-    { id: 'spaces', href: '/spaces', label: 'My Spaces', icon: 'spaces' },
-    { id: 'log', href: '/log', label: 'Grouv Log', icon: 'book' },
-    { id: 'bonds', href: '/bonds', label: 'Bonds', icon: 'bonds', badge: isInitialized ? bondCount : null },
-    { id: 'morning', href: '/morning', label: 'Morning Room', icon: 'sun' },
-    { id: 'nearby', href: '/nearby', label: 'Nearby', icon: 'pin', heartbeat: true },
-    { id: 'archive', href: '/archive', label: 'Archive', icon: 'archive' },
-    { id: 'stats', href: '/stats', label: 'Stats', icon: 'stats' },
-  ];
+    { id: 'spaces', href: '/spaces', label: 'My Spaces', icon: 'spaces', flag: 'nav_spaces' },
+    { id: 'log', href: '/log', label: 'Grouv Log', icon: 'book', flag: 'nav_log' },
+    { id: 'bonds', href: '/bonds', label: 'Bonds', icon: 'bonds', badge: isInitialized ? bondCount : null, flag: 'nav_bonds' },
+    { id: 'morning', href: '/morning', label: 'Morning Room', icon: 'sun', flag: 'nav_morning' },
+    { id: 'nearby', href: '/nearby', label: 'Nearby', icon: 'pin', heartbeat: true, flag: 'nav_nearby' },
+    { id: 'archive', href: '/archive', label: 'Archive', icon: 'archive', flag: 'nav_archive' },
+    { id: 'stats', href: '/stats', label: 'Stats', icon: 'stats', flag: 'nav_stats' },
+  ].filter(item => !item.flag || isEnabled(item.flag));
 
   return (
     <aside style={{

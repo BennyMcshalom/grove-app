@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
+import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -691,7 +692,7 @@ function BondThread({ bond }: { bond: BondRecord }) {
 // ─────────────────────────────────────────────────────────────────
 // BONDS PAGE
 // ─────────────────────────────────────────────────────────────────
-export default function BondsPage() {
+function BondsPageInner() {
   const router = useRouter();
   const { toast } = useToastStore();
   const [sel, setSel] = useState(0);
@@ -970,5 +971,13 @@ export default function BondsPage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+export default function BondsPage() {
+  return (
+    <FeatureGate flagKey="nav_bonds">
+      <BondsPageInner />
+    </FeatureGate>
   );
 }

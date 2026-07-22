@@ -459,6 +459,12 @@ export const groupsApi = {
   denyRequest:    (id: string, requestId: string) => api.post<void>(`/groups/${id}/join-requests/${requestId}/deny`),
 };
 
+// ── Feature flags ─────────────────────────────────────────────────────────────
+export interface FeatureFlagState { key: string; enabled: boolean; }
+export const featureFlagsApi = {
+  list: () => api.get<FeatureFlagState[]>('/feature-flags'),
+};
+
 // ── Notifications ─────────────────────────────────────────────────────────────
 export interface NotifRecord {
   id: string;

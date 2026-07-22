@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
+import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Avatar } from '@/components/ui/Avatar';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { Icon } from '@/components/ui/Icon';
@@ -209,7 +210,7 @@ function Radar({ isOn, count }: { isOn: boolean; count: number }) {
 type Status = 'off' | 'requesting' | 'fallback' | 'active' | 'denied';
 type Mode   = 'open' | 'stage' | 'event';
 
-export default function NearbyPage() {
+function NearbyPageInner() {
   const { user, setUser } = useUserStore();
   const { toast }         = useToastStore();
 
@@ -505,5 +506,13 @@ export default function NearbyPage() {
 
       </div>
     </AppShell>
+  );
+}
+
+export default function NearbyPage() {
+  return (
+    <FeatureGate flagKey="nav_nearby">
+      <NearbyPageInner />
+    </FeatureGate>
   );
 }

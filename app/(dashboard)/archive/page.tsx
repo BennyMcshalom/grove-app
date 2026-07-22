@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
+import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
@@ -121,7 +122,7 @@ function ChapterCard({ chapter: c, slug }: { chapter: ChapterRecord; slug: strin
   );
 }
 
-export default function ArchivePage() {
+function ArchivePageInner() {
   const { data: chapters, isLoading }         = useClosedChapters();
   const { data: savedCurios, isLoading: curioLoading } = useSavedCurios();
   const { slugById } = useSpaceStore();
@@ -244,5 +245,13 @@ export default function ArchivePage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+export default function ArchivePage() {
+  return (
+    <FeatureGate flagKey="nav_archive">
+      <ArchivePageInner />
+    </FeatureGate>
   );
 }

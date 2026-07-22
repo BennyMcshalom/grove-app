@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
+import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
@@ -676,7 +677,7 @@ function MyAskCard({ ask }: { ask: AnonAsk }) {
   );
 }
 
-export default function SpaceDetailPage() {
+function SpaceDetailPageInner() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -932,5 +933,13 @@ export default function SpaceDetailPage() {
           onClose={() => router.replace(`/spaces/${slug}`)} />
       )}
     </AppShell>
+  );
+}
+
+export default function SpaceDetailPage() {
+  return (
+    <FeatureGate flagKey="nav_spaces">
+      <SpaceDetailPageInner />
+    </FeatureGate>
   );
 }

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
+import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Spinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import { useToastStore } from '@/store/useToastStore';
@@ -58,7 +59,7 @@ function fmtDate() {
   return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
-export default function MorningPage() {
+function MorningPageInner() {
   const router = useRouter();
   const { toast } = useToastStore();
   const { uuidBySlug } = useSpaceStore();
@@ -245,5 +246,13 @@ export default function MorningPage() {
 
       </div>
     </AppShell>
+  );
+}
+
+export default function MorningPage() {
+  return (
+    <FeatureGate flagKey="nav_morning">
+      <MorningPageInner />
+    </FeatureGate>
   );
 }

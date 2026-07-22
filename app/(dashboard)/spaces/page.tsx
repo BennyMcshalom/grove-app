@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
+import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
@@ -75,7 +76,7 @@ function SpaceCard({ slot, onOpen, onClose }: {
   );
 }
 
-export default function SpacesPage() {
+function SpacesPageInner() {
   const router = useRouter();
   const { toast } = useToastStore();
   const { uuidBySlug } = useSpaceStore();
@@ -214,5 +215,13 @@ export default function SpacesPage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+export default function SpacesPage() {
+  return (
+    <FeatureGate flagKey="nav_spaces">
+      <SpacesPageInner />
+    </FeatureGate>
   );
 }

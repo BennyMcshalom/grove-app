@@ -3,8 +3,9 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
 import { useUserStore } from '@/store/useUserStore';
+import { useFeatureFlagStore } from '@/store/useFeatureFlagStore';
 import { hydrateSession } from '@/lib/session';
-import { spacesApi, usersApi, ApiError } from '@/lib/api';
+import { spacesApi, usersApi, featureFlagsApi, ApiError } from '@/lib/api';
 import { setupPush } from '@/lib/push';
 import { setupSystemThemeListener } from '@/lib/theme';
 import { initCalling } from '@/lib/calling';
@@ -54,6 +55,9 @@ export function AuthInitializer() {
           setupPush().catch(() => {});
           initCalling();
           backfillRegion();
+          featureFlagsApi.list()
+            .then(flags => useFeatureFlagStore.getState().setFlags(flags))
+            .catch(() => {});
         }
       })
       .finally(() => {
@@ -72,6 +76,9 @@ export async function retrySession() {
     await hydrateSession();
     const spaces = await spacesApi.all();
     useSpaceStore.getState().setSpaces(spaces);
+    featureFlagsApi.list()
+      .then(flags => useFeatureFlagStore.getState().setFlags(flags))
+      .catch(() => {});
   } catch (err) {
     if (err instanceof ApiError && err.status === 0) {
       useAuthStore.getState().setApiUnreachable(true);
