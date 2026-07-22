@@ -5,22 +5,21 @@
  */
 import type { PostRecord } from './api';
 import type { Post } from './types';
-import { SPACES } from './data';
 
-// Map backend spaceId (uuid) → local slug. Falls back to a deterministic lookup.
-// Once the backend seeds the life_spaces table with known slugs this becomes exact.
-function slugForSpaceId(spaceId: string, spaces: typeof SPACES): string {
-  // The backend's life_spaces table slugs match our local SPACES[].id values
-  // (career, creative, health, etc.) — try to find by partial match or fallback
-  return spaces[0]?.id ?? 'career';
-}
-
-export function mapPost(record: PostRecord, authorName?: string): Post {
+// Converts a backend PostRecord into the display Post shape PostCard expects.
+// spaceSlug is passed in rather than looked up here since callers already
+// know it (Home resolves it per-post via slugById; a Space page already has
+// its own slug fixed) — keeps this function free of store dependencies.
+export function mapPostRecordToPost(record: PostRecord, spaceSlug: string): Post & { _id: string } {
   return {
     id: record.id as unknown as number,  // UI uses number id for keys; fine for display
-    name: record.isAnonymous ? undefined : (authorName ?? record.userId),
+    name: record.isAnonymous ? undefined : (record.authorName ?? record.userId),
     anon: record.isAnonymous,
-    space: 'career', // enriched below when spaceId→slug mapping is available
+    userId: record.userId,
+    avatarUrl: record.isAnonymous ? null : (record.authorAvatar ?? null),
+    aura: record.isAnonymous ? null : (record.authorAura ?? null),
+    clock: formatClock(record.createdAt),
+    space: spaceSlug,
     progress: record.progress ?? '',
     time: formatRelativeTime(record.createdAt),
     doing: record.doing ?? '',
@@ -29,19 +28,15 @@ export function mapPost(record: PostRecord, authorName?: string): Post {
       type: (record.mediaType?.startsWith('video') ? 'video' : 'image') as 'image' | 'video',
       src: record.mediaUrl,
     } : undefined,
-    avatarUrl: record.isAnonymous ? null : (record.authorAvatar ?? null),
-    aura: record.isAnonymous ? null : (record.authorAura ?? null),
-    clock: formatClock(record.createdAt),
     roots: record.rootCount ?? 0,
-    comments: 0,
+    comments: record.commentCount ?? 0,
     rooted: record.userReacted ?? false,
-    userId: record.userId,
     kind: record.kind,
     caption: record.body ?? undefined,
+    location: record.authorLocation ?? undefined,
     // keep original uuid for mutations
     _id: record.id,
-    _spaceId: record.spaceId,
-  } as Post & { _id: string; _spaceId: string };
+  };
 }
 
 /** "14:07" in the viewer's local time — the actual moment a post was made, not "now". */

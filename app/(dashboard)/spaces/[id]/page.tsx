@@ -1,187 +1,31 @@
 'use client';
 import { useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { VideoPlayer } from '@/components/ui/VideoPlayer';
 import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
-import { StageChip } from '@/components/ui/StageChip';
 import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ReportModal } from '@/components/ui/ReportModal';
+import { PostCard } from '@/components/ui/RootsPostCard';
 import { useToastStore } from '@/store/useToastStore';
 import { useUserStore } from '@/store/useUserStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
-import { usePosts, usePost, useUpdatePost, useDeletePost } from '@/hooks/usePosts';
+import { usePosts, usePost } from '@/hooks/usePosts';
 import { useSpaceMembers } from '@/hooks/useSpaces';
 import { useAllAsks, useAskAnswers, usePostAsk, useSubmitAnswer, useLikeAnswer, useAnswerComments, useAddAnswerComment } from '@/hooks/useAnonAsks';
 import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { spaceById } from '@/lib/data';
-import { formatRelativeTime } from '@/lib/mappers';
+import { formatRelativeTime, mapPostRecordToPost } from '@/lib/mappers';
 import { REGIONS, type Region } from '@/lib/regions';
-import type { AnonAsk, AnonAskAnswer, PostRecord } from '@/lib/api';
-import type { AuraKey } from '@/lib/types';
+import type { AnonAsk, AnonAskAnswer } from '@/lib/api';
 
 
 const ANSWER_COLORS = ['var(--sage)', 'var(--slate)', 'var(--ember)', 'var(--c-spiritual)', 'var(--c-wealth)'];
 
-// ── A single "roots" post within a space feed, with edit/delete for the owner ──
-interface SpacePostView {
-  id: string; anon: boolean; name?: string; userId: string;
-  avatarUrl?: string | null; aura?: AuraKey | null; time: string;
-  doing: string; honest: string; progress: string;
-  media?: { type: 'image' | 'video'; src: string };
-}
-
-function mapToSpacePost(r: PostRecord): SpacePostView {
-  return {
-    id: r.id, anon: r.isAnonymous,
-    name: r.isAnonymous ? undefined : (r.authorName ?? r.userId),
-    userId: r.userId,
-    avatarUrl: r.isAnonymous ? null : (r.authorAvatar ?? null),
-    aura: r.isAnonymous ? null : (r.authorAura ?? null),
-    time: formatRelativeTime(r.createdAt), doing: r.doing ?? '', honest: r.honestThing ?? '',
-    progress: r.progress ?? '',
-    media: r.mediaUrl ? { type: (r.mediaType?.startsWith('video') ? 'video' : 'image') as 'image' | 'video', src: r.mediaUrl } : undefined,
-  };
-}
-
-function SpacePostCard({ post: p, myId, showViewGrouv }: {
-  post: SpacePostView; myId?: string; showViewGrouv?: boolean;
-}) {
-  const router = useRouter();
-  const { toast } = useToastStore();
-  const isOwn = !!myId && p.userId === myId;
-  const [menu, setMenu] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [confirmDel, setConfirm] = useState(false);
-  const [editDoing, setEditDoing] = useState(p.doing);
-  const [editHonest, setEditHonest] = useState(p.honest);
-  const updatePost = useUpdatePost();
-  const deletePost = useDeletePost();
-
-  const saveEdit = async () => {
-    if (!editDoing.trim() || !editHonest.trim()) return;
-    try {
-      await updatePost.mutateAsync({ id: p.id, data: { doing: editDoing.trim(), honestThing: editHonest.trim() } });
-      setEditing(false);
-      toast('Post updated.');
-    } catch { toast('Could not save changes.'); }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await deletePost.mutateAsync(p.id);
-      toast('Post deleted.');
-    } catch { toast('Could not delete post.'); }
-  };
-
-  return (
-    <article className="card" style={{ padding: '1.1rem 1.2rem', marginBottom: '.8rem', position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.7rem' }}>
-        <Avatar name={p.name ?? ''} anon={p.anon} size={38} avatarUrl={p.anon ? undefined : p.avatarUrl} aura={p.anon ? undefined : (p.aura ?? undefined)} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: '.88rem' }}>{p.anon ? 'Someone in your space' : p.name}</div>
-          <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace' }}>{p.time}</div>
-        </div>
-        {showViewGrouv && !p.anon && p.userId && (
-          <button onClick={() => router.push(`/grove/${p.userId}`)}
-            className="btn btn-ghost" style={{ padding: '.35rem .8rem', fontSize: '.76rem' }}>
-            View Grouv
-          </button>
-        )}
-        {isOwn && (
-          <button onClick={() => { setMenu(m => !m); setConfirm(false); }}
-            style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name="dots" size={16} stroke="var(--ink-4)" />
-          </button>
-        )}
-      </div>
-
-      {menu && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setMenu(false)} />
-          <div className="fade-in" style={{
-            position: 'absolute', top: 44, right: 12, zIndex: 20,
-            background: 'var(--white)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-lg)',
-            border: '1px solid var(--border)', overflow: 'hidden', width: 160
-          }}>
-            <button onClick={() => { setMenu(false); setEditing(true); setEditDoing(p.doing); setEditHonest(p.honest); }}
-              style={{ display: 'flex', width: '100%', textAlign: 'left', padding: '.65rem 1rem', fontSize: '.86rem', color: 'var(--ink-2)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--surf-low)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              Edit post
-            </button>
-            <button onClick={() => { setMenu(false); setConfirm(true); }}
-              style={{ display: 'flex', width: '100%', textAlign: 'left', padding: '.65rem 1rem', fontSize: '.86rem', color: 'var(--red)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--surf-low)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              Delete post
-            </button>
-          </div>
-        </>
-      )}
-
-      {confirmDel && (
-        <div className="fade-in" style={{
-          background: 'var(--red-dim)', borderRadius: 'var(--r-sm)',
-          padding: '.75rem 1rem', marginBottom: '.8rem', display: 'flex', alignItems: 'center', gap: '.8rem',
-          border: '1px solid var(--red-bdr)'
-        }}>
-          <span style={{ flex: 1, fontSize: '.86rem', color: 'var(--red)', fontWeight: 500 }}>Delete this post?</span>
-          <button onClick={handleDelete} disabled={deletePost.isPending}
-            className="btn btn-primary" style={{ padding: '.35rem .8rem', fontSize: '.8rem', background: 'var(--red)', boxShadow: 'none' }}>
-            {deletePost.isPending ? 'Deleting…' : 'Delete'}
-          </button>
-          <button onClick={() => setConfirm(false)} className="btn btn-soft" style={{ padding: '.35rem .8rem', fontSize: '.8rem' }}>Cancel</button>
-        </div>
-      )}
-
-      {editing ? (
-        <div style={{ marginBottom: '.4rem' }}>
-          <textarea value={editDoing} onChange={e => setEditDoing(e.target.value)} maxLength={200}
-            style={{
-              width: '100%', resize: 'vertical', minHeight: 50, padding: '.55rem .7rem', fontSize: '.92rem',
-              fontWeight: 500, lineHeight: 1.5, borderRadius: 'var(--r-sm)', border: '1.5px solid var(--ember)',
-              background: 'var(--surf-low)', marginBottom: '.5rem'
-            }} />
-          <textarea value={editHonest} onChange={e => setEditHonest(e.target.value)} maxLength={300}
-            style={{
-              width: '100%', resize: 'vertical', minHeight: 50, padding: '.55rem .7rem', fontSize: '.88rem',
-              fontStyle: 'italic', lineHeight: 1.55, borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border-2)',
-              background: 'var(--surf-low)', marginBottom: '.6rem'
-            }} />
-          <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
-            <button onClick={() => setEditing(false)} className="btn btn-soft" style={{ padding: '.4rem .8rem', fontSize: '.8rem' }}>Cancel</button>
-            <button onClick={saveEdit} disabled={updatePost.isPending} className="btn btn-primary" style={{ padding: '.4rem .8rem', fontSize: '.8rem' }}>
-              {updatePost.isPending ? 'Saving…' : 'Save changes'}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <p style={{ fontWeight: 500, marginBottom: '.25rem', fontSize: '.92rem' }}>{p.doing}</p>
-          <p style={{ fontStyle: 'italic', color: 'var(--ink-2)', fontSize: '.88rem', lineHeight: 1.55 }}>{p.honest}</p>
-        </>
-      )}
-
-      {p.media && !editing && (
-        <div style={{ marginTop: '.8rem' }}>
-          {p.media.type === 'video'
-            ? <VideoPlayer src={p.media.src} maxHeight={280} />
-            : <div style={{ borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--surf-high)' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.media.src} alt="" style={{ width: '100%', maxHeight: 240, objectFit: 'cover', display: 'block' }} />
-            </div>}
-        </div>
-      )}
-    </article>
-  );
-}
-
-function PostDetailModal({ postId, myId, onClose }: { postId: string; myId?: string; onClose: () => void }) {
+function PostDetailModal({ postId, myId, slug, onClose }: { postId: string; myId?: string; slug: string; onClose: () => void }) {
   const { data: post, isLoading, isError } = usePost(postId);
   return (
     <div style={{
@@ -209,7 +53,7 @@ function PostDetailModal({ postId, myId, onClose }: { postId: string; myId?: str
               This post isn&apos;t available anymore.
             </div>
           ) : (
-            <SpacePostCard post={mapToSpacePost(post)} myId={myId} showViewGrouv />
+            <PostCard post={mapPostRecordToPost(post, slug)} myId={myId} showViewGrouv />
           )}
         </div>
       </div>
@@ -871,8 +715,8 @@ export default function SpaceDetailPage() {
   const inviteToBond = useInviteToBond();
   const { data: sentInvitations } = useSentBondInvitations();
 
-  const posts = (postRecords ?? []).map(mapToSpacePost);
-  const openSpacePosts = (openPosts ?? []).map(mapToSpacePost);
+  const posts = (postRecords ?? []).map(r => mapPostRecordToPost(r, slug));
+  const openSpacePosts = (openPosts ?? []).map(r => mapPostRecordToPost(r, slug));
   const alreadySentTo = (id: string) =>
     invited.includes(id) || (sentInvitations?.some(i => i.toUserId === id && i.status === 'pending') ?? false);
 
@@ -947,7 +791,7 @@ export default function SpaceDetailPage() {
                 <EmptyState variant="feed" title={`Nothing rooted in ${s.name} yet.`} body="Be the first to root a thought here." />
               </div>
             ) : posts.map(p => (
-              <SpacePostCard key={p.id} post={p} myId={user.id} />
+              <PostCard key={p.id} post={p} myId={user.id} />
             ))}
           </>
         )}
@@ -995,7 +839,7 @@ export default function SpaceDetailPage() {
                   <EmptyState variant="feed" title="Nothing shared yet." body="No posts from this space in that region yet." />
                 </div>
               ) : openSpacePosts.map(p => (
-                <SpacePostCard key={p.id} post={p} myId={user.id} showViewGrouv />
+                <PostCard key={p.id} post={p} myId={user.id} showViewGrouv />
               ))
             ) : (
               openMembersLoading ? (
@@ -1084,7 +928,7 @@ export default function SpaceDetailPage() {
       </div>
 
       {highlightPostId && (
-        <PostDetailModal postId={highlightPostId} myId={user.id}
+        <PostDetailModal postId={highlightPostId} myId={user.id} slug={slug}
           onClose={() => router.replace(`/spaces/${slug}`)} />
       )}
     </AppShell>
