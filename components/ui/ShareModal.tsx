@@ -35,16 +35,17 @@ function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.closePath();
 }
 
-export function ShareModal({ post, onClose }: { post: Post; onClose: () => void }) {
+export function ShareModal({ post, onClose }: { post: Post & { _id?: string }; onClose: () => void }) {
   const { toast } = useToastStore();
   const name = post.anon ? 'A connection in your space' : (post.name || 'Someone');
   const isJust = post.kind === 'just_grouw';
   const space = spaceById(post.space);
   const quote = (isJust ? post.caption : (post.honest || post.doing)) || '';
 
-  // No single-post permalink page exists yet, so the link opens the Home
-  // feed rather than this specific post.
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/home` : 'https://grouv.app/home';
+  // Deep-links straight to the post via the same /spaces/{slug}?post={id}
+  // route Search, Notifications, and Grove profiles already use.
+  const postPath = `/spaces/${post.space}?post=${post._id ?? post.id}`;
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}${postPath}` : `https://grouv.app${postPath}`;
   const shareText = quote ? `"${quote}", via Grouv` : 'Check this out on Grouv';
 
   const [copied, setCopied] = useState(false);

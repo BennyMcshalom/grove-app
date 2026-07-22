@@ -39,7 +39,7 @@ function BondReleaseInner() {
   ];
 
   return (
-    <div className="scroll" style={{ minHeight: '100dvh', width: '100%', background: '#F6F3F2', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(1.2rem, 5vw, 2rem)', overflowY: 'auto' }}>
+    <div className="scroll" style={{ minHeight: '100dvh', width: '100%', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(1.2rem, 5vw, 2rem)', overflowY: 'auto' }}>
       <div style={{ maxWidth: 560, width: '100%', textAlign: 'center' }} className="screen-enter" key={step}>
         {step === 0 && (
           <>
