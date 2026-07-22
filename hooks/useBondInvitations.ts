@@ -24,6 +24,10 @@ export function useInviteToBond() {
       bondInvitationsApi.invite(recipientId, message),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bond-invitations-sent'] });
+      // Backend excludes anyone with a pending invite out from suggestions —
+      // refetch so they actually drop out of the list instead of lingering
+      // until the 5-minute staleTime.
+      qc.invalidateQueries({ queryKey: ['user-suggestions'] });
     },
   });
 }
