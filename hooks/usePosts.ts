@@ -27,6 +27,16 @@ export function usePosts(spaceId?: string, opts?: { region?: string; enabled?: b
   });
 }
 
+// Fetches a single post by id, independent of the 48h feed window — for
+// deep links (e.g. a search result) that may point at an older post.
+export function usePost(id?: string) {
+  return useQuery({
+    queryKey: ['post', id],
+    queryFn: () => postsApi.get(id!),
+    enabled: !!id,
+  });
+}
+
 export function useCreatePost() {
   const qc = useQueryClient();
   return useMutation({

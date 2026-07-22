@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { searchApi } from '@/lib/api';
 import { useRequestToJoinGroup } from '@/hooks/useGroups';
 import { useToastStore } from '@/store/useToastStore';
+import { useSpaceStore } from '@/store/useSpaceStore';
 import { SPACES, spaceById, groupIcon } from '@/lib/data';
 import { formatRelativeTime } from '@/lib/mappers';
 
@@ -23,6 +24,7 @@ export default function SearchPage() {
   const [filter, setFilter] = useState<'all' | 'users' | 'posts' | 'groups' | 'spaces'>('all');
   const requestToJoin = useRequestToJoinGroup();
   const [requested, setRequested] = useState<string[]>([]);
+  const { slugById } = useSpaceStore();
 
   const { data: results, isLoading } = useQuery({
     queryKey: ['search', q, filter],
@@ -129,15 +131,22 @@ export default function SearchPage() {
               <section>
                 {filter === 'all' && <div className="label-mono" style={{ marginBottom: '.8rem' }}>Posts</div>}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
-                  {results.posts.map(p => (
-                    <div key={p.id} className="card" style={{ padding: '1rem 1.1rem', boxShadow: 'var(--shadow-soft)' }}>
-                      <p style={{ fontWeight: 500, marginBottom: '.3rem', fontSize: '.92rem' }}>{p.doing}</p>
-                      {p.honestThing && <p style={{ fontSize: '.86rem', fontStyle: 'italic', color: 'var(--ink-2)', lineHeight: 1.5 }}>{p.honestThing}</p>}
-                      <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.5rem', fontFamily: 'DM Mono, monospace' }}>
-                        {formatRelativeTime(p.createdAt ?? '')}
-                      </div>
-                    </div>
-                  ))}
+                  {results.posts.map(p => {
+                    const slug = slugById(p.spaceId);
+                    return (
+                      <button key={p.id}
+                        onClick={() => router.push(slug ? `/spaces/${slug}?post=${p.id}` : '/spaces')}
+                        className="card" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '1rem 1.1rem', boxShadow: 'var(--shadow-soft)', cursor: 'pointer' }}
+                        onMouseEnter={e => (e.currentTarget.style.opacity = '.85')}
+                        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                        <p style={{ fontWeight: 500, marginBottom: '.3rem', fontSize: '.92rem' }}>{p.doing}</p>
+                        {p.honestThing && <p style={{ fontSize: '.86rem', fontStyle: 'italic', color: 'var(--ink-2)', lineHeight: 1.5 }}>{p.honestThing}</p>}
+                        <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.5rem', fontFamily: 'DM Mono, monospace' }}>
+                          {formatRelativeTime(p.createdAt ?? '')}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
             )}

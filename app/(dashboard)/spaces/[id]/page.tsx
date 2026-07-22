@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { VideoPlayer } from '@/components/ui/VideoPlayer';
 import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
@@ -14,7 +14,7 @@ import { ReportModal } from '@/components/ui/ReportModal';
 import { useToastStore } from '@/store/useToastStore';
 import { useUserStore } from '@/store/useUserStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
-import { usePosts, useUpdatePost, useDeletePost } from '@/hooks/usePosts';
+import { usePosts, usePost, useUpdatePost, useDeletePost } from '@/hooks/usePosts';
 import { useSpaceMembers } from '@/hooks/useSpaces';
 import { useAllAsks, useAskAnswers, usePostAsk, useSubmitAnswer, useLikeAnswer, useAnswerComments, useAddAnswerComment } from '@/hooks/useAnonAsks';
 import { useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
@@ -178,6 +178,42 @@ function SpacePostCard({ post: p, myId, showViewGrouv }: {
         </div>
       )}
     </article>
+  );
+}
+
+function PostDetailModal({ postId, myId, onClose }: { postId: string; myId?: string; onClose: () => void }) {
+  const { data: post, isLoading, isError } = usePost(postId);
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(26,26,26,.55)',
+      backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1.5rem'
+    }}
+      onClick={onClose}>
+      <div className="rise" style={{
+        width: 'min(480px, 94vw)', maxHeight: '85vh', overflowY: 'auto',
+        background: 'var(--cream)', borderRadius: 20, boxShadow: 'var(--shadow-lg)'
+      }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '1.2rem 1.3rem .4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 className="serif" style={{ fontSize: '1.1rem', fontWeight: 600 }}>Post</h3>
+          <button onClick={onClose}
+            style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="close" size={16} stroke="var(--ink-3)" />
+          </button>
+        </div>
+        <div style={{ padding: '.4rem 1.3rem 1.3rem' }}>
+          {isLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Spinner /></div>
+          ) : isError || !post ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--ink-3)' }}>
+              This post isn&apos;t available anymore.
+            </div>
+          ) : (
+            <SpacePostCard post={mapToSpacePost(post)} myId={myId} showViewGrouv />
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -799,6 +835,7 @@ function MyAskCard({ ask }: { ask: AnonAsk }) {
 export default function SpaceDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const { toast } = useToastStore();
   const { user } = useUserStore();
   const { uuidBySlug } = useSpaceStore();
@@ -806,6 +843,7 @@ export default function SpaceDetailPage() {
   const slug = params.id as string;
   const s = spaceById(slug);
   const spaceUuid = uuidBySlug(slug);
+  const highlightPostId = searchParams.get('post');
 
   const [tab, setTab] = useState('roots');
   const [askText, setAskText] = useState('');
@@ -1044,6 +1082,11 @@ export default function SpaceDetailPage() {
           )
         )}
       </div>
+
+      {highlightPostId && (
+        <PostDetailModal postId={highlightPostId} myId={user.id}
+          onClose={() => router.replace(`/spaces/${slug}`)} />
+      )}
     </AppShell>
   );
 }

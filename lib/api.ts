@@ -251,6 +251,7 @@ export const postsApi = {
     return api.get<PostRecord[]>(`/posts?${params}`);
   },
   byUser:  (userId: string) => api.get<PostRecord[]>(`/posts/user/${userId}`),
+  get:     (id: string) => api.get<PostRecord>(`/posts/${id}`),
   create:  (data: CreatePostPayload) => api.post<PostRecord>('/posts', data),
   update:  (id: string, data: { doing?: string; honestThing?: string; progress?: string; body?: string }) =>
              api.patch<PostRecord>(`/posts/${id}`, data),
