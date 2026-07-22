@@ -14,6 +14,7 @@ import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { spaceById } from '@/lib/data';
 import { postsApi, usersApi } from '@/lib/api';
 import { useBonds } from '@/hooks/useBonds';
+import { useMySpaces } from '@/hooks/useSpaces';
 import { useMyLogEntries, useAddLogEntry, useUpdateLogEntry, useLogSettings, useUpdateLogSettings, useCircleLogs } from '@/hooks/useLog';
 import { useBondLogToday, usePostBondLog, useMarkBondResonance, useBondLogHistory } from '@/hooks/useBondLog';
 import type { LogEntry as ApiLogEntry, CircleLogUser } from '@/lib/api';
@@ -1022,7 +1023,13 @@ export default function LogPage() {
   const { toast } = useToastStore();
   const { uuidBySlug } = useSpaceStore();
 
-  const userSpaces = user.spaces.length ? user.spaces : ['creative'];
+  // user.spaces is a one-time onboarding snapshot, never updated when a
+  // space is opened/closed later — a closed chapter's tab (and its log
+  // entries) would otherwise keep showing here forever. mySpaceSlugs is the
+  // real, live list; closed chapters live in the Archive instead.
+  const { data: mySpaces } = useMySpaces();
+  const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
+  const userSpaces = mySpaceSlugs.length ? mySpaceSlugs : ['creative'];
   const [spaceSlug, setSpaceSlug] = useState(userSpaces[0]);
   const activeSpaceSlug = userSpaces.includes(spaceSlug) ? spaceSlug : userSpaces[0];
   const spaceUuid = uuidBySlug(activeSpaceSlug);
