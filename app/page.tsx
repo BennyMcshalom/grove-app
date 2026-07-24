@@ -13,13 +13,10 @@ export default function Splash() {
     if (!isInitialized) return;
 
     if (!authUser) {
-      // Not logged in → sign-in page
       router.replace('/auth');
     } else if (!user.onboardingCompleted) {
-      // Logged in, onboarding not done → start onboarding
       router.replace('/onboarding/welcome');
     } else {
-      // Fully set up → home
       router.replace('/home');
     }
   }, [isInitialized, authUser, user.onboardingCompleted, router]);

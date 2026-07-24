@@ -14,12 +14,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!user.emailVerifiedAt) router.replace('/verify');
   }, [isInitialized, user, router]);
 
-  // Show full-screen loader while session check is in flight
   if (!isInitialized) {
     return (
-      <div style={{ height: '100vh', width: '100vw', background: 'var(--bg)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
-        <Spinner size={28}/>
+      <div style={{
+        height: '100vh', width: '100vw', background: 'var(--bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem'
+      }}>
+        <Spinner size={28} />
         <span style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
           Loading your chapter…
         </span>
@@ -27,7 +28,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Don't render children while redirecting away
   if (!user || !user.emailVerifiedAt) return null;
 
   return <>{children}</>;
