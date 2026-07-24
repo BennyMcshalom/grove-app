@@ -223,11 +223,29 @@ async function handleOffer(sdp: RTCSessionDescriptionInit): Promise<void> {
   }
 }
 
+// ── Generic pub/sub over this same connection ────────────────────────────
+// This module owns the app's one WebSocket (originally just for call
+// signaling); non-call features (live posts, live bond messages) piggyback
+// on it here rather than opening a second socket. Every incoming message is
+// dispatched to subscribers first, then falls through to the call-specific
+// switch below — the two don't interfere since they key off different event
+// names.
+type RealtimeListener = (payload: unknown) => void;
+const realtimeListeners = new Map<string, Set<RealtimeListener>>();
+
+/** Subscribe to a WS event by name; returns an unsubscribe function. */
+export function onRealtime(event: string, cb: RealtimeListener): () => void {
+  if (!realtimeListeners.has(event)) realtimeListeners.set(event, new Set());
+  realtimeListeners.get(event)!.add(cb);
+  return () => { realtimeListeners.get(event)?.delete(cb); };
+}
+
 // ── Message handling ────────────────────────────────────────────────────
 interface CallInvitePayload { callId: string; bondId: string; kind: CallKind; fromUserId: string; fromName: string; fromAvatarUrl: string | null; }
 
 function handleMessage(msg: { event: string; payload?: unknown }): void {
   const { event, payload } = msg;
+  realtimeListeners.get(event)?.forEach(cb => cb(payload));
   switch (event) {
     case 'call:ringing': {
       const p = payload as { callId: string };
