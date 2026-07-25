@@ -1,30 +1,21 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { AppShell } from '@/components/layout/AppShell';
-import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
-import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { Spinner } from '@/components/ui/Spinner';
 import { searchApi } from '@/lib/api';
-import { useRequestToJoinGroup } from '@/hooks/useGroups';
-import { useToastStore } from '@/store/useToastStore';
-import { useSpaceStore } from '@/store/useSpaceStore';
-import { SPACES, spaceById, groupIcon } from '@/lib/data';
-import { formatRelativeTime } from '@/lib/mappers';
+import { PeopleResults } from '@/components/search/PeopleResults';
+import { PostResults } from '@/components/search/PostResults';
+import { GroupResults } from '@/components/search/GroupResults';
+import { SpaceResults } from '@/components/search/SpaceResults';
 
 const SUGGESTIONS = ['New to freelance', 'Relocating solo', 'Career pivot', 'Deep in recovery', 'Going pro'];
 const TYPES = [['all', 'All'], ['users', 'People'], ['posts', 'Posts'], ['groups', 'Groups'], ['spaces', 'Spaces']] as const;
 
 export default function SearchPage() {
-  const router = useRouter();
-  const { toast } = useToastStore();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<'all' | 'users' | 'posts' | 'groups' | 'spaces'>('all');
-  const requestToJoin = useRequestToJoinGroup();
-  const [requested, setRequested] = useState<string[]>([]);
-  const { slugById } = useSpaceStore();
 
   const { data: results, isLoading } = useQuery({
     queryKey: ['search', q, filter],
@@ -100,106 +91,17 @@ export default function SearchPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
-
-            {/* ── People ── */}
             {results.users.length > 0 && (filter === 'all' || filter === 'users') && (
-              <section>
-                {filter === 'all' && <div className="label-mono" style={{ marginBottom: '.8rem' }}>People</div>}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
-                  {results.users.map(u => (
-                    <div key={u.id} className="card" style={{ padding: '.9rem 1.1rem', display: 'flex', alignItems: 'center', gap: '.8rem', boxShadow: 'var(--shadow-soft)' }}>
-                      <button onClick={() => router.push(`/grove/${u.id}`)}>
-                        <Avatar name={u.displayName} size={44} avatarUrl={u.avatarUrl} aura={u.aura ?? undefined} />
-                      </button>
-                      <button onClick={() => router.push(`/grove/${u.id}`)}
-                        style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600 }}>{u.displayName}</div>
-                        {u.openTo && <div style={{ fontSize: '.78rem', color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.openTo}</div>}
-                      </button>
-                      <button onClick={() => router.push(`/grove/${u.id}`)}
-                        className="btn btn-ghost" style={{ padding: '.4rem .9rem', fontSize: '.8rem' }}>
-                        View Grouv
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <PeopleResults users={results.users} showLabel={filter === 'all'} />
             )}
-
-            {/* ── Posts ── */}
             {results.posts.length > 0 && (filter === 'all' || filter === 'posts') && (
-              <section>
-                {filter === 'all' && <div className="label-mono" style={{ marginBottom: '.8rem' }}>Posts</div>}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
-                  {results.posts.map(p => {
-                    const slug = slugById(p.spaceId);
-                    return (
-                      <button key={p.id}
-                        onClick={() => router.push(slug ? `/spaces/${slug}?post=${p.id}` : '/spaces')}
-                        className="card" style={{ display: 'block', width: '100%', textAlign: 'left', padding: '1rem 1.1rem', boxShadow: 'var(--shadow-soft)', cursor: 'pointer' }}
-                        onMouseEnter={e => (e.currentTarget.style.opacity = '.85')}
-                        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-                        <p style={{ fontWeight: 500, marginBottom: '.3rem', fontSize: '.92rem' }}>{p.doing}</p>
-                        {p.honestThing && <p style={{ fontSize: '.86rem', fontStyle: 'italic', color: 'var(--ink-2)', lineHeight: 1.5 }}>{p.honestThing}</p>}
-                        <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.5rem', fontFamily: 'DM Mono, monospace' }}>
-                          {formatRelativeTime(p.createdAt ?? '')}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
+              <PostResults posts={results.posts} showLabel={filter === 'all'} />
             )}
-
-            {/* ── Groups ── */}
             {results.groups.length > 0 && (filter === 'all' || filter === 'groups') && (
-              <section>
-                {filter === 'all' && <div className="label-mono" style={{ marginBottom: '.8rem' }}>Groups</div>}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
-                  {results.groups.map(g => (
-                    <div key={g.id} className="card" style={{ padding: '.9rem 1.1rem', display: 'flex', alignItems: 'center', gap: '.8rem', boxShadow: 'var(--shadow-soft)' }}>
-                      <span style={{ width: 44, height: 44, borderRadius: '50%', background: g.coverColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={groupIcon(g.emoji)} size={20} stroke="#fff" sw={1.4} /></span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600 }}>{g.name}</div>
-                        <div style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>{g.lifePhase} · {g.memberCount} members</div>
-                      </div>
-                      <button
-                        disabled={requested.includes(g.id) || requestToJoin.isPending}
-                        onClick={async () => {
-                          try { await requestToJoin.mutateAsync(g.id); setRequested(j => [...j, g.id]); toast(`Requested to join ${g.name}.`); }
-                          catch { toast('Could not send request.'); }
-                        }}
-                        className="btn btn-ghost" style={{ padding: '.4rem .9rem', fontSize: '.8rem' }}>
-                        {requested.includes(g.id) ? 'Requested' : 'Request'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <GroupResults groups={results.groups} showLabel={filter === 'all'} />
             )}
-
-            {/* ── Spaces ── */}
             {results.spaces.length > 0 && (filter === 'all' || filter === 'spaces') && (
-              <section>
-                {filter === 'all' && <div className="label-mono" style={{ marginBottom: '.8rem' }}>Spaces</div>}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
-                  {results.spaces.map(s => {
-                    const local = SPACES.find(sp => sp.id === s.slug);
-                    return (
-                      <div key={s.id} className="card" style={{ padding: '.9rem 1.1rem', display: 'flex', alignItems: 'center', gap: '.8rem', boxShadow: 'var(--shadow-soft)' }}>
-                        <SpaceIcon spaceId={s.slug} size={20} pill pillSize={44} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600 }}>{s.name}</div>
-                          {local && <div style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>{local.desc}</div>}
-                        </div>
-                        <button onClick={() => router.push(`/spaces/${s.slug}`)} className="btn btn-ghost" style={{ padding: '.4rem .9rem', fontSize: '.8rem' }}>
-                          Open
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
+              <SpaceResults spaces={results.spaces} showLabel={filter === 'all'} />
             )}
           </div>
         )}
