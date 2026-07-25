@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import { Spinner } from '@/components/ui/Spinner';
 import { spaceById } from '@/lib/data';
 import { useSpaceStore } from '@/store/useSpaceStore';
+import { useToastStore } from '@/store/useToastStore';
 import { chaptersApi, spacesApi, bondsApi } from '@/lib/api';
 import type { BondRecord, ChapterRecord } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,6 +21,7 @@ function ChapterCloseInner() {
   const router       = useRouter();
   const params       = useSearchParams();
   const { uuidBySlug } = useSpaceStore();
+  const { toast } = useToastStore();
 
   const spaceSlug  = params.get('space') || 'career';
   const userSpaceId = params.get('userSpaceId');
@@ -39,9 +41,12 @@ function ChapterCloseInner() {
           bondsApi.list(),
         ]);
         if (chList.status === 'fulfilled') {
-          const ch = chList.value.find(c =>
-            (!spaceUuid || c.spaceId === spaceUuid) && !c.closedAt
-          );
+          // Must match this space specifically — if spaceUuid failed to resolve,
+          // fall back to no match rather than accidentally grabbing an open
+          // chapter that belongs to an unrelated space.
+          const ch = spaceUuid
+            ? chList.value.find(c => c.spaceId === spaceUuid && !c.closedAt)
+            : undefined;
           setChapter(ch ?? null);
         }
         if (bondList.status === 'fulfilled') setBonds(bondList.value);
@@ -86,24 +91,36 @@ function ChapterCloseInner() {
     setClosing(true);
     try {
       const spaceUuid = uuidBySlug(spaceSlug);
-      if (spaceUuid) {
-        const list  = await chaptersApi.list();
-        const ch    = list.find(c => c.spaceId === spaceUuid && !c.closedAt);
-        const id    = ch?.id ?? (await chaptersApi.open(spaceUuid)).id;
-        const extrasJoined = extras.filter(e => e.trim()).join('\n\n—\n\n');
-        await chaptersApi.close(id, {
-          ...(answers[0].trim() && { closingLearned:      answers[0].trim() }),
-          ...(answers[1].trim() && { closingAdvice:       answers[1].trim() }),
-          ...(answers[2].trim() && { closingCarryForward: answers[2].trim() }),
-          ...(extrasJoined      && { reflectionQ1:        extrasJoined }),
-        });
+      if (!spaceUuid) {
+        toast('Could not find this space. Try closing it again from My Spaces.');
+        setClosing(false);
+        return;
       }
+
+      // Reuse the chapter already loaded on mount rather than re-fetching —
+      // only fall back to creating one if this space genuinely has none open.
+      const id = chapter?.id ?? (await chaptersApi.open(spaceUuid)).id;
+      const extrasJoined = extras.filter(e => e.trim()).join('\n\n—\n\n');
+      await chaptersApi.close(id, {
+        ...(answers[0].trim() && { closingLearned:      answers[0].trim() }),
+        ...(answers[1].trim() && { closingAdvice:       answers[1].trim() }),
+        ...(answers[2].trim() && { closingCarryForward: answers[2].trim() }),
+        ...(extrasJoined      && { reflectionQ1:        extrasJoined }),
+      });
+
+      // Only close the user's space (removing it from "My Spaces") once the
+      // chapter + reflections are safely archived — never leave a chapter
+      // silently un-archived just because this second call happens to fail.
       if (userSpaceId) await spacesApi.close(userSpaceId);
-    } catch {}
-    // Bust the archive cache so the new entry shows immediately
-    qc.invalidateQueries({ queryKey: ['chapters-closed'] });
-    qc.invalidateQueries({ queryKey: ['chapters'] });
-    router.push('/archive');
+
+      // Bust the archive cache so the new entry shows immediately
+      qc.invalidateQueries({ queryKey: ['chapters-closed'] });
+      qc.invalidateQueries({ queryKey: ['chapters'] });
+      router.push('/archive');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Could not close this chapter. Try again.');
+      setClosing(false);
+    }
   };
 
   const next = () => setStep(s => s + 1);
