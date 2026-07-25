@@ -60,16 +60,18 @@ export default function AdminUsersPage() {
   return (
     <AppShell title="Users">
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 1.6rem 3rem' }}>
-        <AdminSubNav/>
+        <AdminSubNav />
 
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-          marginTop: '-.4rem', marginBottom: '1.2rem', gap: '.8rem', flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+          marginTop: '-.4rem', marginBottom: '1.2rem', gap: '.8rem', flexWrap: 'wrap'
+        }}>
           <p style={{ color: 'var(--ink-3)', fontSize: '.88rem' }}>
             {total} {total === 1 ? 'account' : 'accounts'}.
           </p>
           <button onClick={handleExport} disabled={exporting} className="btn btn-soft"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '.4rem', fontSize: '.8rem' }}>
-            {exporting ? <Spinner size={13}/> : <Icon name="book" size={14} stroke="var(--ink-2)"/>} Export CSV
+            {exporting ? <Spinner size={13} /> : <Icon name="book" size={14} stroke="var(--ink-2)" />} Export CSV
           </button>
         </div>
 
@@ -78,9 +80,9 @@ export default function AdminUsersPage() {
           role={role} setRole={r => { setRole(r); setPage(0); }} />
 
         {isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Spinner/></div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Spinner /></div>
         ) : !data?.users.length ? (
-          <EmptyState variant="groups" title="No matching accounts." body="Try a different search or filter."/>
+          <EmptyState variant="groups" title="No matching accounts." body="Try a different search or filter." />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', marginBottom: '1.4rem' }}>
             {data.users.map(u => <UserRow key={u.id} u={u} />)}
