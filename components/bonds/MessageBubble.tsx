@@ -191,22 +191,23 @@ export function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, on
             </>
           )}
 
-          {/* Reply quote strip — shows who was replied to + preview */}
+          {/* Reply quote tag — shows who was replied to + preview */}
           {msg.replyPreview && (
             <div style={{
               display: 'flex', alignItems: 'stretch', gap: 0,
-              borderRadius: '10px 10px 0 0', overflow: 'hidden',
-              background: sent ? 'rgba(0,0,0,0.18)' : 'rgba(0,0,0,0.05)',
+              borderRadius: '20px 20px 0 0', overflow: 'hidden',
+              background: sent ? 'rgba(0,0,0,0.16)' : 'var(--surf-low)',
             }}>
               <div style={{ width: 3, flexShrink: 0,
-                background: sent ? 'rgba(255,255,255,0.75)' : 'var(--ember)' }}/>
-              <div style={{ padding: '.38rem .65rem', minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '.7rem', fontWeight: 700, marginBottom: '.1rem',
+                background: sent ? 'rgba(255,255,255,0.8)' : 'var(--ember)' }}/>
+              <div style={{ padding: '.5rem .85rem .45rem', minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '.7rem', fontWeight: 700, marginBottom: '.15rem',
                   color: sent ? 'rgba(255,255,255,0.95)' : 'var(--ember)' }}>
+                  <Icon name="reply" size={11} stroke={sent ? 'rgba(255,255,255,0.9)' : 'var(--ember)'} sw={2}/>
                   {sent ? otherName.split(' ')[0] : 'You'}
                 </div>
-                <div style={{ fontSize: '.76rem', lineHeight: 1.35,
-                  color: sent ? 'rgba(255,255,255,0.72)' : 'var(--ink-3)',
+                <div style={{ fontSize: '.78rem', lineHeight: 1.35,
+                  color: sent ? 'rgba(255,255,255,0.75)' : 'var(--ink-3)',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {msg.replyPreview}
                 </div>

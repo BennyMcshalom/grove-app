@@ -287,20 +287,21 @@ export function BondThread({ bond, onTogglePanel }: { bond: BondRecord; onToggle
         background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: '.55rem'
       }}>
 
-        {/* Compose reply strip */}
+        {/* Compose reply tag */}
         {replyTo && (
           <div style={{
             display: 'flex', alignItems: 'stretch', marginLeft: 46,
-            background: 'var(--surf-low)', borderRadius: 14,
-            border: '1px solid var(--border)', overflow: 'hidden'
+            background: 'var(--ember-dim)', borderRadius: 14,
+            border: '1px solid var(--ember-bdr)', overflow: 'hidden'
           }}>
             <div style={{ width: 3, flexShrink: 0, background: 'var(--ember)' }} />
-            <div style={{ flex: 1, padding: '.5rem .8rem', minWidth: 0 }}>
-              <div style={{ fontSize: '.71rem', fontWeight: 700, color: 'var(--ember)', marginBottom: '.1rem' }}>
+            <div style={{ flex: 1, padding: '.5rem .85rem', minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '.72rem', fontWeight: 700, color: 'var(--ember)', marginBottom: '.15rem' }}>
+                <Icon name="reply" size={12} stroke="var(--ember)" sw={2} />
                 Replying to {replyTo.senderId === myId ? 'yourself' : otherName.split(' ')[0]}
               </div>
               <div style={{
-                fontSize: '.78rem', color: 'var(--ink-3)',
+                fontSize: '.8rem', color: 'var(--ink-2)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
               }}>
                 {replyTo.kind === 'voice'
@@ -310,10 +311,15 @@ export function BondThread({ bond, onTogglePanel }: { bond: BondRecord; onToggle
             </div>
             <button onClick={() => setReplyTo(null)}
               style={{
-                padding: '0 .8rem', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', flexShrink: 0, color: 'var(--ink-3)'
-              }}>
-              <Icon name="close" size={14} stroke="var(--ink-3)" />
+                padding: '0 .7rem', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', flexShrink: 0
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.7')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(243,112,30,.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="close" size={12} stroke="var(--ember)" sw={2} />
+              </div>
             </button>
           </div>
         )}
