@@ -196,7 +196,7 @@ export function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, on
             <div style={{
               display: 'flex', alignItems: 'stretch', gap: 0,
               borderRadius: '20px 20px 0 0', overflow: 'hidden',
-              background: sent ? 'rgba(0,0,0,0.16)' : 'var(--surf-low)',
+              background: sent ? 'var(--ember-deep)' : 'var(--ember-dim)',
             }}>
               <div style={{ width: 3, flexShrink: 0,
                 background: sent ? 'rgba(255,255,255,0.8)' : 'var(--ember)' }}/>

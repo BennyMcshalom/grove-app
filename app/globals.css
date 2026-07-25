@@ -100,7 +100,7 @@
   --ink: #F5F5F5;
   --ink-2: #B3B3B3;
   --ink-3: #6B6B6B;
-  --ink-4: #424242;
+  --ink-4: #f7f7f7;
 
   /* Borders */
   --border: rgba(255, 255, 255, 0.07);
@@ -610,20 +610,6 @@ textarea:focus {
     inset: 0;
     z-index: 399;
     background: rgba(26, 26, 26, .35);
-  }
-}
-
-/* ── Message hover toolbar — mouse/trackpad only, never sticks on touch ── */
-.msg-toolbar {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .12s ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .msg-row:hover .msg-toolbar {
-    opacity: 1;
-    pointer-events: auto;
   }
 }
 
