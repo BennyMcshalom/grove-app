@@ -1,4 +1,4 @@
-import type { AuraKey, LogStyle } from '@/lib/types';
+import type { AuraKey } from '@/lib/types';
 
 export type LogEntry = {
   id?: string;
@@ -17,6 +17,5 @@ export type OtherLog = {
   phase: string;
   vis: string;
   when: string;
-  style: LogStyle;
   entries: LogEntry[];
 };

@@ -6,7 +6,7 @@ import { SpaceIcon } from '@/components/ui/SpaceIcon';
 import { spaceById } from '@/lib/data';
 import type { OtherLog } from './types';
 import { MemoryLightbox } from './MemoryLightbox';
-import { StyleA, StyleB, StyleC } from './LogStyles';
+import { StyleA } from './LogStyles';
 
 // ── LogViewer — someone else's log, rendered through the styled gallery ──
 export function LogViewer({ log, onClose }: { log: OtherLog; onClose: () => void }) {
@@ -46,12 +46,8 @@ export function LogViewer({ log, onClose }: { log: OtherLog; onClose: () => void
         <div style={{ padding: '1.4rem 1.2rem 1.6rem' }}>
           {filled.length === 0 ? (
             <p style={{ color: 'var(--ink-3)', fontStyle: 'italic', textAlign: 'center', padding: '2rem 0' }}>No moments logged yet.</p>
-          ) : log.style === 'A' ? (
-            <StyleA entries={filled} onOpen={setOpen} />
-          ) : log.style === 'C' ? (
-            <StyleC entries={filled} space={space} onOpen={setOpen} />
           ) : (
-            <StyleB entries={filled} onOpen={setOpen} />
+            <StyleA entries={filled} onOpen={setOpen} />
           )}
         </div>
       </div>
