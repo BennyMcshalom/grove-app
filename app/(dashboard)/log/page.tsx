@@ -10,11 +10,12 @@ import { useUserStore } from '@/store/useUserStore';
 import { useToastStore } from '@/store/useToastStore';
 import { useSpaceStore } from '@/store/useSpaceStore';
 import { spaceById } from '@/lib/data';
-import { postsApi } from '@/lib/api';
+import { postsApi, usersApi } from '@/lib/api';
 import { useBonds } from '@/hooks/useBonds';
 import { useMySpaces } from '@/hooks/useSpaces';
 import { useMyLogEntries, useAddLogEntry, useUpdateLogEntry, useLogSettings, useUpdateLogSettings, useCircleLogs } from '@/hooks/useLog';
 import type { CircleLogUser } from '@/lib/api';
+import type { LogStyle } from '@/lib/types';
 import type { LogEntry, OtherLog } from '@/components/log/types';
 import { MomentsEntryCard } from '@/components/log/MomentsEntryCard';
 import { MemoriesGallery } from '@/components/log/MemoriesGallery';
@@ -44,7 +45,7 @@ const LOG_VIS = [
 
 // ── Main page ─────────────────────────────────────────────────────
 function LogPageInner() {
-  const { user } = useUserStore();
+  const { user, setUser } = useUserStore();
   const { toast } = useToastStore();
   const { uuidBySlug } = useSpaceStore();
 
@@ -80,6 +81,7 @@ function LogPageInner() {
   const vis = settingsData?.visibility ?? 'circle';
   const visMeta = LOG_VIS.find(v => v[0] === vis) ?? LOG_VIS[1];
   const filled = entries.filter(e => !e.missed);
+  const logStyle: LogStyle = user.logStyle ?? 'A';
 
   // Map circle data to OtherLog shape
   const circleUsers: OtherLog[] = (circleData ?? []).map((u: CircleLogUser) => ({
@@ -92,6 +94,7 @@ function LogPageInner() {
     when: u.entries[0]
       ? new Date(u.entries[0].createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : '',
+    style: (['A', 'B', 'C'].includes(u.logStyle) ? u.logStyle : 'A') as LogStyle,
     entries: u.entries.map(e => apiToLocal(e)),
   }));
 
@@ -135,6 +138,11 @@ function LogPageInner() {
       if (msg.includes('409')) toast('That entry is sealed, it can only be edited on the day it was posted.');
       else toast('Could not save. Try again.');
     }
+  };
+
+  const changeLogStyle = (s: LogStyle) => {
+    setUser(u => ({ ...u, logStyle: s }));
+    usersApi.updateMe({ logStyle: s }).catch(() => { });
   };
 
   const right = (
@@ -207,7 +215,8 @@ function LogPageInner() {
 
       <RPSection label="The ritual">
         <p style={{ fontSize: '.84rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
-          One photo. One honest line. Every day you&apos;re in this chapter. Choose who else gets to scroll your past moments.
+          One photo. One honest line. Every day you're in this chapter. Choose how you view your past moments,
+          and who else gets to scroll them.
         </p>
       </RPSection>
     </>
@@ -274,7 +283,7 @@ function LogPageInner() {
 
         {/* Memories gallery */}
         <div style={{ marginBottom: '1.4rem' }}>
-          <MemoriesGallery entries={entries} space={space} />
+          <MemoriesGallery entries={entries} space={space} style={logStyle} onStyleChange={changeLogStyle} />
         </div>
 
         {/* Artifact access */}

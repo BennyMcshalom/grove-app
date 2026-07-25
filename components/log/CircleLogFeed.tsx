@@ -23,6 +23,7 @@ export function CircleLogFeed({ logs, onOpen }: { logs: OtherLog[]; onOpen: (log
                   <SpaceIcon spaceId={log.space} size={11} /> {log.phase} · {log.when}
                 </div>
               </div>
+              <span className="chip" style={{ background: 'var(--surf-high)', fontSize: '.66rem' }}>Style {log.style}</span>
             </header>
             <div className="scroll" style={{ display: 'flex', gap: '.6rem', overflowX: 'auto', padding: '0 1.1rem .5rem' }}>
               {log.entries.slice(0, 6).map((e, i) => (
