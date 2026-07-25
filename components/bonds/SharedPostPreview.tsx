@@ -31,11 +31,11 @@ export function SharedPostPreview({ postId, sent }: { postId: string; sent: bool
         fontSize: '.66rem', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '.04em',
         color: sent ? 'rgba(255,255,255,.8)' : 'var(--ink-3)'
       }}>
-        <Icon name="sprout" size={11} stroke={sent ? 'rgba(255,255,255,.8)' : 'var(--ink-3)'}/> Shared a post
+        <Icon name="sprout" size={11} stroke={sent ? 'rgba(255,255,255,.8)' : 'var(--ink-3)'} /> Shared a post
       </div>
       <div style={{ padding: '.2rem .8rem .8rem' }}>
         {isLoading ? (
-          <div style={{ padding: '.3rem 0' }}><Spinner size={14} color={sent ? '#fff' : 'var(--ink-3)'}/></div>
+          <div style={{ padding: '.3rem 0' }}><Spinner size={14} color={sent ? '#fff' : 'var(--ink-3)'} /></div>
         ) : isError || !post ? (
           <p style={{ fontSize: '.8rem', fontStyle: 'italic', color: sent ? 'rgba(255,255,255,.7)' : 'var(--ink-4)' }}>
             This post isn&apos;t available anymore.
@@ -43,14 +43,18 @@ export function SharedPostPreview({ postId, sent }: { postId: string; sent: bool
         ) : (
           <>
             {post.doing && (
-              <p style={{ fontSize: '.85rem', fontWeight: 600, lineHeight: 1.35,
-                color: sent ? '#fff' : 'var(--ink)', marginBottom: post.honestThing ? '.25rem' : 0 }}>
+              <p style={{
+                fontSize: '.85rem', fontWeight: 600, lineHeight: 1.35,
+                color: sent ? '#fff' : 'var(--ink)', marginBottom: post.honestThing ? '.25rem' : 0
+              }}>
                 {post.doing}
               </p>
             )}
             {post.honestThing && (
-              <p style={{ fontSize: '.78rem', fontStyle: 'italic', lineHeight: 1.4,
-                color: sent ? 'rgba(255,255,255,.8)' : 'var(--ink-2)' }}>
+              <p style={{
+                fontSize: '.78rem', fontStyle: 'italic', lineHeight: 1.4,
+                color: sent ? 'rgba(255,255,255,.8)' : 'var(--ink-2)'
+              }}>
                 &ldquo;{post.honestThing}&rdquo;
               </p>
             )}

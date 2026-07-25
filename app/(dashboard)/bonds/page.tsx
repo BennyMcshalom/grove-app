@@ -1,20 +1,33 @@
 'use client';
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { RPSection } from '@/components/layout/RightPanel';
 import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useToastStore } from '@/store/useToastStore';
 import { useBonds } from '@/hooks/useBonds';
 import { useBondInvitations, useAcceptBondInvitation, useDeclineBondInvitation, useInviteToBond, useSentBondInvitations } from '@/hooks/useBondInvitations';
 import { useSuggestions } from '@/hooks/useUsers';
-import { formatRelativeTime, formatLastSeen } from '@/lib/mappers';
 import { BondThread } from '@/components/bonds/BondThread';
+import { BondListRow } from '@/components/bonds/BondListRow';
+import { CircleRow } from '@/components/bonds/CircleRow';
+import { BondInfoPanel } from '@/components/bonds/BondInfoPanel';
+
+function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    onChange => {
+      const mq = window.matchMedia(query);
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    },
+    () => window.matchMedia(query).matches,
+    () => false, // SSR-safe default
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────
 // BONDS PAGE
@@ -25,6 +38,14 @@ function BondsPageInner() {
   const [sel, setSel] = useState(0);
   // Mobile: 'list' shows the bond list; 'thread' shows the active conversation
   const [mobileView, setMobileView] = useState<'list' | 'thread'>('list');
+  const [search, setSearch] = useState('');
+  // Defaults open on desktop (SSR-safe via useSyncExternalStore — never
+  // reads window during render), closed below; an explicit toggle click
+  // overrides that default and persists for the rest of the session.
+  const isDesktopPanel = useMediaQuery('(min-width: 1180px)');
+  const [panelOverride, setPanelOverride] = useState<boolean | null>(null);
+  const panelOpen = panelOverride ?? isDesktopPanel;
+  const togglePanel = () => setPanelOverride(v => !(v ?? isDesktopPanel));
   const { data: bondsData, isLoading } = useBonds();
   const { data: suggestions } = useSuggestions();
   const { data: invitations } = useBondInvitations();
@@ -46,6 +67,16 @@ function BondsPageInner() {
   const orderedList = [...realBonds, ...circle];
   const slots     = Math.max(0, 5 - realBonds.length);
   const pending   = (invitations ?? []).filter(i => i.status === 'pending');
+
+  // Search filters only what's RENDERED — realBonds/circle/orderedList/sel
+  // stay unfiltered as the source of truth, so selection never desyncs from
+  // a query. Row clicks resolve by id, not by filtered array position.
+  const q = search.trim().toLowerCase();
+  const visibleRealBonds = q ? realBonds.filter(b => (b.otherUser?.displayName ?? '').toLowerCase().includes(q)) : realBonds;
+  const visibleCircle    = q ? circle.filter(b => (b.otherUser?.displayName ?? '').toLowerCase().includes(q)) : circle;
+  const noMatches = q && visibleRealBonds.length === 0 && visibleCircle.length === 0;
+
+  const selectedBond = orderedList[Math.min(sel, Math.max(orderedList.length - 1, 0))];
 
   const right = (
     <>
@@ -123,8 +154,11 @@ function BondsPageInner() {
     </>
   );
 
+  // The Bond Info panel is a 4th column competing for the same width the
+  // static "invitations/suggested" rail uses — showing both at once crushes
+  // the thread column on common laptop widths. The info panel wins when open.
   return (
-    <AppShell title="Your Bonds" right={right}>
+    <AppShell title="Your Bonds" right={panelOpen ? undefined : right}>
       <div style={{ padding: '0 1.6rem 1rem', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <p style={{ color: 'var(--ink-3)', marginTop: '-.4rem', marginBottom: '1rem', fontSize: '.88rem' }}>
           Up to five. Earned, not assigned.
@@ -134,6 +168,21 @@ function BondsPageInner() {
           {/* ── Bond list ── */}
           <div className={`bonds-list-col scroll${mobileView === 'thread' ? ' bonds-list-hidden-mobile' : ''}`}
             style={{ width: '38%', minWidth: 280, maxWidth: 360, flexShrink: 0, overflowY: 'auto' }}>
+
+            {allConnections.length > 0 && (
+              <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}>
+                  <Icon name="search" size={16} stroke="var(--ink-4)"/>
+                </span>
+                <input value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder="Search Bonds & Circle…"
+                  style={{ width: '100%', padding: '.7rem .9rem .7rem 2.5rem', borderRadius: 100,
+                    border: '1.5px solid var(--border-2)', background: 'var(--white)', fontSize: '.85rem' }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--ember)'; e.target.style.boxShadow = '0 0 0 3px var(--ember-dim)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--border-2)'; e.target.style.boxShadow = 'none'; }}/>
+              </div>
+            )}
+
             {isLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Spinner/></div>
             ) : allConnections.length === 0 ? (
@@ -143,49 +192,18 @@ function BondsPageInner() {
                   body="Bonds and Circle members will appear here."
                   action={{ label: 'Explore spaces →', onClick: () => router.push('/spaces') }}/>
               </div>
+            ) : noMatches ? (
+              <p style={{ fontSize: '.84rem', color: 'var(--ink-4)', textAlign: 'center', padding: '2rem 1rem' }}>
+                No matches for &ldquo;{search}&rdquo;.
+              </p>
             ) : (
               <>
                 {/* ── Full Bonds (up to 5) ── */}
-                {realBonds.map((b, i) => {
-                  const name     = b.otherUser?.displayName ?? 'Bond';
-                  const active   = sel === i;
-                  const inFocus  = !!b.otherUser?.deepFocusActive;
-                  return (
-                    <button key={b.id} onClick={() => { setSel(i); setMobileView('thread'); }} className="card" style={{
-                      display: 'block', width: '100%', textAlign: 'left', padding: '1rem', marginBottom: '.7rem',
-                      borderLeft: active ? '4px solid var(--ember)' : '4px solid transparent',
-                      boxShadow: active ? 'var(--shadow)' : 'var(--shadow-soft)',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.7rem' }}>
-                        <div style={{ position: 'relative', flexShrink: 0 }}>
-                          <Avatar name={name} size={50} aura={b.otherUser?.aura ?? undefined} avatarUrl={b.otherUser?.avatarUrl}/>
-                          {inFocus && (
-                            <div title="In Deep Focus" style={{ position: 'absolute', bottom: -1, right: -1,
-                              width: 16, height: 16, borderRadius: '50%', background: 'var(--ink)',
-                              border: '2px solid var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Icon name="moon" size={9} stroke="var(--cream)" sw={1.8}/>
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-                          {inFocus ? (
-                            <span style={{ fontSize: '.7rem', color: 'var(--ink-3)', fontStyle: 'italic' }}>in focus</span>
-                          ) : b.otherUser?.openTo ? (
-                            <div style={{ fontSize: '.74rem', color: 'var(--ink-4)',
-                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.otherUser.openTo}</div>
-                          ) : null}
-                        </div>
-                      </div>
-                      <ProgressBar value={b.depthScore ?? 0}/>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '.5rem', fontSize: '.72rem', color: 'var(--ink-3)' }}>
-                        <span>Bond depth</span>
-                        <span>{b.lastMessageAt ? `Last message: ${formatRelativeTime(b.lastMessageAt)}` : 'No messages yet'}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-                {[...Array(slots)].map((_, i) => (
+                {visibleRealBonds.map(b => (
+                  <BondListRow key={b.id} bond={b} active={sel === realBonds.findIndex(x => x.id === b.id)}
+                    onClick={() => { setSel(realBonds.findIndex(x => x.id === b.id)); setMobileView('thread'); }}/>
+                ))}
+                {!q && [...Array(slots)].map((_, i) => (
                   <div key={i} style={{ borderRadius: 'var(--r-md)', border: '1.5px dashed var(--border-2)',
                     padding: '.9rem', marginBottom: '.4rem', fontSize: '.8rem', color: 'var(--ink-4)',
                     fontStyle: 'italic', lineHeight: 1.45 }}>
@@ -194,7 +212,7 @@ function BondsPageInner() {
                 ))}
 
                 {/* ── Circle: recent connections, sorted by last chatted ── */}
-                {circle.length > 0 && (
+                {visibleCircle.length > 0 && (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       margin: '1.4rem 0 .6rem', padding: '0 .2rem' }}>
@@ -202,67 +220,17 @@ function BondsPageInner() {
                       <span style={{ fontSize: '.7rem', color: 'var(--ink-4)' }}>{circle.length} connected</span>
                     </div>
                     <div className="card" style={{ padding: '.3rem .4rem', boxShadow: 'var(--shadow-soft)' }}>
-                      {circle.map((b, i) => {
-                        const name = b.otherUser?.displayName ?? 'Circle';
-                        const idx  = realBonds.length + i;
-                        const active = sel === idx;
-                        const streak = b.streakDays ?? 0;
-                        const pct    = Math.min(100, Math.round((streak / 7) * 100));
-                        const unread = b.unreadCount ?? 0;
-                        return (
-                          <button key={b.id} onClick={() => { setSel(idx); setMobileView('thread'); }} style={{
-                            display: 'block', width: '100%', textAlign: 'left', padding: '.6rem .6rem', borderRadius: 'var(--r-md)',
-                            background: active ? 'var(--ember-dim)' : 'transparent',
-                            borderBottom: i < circle.length - 1 ? '1px solid var(--border)' : 'none',
-                          }}
-                            onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--surf-low)'; }}
-                            onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem' }}>
-                              <div style={{ position: 'relative', flexShrink: 0 }}>
-                                <Avatar name={name} size={40} avatarUrl={b.otherUser?.avatarUrl} aura={b.otherUser?.aura ?? undefined}/>
-                                {b.otherUser?.deepFocusActive && (
-                                  <div title="In Deep Focus" style={{ position: 'absolute', bottom: -1, right: -1,
-                                    width: 14, height: 14, borderRadius: '50%', background: 'var(--ink)',
-                                    border: '2px solid var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Icon name="moon" size={7} stroke="var(--cream)" sw={1.8}/>
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: 600, fontSize: '.86rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-                                <div style={{ fontSize: '.72rem', color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {b.otherUser?.deepFocusActive ? 'in focus' : (b.otherUser?.openTo || ' ')}
-                                </div>
-                              </div>
-                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                <div style={{ fontSize: '.66rem', color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>
-                                  {b.lastMessageAt ? formatRelativeTime(b.lastMessageAt) : 'new'}
-                                </div>
-                                {unread > 0 && (
-                                  <span style={{ display: 'inline-block', marginTop: 3, minWidth: 16, height: 16, lineHeight: '16px',
-                                    borderRadius: 100, background: 'var(--ember)', color: '#fff', fontSize: '.6rem', fontWeight: 600,
-                                    textAlign: 'center', padding: '0 4px' }}>{unread}</span>
-                                )}
-                              </div>
-                            </div>
-                            {/* Streak — fills toward the 7-day Bond threshold */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginTop: '.4rem', paddingLeft: 50 }}>
-                              <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'var(--surf-high)', overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${pct}%`,
-                                  background: pct >= 85 ? 'var(--sage)' : 'var(--ink-4)',
-                                  transition: 'width .5s ease' }}/>
-                              </div>
-                              <span style={{ fontSize: '.62rem', color: 'var(--ink-4)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
-                                {formatLastSeen(b.otherUser?.lastActiveAt)}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
+                      {visibleCircle.map((b, i) => (
+                        <CircleRow key={b.id} bond={b} showDivider={i < visibleCircle.length - 1}
+                          active={sel === realBonds.length + circle.findIndex(x => x.id === b.id)}
+                          onClick={() => { setSel(realBonds.length + circle.findIndex(x => x.id === b.id)); setMobileView('thread'); }}/>
+                      ))}
                     </div>
-                    <p style={{ fontSize: '.72rem', color: 'var(--ink-4)', fontStyle: 'italic', margin: '.7rem .2rem 0', lineHeight: 1.45 }}>
-                      Everyone you&apos;ve started Grouving with. Whoever you spoke to most recently rises to the top.
-                    </p>
+                    {!q && (
+                      <p style={{ fontSize: '.72rem', color: 'var(--ink-4)', fontStyle: 'italic', margin: '.7rem .2rem 0', lineHeight: 1.45 }}>
+                        Everyone you&apos;ve started Grouving with. Whoever you spoke to most recently rises to the top.
+                      </p>
+                    )}
                   </>
                 )}
               </>
@@ -280,8 +248,8 @@ function BondsPageInner() {
                 fontSize: '.86rem', color: 'var(--ink-3)', fontWeight: 500 }}>
               <Icon name="back" size={16} stroke="var(--ink-3)"/> All bonds
             </button>
-            {orderedList.length > 0 ? (
-              <BondThread bond={orderedList[Math.min(sel, orderedList.length - 1)]}/>
+            {selectedBond ? (
+              <BondThread key={selectedBond.id} bond={selectedBond} onTogglePanel={togglePanel}/>
             ) : !isLoading ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
                 <div className="card" style={{
@@ -295,6 +263,16 @@ function BondsPageInner() {
               </div>
             ) : null}
           </div>
+
+          {/* ── Bond Info panel ── */}
+          {panelOpen && selectedBond && (
+            <>
+              <div className="bonds-info-backdrop" onClick={() => setPanelOverride(false)}/>
+              <div className="bonds-info-col" key={selectedBond.id}>
+                <BondInfoPanel bond={selectedBond} onClose={() => setPanelOverride(false)}/>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </AppShell>

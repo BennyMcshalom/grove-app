@@ -55,6 +55,11 @@ export function formatRelativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+export function isOnline(iso?: string | null): boolean {
+  if (!iso) return false;
+  return (Date.now() - new Date(iso).getTime()) < 5 * 60_000;
+}
+
 export function formatLastSeen(iso?: string | null): string {
   if (!iso) return 'last seen a while ago';
   const diff = Date.now() - new Date(iso).getTime();
