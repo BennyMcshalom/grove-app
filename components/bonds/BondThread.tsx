@@ -238,7 +238,15 @@ export function BondThread({ bond, onTogglePanel }: { bond: BondRecord; onToggle
           <>
             {(messages).map((m, i) => {
               const prev = messages[i - 1];
+              const next = messages[i + 1];
               const showDate = !prev || new Date(m.createdAt).toDateString() !== new Date(prev.createdAt).toDateString();
+              // Consecutive messages from the same sender within 5 minutes sit
+              // together as one visual group — a system row (missed call) or a
+              // day boundary always breaks the group, same as most chat apps.
+              const isSystemKind = (k?: string) => k === 'call_missed_voice' || k === 'call_missed_video';
+              const sameDayAsNext = next && new Date(m.createdAt).toDateString() === new Date(next.createdAt).toDateString();
+              const isLastInGroup = !next || !sameDayAsNext || next.senderId !== m.senderId || isSystemKind(next.kind) ||
+                (new Date(next.createdAt).getTime() - new Date(m.createdAt).getTime()) > 5 * 60_000;
               return (
                 <React.Fragment key={m.id}>
                   {showDate && (
@@ -254,6 +262,7 @@ export function BondThread({ bond, onTogglePanel }: { bond: BondRecord; onToggle
                   )}
                   <MessageBubble msg={m} myId={myId} bondId={bond.id} otherName={otherName}
                     otherAvatarUrl={bond.otherUser?.avatarUrl}
+                    isLastInGroup={isLastInGroup}
                     onReply={msg => setReplyTo(msg)} />
                 </React.Fragment>
               );
