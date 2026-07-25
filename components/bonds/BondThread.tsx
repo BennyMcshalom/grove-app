@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useToastStore } from '@/store/useToastStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useUserStore } from '@/store/useUserStore';
 import { useBondMessages, useSendBondMessage, useUploadVoice } from '@/hooks/useBonds';
 import { bondsApi } from '@/lib/api';
 import { startCall } from '@/lib/calling';
@@ -21,12 +22,23 @@ export function BondThread({ bond, onTogglePanel }: { bond: BondRecord; onToggle
   const router = useRouter();
   const { toast } = useToastStore();
   const { user: authUser } = useAuthStore();
+  const { user: me } = useUserStore();
   const myId = authUser?.id ?? '';
   const otherName = bond.otherUser?.displayName ?? 'Bond';
 
   const [draft, setDraft] = useState('');
   const [replyTo, setReplyTo] = useState<BondMessage | null>(null);
+  const [composerFocused, setComposerFocused] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
+  const draftRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-grow the composer up to a capped height, then let it scroll.
+  useEffect(() => {
+    const el = draftRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 110)}px`;
+  }, [draft]);
 
   // Voice recording
   const [recording, setRecording] = useState(false);
@@ -262,19 +274,19 @@ export function BondThread({ bond, onTogglePanel }: { bond: BondRecord; onToggle
 
       {/* ── Input area ── */}
       <div style={{
-        padding: '.75rem 1rem', borderTop: '1px solid var(--border)',
-        background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: '.4rem'
+        padding: '.9rem 1.2rem 1.1rem', borderTop: '1px solid var(--border)',
+        background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: '.55rem'
       }}>
 
         {/* Compose reply strip */}
         {replyTo && (
           <div style={{
-            display: 'flex', alignItems: 'stretch',
-            background: 'var(--surf-low)', borderRadius: 10,
+            display: 'flex', alignItems: 'stretch', marginLeft: 46,
+            background: 'var(--surf-low)', borderRadius: 14,
             border: '1px solid var(--border)', overflow: 'hidden'
           }}>
             <div style={{ width: 3, flexShrink: 0, background: 'var(--ember)' }} />
-            <div style={{ flex: 1, padding: '.42rem .75rem', minWidth: 0 }}>
+            <div style={{ flex: 1, padding: '.5rem .8rem', minWidth: 0 }}>
               <div style={{ fontSize: '.71rem', fontWeight: 700, color: 'var(--ember)', marginBottom: '.1rem' }}>
                 Replying to {replyTo.senderId === myId ? 'yourself' : otherName.split(' ')[0]}
               </div>
@@ -289,7 +301,7 @@ export function BondThread({ bond, onTogglePanel }: { bond: BondRecord; onToggle
             </div>
             <button onClick={() => setReplyTo(null)}
               style={{
-                padding: '0 .75rem', display: 'flex', alignItems: 'center',
+                padding: '0 .8rem', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', flexShrink: 0, color: 'var(--ink-3)'
               }}>
               <Icon name="close" size={14} stroke="var(--ink-3)" />
@@ -301,40 +313,50 @@ export function BondThread({ bond, onTogglePanel }: { bond: BondRecord; onToggle
         {recording ? (
           <RecordingBar elapsed={recTime} onSend={sendVoice} onCancel={cancelRec} sending={uploadVoice.isPending} />
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '.65rem' }}>
+            <Avatar name={me.name} avatarUrl={me.avatar_url} aura={me.aura} size={36}
+              style={{ flexShrink: 0, marginBottom: 3 }} />
             <div style={{
-              flex: 1, display: 'flex', alignItems: 'center', background: 'var(--surf-low)',
-              borderRadius: 100, border: '1.5px solid var(--border-2)', overflow: 'hidden',
-              transition: 'border-color .15s'
-            }}
-              onFocusCapture={e => (e.currentTarget.style.borderColor = 'var(--ember)')}
-              onBlurCapture={e => (e.currentTarget.style.borderColor = 'var(--border-2)')}>
-              <input value={draft} onChange={e => setDraft(e.target.value)}
+              flex: 1, display: 'flex', alignItems: 'flex-end', gap: '.3rem',
+              background: 'var(--surf-low)', borderRadius: 22,
+              border: `1.5px solid ${composerFocused ? 'var(--ember)' : 'var(--border-2)'}`,
+              boxShadow: composerFocused ? '0 0 0 3px var(--ember-dim)' : 'var(--shadow-soft)',
+              padding: '.3rem .3rem .3rem 1.1rem', transition: 'border-color .15s, box-shadow .15s'
+            }}>
+              <textarea ref={draftRef} value={draft} rows={1}
+                onChange={e => setDraft(e.target.value)}
+                onFocus={() => setComposerFocused(true)}
+                onBlur={() => setComposerFocused(false)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTextWithOpts(); } }}
                 placeholder="Message…"
-                style={{ flex: 1, padding: '.65rem 1rem', fontSize: '.92rem', background: 'transparent', border: 'none' }} />
+                style={{
+                  flex: 1, resize: 'none', padding: '.55rem 0', fontSize: '.92rem', lineHeight: 1.45,
+                  background: 'transparent', border: 'none', fontFamily: 'inherit', maxHeight: 110, overflowY: 'auto'
+                }} />
+              {draft.trim() ? (
+                <button onClick={sendTextWithOpts} disabled={sendMsg.isPending}
+                  style={{
+                    width: 38, height: 38, borderRadius: '50%', background: 'var(--ember)', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '.15rem',
+                    boxShadow: '0 2px 10px -2px rgba(243,112,30,.5)', transition: 'transform .1s'
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
+                  onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+                  {sendMsg.isPending ? <Spinner size={15} color="#fff" /> : <Icon name="send" size={16} stroke="#fff" />}
+                </button>
+              ) : (
+                <button onClick={startRec} title="Record a voice note"
+                  style={{
+                    width: 38, height: 38, borderRadius: '50%', background: 'var(--ember)', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '.15rem',
+                    boxShadow: '0 2px 10px -2px rgba(243,112,30,.5)', transition: 'transform .1s'
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
+                  onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+                  <Icon name="mic" size={17} stroke="#fff" />
+                </button>
+              )}
             </div>
-            {draft.trim() ? (
-              <button onClick={sendTextWithOpts} disabled={sendMsg.isPending}
-                style={{
-                  width: 42, height: 42, borderRadius: '50%', background: 'var(--ember)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  boxShadow: '0 2px 10px -2px rgba(243,112,30,.5)', transition: 'transform .1s'
-                }}
-                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
-                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
-                {sendMsg.isPending ? <Spinner size={16} color="#fff" /> : <Icon name="send" size={17} stroke="#fff" />}
-              </button>
-            ) : (
-              <button onClick={startRec}
-                style={{
-                  width: 42, height: 42, borderRadius: '50%', background: 'var(--ember)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  boxShadow: '0 2px 10px -2px rgba(243,112,30,.5)'
-                }}>
-                <Icon name="mic" size={19} stroke="#fff" />
-              </button>
-            )}
           </div>
         )}
       </div>
