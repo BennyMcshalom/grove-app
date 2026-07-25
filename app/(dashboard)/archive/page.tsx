@@ -4,123 +4,11 @@ import { AppShell } from '@/components/layout/AppShell';
 import { FeatureGate } from '@/components/layout/FeatureGate';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { SpaceIcon } from '@/components/ui/SpaceIcon';
-import { Icon } from '@/components/ui/Icon';
 import { useClosedChapters } from '@/hooks/useChapters';
-import { useMyLogEntries } from '@/hooks/useLog';
 import { useSavedCurios } from '@/hooks/useCurio';
 import { useSpaceStore } from '@/store/useSpaceStore';
-import { spaceById } from '@/lib/data';
-import type { ChapterRecord } from '@/lib/api';
-
-// A closed chapter's card — closing reflections plus the Grouv Log entries
-// written during that chapter. Log entries have no membership requirement
-// server-side (GET /log/:spaceId only checks authorship), so they stay
-// readable here even though closing the chapter already removed the space
-// from "My Spaces".
-function ChapterCard({ chapter: c, slug }: { chapter: ChapterRecord; slug: string }) {
-  const s = spaceById(slug);
-  const [open, setOpen] = useState(false);
-  const [logOpen, setLogOpen] = useState(false);
-  const { data: logEntries, isLoading: logLoading } = useMyLogEntries(logOpen ? c.spaceId : undefined);
-  const openedDate = new Date(c.openedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  const closedDate = c.closedAt ? new Date(c.closedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
-
-  return (
-    <div className="card" style={{ marginBottom: '1.1rem', borderLeft: `6px solid ${s.color}`, overflow: 'hidden' }}>
-      <div style={{ padding: '1.3rem 1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem', marginBottom: '.3rem' }}>
-          <SpaceIcon spaceId={slug} size={22} pill pillSize={40}/>
-          <div className="serif" style={{ fontSize: '1.4rem', fontWeight: 600 }}>{s.name}</div>
-        </div>
-        <div style={{ color: 'var(--ink-3)', fontSize: '.88rem', marginBottom: '.9rem' }}>
-          {openedDate} – {closedDate}
-        </div>
-
-        <div style={{ display: 'flex', gap: '1.3rem', flexWrap: 'wrap' }}>
-          <button onClick={() => setOpen(o => !o)}
-            style={{ fontSize: '.85rem', color: 'var(--ember)', fontWeight: 500 }}>
-            {open ? 'Hide reflections' : 'Read reflections'} →
-          </button>
-          <button onClick={() => setLogOpen(o => !o)}
-            style={{ fontSize: '.85rem', color: 'var(--sage)', fontWeight: 500 }}>
-            {logOpen ? 'Hide Grouv Log' : 'View Grouv Log'} →
-          </button>
-        </div>
-
-        {open && (
-          <div className="fade-in" style={{ borderTop: '1px solid var(--border)', marginTop: '1rem', paddingTop: '1rem' }}>
-            {!c.closingLearned && !c.closingAdvice && !c.closingCarryForward && !c.reflectionQ1 ? (
-              <p style={{ fontSize: '.88rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>
-                No reflections were recorded for this chapter.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {c.closingLearned && (
-                  <div>
-                    <div className="label-mono" style={{ marginBottom: '.3rem' }}>What this chapter taught me</div>
-                    <p style={{ fontStyle: 'italic', color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>"{c.closingLearned}"</p>
-                  </div>
-                )}
-                {c.closingAdvice && (
-                  <div>
-                    <div className="label-mono" style={{ marginBottom: '.3rem' }}>What I'd tell someone starting</div>
-                    <p style={{ fontStyle: 'italic', color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>"{c.closingAdvice}"</p>
-                  </div>
-                )}
-                {c.closingCarryForward && (
-                  <div>
-                    <div className="label-mono" style={{ marginBottom: '.3rem' }}>Who I'm carrying forward</div>
-                    <p style={{ fontStyle: 'italic', color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>"{c.closingCarryForward}"</p>
-                  </div>
-                )}
-                {c.reflectionQ1 && c.reflectionQ1.split('\n\n—\n\n').map((entry, i) => entry.trim() && (
-                  <div key={i}>
-                    <div className="label-mono" style={{ marginBottom: '.3rem' }}>Extra reflection {i + 1}</div>
-                    <p style={{ fontStyle: 'italic', color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>"{entry.trim()}"</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {logOpen && (
-          <div className="fade-in" style={{ borderTop: '1px solid var(--border)', marginTop: '1rem', paddingTop: '1rem' }}>
-            {logLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}><Spinner/></div>
-            ) : !logEntries || logEntries.length === 0 ? (
-              <p style={{ fontSize: '.88rem', color: 'var(--ink-4)', fontStyle: 'italic' }}>
-                No Grouv Log entries were written during this chapter.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {logEntries.map(e => (
-                  <div key={e.id}>
-                    <div className="label-mono" style={{ marginBottom: '.3rem', color: 'var(--sage)' }}>
-                      Day {e.dayNumber} · {new Date(e.entryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
-                    <p style={{ color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{e.body}</p>
-                    {e.mediaUrl && (
-                      <div style={{ marginTop: '.6rem', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--surf-high)' }}>
-                        {e.mediaType?.startsWith('video') ? (
-                          <video src={e.mediaUrl} controls style={{ width: '100%', maxHeight: 260, display: 'block' }}/>
-                        ) : (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={e.mediaUrl} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'contain', display: 'block' }}/>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+import { ChapterCard } from '@/components/archive/ChapterCard';
+import { SavedCurioCard } from '@/components/archive/SavedCurioCard';
 
 function ArchivePageInner() {
   const { data: chapters, isLoading }         = useClosedChapters();
@@ -166,82 +54,11 @@ function ArchivePageInner() {
                 title="Nothing saved yet."
                 body="Curio cards and reflections you save will appear here."/>
             </div>
-          ) : savedCurios.map(c => {
-            const open = curioExp[c.id];
-            const dateStr = new Date(c.servedDate).toLocaleDateString('en-US',
-              { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-            const spaceSlug = slugById(c.spaceId) ?? 'career';
-
-            return (
-              <div key={c.id} className="card" style={{ marginBottom: '.9rem',
-                borderLeft: '4px solid var(--sage)', overflow: 'hidden' }}>
-                <div style={{ padding: '1.1rem 1.4rem' }}>
-                  {/* Header row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.4rem' }}>
-                    <SpaceIcon spaceId={spaceSlug} size={13}/>
-                    <span className="label-mono" style={{ color: 'var(--sage)' }}>
-                      {dateStr}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  {c.title && (
-                    <h3 className="serif" style={{ fontSize: '1.15rem', fontWeight: 600,
-                      marginBottom: '.3rem', lineHeight: 1.3 }}>
-                      {c.title}
-                    </h3>
-                  )}
-
-                  {/* Reflection preview */}
-                  {c.reflection && (
-                    <p style={{ fontSize: '.84rem', color: 'var(--ink-3)', fontStyle: 'italic',
-                      marginBottom: '.5rem', lineHeight: 1.5,
-                      display: open ? 'none' : '-webkit-box',
-                      WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden' }}>
-                      &ldquo;{c.reflection}&rdquo;
-                    </p>
-                  )}
-
-                  {/* Expand button */}
-                  {(c.body || c.reflection) && (
-                    <button onClick={() => setCurioExp({ ...curioExp, [c.id]: !open })}
-                      style={{ fontSize: '.82rem', color: 'var(--sage)', fontWeight: 500,
-                        display: 'flex', alignItems: 'center', gap: '.3rem' }}>
-                      {open ? 'Show less' : 'Read more'} →
-                    </button>
-                  )}
-
-                  {/* Expanded body */}
-                  {open && (
-                    <div className="fade-in" style={{ borderTop: '1px solid var(--border)',
-                      marginTop: '.8rem', paddingTop: '.9rem',
-                      display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {c.body && (
-                        <div>
-                          <div className="label-mono" style={{ marginBottom: '.4rem' }}>Reading</div>
-                          <p style={{ color: 'var(--ink-2)', lineHeight: 1.7, fontSize: '.92rem' }}>
-                            {c.body}
-                          </p>
-                        </div>
-                      )}
-                      {c.reflection && (
-                        <div>
-                          <div className="label-mono" style={{ marginBottom: '.4rem', color: 'var(--sage)' }}>
-                            Your reflection
-                          </div>
-                          <p style={{ fontStyle: 'italic', color: 'var(--ink-2)',
-                            lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
-                            &ldquo;{c.reflection}&rdquo;
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          ) : savedCurios.map(c => (
+            <SavedCurioCard key={c.id} curio={c} open={!!curioExp[c.id]}
+              onToggle={() => setCurioExp({ ...curioExp, [c.id]: !curioExp[c.id] })}
+              spaceSlug={slugById(c.spaceId) ?? 'career'} />
+          ))}
         </div>
       </div>
     </AppShell>
