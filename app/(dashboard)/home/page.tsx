@@ -31,10 +31,6 @@ export default function HomePage() {
   const { toast } = useToastStore();
   const { uuidBySlug } = useSpaceStore();
   const [tab, setTab] = useState('all');
-
-  // Live data
-  // user.spaces is a one-time onboarding snapshot, never updated when a
-  // space is opened/closed later — mySpaceSlugs is the real, live list.
   const { data: mySpaces } = useMySpaces();
   const mySpaceSlugs = (mySpaces ?? []).map(s => s.space?.slug).filter((s): s is string => !!s);
   const spaceUuid = tab !== 'all' ? uuidBySlug(tab) : undefined;
