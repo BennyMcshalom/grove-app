@@ -123,7 +123,7 @@ export default function VerifyPage() {
             ) : expired ? (
               <span style={{ fontSize: '.84rem', color: 'var(--amber)' }}>This code has expired. Request a new one.</span>
             ) : (
-              <span style={{ fontSize: '.78rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+              <span style={{ fontSize: '.78rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
                 Expires in {fmt(expiresIn)}
               </span>
             )}

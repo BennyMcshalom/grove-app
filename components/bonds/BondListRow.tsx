@@ -35,7 +35,7 @@ export function BondListRow({ bond, active, onClick }: {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '.5rem' }}>
             <span style={{ fontWeight: 600, fontSize: '.92rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-            <span style={{ fontSize: '.68rem', color: 'var(--ink-4)', flexShrink: 0, fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+            <span style={{ fontSize: '.68rem', color: 'var(--ink-4)', flexShrink: 0, fontFamily: 'inherit' }}>
               {bond.lastMessageAt ? formatRelativeTime(bond.lastMessageAt) : 'new'}
             </span>
           </div>

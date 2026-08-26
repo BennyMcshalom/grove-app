@@ -24,7 +24,7 @@ function HonestCard({ label, ph, max, value, onChange }: {
         placeholder={ph} onFocus={() => setFoc(true)} onBlur={() => setFoc(false)}
         style={{ width: '100%', minHeight: 70, resize: 'vertical', border: 'none',
           background: 'transparent', fontSize: '.95rem', lineHeight: 1.55 }}/>
-      <div style={{ textAlign: 'right', fontSize: '.68rem', color: 'var(--ink-4)', fontFamily: 'DM Mono, monospace' }}>
+      <div style={{ textAlign: 'right', fontSize: '.68rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
         {value.length}/{max}
       </div>
     </div>

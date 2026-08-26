@@ -78,7 +78,7 @@ export default function AdminAuditPage() {
                         <span style={{ fontWeight: 600 }}>{entry.targetEmail ?? 'a deleted account'}</span>
                       )}
                     </p>
-                    <span style={{ fontSize: '.7rem', color: 'var(--ink-4)', flexShrink: 0, fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+                    <span style={{ fontSize: '.7rem', color: 'var(--ink-4)', flexShrink: 0, fontFamily: 'inherit' }}>
                       {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                   </div>

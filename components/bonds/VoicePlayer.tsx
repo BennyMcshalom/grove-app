@@ -70,7 +70,7 @@ export function VoicePlayer({ url, dur, sent }: {
       </div>
 
       {/* Duration */}
-      <span style={{ fontSize: '.68rem', color: txtC, fontFamily: 'var(--font-dm-mono, DM Mono)', flexShrink: 0 }}>
+      <span style={{ fontSize: '.68rem', color: txtC, fontFamily: 'inherit', flexShrink: 0 }}>
         {playing ? fmt(elapsed) : fmt(total)}
       </span>
     </div>

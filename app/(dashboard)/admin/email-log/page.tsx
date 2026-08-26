@@ -52,12 +52,12 @@ export default function AdminEmailLogPage() {
                   <div style={{ flex: 1, minWidth: 0, fontSize: '.86rem' }}>
                     <strong>{e.subject}</strong> <span style={{ color: 'var(--ink-3)' }}>→ {e.toEmail}</span>
                   </div>
-                  <span style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)', flexShrink: 0 }}>
+                  <span style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'inherit', flexShrink: 0 }}>
                     {new Date(e.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
                 {e.error && (
-                  <div style={{ fontSize: '.78rem', color: 'var(--red)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>{e.error}</div>
+                  <div style={{ fontSize: '.78rem', color: 'var(--red)', fontFamily: 'inherit' }}>{e.error}</div>
                 )}
               </div>
             ))}

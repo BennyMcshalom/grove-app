@@ -1,35 +1,39 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
-import { Spinner } from '@/components/ui/Spinner';
-import { spaceById } from '@/lib/data';
-import { useSpaceStore } from '@/store/useSpaceStore';
-import { useToastStore } from '@/store/useToastStore';
-import { chaptersApi, spacesApi, bondsApi } from '@/lib/api';
-import type { BondRecord, ChapterRecord } from '@/lib/api';
-import { useQueryClient } from '@tanstack/react-query';
-import { PRESETS, monthsBetween, pluralMonths } from '@/components/chapter-close/helpers';
-import { IntroStep } from '@/components/chapter-close/IntroStep';
-import { QuestionStep } from '@/components/chapter-close/QuestionStep';
-import { ExtrasStep } from '@/components/chapter-close/ExtrasStep';
-import { SummaryStep } from '@/components/chapter-close/SummaryStep';
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { Spinner } from "@/components/ui/Spinner";
+import { spaceById } from "@/lib/data";
+import { useSpaceStore } from "@/store/useSpaceStore";
+import { useToastStore } from "@/store/useToastStore";
+import { chaptersApi, spacesApi, bondsApi } from "@/lib/api";
+import type { BondRecord, ChapterRecord } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  PRESETS,
+  monthsBetween,
+  pluralMonths,
+} from "@/components/chapter-close/helpers";
+import { IntroStep } from "@/components/chapter-close/IntroStep";
+import { QuestionStep } from "@/components/chapter-close/QuestionStep";
+import { ExtrasStep } from "@/components/chapter-close/ExtrasStep";
+import { SummaryStep } from "@/components/chapter-close/SummaryStep";
 
 // ── Main inner component ──────────────────────────────────────────
 function ChapterCloseInner() {
   const qc = useQueryClient();
-  const router       = useRouter();
-  const params       = useSearchParams();
+  const router = useRouter();
+  const params = useSearchParams();
   const { uuidBySlug } = useSpaceStore();
   const { toast } = useToastStore();
 
-  const spaceSlug  = params.get('space') || 'career';
-  const userSpaceId = params.get('userSpaceId');
+  const spaceSlug = params.get("space") || "career";
+  const userSpaceId = params.get("userSpaceId");
   const s = spaceById(spaceSlug);
 
   // ── Remote data ──
   const [chapter, setChapter] = useState<ChapterRecord | null>(null);
-  const [bonds,   setBonds]   = useState<BondRecord[]>([]);
+  const [bonds, setBonds] = useState<BondRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,51 +44,71 @@ function ChapterCloseInner() {
           chaptersApi.list(),
           bondsApi.list(),
         ]);
-        if (chList.status === 'fulfilled') {
+        if (chList.status === "fulfilled") {
           // Must match this space specifically — if spaceUuid failed to resolve,
           // fall back to no match rather than accidentally grabbing an open
           // chapter that belongs to an unrelated space.
           const ch = spaceUuid
-            ? chList.value.find(c => c.spaceId === spaceUuid && !c.closedAt)
+            ? chList.value.find((c) => c.spaceId === spaceUuid && !c.closedAt)
             : undefined;
           setChapter(ch ?? null);
         }
-        if (bondList.status === 'fulfilled') setBonds(bondList.value);
-      } finally { setLoading(false); }
+        if (bondList.status === "fulfilled") setBonds(bondList.value);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [spaceSlug, uuidBySlug]);
 
   // ── Step flow ──
-  const [step,  setStep]  = useState(0);
+  const [step, setStep] = useState(0);
   const [ready, setReady] = useState(false); // intro "Begin" reveal
-  const [held,  setHeld]  = useState(false); // summary "Save" reveal
+  const [held, setHeld] = useState(false); // summary "Save" reveal
 
   useEffect(() => {
-    if (step === 0) { const t = setTimeout(() => setReady(true), 3000); return () => clearTimeout(t); }
+    if (step === 0) {
+      const t = setTimeout(() => setReady(true), 3000);
+      return () => clearTimeout(t);
+    }
   }, [step]);
   useEffect(() => {
-    if (step === FINAL) { setHeld(false); const t = setTimeout(() => setHeld(true), 4000); return () => clearTimeout(t); }
+    if (step === FINAL) {
+      setHeld(false);
+      const t = setTimeout(() => setHeld(true), 4000);
+      return () => clearTimeout(t);
+    }
   }, [step]);
 
   // ── Reflection state ──
   const FINAL = PRESETS.length + 2; // intro + 3 questions + extras step + summary
 
-  const [answers, setAnswers] = useState(['', '', '']);
-  const [extras,  setExtras]  = useState<string[]>([]);
+  const [answers, setAnswers] = useState(["", "", ""]);
+  const [extras, setExtras] = useState<string[]>([]);
   const [closing, setClosing] = useState(false);
 
   const updateAnswer = (i: number, v: string) =>
-    setAnswers(a => { const n = [...a]; n[i] = v; return n; });
+    setAnswers((a) => {
+      const n = [...a];
+      n[i] = v;
+      return n;
+    });
 
-  const addExtra    = () => setExtras(e => [...e, '']);
-  const removeExtra = (i: number) => setExtras(e => e.filter((_, idx) => idx !== i));
+  const addExtra = () => setExtras((e) => [...e, ""]);
+  const removeExtra = (i: number) =>
+    setExtras((e) => e.filter((_, idx) => idx !== i));
   const updateExtra = (i: number, v: string) =>
-    setExtras(e => { const n = [...e]; n[i] = v; return n; });
+    setExtras((e) => {
+      const n = [...e];
+      n[i] = v;
+      return n;
+    });
 
   // ── Dates ──
-  const openedAt  = chapter?.openedAt ? new Date(chapter.openedAt) : null;
-  const closedAt  = new Date();
-  const monthsStr = openedAt ? pluralMonths(monthsBetween(openedAt, closedAt)) : null;
+  const openedAt = chapter?.openedAt ? new Date(chapter.openedAt) : null;
+  const closedAt = new Date();
+  const monthsStr = openedAt
+    ? pluralMonths(monthsBetween(openedAt, closedAt))
+    : null;
 
   // ── Save handler ──
   const handleSave = async () => {
@@ -92,7 +116,9 @@ function ChapterCloseInner() {
     try {
       const spaceUuid = uuidBySlug(spaceSlug);
       if (!spaceUuid) {
-        toast('Could not find this space. Try closing it again from My Spaces.');
+        toast(
+          "Could not find this space. Try closing it again from My Spaces.",
+        );
         setClosing(false);
         return;
       }
@@ -100,12 +126,12 @@ function ChapterCloseInner() {
       // Reuse the chapter already loaded on mount rather than re-fetching —
       // only fall back to creating one if this space genuinely has none open.
       const id = chapter?.id ?? (await chaptersApi.open(spaceUuid)).id;
-      const extrasJoined = extras.filter(e => e.trim()).join('\n\n—\n\n');
+      const extrasJoined = extras.filter((e) => e.trim()).join("\n\n—\n\n");
       await chaptersApi.close(id, {
-        ...(answers[0].trim() && { closingLearned:      answers[0].trim() }),
-        ...(answers[1].trim() && { closingAdvice:       answers[1].trim() }),
+        ...(answers[0].trim() && { closingLearned: answers[0].trim() }),
+        ...(answers[1].trim() && { closingAdvice: answers[1].trim() }),
         ...(answers[2].trim() && { closingCarryForward: answers[2].trim() }),
-        ...(extrasJoined      && { reflectionQ1:        extrasJoined }),
+        ...(extrasJoined && { reflectionQ1: extrasJoined }),
       });
 
       // Only close the user's space (removing it from "My Spaces") once the
@@ -114,63 +140,121 @@ function ChapterCloseInner() {
       if (userSpaceId) await spacesApi.close(userSpaceId);
 
       // Bust the archive cache so the new entry shows immediately
-      qc.invalidateQueries({ queryKey: ['chapters-closed'] });
-      qc.invalidateQueries({ queryKey: ['chapters'] });
-      router.push('/archive');
+      qc.invalidateQueries({ queryKey: ["chapters-closed"] });
+      qc.invalidateQueries({ queryKey: ["chapters"] });
+      router.push("/archive");
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Could not close this chapter. Try again.');
+      toast(
+        err instanceof Error
+          ? err.message
+          : "Could not close this chapter. Try again.",
+      );
       setClosing(false);
     }
   };
 
-  const next = () => setStep(s => s + 1);
-  const skip = () => setStep(s => s + 1);
+  const next = () => setStep((s) => s + 1);
+  const skip = () => setStep((s) => s + 1);
 
   // ── Render ────────────────────────────────────────────────────
-  if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Spinner size={24} color="var(--sage)"/>
-    </div>
-  );
+  if (loading)
+    return (
+      <div
+        style={{
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Spinner size={24} color="var(--sage)" />
+      </div>
+    );
 
   return (
-    <div className="scroll" style={{ minHeight: '100dvh', width: '100%', background: 'var(--bg)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(1.2rem, 5vw, 2rem)', overflowY: 'auto' }}>
-      <div style={{ maxWidth: 580, width: '100%', textAlign: 'center' }} className="screen-enter" key={step}>
-
+    <div
+      className="scroll"
+      style={{
+        minHeight: "100dvh",
+        width: "100%",
+        background: "var(--bg)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "clamp(1.2rem, 5vw, 2rem)",
+        overflowY: "auto",
+      }}
+    >
+      <div
+        style={{ maxWidth: 580, width: "100%", textAlign: "center" }}
+        className="screen-enter"
+        key={step}
+      >
         {step === 0 && (
-          <IntroStep spaceId={s.id} ready={ready} onBegin={next}/>
+          <IntroStep spaceId={s.id} ready={ready} onBegin={next} />
         )}
 
-        {step >= 1 && step <= PRESETS.length && (() => {
-          const idx = step - 1;
-          const { label, placeholder } = PRESETS[idx];
-          return (
-            <QuestionStep
-              spaceId={s.id} spaceName={s.name} step={step} total={PRESETS.length}
-              label={label} placeholder={placeholder} value={answers[idx]}
-              onChange={v => updateAnswer(idx, v)} onContinue={next} onSkip={skip}
-              continueLabel={idx === PRESETS.length - 1 ? 'One last thing' : 'Continue'}/>
-          );
-        })()}
+        {step >= 1 &&
+          step <= PRESETS.length &&
+          (() => {
+            const idx = step - 1;
+            const { label, placeholder } = PRESETS[idx];
+            return (
+              <QuestionStep
+                spaceId={s.id}
+                spaceName={s.name}
+                step={step}
+                total={PRESETS.length}
+                label={label}
+                placeholder={placeholder}
+                value={answers[idx]}
+                onChange={(v) => updateAnswer(idx, v)}
+                onContinue={next}
+                onSkip={skip}
+                continueLabel={
+                  idx === PRESETS.length - 1 ? "One last thing" : "Continue"
+                }
+              />
+            );
+          })()}
 
         {step === PRESETS.length + 1 && (
-          <ExtrasStep spaceId={s.id} spaceName={s.name} extras={extras}
-            onAddExtra={addExtra} onUpdateExtra={updateExtra} onRemoveExtra={removeExtra}
-            onContinue={next} onSkip={skip}/>
+          <ExtrasStep
+            spaceId={s.id}
+            spaceName={s.name}
+            extras={extras}
+            onAddExtra={addExtra}
+            onUpdateExtra={updateExtra}
+            onRemoveExtra={removeExtra}
+            onContinue={next}
+            onSkip={skip}
+          />
         )}
 
         {step === FINAL && (
-          <SummaryStep spaceId={s.id} spaceName={s.name} openedAt={openedAt} closedAt={closedAt}
-            monthsStr={monthsStr} bonds={bonds} answers={answers} extras={extras}
-            held={held} closing={closing} onSave={handleSave}/>
+          <SummaryStep
+            spaceId={s.id}
+            spaceName={s.name}
+            openedAt={openedAt}
+            closedAt={closedAt}
+            monthsStr={monthsStr}
+            bonds={bonds}
+            answers={answers}
+            extras={extras}
+            held={held}
+            closing={closing}
+            onSave={handleSave}
+          />
         )}
-
       </div>
     </div>
   );
 }
 
 export default function ChapterClosePage() {
-  return <Suspense><ChapterCloseInner/></Suspense>;
+  return (
+    <Suspense>
+      <ChapterCloseInner />
+    </Suspense>
+  );
 }

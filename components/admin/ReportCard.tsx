@@ -37,7 +37,7 @@ export function ReportCard({ r, confirming, dismissPending, removePending,
         <span className="chip" style={{ background: REASON_BG[r.reason], color: REASON_COLOR[r.reason], fontSize: '.66rem', textTransform: 'capitalize' }}>
           {r.reason}
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
           {new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </span>
       </div>

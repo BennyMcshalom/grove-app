@@ -54,7 +54,7 @@ export function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, on
           fontSize: '.76rem', color: 'var(--ink-3)' }}>
           <Icon name={msg.kind === 'call_missed_video' ? 'video' : 'phone'} size={12} stroke="var(--ink-4)"/>
           {msg.kind === 'call_missed_video' ? 'Missed video call' : 'Missed voice call'}
-          <span style={{ fontFamily: 'var(--font-dm-mono, DM Mono)', fontSize: '.66rem', color: 'var(--ink-4)' }}>
+          <span style={{ fontFamily: 'inherit', fontSize: '.66rem', color: 'var(--ink-4)' }}>
             {formatRelativeTime(msg.createdAt)}
           </span>
         </div>
@@ -262,7 +262,7 @@ export function MessageBubble({ msg, myId, bondId, otherName, otherAvatarUrl, on
           {sent && msg.readAt && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3, marginTop: 3 }}>
               <Icon name="check" size={10} stroke="var(--sage)" sw={2.5}/>
-              <span style={{ fontSize: '.6rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>seen</span>
+              <span style={{ fontSize: '.6rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>seen</span>
             </div>
           )}
         </div>

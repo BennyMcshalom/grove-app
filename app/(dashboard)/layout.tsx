@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem'
       }}>
         <Spinner size={28} />
-        <span style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+        <span style={{ fontSize: '.82rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
           Loading your chapter…
         </span>
       </div>

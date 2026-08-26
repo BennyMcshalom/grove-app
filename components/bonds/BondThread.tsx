@@ -254,7 +254,7 @@ export function BondThread({ bond, onTogglePanel }: { bond: BondRecord; onToggle
                       <span style={{
                         background: 'rgba(255,255,255,0.7)', borderRadius: 100,
                         padding: '.2rem .8rem', fontSize: '.7rem', color: 'var(--ink-3)',
-                        fontFamily: 'DM Mono, monospace', backdropFilter: 'blur(8px)'
+                        fontFamily: 'inherit', backdropFilter: 'blur(8px)'
                       }}>
                         {new Date(m.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                       </span>

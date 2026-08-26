@@ -44,7 +44,7 @@ export default function AdminFeatureFlagsPage() {
               <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 0',
                 borderBottom: i < (flags?.length ?? 0) - 1 ? '1px solid var(--border)' : 'none' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '.92rem', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>{f.key}</div>
+                  <div style={{ fontWeight: 600, fontSize: '.92rem', fontFamily: 'inherit' }}>{f.key}</div>
                   <div style={{ fontSize: '.82rem', color: 'var(--ink-3)', marginTop: '.2rem' }}>{f.description}</div>
                 </div>
                 <Toggle on={f.enabled} disabled={setFlag.isPending} onChange={() => toggle(f.key, !f.enabled)}/>

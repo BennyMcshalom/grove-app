@@ -30,7 +30,7 @@ export function SpaceActivityList({ spaces, loading }: {
               </div>
               <div style={{
                 width: 70, textAlign: 'right', fontSize: '.74rem', color: 'var(--ink-3)', flexShrink: 0,
-                fontFamily: 'var(--font-dm-mono, DM Mono)'
+                fontFamily: 'inherit'
               }}>
                 {s.postCount} posts
               </div>

@@ -50,7 +50,7 @@ export function MiniChart({ data, color = 'var(--ember)', height = 96, headline 
         })}
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '.5rem',
-        fontSize: '.64rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+        fontSize: '.64rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
         <span>{data[0]?.label}</span>
         <span>{data[data.length - 1]?.label}</span>
       </div>

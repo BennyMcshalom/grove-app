@@ -22,7 +22,7 @@ export function PostResults({ posts, showLabel }: { posts: PostRecord[]; showLab
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
               <p style={{ fontWeight: 500, marginBottom: '.3rem', fontSize: '.92rem' }}>{p.doing}</p>
               {p.honestThing && <p style={{ fontSize: '.86rem', fontStyle: 'italic', color: 'var(--ink-2)', lineHeight: 1.5 }}>{p.honestThing}</p>}
-              <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.5rem', fontFamily: 'DM Mono, monospace' }}>
+              <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.5rem', fontFamily: 'inherit' }}>
                 {formatRelativeTime(p.createdAt ?? '')}
               </div>
             </button>

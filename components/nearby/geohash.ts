@@ -1,4 +1,4 @@
-// ── Geohash encoder ────────────────────────────────────────────────
+//Geohash encoder 
 const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
 
 export function encodeGeohash(lat: number, lng: number, precision = 5): string {

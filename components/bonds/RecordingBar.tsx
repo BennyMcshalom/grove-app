@@ -20,7 +20,7 @@ export function RecordingBar({ elapsed, onSend, onCancel, sending }: {
         }} />
         <span style={{
           fontSize: '.84rem', color: 'var(--ink-2)', fontWeight: 500,
-          fontFamily: 'var(--font-dm-mono, DM Mono)'
+          fontFamily: 'inherit'
         }}>
           {fmt(elapsed)}
         </span>

@@ -41,7 +41,7 @@ export function UserRow({ u }: { u: AdminUserRow }) {
         <span className="chip" style={{ background: STATUS_BG[u.status], color: STATUS_COLOR[u.status], fontSize: '.68rem', textTransform: 'capitalize' }}>
           {u.status}
         </span>
-        <div style={{ fontSize: '.68rem', color: 'var(--ink-4)', marginTop: '.3rem', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+        <div style={{ fontSize: '.68rem', color: 'var(--ink-4)', marginTop: '.3rem', fontFamily: 'inherit' }}>
           {new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </div>
       </div>

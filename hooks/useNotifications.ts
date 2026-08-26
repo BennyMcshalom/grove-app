@@ -25,3 +25,13 @@ export function useMarkAllNotifsRead() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 }
+
+// Deletes every notification currently in the cache — there's no bulk-delete
+// endpoint, so this fires the per-id delete in parallel.
+export function useClearAllNotifs() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => Promise.all(ids.map(id => notifsApi.delete(id))),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+}

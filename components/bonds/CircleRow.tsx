@@ -42,7 +42,7 @@ export function CircleRow({ bond, active, onClick, showDivider }: {
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: '.66rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+          <div style={{ fontSize: '.66rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
             {bond.lastMessageAt ? formatRelativeTime(bond.lastMessageAt) : 'new'}
           </div>
           {unread > 0 && (
@@ -63,7 +63,7 @@ export function CircleRow({ bond, active, onClick, showDivider }: {
             borderRadius: 2, transition: 'width .5s ease'
           }} />
         </div>
-        <span style={{ fontSize: '.62rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '.62rem', color: 'var(--ink-4)', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
           {formatLastSeen(bond.otherUser?.lastActiveAt)}
         </span>
       </div>

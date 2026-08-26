@@ -46,7 +46,7 @@ export default function AdminWaitlistPage() {
                     <div style={{ fontSize: '.74rem', color: 'var(--ink-3)', marginTop: '.1rem' }}>{w.stageInterest}</div>
                   )}
                 </div>
-                <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', flexShrink: 0, fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+                <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', flexShrink: 0, fontFamily: 'inherit' }}>
                   {new Date(w.joinedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </div>
               </div>

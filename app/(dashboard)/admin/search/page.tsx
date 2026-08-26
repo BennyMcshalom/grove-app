@@ -71,10 +71,10 @@ export default function AdminContentSearchPage() {
                   <span className="chip" style={{ background: 'var(--surf-high)', color: 'var(--ink-3)', fontSize: '.66rem', textTransform: 'capitalize' }}>
                     {r.type.replace('_', ' ')}
                   </span>
-                  <span style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+                  <span style={{ fontSize: '.7rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
                     {new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
-                  <span style={{ marginLeft: 'auto', fontSize: '.66rem', color: 'var(--ink-4)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+                  <span style={{ marginLeft: 'auto', fontSize: '.66rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
                     {r.id}
                   </span>
                 </div>

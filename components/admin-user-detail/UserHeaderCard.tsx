@@ -22,7 +22,7 @@ export function UserHeaderCard({ user, profile, isAdminUser, isSelf }: {
           {isSelf && <span className="chip" style={{ background: '#fff', boxShadow: 'var(--shadow-soft)', color: 'var(--ink-3)', fontSize: '.66rem' }}>You</span>}
         </div>
         <div style={{ fontSize: '.84rem', color: 'var(--ink-2)', marginTop: '.25rem' }}>{user.email}</div>
-        <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.25rem', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+        <div style={{ fontSize: '.72rem', color: 'var(--ink-4)', marginTop: '.25rem', fontFamily: 'inherit' }}>
           Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           {!user.emailVerifiedAt && ' · Email unverified'}
         </div>

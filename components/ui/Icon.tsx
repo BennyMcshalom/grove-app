@@ -22,6 +22,7 @@ export function Icon({ name, size = 19, stroke = 'currentColor', sw = 1.7 }: Ico
     case 'mic':     return <svg {...p}><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>;
     case 'mic-off': return <svg {...p}><path d="M9 9v3a3 3 0 0 0 4.6 2.5M15 6.5V5a3 3 0 0 0-5.9-.7"/><path d="M5 11a7 7 0 0 0 10 6.3M19 11a7 7 0 0 1-.7 3.1M12 18v3"/><path d="M2 2l20 20"/></svg>;
     case 'dots':    return <svg {...p}><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>;
+    case 'chevron-down': return <svg {...p}><path d="m6 9 6 6 6-6"/></svg>;
     case 'back':    return <svg {...p}><path d="M15 19 8 12l7-7"/></svg>;
     case 'arrow':   return <svg {...p}><path d="M5 12h14M13 6l6 6-6 6"/></svg>;
     case 'plus':    return <svg {...p}><path d="M12 5v14M5 12h14"/></svg>;

@@ -93,7 +93,7 @@ export default function AdminBillingPage() {
                     Cancels at period end
                   </span>
                 )}
-                <div style={{ fontSize: '.76rem', color: 'var(--ink-3)', fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+                <div style={{ fontSize: '.76rem', color: 'var(--ink-3)', fontFamily: 'inherit' }}>
                   {s.trialEnd && s.status === 'trialing'
                     ? `Trial ends ${new Date(s.trialEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
                     : s.currentPeriodEnd

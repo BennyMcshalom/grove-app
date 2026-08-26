@@ -1,6 +1,6 @@
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { spacesApi } from '@/lib/api';
+import { spacesApi, UserSpaceRecord } from '@/lib/api';
 
 export function useSpaceMembers(spaceId: string | undefined, opts?: { region?: string; enabled?: boolean }) {
   return useQuery({
@@ -20,7 +20,7 @@ export function useAllSpaces() {
 }
 
 export function useMySpaces() {
-  return useQuery({
+  return useQuery<UserSpaceRecord[]>({
     queryKey: ['spaces-mine'],
     queryFn:  spacesApi.mine,
   });

@@ -1,63 +1,64 @@
 :root {
   /* Brand */
-  --ember: #F3701E;
-  --ember-deep: #C9551A;
-  --ember-soft: #FBE6D6;
+  --ember: #f3701e;
+  --ember-deep: #c9551a;
+  --ember-soft: #fbe6d6;
+  --ember-pale: #fef1e9;
   --ember-dim: rgba(243, 112, 30, 0.09);
   --ember-bdr: rgba(243, 112, 30, 0.22);
 
-  --slate: #4B607F;
-  --slate-soft: #E5EAF1;
+  --slate: #4b607f;
+  --slate-soft: #e5eaf1;
   --slate-dim: rgba(75, 96, 127, 0.09);
   --slate-bdr: rgba(75, 96, 127, 0.25);
 
-  --forest: #1E3028;
-  --forest-2: #2A4238;
-  --forest-3: #36523F;
-  --sage: #4E7D5E;
-  --mint: #8DD4A4;
+  --forest: #1e3028;
+  --forest-2: #2a4238;
+  --forest-3: #36523f;
+  --sage: #4e7d5e;
+  --mint: #8dd4a4;
 
   /* Grove page's "struggling" ring — muted rose, distinct from the --red status color */
-  --ring-struggling: #B1454F;
+  --ring-struggling: #b1454f;
 
-  --charcoal: #1A1A1A;
+  --charcoal: #1a1a1a;
 
   /* Surfaces */
-  --bg: #F4F2EE;
-  --cream: #FAFAF8;
-  --white: #FFFFFF;
-  --surf-low: #F7F5F1;
-  --surf-high: #EFEBE4;
+  --bg: #f4f2ee;
+  --cream: #fafaf8;
+  --white: #ffffff;
+  --surf-low: #f7f5f1;
+  --surf-high: #efebe4;
 
   /* Ink */
-  --ink: #1C1B1A;
-  --ink-2: #4A4642;
-  --ink-3: #8A847C;
+  --ink: #1c1b1a;
+  --ink-2: #4a4642;
+  --ink-3: #8a847c;
   --ink-4: #4e4e4e;
 
   --border: rgba(26, 26, 26, 0.07);
   --border-2: rgba(26, 26, 26, 0.12);
 
   /* Status */
-  --red: #BA1A1A;
+  --red: #ba1a1a;
   --red-dim: rgba(186, 26, 26, 0.08);
   --red-bdr: rgba(186, 26, 26, 0.2);
-  --amber: #B97A1E;
-  --amber-soft: #F6E8CF;
+  --amber: #b97a1e;
+  --amber-soft: #f6e8cf;
   --amber-dim: rgba(185, 122, 30, 0.09);
   --amber-bdr: rgba(185, 122, 30, 0.25);
-  --green: #2E6B3A;
-  --green-dim: rgba(46, 107, 58, 0.10);
+  --green: #2e6b3a;
+  --green-dim: rgba(46, 107, 58, 0.1);
 
   /* Space pastels */
-  --c-career: #FCD9B6;
-  --c-spiritual: #E4D6F4;
-  --c-wealth: #CDEBD3;
-  --c-adventure: #C9E4F2;
-  --c-health: #FAD4D4;
-  --c-creative: #F8D6E6;
-  --c-learning: #DCE3F7;
-  --c-relation: #FBE3C2;
+  --c-career: #fcd9b6;
+  --c-spiritual: #e4d6f4;
+  --c-wealth: #cdebd3;
+  --c-adventure: #c9e4f2;
+  --c-health: #fad4d4;
+  --c-creative: #f8d6e6;
+  --c-learning: #dce3f7;
+  --c-relation: #fbe3c2;
 
   /* Shape */
   --r-sm: 10px;
@@ -66,8 +67,12 @@
   --r-xl: 26px;
 
   /* Shadows */
-  --shadow: 0 4px 24px -2px rgba(26, 26, 26, 0.06), 0 2px 8px -2px rgba(26, 26, 26, 0.04);
-  --shadow-lg: 0 18px 50px -12px rgba(26, 26, 26, 0.16), 0 6px 18px -8px rgba(26, 26, 26, 0.08);
+  --shadow:
+    0 4px 24px -2px rgba(26, 26, 26, 0.06),
+    0 2px 8px -2px rgba(26, 26, 26, 0.04);
+  --shadow-lg:
+    0 18px 50px -12px rgba(26, 26, 26, 0.16),
+    0 6px 18px -8px rgba(26, 26, 26, 0.08);
   --shadow-soft: 0 2px 10px -2px rgba(26, 26, 26, 0.05);
 }
 
@@ -75,19 +80,20 @@
 [data-theme="dark"] {
   /* Brand (kept, with adjusted soft/dim for dark bg) */
   --ember-soft: rgba(243, 112, 30, 0.16);
+  --ember-pale: rgba(243, 112, 30, 0.12);
   --ember-dim: rgba(243, 112, 30, 0.11);
-  --ember-bdr: rgba(243, 112, 30, 0.30);
+  --ember-bdr: rgba(243, 112, 30, 0.3);
 
-  --slate: #6B86A8;
+  --slate: #6b86a8;
   --slate-soft: rgba(75, 96, 127, 0.22);
   --slate-dim: rgba(75, 96, 127, 0.14);
-  --slate-bdr: rgba(107, 134, 168, 0.30);
+  --slate-bdr: rgba(107, 134, 168, 0.3);
 
-  --sage: #6AAD82;
-  --mint: #7EC896;
+  --sage: #6aad82;
+  --mint: #7ec896;
 
   /* Brighter than the light-mode value for contrast against a near-black pill */
-  --ring-struggling: #E0808A;
+  --ring-struggling: #e0808a;
 
   /* Surfaces — true black */
   --bg: #000000;
@@ -97,9 +103,9 @@
   --surf-high: #1f1f1f;
 
   /* Ink — neutral whites */
-  --ink: #F5F5F5;
-  --ink-2: #B3B3B3;
-  --ink-3: #6B6B6B;
+  --ink: #f5f5f5;
+  --ink-2: #b3b3b3;
+  --ink-3: #6b6b6b;
   --ink-4: #d4d0d0;
 
   /* Borders */
@@ -107,14 +113,14 @@
   --border-2: rgba(255, 255, 255, 0.12);
 
   /* Status */
-  --red: #FF5449;
+  --red: #ff5449;
   --red-dim: rgba(255, 84, 73, 0.13);
   --red-bdr: rgba(255, 84, 73, 0.28);
-  --amber: #D4903A;
+  --amber: #d4903a;
   --amber-soft: rgba(212, 144, 58, 0.18);
   --amber-dim: rgba(212, 144, 58, 0.12);
   --amber-bdr: rgba(212, 144, 58, 0.32);
-  --green: #5DB870;
+  --green: #5db870;
   --green-dim: rgba(93, 184, 112, 0.13);
 
   /* Space pastels — subtle glows for dark */
@@ -128,12 +134,14 @@
   --c-relation: rgba(240, 170, 80, 0.14);
 
   /* Shadows — deeper on dark */
-  --shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.40), 0 2px 8px -2px rgba(0, 0, 0, 0.28);
-  --shadow-lg: 0 18px 50px -12px rgba(0, 0, 0, 0.60), 0 6px 18px -8px rgba(0, 0, 0, 0.36);
+  --shadow:
+    0 4px 24px -2px rgba(0, 0, 0, 0.4), 0 2px 8px -2px rgba(0, 0, 0, 0.28);
+  --shadow-lg:
+    0 18px 50px -12px rgba(0, 0, 0, 0.6), 0 6px 18px -8px rgba(0, 0, 0, 0.36);
   --shadow-soft: 0 2px 10px -2px rgba(0, 0, 0, 0.32);
 
   /* Forest stays dark in both modes */
-  --charcoal: #F5F5F5;
+  --charcoal: #f5f5f5;
 }
 
 /* ── Base reset ── */
@@ -153,13 +161,15 @@ body {
   height: 100%;
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-outfit, 'Outfit'), system-ui, sans-serif;
+  font-family: var(--font-outfit, "Outfit"), system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow: hidden;
-  transition: background .25s ease, color .2s ease;
+  transition:
+    background 0.25s ease,
+    color 0.2s ease;
 }
 
 @media (max-width: 768px) {
@@ -230,17 +240,17 @@ img {
 
 /* ── Typography ── */
 .serif {
-  font-family: var(--font-figtree, 'Figtree'), system-ui, sans-serif;
+  font-family: var(--font-figtree, "Figtree"), system-ui, sans-serif;
 }
 
 .mono {
-  font-family: var(--font-dm-mono, 'DM Mono'), ui-monospace, monospace;
+  font-family: var(--font-outfit, "Outfit"), system-ui, sans-serif;
 }
 
 .label-mono {
-  font-family: var(--font-dm-mono, 'DM Mono'), ui-monospace, monospace;
-  font-size: .62rem;
-  letter-spacing: .13em;
+  font-family: var(--font-outfit, "Outfit"), system-ui, sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--ink-4);
 }
@@ -250,36 +260,40 @@ img {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: .5rem;
-  font-family: var(--font-outfit, 'Outfit'), system-ui, sans-serif;
+  gap: 0.5rem;
+  font-family: var(--font-outfit, "Outfit"), system-ui, sans-serif;
   font-weight: 500;
-  font-size: .95rem;
+  font-size: 0.95rem;
   border-radius: var(--r-md);
-  padding: .7rem 1.3rem;
-  transition: transform .12s ease, background .15s ease, box-shadow .15s ease, opacity .15s;
+  padding: 0.7rem 1.3rem;
+  transition:
+    transform 0.12s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s;
   white-space: nowrap;
 }
 
 .btn:active {
-  transform: translateY(1px) scale(.99);
+  transform: translateY(1px) scale(0.99);
 }
 
 .btn-primary {
   background: var(--ember);
   color: #fff;
-  box-shadow: 0 2px 12px -2px rgba(243, 112, 30, .45);
+  box-shadow: 0 2px 12px -2px rgba(243, 112, 30, 0.45);
 }
 
 .btn-primary:hover {
   background: var(--ember-deep);
-  box-shadow: 0 4px 18px -4px rgba(243, 112, 30, .55);
+  box-shadow: 0 4px 18px -4px rgba(243, 112, 30, 0.55);
 }
 
 .btn-primary:disabled {
   background: var(--ink-4);
   box-shadow: none;
   cursor: not-allowed;
-  opacity: .7;
+  opacity: 0.7;
 }
 
 .btn-ghost {
@@ -306,7 +320,7 @@ img {
 }
 
 .btn-lg {
-  padding: .95rem 2rem;
+  padding: 0.95rem 2rem;
   font-size: 1.05rem;
 }
 
@@ -320,7 +334,11 @@ img {
   border-radius: var(--r-lg);
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
-  transition: background .2s, border-color .2s, box-shadow .2s, transform .15s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.15s;
 }
 
 /* Clickable cards get a subtle lift */
@@ -335,15 +353,15 @@ button.card:hover {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: .4rem;
-  font-size: .74rem;
+  gap: 0.4rem;
+  font-size: 0.74rem;
   font-weight: 500;
-  padding: .3rem .7rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 100px;
   background: var(--surf-high);
   color: var(--ink-2);
   white-space: nowrap;
-  transition: background .15s;
+  transition: background 0.15s;
 }
 
 /* ── Form inputs ── */
@@ -355,9 +373,12 @@ textarea {
   background: var(--surf-high);
   border: 1.5px solid var(--border-2);
   border-radius: var(--r-sm);
-  padding: .65rem .9rem;
+  padding: 0.65rem 0.9rem;
   color: var(--ink);
-  transition: border-color .15s, box-shadow .15s, background .2s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.2s;
 }
 
 input::placeholder,
@@ -383,7 +404,7 @@ textarea:focus {
 
 .app-sidebar {
   flex-shrink: 0;
-  transition: transform .25s ease;
+  transition: transform 0.25s ease;
 }
 
 .app-main {
@@ -392,7 +413,7 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  height: 100vh;
+  height: 100%;
 }
 
 /* Content below the TopBar — this is what actually scrolls.
@@ -401,7 +422,7 @@ textarea:focus {
    layout, and those properties are no-ops unless the parent is a flex
    container. A lone block child from a normal page is unaffected (default
    align-items:stretch just matches its existing full-width block sizing). */
-.app-content>* {
+.app-content > * {
   /* Flex items default to min-width:auto (content-based), not 0 — without
      this, a page with a horizontally-scrollable row (chip filters, etc.)
      gets pushed wider than the viewport by that row's unwrapped content,
@@ -422,6 +443,43 @@ textarea:focus {
 
 .app-right {
   flex-shrink: 0;
+}
+
+/* ── Shared header row (Home) — spans main content + right panel columns ── */
+.app-shared-header {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--white);
+}
+
+.app-header-main {
+  flex: 1;
+  min-width: 0;
+  padding: 1.15rem 1.6rem 0.9rem;
+}
+
+.app-header-side {
+  width: 312px;
+  flex-shrink: 0;
+  padding: 1.15rem 1.25rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .app-header-side {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-header-main {
+    padding: 0.7rem 16px 0.6rem;
+  }
 }
 
 .app-mobile-nav {
@@ -454,9 +512,11 @@ textarea:focus {
     z-index: 500;
     background: var(--white);
     border-top: 1px solid var(--border);
-    padding: .4rem 0 max(.4rem, env(safe-area-inset-bottom));
+    padding: 0.4rem 0 max(0.4rem, env(safe-area-inset-bottom));
     box-shadow: 0 -4px 20px -4px rgba(0, 0, 0, 0.08);
-    transition: background .2s, border-color .2s;
+    transition:
+      background 0.2s,
+      border-color 0.2s;
   }
 
   .app-main {
@@ -476,11 +536,11 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: .35rem .2rem;
-  font-size: .6rem;
+  padding: 0.35rem 0.2rem;
+  font-size: 0.6rem;
   font-weight: 500;
   color: var(--ink-3);
-  transition: color .15s;
+  transition: color 0.15s;
   text-decoration: none;
   position: relative;
 }
@@ -491,7 +551,7 @@ textarea:focus {
 
 /* Active pill indicator above icon */
 .mob-nav-item.active::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 50%;
@@ -500,17 +560,17 @@ textarea:focus {
   height: 3px;
   border-radius: 0 0 3px 3px;
   background: var(--ember);
-  transition: width .2s;
+  transition: width 0.2s;
 }
 
 .mob-nav-item svg,
 .mob-nav-item [data-icon] {
-  transition: transform .15s;
+  transition: transform 0.15s;
 }
 
 .mob-nav-item:active [data-icon],
 .mob-nav-item:active svg {
-  transform: scale(.88);
+  transform: scale(0.88);
 }
 
 /* Show Settings shortcut in topbar only on mobile (desktop uses the sidebar) */
@@ -520,7 +580,7 @@ textarea:focus {
   }
 
   .app-topbar {
-    padding: .7rem 16px .6rem !important;
+    padding: 0.7rem 16px 0.6rem !important;
     background: var(--white) !important;
   }
 
@@ -534,7 +594,7 @@ textarea:focus {
 
   /* Pages consistently pad their content wrapper at 1.6rem (25.6px) —
      too wide on a phone screen. 16px matches the topbar's own edge. */
-  .app-content>* {
+  .app-content > * {
     padding-left: 16px !important;
     padding-right: 16px !important;
   }
@@ -601,7 +661,7 @@ textarea:focus {
     width: min(360px, 92vw);
     z-index: 400;
     box-shadow: var(--shadow-lg);
-    animation: slideIn .25s ease both;
+    animation: slideIn 0.25s ease both;
   }
 
   .bonds-info-backdrop {
@@ -609,7 +669,7 @@ textarea:focus {
     position: fixed;
     inset: 0;
     z-index: 399;
-    background: rgba(26, 26, 26, .35);
+    background: rgba(26, 26, 26, 0.35);
   }
 }
 
@@ -617,7 +677,7 @@ textarea:focus {
 .msg-toolbar {
   opacity: 0;
   pointer-events: none;
-  transition: opacity .12s ease;
+  transition: opacity 0.12s ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -641,26 +701,26 @@ textarea:focus {
   }
 
   .ob-scene {
-    transform: scale(.82);
+    transform: scale(0.82);
   }
 }
 
 @media (max-width: 360px) {
   .ob-scene {
-    transform: scale(.7);
+    transform: scale(0.7);
   }
 }
 
 /* ── Grove profile orbit (the rings/avatar diagram) ── */
 @media (max-width: 600px) {
   .grove-orbit-stage {
-    transform: scale(.88);
+    transform: scale(0.88);
   }
 }
 
 @media (max-width: 400px) {
   .grove-orbit-stage {
-    transform: scale(.74);
+    transform: scale(0.74);
   }
 }
 
@@ -672,7 +732,7 @@ textarea:focus {
 
   .stats-grid {
     grid-template-columns: 1fr 1fr !important;
-    gap: 1.4rem .8rem !important;
+    gap: 1.4rem 0.8rem !important;
   }
 }
 
@@ -690,10 +750,7 @@ textarea:focus {
 /* ── Offline banner ── */
 .offline-banner {
   position: fixed;
-  top: max(.85rem, env(safe-area-inset-top));
-  /* Centered via left/right + auto margins rather than left:50%+transform,
-     since the .rise entrance animation also animates `transform` and would
-     otherwise clobber the centering offset once the animation settles. */
+  top: max(0.85rem, env(safe-area-inset-top));
   left: 1rem;
   right: 1rem;
   margin-inline: auto;
@@ -702,7 +759,7 @@ textarea:focus {
   max-width: 420px;
   display: flex;
   align-items: flex-start;
-  gap: .75rem;
+  gap: 0.75rem;
   background: var(--white);
   border: 1px solid var(--amber-bdr);
   border-radius: var(--r-lg);
@@ -728,13 +785,13 @@ textarea:focus {
 
 .offline-banner-title {
   font-weight: 600;
-  font-size: .88rem;
+  font-size: 0.88rem;
   color: var(--ink);
 }
 
 .offline-banner-desc {
-  margin-top: .2rem;
-  font-size: .8rem;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
   color: var(--ink-3);
   line-height: 1.45;
 }
@@ -742,24 +799,24 @@ textarea:focus {
 .offline-banner-actions {
   display: flex;
   align-items: center;
-  gap: .9rem;
-  margin-top: .7rem;
+  gap: 0.9rem;
+  margin-top: 0.7rem;
 }
 
 @media (max-width: 480px) {
   .offline-banner {
-    left: .6rem;
-    right: .6rem;
+    left: 0.6rem;
+    right: 0.6rem;
     width: calc(100% - 1.2rem);
     max-width: none;
-    padding: .9rem 1rem;
+    padding: 0.9rem 1rem;
     border-radius: var(--r-md);
   }
 
   .offline-banner-actions {
     flex-direction: column-reverse;
     align-items: stretch;
-    gap: .5rem;
+    gap: 0.5rem;
   }
 
   .offline-banner-actions .btn {
@@ -805,11 +862,10 @@ textarea:focus {
 }
 
 @keyframes breathe {
-
   0%,
   100% {
     transform: scale(1);
-    opacity: .85;
+    opacity: 0.85;
   }
 
   50% {
@@ -819,7 +875,6 @@ textarea:focus {
 }
 
 @keyframes pulseDot {
-
   0%,
   100% {
     transform: scale(1);
@@ -828,14 +883,14 @@ textarea:focus {
 
   50% {
     transform: scale(1.5);
-    opacity: .55;
+    opacity: 0.55;
   }
 }
 
 @keyframes ringPulse {
   0% {
-    transform: scale(.55);
-    opacity: .55;
+    transform: scale(0.55);
+    opacity: 0.55;
   }
 
   80% {
@@ -849,7 +904,6 @@ textarea:focus {
 }
 
 @keyframes shake {
-
   0%,
   100% {
     transform: translateX(0);
@@ -867,7 +921,6 @@ textarea:focus {
 }
 
 @keyframes wave {
-
   0%,
   100% {
     height: 25%;
@@ -901,7 +954,6 @@ textarea:focus {
 }
 
 @keyframes groveFloat {
-
   0%,
   100% {
     transform: translateY(0);
@@ -913,53 +965,49 @@ textarea:focus {
 }
 
 @keyframes ringGlowPulse {
-
   0%,
   100% {
-    opacity: .35;
+    opacity: 0.35;
   }
 
   50% {
-    opacity: .9;
+    opacity: 0.9;
   }
 }
 
 @keyframes auraBreath {
-
   0%,
   100% {
     transform: scale(1);
-    opacity: .5;
+    opacity: 0.5;
   }
 
   50% {
     transform: scale(1.14);
-    opacity: .18;
+    opacity: 0.18;
   }
 }
 
 @keyframes auraGlow {
-
   0%,
   100% {
-    box-shadow: 0 0 14px 2px var(--aura-glow-dim, rgba(243, 112, 30, .55));
+    box-shadow: 0 0 14px 2px var(--aura-glow-dim, rgba(243, 112, 30, 0.55));
   }
 
   50% {
-    box-shadow: 0 0 30px 7px var(--aura-glow-strong, rgba(243, 112, 30, .8));
+    box-shadow: 0 0 30px 7px var(--aura-glow-strong, rgba(243, 112, 30, 0.8));
   }
 }
 
 @keyframes mistDrift {
-
   0%,
   100% {
-    opacity: .45;
+    opacity: 0.45;
     transform: scale(1.05);
   }
 
   50% {
-    opacity: .8;
+    opacity: 0.8;
     transform: scale(1.12);
   }
 }
@@ -967,7 +1015,7 @@ textarea:focus {
 @keyframes firefly {
   0% {
     transform: rotate(0) translateX(var(--r)) rotate(0);
-    opacity: .2;
+    opacity: 0.2;
   }
 
   25% {
@@ -975,39 +1023,39 @@ textarea:focus {
   }
 
   50% {
-    opacity: .4;
+    opacity: 0.4;
   }
 
   100% {
     transform: rotate(360deg) translateX(var(--r)) rotate(-360deg);
-    opacity: .2;
+    opacity: 0.2;
   }
 }
 
 .screen-enter {
-  animation: screenIn .5s cubic-bezier(.22, .61, .36, 1) both;
+  animation: screenIn 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 .fade-in {
-  animation: fadeIn .55s ease both;
+  animation: fadeIn 0.55s ease both;
 }
 
 .rise {
-  animation: rise .6s cubic-bezier(.22, .61, .36, 1) both;
+  animation: rise 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 .shake {
-  animation: shake .4s ease;
+  animation: shake 0.4s ease;
 }
 
 .swap-in {
-  animation: swapIn .35s cubic-bezier(.22, .61, .36, 1) both;
+  animation: swapIn 0.35s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 @keyframes swapIn {
   from {
     opacity: 0;
-    transform: scale(.97) translateY(4px);
+    transform: scale(0.97) translateY(4px);
   }
 
   to {
@@ -1017,7 +1065,9 @@ textarea:focus {
 }
 
 .log-card-shadow {
-  box-shadow: 0 22px 46px -16px rgba(60, 40, 16, .32), 0 4px 14px -6px rgba(60, 40, 16, .18);
+  box-shadow:
+    0 22px 46px -16px rgba(60, 40, 16, 0.32),
+    0 4px 14px -6px rgba(60, 40, 16, 0.18);
 }
 
 @keyframes stamp {
@@ -1028,7 +1078,7 @@ textarea:focus {
 
   60% {
     opacity: 1;
-    transform: scale(.94) rotate(-2deg);
+    transform: scale(0.94) rotate(-2deg);
   }
 
   100% {
@@ -1053,7 +1103,7 @@ textarea:focus {
   justify-content: center;
   box-shadow: var(--shadow-lg);
   font-size: 1.1rem;
-  transition: transform .15s;
+  transition: transform 0.15s;
 }
 
 .jumper-fab:hover {
@@ -1064,13 +1114,13 @@ textarea:focus {
   position: fixed;
   inset: 0;
   z-index: 9001;
-  background: rgba(0, 0, 0, .5);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding-top: 8vh;
-  animation: fadeIn .2s ease;
+  animation: fadeIn 0.2s ease;
 }
 
 .jumper-panel {
@@ -1082,5 +1132,5 @@ textarea:focus {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: rise .25s ease both;
+  animation: rise 0.25s ease both;
 }

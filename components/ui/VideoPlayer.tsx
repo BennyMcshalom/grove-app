@@ -135,7 +135,7 @@ export function VideoPlayer({ src, maxHeight = 360 }: { src: string; maxHeight?:
 
             {/* Time */}
             <span style={{ fontSize: '.7rem', color: 'rgba(255,255,255,.88)',
-              fontFamily: 'DM Mono, monospace', flexShrink: 0, letterSpacing: '.02em' }}>
+              fontFamily: 'inherit', flexShrink: 0, letterSpacing: '.02em' }}>
               {fmt(time)} / {fmt(dur)}
             </span>
 

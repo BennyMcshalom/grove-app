@@ -13,7 +13,7 @@ export function RecentActions({ entries }: { entries: AdminAuditEntry[] }) {
               {ACTION_LABEL[a.action] ?? a.action}
               {a.reason && <span style={{ color: 'var(--ink-3)' }}>, &ldquo;{a.reason}&rdquo;</span>}
             </div>
-            <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', flexShrink: 0, fontFamily: 'var(--font-dm-mono, DM Mono)' }}>
+            <div style={{ fontSize: '.7rem', color: 'var(--ink-4)', flexShrink: 0, fontFamily: 'inherit' }}>
               {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </div>
           </div>
