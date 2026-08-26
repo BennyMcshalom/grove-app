@@ -373,7 +373,7 @@ export default function HomePage() {
     <AppShell title="Home" header={header} right={right}>
       <div
         style={{
-          maxWidth: 800,
+          // maxWidth: 800,
           margin: "0 auto",
           padding: "1.4rem 1.6rem 3rem",
         }}
