@@ -7,7 +7,7 @@ export function RightPanel({ children }: RightPanelProps) {
     <aside
       className="scroll"
       style={{
-        width: 312,
+        width: 400,
         flexShrink: 0,
         padding: "24px 32px",
         height: "100%",
