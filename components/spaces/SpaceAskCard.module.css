@@ -1,0 +1,212 @@
+.card {
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.questionRow {
+  padding: 1.1rem 1.3rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.lockCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surf-high);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.questionBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.questionMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.someone {
+  font-size: 0.76rem;
+  color: var(--ink-4);
+  font-family: var(--mono);
+}
+
+.expiryChip {
+  font-size: 0.62rem;
+  padding: 0.12rem 0.45rem;
+  background: var(--surf-high);
+  color: var(--ink-4);
+}
+
+.expiryChip.urgent {
+  background: var(--ember-dim);
+  color: var(--ember-deep);
+}
+
+.questionText {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.actionBar {
+  border-top: 1px solid var(--border);
+  display: flex;
+  background: var(--surf-low);
+}
+
+.sentNotice {
+  flex: 1;
+  padding: 0.75rem 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--sage);
+  font-weight: 500;
+}
+
+.replyToggleBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 1.1rem;
+  font-size: 0.84rem;
+  color: var(--ink-3);
+  font-weight: 500;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.replyToggleBtn:hover {
+  background: var(--surf-high);
+}
+
+.showRepliesBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-left: 1px solid var(--border);
+  color: var(--ink-4);
+  transition: background 0.15s;
+}
+
+.showRepliesBtn:hover {
+  background: var(--surf-high);
+}
+
+.showRepliesBtn.active {
+  color: var(--sage);
+}
+
+.replyCountBadge {
+  background: var(--surf-high);
+  color: var(--ink-3);
+  border-radius: 100px;
+  padding: 0 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.replyCountBadge.active {
+  background: var(--sage);
+  color: #fff;
+}
+
+.composerWrap {
+  padding: 0.9rem 1.2rem;
+  border-top: 1px solid var(--border);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 68px;
+  padding: 0.75rem 0.9rem;
+  background: var(--surf-low);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-md);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  resize: none;
+  margin-bottom: 0.7rem;
+  color: var(--ink);
+  transition: border 0.15s, box-shadow 0.15s;
+}
+
+.textarea:focus {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px rgba(78, 125, 94, 0.12);
+}
+
+.composerActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cancelBtn {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+}
+
+.sendBtn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border-radius: var(--r-md);
+  font-weight: 600;
+  font-size: 0.88rem;
+  background: var(--sage);
+  color: #fff;
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: opacity 0.15s;
+}
+
+.sendBtn.ready {
+  opacity: 1;
+}
+
+.repliesWrap {
+  padding: 0 1.2rem 1.1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.repliesLoadingWrap {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.repliesEmpty {
+  font-size: 0.82rem;
+  color: var(--ink-4);
+  font-style: italic;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.repliesFootnote {
+  font-size: 0.68rem;
+  color: var(--ink-4);
+  font-style: italic;
+  text-align: center;
+  margin-top: 0.4rem;
+}

@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
+import { NotifBell } from "@/components/layout/TopBar";
 import { RPSection } from "@/components/layout/RightPanel";
 import { FeatureGate } from "@/components/layout/FeatureGate";
 import { Avatar } from "@/components/ui/Avatar";
@@ -13,7 +14,7 @@ import { PostCard } from "@/components/ui/RootsPostCard";
 import { useToastStore } from "@/store/useToastStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useSpaceStore } from "@/store/useSpaceStore";
-import { usePosts } from "@/hooks/usePosts";
+import { usePosts, useCreatePost } from "@/hooks/usePosts";
 import { useSpaceMembers } from "@/hooks/useSpaces";
 import { useAllAsks, usePostAsk, useSubmitAnswer } from "@/hooks/useAnonAsks";
 import {
@@ -22,9 +23,14 @@ import {
 } from "@/hooks/useBondInvitations";
 import { spaceById } from "@/lib/data";
 import { mapPostRecordToPost } from "@/lib/mappers";
+import type { Post } from "@/lib/types";
 import { REGIONS, type Region } from "@/lib/regions";
 import { PostDetailModal } from "@/components/spaces/PostDetailModal";
 import { AskBoard } from "@/components/spaces/AskBoard";
+import {
+  RootsComposer,
+  type RootsComposerHandle,
+} from "@/components/home/RootsComposer";
 
 function SpaceDetailPageInner() {
   const router = useRouter();
@@ -68,6 +74,8 @@ function SpaceDetailPageInner() {
   const submitAnswer = useSubmitAnswer();
   const inviteToBond = useInviteToBond();
   const { data: sentInvitations } = useSentBondInvitations();
+  const createPost = useCreatePost();
+  const composerRef = useRef<RootsComposerHandle>(null);
 
   const posts = (postRecords ?? []).map((r) => mapPostRecordToPost(r, slug));
   const openSpacePosts = (openPosts ?? []).map((r) =>
@@ -169,11 +177,98 @@ function SpaceDetailPageInner() {
     ["members", "Members"],
   ];
 
+  const header = (
+    <div className="app-shared-header">
+      <div className="app-header-main">
+        <h1
+          className="serif"
+          style={{
+            fontSize: "1.9rem",
+            fontWeight: 600,
+            color: "var(--ink)",
+            letterSpacing: ".005em",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {s.name}
+        </h1>
+      </div>
+      <div className="app-header-side">
+        <div
+          style={{ position: "relative", flex: 1, minWidth: 0 }}
+          onClick={() => router.push("/search")}
+        >
+          <input
+            readOnly
+            placeholder="search............."
+            style={{
+              width: "100%",
+              padding: ".65rem 2.6rem .65rem 1rem",
+              borderRadius: 8,
+              background: "var(--surf-high)",
+              border: "1.5px solid transparent",
+              fontSize: ".88rem",
+              cursor: "pointer",
+            }}
+          />
+          <span
+            style={{
+              position: "absolute",
+              right: 14,
+              top: "50%",
+              transform: "translateY(-50%)",
+              pointerEvents: "none",
+            }}
+          >
+            <Icon name="search" size={17} stroke="var(--ink-3)" />
+          </span>
+        </div>
+        <NotifBell />
+      </div>
+    </div>
+  );
+
   return (
-    <AppShell title={s.name} right={right}>
-      <div
-        style={{ maxWidth: 620, margin: "0 auto", padding: "0 1.6rem 3rem" }}
-      >
+    <AppShell title={s.name} header={header} right={right}>
+      <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px" }}>
+        <RootsComposer
+          ref={composerRef}
+          hideTrigger
+          onPost={async (p) => {
+            const postSpaceUuid = uuidBySlug(p.space ?? slug) ?? spaceUuid;
+            if (!postSpaceUuid) {
+              toast("Space not available right now.");
+              throw new Error("No space");
+            }
+            const extended = p as Post & {
+              _mediaUrl?: string;
+              _mediaType?: string;
+            };
+            try {
+              await createPost.mutateAsync({
+                spaceId: postSpaceUuid,
+                kind: "roots",
+                ...(p.doing && { doing: p.doing }),
+                ...(p.progress && {
+                  progress: p.progress as Parameters<
+                    typeof createPost.mutateAsync
+                  >[0]["progress"],
+                }),
+                ...(p.honest && { honestThing: p.honest }),
+                isAnonymous: p.anon,
+                ...(extended._mediaUrl && { mediaUrl: extended._mediaUrl }),
+                ...(extended._mediaType && {
+                  mediaType: extended._mediaType as "image" | "video",
+                }),
+              });
+              toast("Rooted. Your circle will see it.");
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : "Unknown error";
+              toast(`Could not post: ${msg}`);
+              throw err;
+            }
+          }}
+        />
         {/* Breadcrumb + header */}
         <button
           onClick={() => router.push("/spaces")}
@@ -257,19 +352,18 @@ function SpaceDetailPageInner() {
                 <Spinner />
               </div>
             ) : posts.length === 0 ? (
-              <div
-                className="card"
-                style={{
-                  background:
-                    "linear-gradient(160deg, var(--green-dim), var(--ember-dim))",
-                  maxWidth: 480,
-                  margin: "0 auto",
-                }}
-              >
+              <div style={{ maxWidth: 480, margin: "0 auto" }}>
                 <EmptyState
                   variant="feed"
-                  title={`Nothing rooted in ${s.name} yet.`}
-                  body="Be the first to root a thought here."
+                  image="/media/home-empty.png"
+                  title="No Post"
+                  body="There are no post hosting for you yet, add a post to start engaging with others"
+                  action={{
+                    label: "Root a Thought",
+                    icon: "plus",
+                    onClick: () => composerRef.current?.open(),
+                  }}
+                  actionVariant="link"
                 />
               </div>
             ) : (

@@ -99,11 +99,6 @@ export default function GrovePage() {
   const sent = sentLocal || alreadySent;
   const phase = nowPhase();
   const STAGE = 540;
-  // Mirrors the CSS `width:STAGE, maxWidth:92vw` the stage itself uses, so the
-  // avatar can be sized as a safe fraction of the SAME effective width — 0.28
-  // keeps it just inside the inner ring's radius (0.30) at every size, matching
-  // the ~150px desktop avatar exactly at STAGE=540 while actually shrinking on
-  // narrow viewports instead of staying fixed.
   const stageWidth = Math.min(STAGE, viewportW * 0.92);
   const avatarSize = Math.round(Math.min(150, stageWidth * 0.28));
 

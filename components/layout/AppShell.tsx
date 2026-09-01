@@ -1,7 +1,9 @@
+import clsx from 'clsx';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { RightPanel } from './RightPanel';
 import { MobileNav } from './MobileNav';
+import styles from './AppShell.module.css';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -16,9 +18,16 @@ interface AppShellProps {
    * ignored — the caller owns the whole header.
    */
   header?: React.ReactNode;
+  /**
+   * Rendered as a sibling of the scrolling content, inside the middle
+   * column — for a floating element (e.g. a "+" compose button) that
+   * should stay put as the feed scrolls, without escaping to the full
+   * browser viewport past the sidebar/right panel.
+   */
+  fab?: React.ReactNode;
 }
 
-export function AppShell({ children, title, right, dark, noTopbar, header }: AppShellProps) {
+export function AppShell({ children, title, right, dark, noTopbar, header, fab }: AppShellProps) {
   if (header) {
     return (
       <div className="app-shell">
@@ -26,13 +35,14 @@ export function AppShell({ children, title, right, dark, noTopbar, header }: App
           <Sidebar />
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        <div className={styles.bodyCol}>
           {header}
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
-            <main className="app-main" style={{ background: dark ? 'var(--forest)' : 'var(--bg)' }}>
+          <div className={styles.row}>
+            <main className={clsx('app-main', styles.main, dark && styles.dark)}>
               <div className="scroll app-content">
                 {children}
               </div>
+              {fab}
             </main>
             {right && (
               <div className="app-right">
@@ -53,13 +63,13 @@ export function AppShell({ children, title, right, dark, noTopbar, header }: App
         <Sidebar />
       </div>
 
-      <main className="app-main"
-        style={{ background: dark ? 'var(--forest)' : 'var(--bg)' }}>
+      <main className={clsx('app-main', styles.main, dark && styles.dark)}>
         {!noTopbar && <TopBar title={title} dark={dark} />}
         {/* scroll lives here — TopBar is always above it, never overlaps */}
-        <div className="scroll app-content" style={{ marginTop: "20px" }}>
+        <div className={clsx('scroll', 'app-content', styles.contentTopGap)}>
           {children}
         </div>
+        {fab}
       </main>
 
       {right && (

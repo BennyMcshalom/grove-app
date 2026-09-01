@@ -2,8 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
+import { NotifBell } from "@/components/layout/TopBar";
 import { RPSection } from "@/components/layout/RightPanel";
 import { FeatureGate } from "@/components/layout/FeatureGate";
+import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { Spinner } from "@/components/ui/Spinner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -11,6 +13,13 @@ import { useToastStore } from "@/store/useToastStore";
 import { useSpaceStore } from "@/store/useSpaceStore";
 import { useMySpaces, useOpenSpace } from "@/hooks/useSpaces";
 import { useGroups } from "@/hooks/useGroups";
+import { useSuggestions } from "@/hooks/useUsers";
+import {
+  useInviteToBond,
+  useSentBondInvitations,
+} from "@/hooks/useBondInvitations";
+import { useBonds } from "@/hooks/useBonds";
+import type { BondRecord, GroupRecord } from "@/lib/api";
 import { SPACES, spaceById, groupIcon } from "@/lib/data";
 import { SpaceCard } from "@/components/spaces-list/SpaceCard";
 import { SpaceDirectoryCard } from "@/components/spaces-list/SpaceDirectoryCard";
@@ -24,6 +33,16 @@ function SpacesPageInner() {
 
   const { data: mySpaces, isLoading } = useMySpaces();
   const { data: groupsData } = useGroups();
+  const { data: bondsData } = useBonds();
+  const { data: suggestions } = useSuggestions();
+  const inviteToBond = useInviteToBond();
+  const [invited, setInvited] = useState<string[]>([]);
+  const { data: sentInvitations } = useSentBondInvitations();
+  const sentIds = new Set(
+    (sentInvitations ?? [])
+      .filter((i) => i.status === "pending")
+      .map((i) => i.toUserId),
+  );
   const openSpace = useOpenSpace();
 
   const activeSlots = mySpaces?.filter((s) => !s.closedAt) ?? [];
@@ -58,82 +77,295 @@ function SpacesPageInner() {
   };
 
   const right = (
-    <RPSection label="Suggested for your chapter">
-      {groupsData && groupsData.length > 0 ? (
-        groupsData.slice(0, 3).map((g) => (
-          <button
-            key={g.id}
-            onClick={() => router.push("/groups")}
-            className="card"
-            style={{
-              display: "flex",
-              width: "100%",
-              textAlign: "left",
-              alignItems: "center",
-              gap: ".6rem",
-              padding: ".75rem",
-              marginBottom: ".55rem",
-              boxShadow: "var(--shadow-soft)",
-            }}
-          >
-            <span
+    <>
+      <RPSection
+        label="Your Circle"
+        action="View all →"
+        onAction={() => router.push("/bonds")}
+      >
+        {suggestions && suggestions.length > 0 ? (
+          suggestions.slice(0, 4).map((s) => (
+            <div
+              key={s.id}
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: "50%",
-                background: g.coverColor,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
+                gap: ".7rem",
+                padding: ".5rem .4rem",
               }}
             >
-              <Icon
-                name={groupIcon(g.emoji)}
-                size={17}
-                stroke="#fff"
-                sw={1.5}
-              />
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: ".84rem" }}>
-                {g.name}
+              <Avatar name={s.displayName} size={38} avatarUrl={s.avatarUrl} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontWeight: 500,
+                    fontSize: ".86rem",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {s.displayName}
+                </div>
+                <span
+                  className="chip"
+                  style={{
+                    background: "var(--surf-high)",
+                    marginTop: "2px",
+                    fontSize: ".7rem",
+                  }}
+                >
+                  <Icon
+                    name="sprout"
+                    size={11}
+                    stroke="var(--ink-3)"
+                    sw={1.6}
+                  />
+                  {s.reason}
+                </span>
               </div>
-              <div style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
+              <button
+                disabled={
+                  invited.includes(s.id) ||
+                  sentIds.has(s.id) ||
+                  inviteToBond.isPending
+                }
+                onClick={async () => {
+                  try {
+                    await inviteToBond.mutateAsync({ recipientId: s.id });
+                    setInvited((v) => [...v, s.id]);
+                    toast(
+                      `Bond invitation sent to ${s.displayName.split(" ")[0]}.`,
+                    );
+                  } catch {
+                    toast("Could not send.");
+                  }
+                }}
+                className="btn btn-ghost"
+                style={{
+                  padding: ".3rem .7rem",
+                  fontSize: ".72rem",
+                  flexShrink: 0,
+                }}
+              >
+                {invited.includes(s.id) || sentIds.has(s.id)
+                  ? "Sent"
+                  : "Invite"}
+              </button>
+            </div>
+          ))
+        ) : (
+          <p
+            style={{
+              fontSize: ".82rem",
+              color: "var(--ink-4)",
+              fontStyle: "italic",
+              padding: ".2rem 0",
+            }}
+          >
+            Open a space to meet people in the same chapter.
+          </p>
+        )}
+      </RPSection>
+
+      <RPSection
+        label="Active Bonds"
+        action="View all →"
+        onAction={() => router.push("/bonds")}
+      >
+        {bondsData?.length ? (
+          bondsData.slice(0, 3).map((b: BondRecord) => (
+            <button
+              key={b.id}
+              onClick={() => router.push("/bonds")}
+              style={{
+                display: "flex",
+                width: "100%",
+                alignItems: "center",
+                gap: ".7rem",
+                padding: ".55rem 0",
+                textAlign: "left",
+              }}
+            >
+              <Avatar
+                name={b.otherUser?.displayName ?? "?"}
+                size={38}
+                avatarUrl={b.otherUser?.avatarUrl}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 500, fontSize: ".86rem" }}>
+                  {b.otherUser?.displayName ?? "Bond"}
+                </div>
+                <div style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
+                  {new Date(b.formedAt).toLocaleDateString()}
+                </div>
+              </div>
+            </button>
+          ))
+        ) : (
+          <div
+            className="card"
+            style={{
+              background:
+                "linear-gradient(160deg, var(--ember-dim), var(--slate-dim))",
+            }}
+          >
+            <EmptyState
+              variant="bonds"
+              compact
+              title="No Bonds yet."
+              body="Bonds form when you consistently show up for someone."
+              action={{
+                label: "See how Bonds work →",
+                onClick: () => router.push("/bonds"),
+              }}
+            />
+          </div>
+        )}
+      </RPSection>
+
+      <RPSection
+        label="Chapter Groups"
+        action="Browse →"
+        onAction={() => router.push("/groups")}
+      >
+        {groupsData && groupsData.length > 0 ? (
+          groupsData.slice(0, 3).map((g: GroupRecord) => (
+            <button
+              key={g.id}
+              onClick={() => router.push("/groups")}
+              className="card"
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: ".9rem 1rem",
+                marginBottom: ".6rem",
+                boxShadow: "var(--shadow-soft)",
+                background: `color-mix(in srgb, ${g.coverColor ?? "var(--ember)"} 10%, var(--white))`,
+                border: `1px solid color-mix(in srgb, ${g.coverColor ?? "var(--ember)"} 24%, transparent)`,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: ".65rem",
+                  marginBottom: ".5rem",
+                }}
+              >
+                <span
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: "50%",
+                    background: g.coverColor ?? "var(--ember-soft)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon
+                    name={groupIcon(g.emoji)}
+                    size={18}
+                    stroke="#fff"
+                    sw={1.5}
+                  />
+                </span>
+                <div
+                  style={{
+                    fontWeight: 600,
+                    fontSize: ".9rem",
+                    flex: 1,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {g.name}
+                </div>
+              </div>
+              <div style={{ fontSize: ".78rem", color: "var(--ink-3)" }}>
                 {g.lifePhase}
               </div>
-            </div>
-          </button>
-        ))
-      ) : (
-        <p
+            </button>
+          ))
+        ) : (
+          <p
+            style={{
+              fontSize: ".82rem",
+              color: "var(--ink-4)",
+              fontStyle: "italic",
+            }}
+          >
+            No groups yet. Browse to join one.
+          </p>
+        )}
+      </RPSection>
+    </>
+  );
+
+  const header = (
+    <div className="app-shared-header">
+      <div className="app-header-main">
+        <h1
+          className="serif"
           style={{
-            fontSize: ".82rem",
-            color: "var(--ink-4)",
-            fontStyle: "italic",
+            fontSize: "24px",
+            fontWeight: 700,
+            color: "var(--ink)",
+            whiteSpace: "nowrap",
           }}
         >
-          No groups yet. Browse to join one.
-        </p>
-      )}
-    </RPSection>
+          My Spaces
+        </h1>
+      </div>
+      <div className="app-header-side">
+        <div
+          style={{ position: "relative", flex: 1, minWidth: 0 }}
+          onClick={() => router.push("/search")}
+        >
+          <input
+            readOnly
+            placeholder="search............."
+            style={{
+              width: "100%",
+              padding: ".65rem 2.6rem .65rem 1rem",
+              borderRadius: 8,
+              background: "var(--surf-high)",
+              border: "1.5px solid transparent",
+              fontSize: ".88rem",
+              cursor: "pointer",
+            }}
+          />
+          <span
+            style={{
+              position: "absolute",
+              right: 14,
+              top: "50%",
+              transform: "translateY(-50%)",
+              pointerEvents: "none",
+            }}
+          >
+            <Icon name="search" size={17} stroke="var(--ink-3)" />
+          </span>
+        </div>
+        <NotifBell />
+      </div>
+    </div>
   );
 
   return (
-    <AppShell title="My Spaces" right={right}>
-      <div
-        style={{ maxWidth: 720, margin: "0 auto", padding: "0 1.6rem 3rem" }}
-      >
-        <p
-          style={{
-            color: "var(--ink-3)",
-            marginTop: "-.4rem",
-            marginBottom: "1.4rem",
-            fontSize: "1.02rem",
-          }}
+    <AppShell title="My Spaces" header={header} right={right}>
+      <div style={{ margin: "0 auto", padding: "24px" }}>
+        <h2
+          className="serif"
+          style={{ fontSize: "1.5rem", fontWeight: 600, margin: "0 0 1rem" }}
         >
-          Your open chapters.
-        </p>
+          Your open chapters
+        </h2>
 
         {isLoading ? (
           <div
@@ -173,7 +405,7 @@ function SpacesPageInner() {
             className="spaces-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: "1fr 1fr 1fr",
               gap: "1rem",
             }}
           >
@@ -189,42 +421,6 @@ function SpacesPageInner() {
                 }
               />
             ))}
-            {activeSlots.length < 4 && (
-              <button
-                style={{
-                  borderRadius: "var(--r-lg)",
-                  border: "1.5px dashed var(--border-2)",
-                  background: "transparent",
-                  minHeight: 230,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: ".6rem",
-                  color: "var(--ink-3)",
-                }}
-                onClick={() =>
-                  document
-                    .getElementById("spaces-dir")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                <span
-                  style={{
-                    width: 46,
-                    height: 46,
-                    borderRadius: "50%",
-                    background: "var(--surf-high)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Icon name="plus" size={22} stroke="var(--ember)" />
-                </span>
-                Open a new chapter
-              </button>
-            )}
           </div>
         )}
 
@@ -248,7 +444,7 @@ function SpacesPageInner() {
             className="spaces-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: "1fr 1fr 1fr",
               gap: "1rem",
             }}
           >

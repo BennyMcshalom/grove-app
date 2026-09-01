@@ -1,0 +1,79 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1.1rem;
+  text-align: left;
+  width: 100%;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nameLine {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.roleChip {
+  font-size: 0.62rem;
+  padding: 0.1rem 0.5rem;
+}
+
+.roleChip.admin {
+  background: var(--slate-dim);
+  color: var(--slate);
+}
+
+.roleChip.moderator {
+  background: var(--amber-dim);
+  color: var(--amber);
+}
+
+.email {
+  font-size: 0.76rem;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.statusChip {
+  font-size: 0.68rem;
+  text-transform: capitalize;
+}
+
+.statusChip.active {
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+.statusChip.suspended {
+  background: var(--amber-dim);
+  color: var(--amber);
+}
+
+.statusChip.banned {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.date {
+  font-size: 0.68rem;
+  color: var(--ink-4);
+  margin-top: 0.3rem;
+  font-family: inherit;
+}

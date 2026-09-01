@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
+import clsx from "clsx";
 import type { Space, LogStyle } from "@/lib/types";
 import type { LogEntry } from "./types";
 import { MemoryLightbox } from "./MemoryLightbox";
 import { StyleA, StyleB, StyleC } from "./LogStyles";
+import styles from "./MemoriesGallery.module.css";
 
 const LOG_STYLES: [LogStyle, string][] = [
   ["A", "Player"],
@@ -27,49 +29,22 @@ export function MemoriesGallery({
   const [open, setOpen] = useState<number | null>(null);
   return (
     <section>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "1rem",
-          flexWrap: "wrap",
-          gap: ".6rem",
-        }}
-      >
+      <div className={styles.header}>
         <div>
-          <div
-            className="serif"
-            style={{ fontSize: "1.5rem", fontWeight: 600 }}
-          >
-            Log Memories
-          </div>
-          <div style={{ fontSize: ".78rem", color: "var(--ink-3)" }}>
+          <div className={clsx("serif", styles.title)}>Log Memories</div>
+          <div className={styles.subtitle}>
             {filled.length} moments · pick how you view them
           </div>
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 3,
-            background: "var(--surf-high)",
-            borderRadius: 100,
-            padding: 3,
-          }}
-        >
+        <div className={styles.switcher}>
           {LOG_STYLES.map(([id, l]) => (
             <button
               key={id}
               onClick={() => onStyleChange(id)}
-              style={{
-                padding: ".4rem .85rem",
-                borderRadius: 100,
-                fontSize: ".8rem",
-                fontWeight: 600,
-                background: style === id ? "var(--white)" : "transparent",
-                color: style === id ? "var(--ember)" : "var(--ink-3)",
-                boxShadow: style === id ? "var(--shadow-soft)" : "none",
-              }}
+              className={clsx(
+                styles.switcherBtn,
+                style === id && styles.active,
+              )}
             >
               {id} · {l}
             </button>
@@ -77,11 +52,8 @@ export function MemoriesGallery({
         </div>
       </div>
       {filled.length === 0 ? (
-        <div
-          className="card"
-          style={{ padding: "2.2rem 1.5rem", textAlign: "center" }}
-        >
-          <p style={{ color: "var(--ink-3)", fontSize: ".9rem" }}>
+        <div className={clsx("card", styles.emptyCard)}>
+          <p className={styles.emptyText}>
             No moments yet. Write today&apos;s entry above to start your Log.
           </p>
         </div>

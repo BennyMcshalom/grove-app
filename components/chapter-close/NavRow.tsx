@@ -1,5 +1,7 @@
 "use client";
+import clsx from "clsx";
 import { Icon } from "@/components/ui/Icon";
+import styles from "./NavRow.module.css";
 
 // ── Shared button row ──
 export function NavRow({
@@ -12,34 +14,13 @@ export function NavRow({
   continueLabel?: string;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "1rem",
-        marginTop: "1.6rem",
-      }}
-    >
-      <button
-        onClick={onSkip}
-        style={{
-          fontSize: ".88rem",
-          color: "var(--ink-3)",
-          padding: ".5rem 1rem",
-        }}
-      >
+    <div className={styles.row}>
+      <button onClick={onSkip} className={styles.skipBtn}>
         Skip
       </button>
       <button
         onClick={onContinue}
-        className="btn btn-primary btn-pill"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: ".4rem",
-          padding: ".7rem 1.8rem",
-        }}
+        className={clsx("btn", "btn-primary", "btn-pill", styles.continueBtn)}
       >
         {continueLabel} <Icon name="arrow" stroke="#fff" size={16} />
       </button>

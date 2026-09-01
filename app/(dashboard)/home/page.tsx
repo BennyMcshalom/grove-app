@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import clsx from "clsx";
 import { AppShell } from "@/components/layout/AppShell";
 import { NotifBell } from "@/components/layout/TopBar";
 import { RPSection } from "@/components/layout/RightPanel";
@@ -25,10 +26,15 @@ import { useGroups } from "@/hooks/useGroups";
 import { spaceById, groupIcon } from "@/lib/data";
 import { SpaceIcon } from "@/components/ui/SpaceIcon";
 import type { Post, AuraKey } from "@/lib/types";
-import { RootsComposer } from "@/components/home/RootsComposer";
+import {
+  RootsComposer,
+  type RootsComposerHandle,
+} from "@/components/home/RootsComposer";
 import { JustGrouvCard } from "@/components/home/JustGrouvCard";
 import { OverlapCard } from "@/components/home/OverlapCard";
+import { PostFab } from "@/components/home/PostFab";
 import { useDisplayPosts } from "@/components/home/useDisplayPosts";
+import styles from "./page.module.css";
 
 export default function HomePage() {
   const router = useRouter();
@@ -50,10 +56,22 @@ export default function HomePage() {
   const { data: sentInvitations } = useSentBondInvitations();
   const sentIds = new Set(
     (sentInvitations ?? [])
-      .filter((i: { status: string }) => i.status === "pending")
-      .map((i: { toUserId: string }) => i.toUserId),
+      .filter((i) => i.status === "pending")
+      .map((i) => i.toUserId),
   );
   const createPost = useCreatePost();
+  const composerRef = useRef<RootsComposerHandle>(null);
+  const [fabVisible, setFabVisible] = useState(false);
+
+  // Show the floating "+" once the feed's been scrolled down a bit — the
+  // always-visible composer bar at the top covers the "just landed" case.
+  React.useEffect(() => {
+    const el = document.querySelector(".app-content");
+    if (!el) return;
+    const onScroll = () => setFabVisible(el.scrollTop > 240);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   const posts = useDisplayPosts(postRecords);
   const shown = posts;
@@ -61,7 +79,7 @@ export default function HomePage() {
   // tabs: [id, name] — space icon rendered by SpaceIcon component
   const tabs = [
     ["all", "All"],
-    ...mySpaceSlugs.map((id: string) => [id, spaceById(id).name]),
+    ...mySpaceSlugs.map((id) => [id, spaceById(id).name]),
   ];
 
   const right = (
@@ -74,15 +92,7 @@ export default function HomePage() {
       >
         {suggestions && suggestions.length > 0 ? (
           suggestions.slice(0, 4).map((s) => (
-            <div
-              key={s.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: ".7rem",
-                padding: ".5rem .4rem",
-              }}
-            >
+            <div key={s.id} className={styles.suggestionRow}>
               <Avatar
                 name={s.displayName}
                 size={38}
@@ -90,29 +100,8 @@ export default function HomePage() {
                 aura={(s.aura as AuraKey | undefined) ?? undefined}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontWeight: 500,
-                    fontSize: ".86rem",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {s.displayName}
-                </div>
-                <div
-                  style={{
-                    fontSize: ".7rem",
-                    color: "var(--ember)",
-                    fontWeight: 500,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {s.reason}
-                </div>
+                <div className={styles.suggestionName}>{s.displayName}</div>
+                <div className={styles.suggestionReason}>{s.reason}</div>
               </div>
               <button
                 disabled={
@@ -131,12 +120,7 @@ export default function HomePage() {
                     toast("Could not send.");
                   }
                 }}
-                className="btn btn-ghost"
-                style={{
-                  padding: ".3rem .7rem",
-                  fontSize: ".72rem",
-                  flexShrink: 0,
-                }}
+                className={clsx("btn", "btn-ghost", styles.inviteBtn)}
               >
                 {invited.includes(s.id) || sentIds.has(s.id)
                   ? "Sent"
@@ -145,14 +129,7 @@ export default function HomePage() {
             </div>
           ))
         ) : (
-          <p
-            style={{
-              fontSize: ".82rem",
-              color: "var(--ink-4)",
-              fontStyle: "italic",
-              padding: ".2rem 0",
-            }}
-          >
+          <p className={styles.emptyNote}>
             Open a space to meet people in the same chapter.
           </p>
         )}
@@ -167,14 +144,7 @@ export default function HomePage() {
             <button
               key={b.id}
               onClick={() => router.push("/bonds")}
-              style={{
-                display: "flex",
-                width: "100%",
-                alignItems: "center",
-                gap: ".7rem",
-                padding: ".55rem 0",
-                textAlign: "left",
-              }}
+              className={styles.bondRow}
             >
               <Avatar
                 name={b.otherUser?.displayName ?? "?"}
@@ -183,23 +153,17 @@ export default function HomePage() {
                 aura={(b.otherUser?.aura as AuraKey | undefined) ?? undefined}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 500, fontSize: ".86rem" }}>
+                <div className={styles.bondName}>
                   {b.otherUser?.displayName ?? "Bond"}
                 </div>
-                <div style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
+                <div className={styles.bondDate}>
                   {new Date(b.formedAt).toLocaleDateString()}
                 </div>
               </div>
             </button>
           ))
         ) : (
-          <div
-            className="card"
-            style={{
-              background:
-                "linear-gradient(160deg, var(--ember-dim), var(--slate-dim))",
-            }}
-          >
+          <div className={clsx("card", styles.emptyBonds)}>
             <EmptyState
               variant="bonds"
               compact
@@ -223,37 +187,16 @@ export default function HomePage() {
             <button
               key={g.id}
               onClick={() => router.push("/groups")}
-              className="card"
+              className={clsx("card", styles.groupCard)}
               style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: ".9rem 1rem",
-                marginBottom: ".6rem",
-                boxShadow: "var(--shadow-soft)",
                 background: `color-mix(in srgb, ${g.coverColor ?? "var(--ember)"} 10%, var(--white))`,
                 border: `1px solid color-mix(in srgb, ${g.coverColor ?? "var(--ember)"} 24%, transparent)`,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: ".65rem",
-                  marginBottom: ".5rem",
-                }}
-              >
+              <div className={styles.groupHeader}>
                 <span
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: "50%",
-                    background: g.coverColor ?? "var(--ember-soft)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
+                  className={styles.groupIcon}
+                  style={{ background: g.coverColor ?? "var(--ember-soft)" }}
                 >
                   <Icon
                     name={groupIcon(g.emoji)}
@@ -262,33 +205,13 @@ export default function HomePage() {
                     sw={1.5}
                   />
                 </span>
-                <div
-                  style={{
-                    fontWeight: 600,
-                    fontSize: ".9rem",
-                    flex: 1,
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {g.name}
-                </div>
+                <div className={styles.groupName}>{g.name}</div>
               </div>
-              <div style={{ fontSize: ".78rem", color: "var(--ink-3)" }}>
-                {g.lifePhase}
-              </div>
+              <div className={styles.groupPhase}>{g.lifePhase}</div>
             </button>
           ))
         ) : (
-          <div
-            className="card"
-            style={{
-              background:
-                "linear-gradient(160deg, var(--slate-dim), var(--green-dim))",
-            }}
-          >
+          <div className={clsx("card", styles.emptyGroups)}>
             <EmptyState
               variant="groups"
               compact
@@ -308,26 +231,12 @@ export default function HomePage() {
   const header = (
     <div className="app-shared-header">
       <div className="app-header-main">
-        <div
-          className="scroll"
-          style={{ display: "flex", gap: ".4rem", overflowX: "auto" }}
-        >
+        <div className={clsx("scroll", styles.tabsScroll)}>
           {tabs.map(([id, name]) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              style={{
-                padding: ".55rem .85rem",
-                fontSize: ".88rem",
-                fontWeight: 500,
-                whiteSpace: "nowrap",
-                color: tab === id ? "var(--ember)" : "var(--ink-3)",
-                borderBottom:
-                  tab === id
-                    ? "2px solid var(--ember)"
-                    : "2px solid transparent",
-                marginBottom: -1,
-              }}
+              className={clsx(styles.tabBtn, tab === id && styles.active)}
             >
               {id !== "all" && <SpaceIcon spaceId={id} size={12} />} {name}
             </button>
@@ -336,31 +245,15 @@ export default function HomePage() {
       </div>
       <div className="app-header-side">
         <div
-          style={{ position: "relative", flex: 1, minWidth: 0 }}
+          className={styles.searchWrap}
           onClick={() => router.push("/search")}
         >
           <input
             readOnly
             placeholder="search............."
-            style={{
-              width: "100%",
-              padding: ".65rem 2.6rem .65rem 1rem",
-              borderRadius: "8px",
-              background: "var(--surf-high)",
-              border: "1.5px solid transparent",
-              fontSize: ".88rem",
-              cursor: "pointer",
-            }}
+            className={styles.searchInput}
           />
-          <span
-            style={{
-              position: "absolute",
-              right: 14,
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-            }}
-          >
+          <span className={styles.searchIcon}>
             <Icon name="search" size={17} stroke="var(--ink-3)" />
           </span>
         </div>
@@ -370,15 +263,21 @@ export default function HomePage() {
   );
 
   return (
-    <AppShell title="Home" header={header} right={right}>
-      <div
-        style={{
-          // maxWidth: 800,
-          margin: "0 auto",
-          padding: "1.4rem 1.6rem 3rem",
-        }}
-      >
+    <AppShell
+      title="Home"
+      header={header}
+      right={right}
+      fab={
+        <PostFab
+          visible={fabVisible}
+          onClick={() => composerRef.current?.open()}
+        />
+      }
+    >
+      <div className={styles.pageWrap}>
         <RootsComposer
+          ref={composerRef}
+          hideTrigger={!postsLoading && shown.length === 0}
           onPost={async (p) => {
             const spaceSlug = p.space ?? mySpaceSlugs[0] ?? "career";
             const spaceUuid2 = uuidBySlug(spaceSlug);
@@ -425,32 +324,26 @@ export default function HomePage() {
           }}
         />
         {postsLoading ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              padding: "3rem 0",
-            }}
-          >
+          <div className={styles.loadingWrap}>
             <Spinner size={24} />
           </div>
         ) : shown.length === 0 ? (
-          <div
-            className="card"
-            style={{
-              background:
-                "linear-gradient(160deg, var(--green-dim), var(--ember-dim))",
-              maxWidth: 480,
-              margin: "0 auto",
-            }}
-          >
+          <div className={styles.emptyFeedCard}>
             <EmptyState
               variant="feed"
+              image="/media/home-empty.png"
+              title="No Post"
               body={
                 tab === "all"
-                  ? "Your circle hasn't posted yet. Root a thought above to get things going."
-                  : "No posts in this space yet. Be the first."
+                  ? "There are no post hosting for you yet, add a post to start engaging with others"
+                  : "No posts in this space yet. Add a post to start engaging with others"
               }
+              action={{
+                label: "Root a Thought",
+                icon: "plus",
+                onClick: () => composerRef.current?.open(),
+              }}
+              actionVariant="link"
             />
           </div>
         ) : (
@@ -468,53 +361,17 @@ export default function HomePage() {
 
         {/* End-of-feed — the feed only ever shows the fresh 48h window, no infinite scroll */}
         {!postsLoading && shown.length > 0 && (
-          <div style={{ textAlign: "center", padding: "3rem 1rem 1.5rem" }}>
+          <div className={styles.endOfFeedWrap}>
             {/* Thin rule with centred mark */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                marginBottom: "2rem",
-              }}
-            >
-              <div
-                style={{ flex: 1, height: 1, background: "var(--border)" }}
-              />
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "var(--border-2)",
-                  flexShrink: 0,
-                }}
-              />
-              <div
-                style={{ flex: 1, height: 1, background: "var(--border)" }}
-              />
+            <div className={styles.endRuleRow}>
+              <div className={styles.ruleLine} />
+              <div className={styles.ruleDot} />
+              <div className={styles.ruleLine} />
             </div>
-            <p
-              className="serif"
-              style={{
-                fontSize: "1.35rem",
-                fontWeight: 600,
-                fontStyle: "italic",
-                color: "var(--ink)",
-                marginBottom: ".5rem",
-                lineHeight: 1.3,
-              }}
-            >
+            <p className={clsx("serif", styles.endTitle)}>
               You&apos;re caught up.
             </p>
-            <p
-              style={{
-                fontSize: ".84rem",
-                color: "var(--ink-4)",
-                letterSpacing: ".015em",
-                lineHeight: 1.6,
-              }}
-            >
+            <p className={styles.endSub}>
               Go live something worth posting about.
             </p>
           </div>

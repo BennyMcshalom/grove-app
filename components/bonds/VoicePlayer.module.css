@@ -1,0 +1,50 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .65rem .95rem .65rem .65rem;
+  border-radius: 22px;
+  min-width: 210px;
+  max-width: 270px;
+}
+
+.playBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: transform .1s;
+}
+
+.playBtn:hover {
+  transform: scale(1.06);
+}
+
+.playIconOffset {
+  margin-left: 2px;
+}
+
+.waveform {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 30px;
+}
+
+.bar {
+  width: 3px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  transition: height .1s ease, background .15s ease;
+}
+
+.durationText {
+  font-size: .68rem;
+  flex-shrink: 0;
+}

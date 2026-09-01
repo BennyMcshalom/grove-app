@@ -1,0 +1,134 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(26, 26, 26, 0.94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay.videoConnected {
+  background: #16231c;
+}
+
+.remoteVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.remoteVideo.visible {
+  opacity: 1;
+}
+
+.videoGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, rgba(78, 125, 94, 0.25), transparent 60%);
+}
+
+.localPip {
+  position: absolute;
+  top: 24px;
+  right: 20px;
+  width: 96px;
+  height: 128px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.center {
+  position: relative;
+  text-align: center;
+  padding: 0 1.5rem;
+}
+
+.name {
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.label {
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.incomingRow {
+  display: flex;
+  gap: 2.2rem;
+  justify-content: center;
+  margin-top: 2.4rem;
+}
+
+.incomingBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.incomingCircle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.declineCircle {
+  background: var(--red);
+  box-shadow: 0 6px 18px -4px rgba(186, 26, 26, 0.6);
+}
+
+.acceptCircle {
+  background: var(--sage);
+  box-shadow: 0 6px 18px -4px rgba(78, 125, 94, 0.6);
+}
+
+.incomingLabel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.78rem;
+}
+
+.controlsRow {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2.4rem;
+}
+
+.controlBtn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.controlBtn.active {
+  background: #fff;
+}
+
+.hangUpBtn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px -4px rgba(186, 26, 26, 0.6);
+}

@@ -1,3 +1,5 @@
+import styles from "./GMark.module.css";
+
 export function GMark({
   size = 20,
   color = "#fff",
@@ -9,20 +11,20 @@ export function GMark({
 }) {
   return (
     <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size * 0.32,
-        background: bg || "rgba(255,255,255,.18)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}
+      className={styles.mark}
+      style={
+        {
+          "--size": `${size}px`,
+          "--radius": `${size * 0.32}px`,
+          background: bg || "rgba(255,255,255,.18)",
+        } as React.CSSProperties
+      }
     >
       <span
-        className="serif"
-        style={{ color, fontWeight: 700, fontSize: size * 0.62, lineHeight: 1 }}
+        className={`serif ${styles.letter}`}
+        style={
+          { color, "--font-size": `${size * 0.62}px` } as React.CSSProperties
+        }
       >
         G
       </span>

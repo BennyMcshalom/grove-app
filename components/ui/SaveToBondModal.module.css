@@ -1,0 +1,80 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(26, 26, 26, .55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+.modal {
+  width: min(380px, 94vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--cream);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+}
+
+.header {
+  padding: 1.2rem 1.3rem .4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.body {
+  padding: .6rem 1rem 1.2rem;
+}
+
+.loadingWrap {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.emptyText {
+  font-size: .86rem;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.connectionRow {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: .7rem;
+  padding: .6rem .5rem;
+  border-radius: var(--r-md);
+  text-align: left;
+  transition: background .15s;
+}
+
+.connectionRow:hover {
+  background: var(--surf-low);
+}
+
+.connectionName {
+  flex: 1;
+  font-weight: 500;
+  font-size: .9rem;
+}

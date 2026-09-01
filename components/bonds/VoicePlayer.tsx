@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef } from 'react';
+import styles from './VoicePlayer.module.css';
 
 export function VoicePlayer({ url, dur, sent }: {
   url: string; dur?: number | null; sent: boolean;
@@ -31,37 +32,27 @@ export function VoicePlayer({ url, dur, sent }: {
   const txtC = sent ? 'rgba(255,255,255,0.75)' : 'var(--ink-3)';
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '.75rem', padding: '.65rem .95rem .65rem .65rem',
-      borderRadius: 22, background: bg, minWidth: 210, maxWidth: 270,
+    <div className={styles.wrap} style={{
+      background: bg,
       boxShadow: sent ? '0 2px 10px -3px rgba(243,112,30,.4)' : 'var(--shadow-soft)',
       borderBottomRightRadius: sent ? 6 : 22, borderBottomLeftRadius: sent ? 22 : 6
     }}>
       {/* Play / Pause */}
-      <button onClick={toggle} style={{
-        width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-        background: sent ? 'rgba(255,255,255,0.22)' : 'var(--ember)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer',
-        transition: 'transform .1s'
-      }}
-        onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.06)')}
-        onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+      <button onClick={toggle} className={styles.playBtn} style={{ background: sent ? 'rgba(255,255,255,0.22)' : 'var(--ember)' }}>
         {playing
           ? <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><rect x="5" y="4" width="5" height="16" rx="1.5" /><rect x="14" y="4" width="5" height="16" rx="1.5" /></svg>
-          : <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff" style={{ marginLeft: 2 }}><path d="M6 4l14 8-14 8V4z" /></svg>}
+          : <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff" className={styles.playIconOffset}><path d="M6 4l14 8-14 8V4z" /></svg>}
       </button>
 
       {/* Waveform */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2.5, height: 30 }}>
+      <div className={styles.waveform}>
         {bars.current.map((h, i) => {
           const isFilled = progress > 0 && i / barCount <= progress;
           return (
-            <div key={i} style={{
-              width: 3, borderRadius: 3, flexShrink: 0,
+            <div key={i} className={styles.bar} style={{
               height: `${Math.max(4, h * 27)}px`,
               background: isFilled ? barP : barC,
               opacity: playing ? 1 : 0.7,
-              transition: 'height .1s ease, background .15s ease',
               animation: playing && Math.abs(i / barCount - progress) < 0.15
                 ? `wave ${0.5 + (i % 4) * 0.1}s ease-in-out infinite` : 'none',
             }} />
@@ -70,7 +61,7 @@ export function VoicePlayer({ url, dur, sent }: {
       </div>
 
       {/* Duration */}
-      <span style={{ fontSize: '.68rem', color: txtC, fontFamily: 'inherit', flexShrink: 0 }}>
+      <span className={styles.durationText} style={{ color: txtC }}>
         {playing ? fmt(elapsed) : fmt(total)}
       </span>
     </div>

@@ -1,6 +1,8 @@
 "use client";
+import clsx from "clsx";
 import { SpaceIcon } from "@/components/ui/SpaceIcon";
 import type { CurioEntry } from "@/lib/api";
+import styles from "./SavedCurioCard.module.css";
 
 export function SavedCurioCard({
   curio: c,
@@ -21,126 +23,56 @@ export function SavedCurioCard({
   });
 
   return (
-    <div
-      className="card"
-      style={{
-        marginBottom: ".9rem",
-        borderLeft: "4px solid var(--sage)",
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ padding: "1.1rem 1.4rem" }}>
+    <div className={clsx("card", styles.card)}>
+      <div className={styles.body}>
         {/* Header row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: ".6rem",
-            marginBottom: ".4rem",
-          }}
-        >
+        <div className={styles.headerRow}>
           <SpaceIcon spaceId={spaceSlug} size={13} />
-          <span className="label-mono" style={{ color: "var(--sage)" }}>
+          <span className={clsx("label-mono", styles.dateStr)}>
             {dateStr}
           </span>
         </div>
 
         {/* Title */}
         {c.title && (
-          <h3
-            className="serif"
-            style={{
-              fontSize: "1.15rem",
-              fontWeight: 600,
-              marginBottom: ".3rem",
-              lineHeight: 1.3,
-            }}
-          >
+          <h3 className={clsx("serif", styles.title)}>
             {c.title}
           </h3>
         )}
 
         {/* Reflection preview */}
         {c.reflection && (
-          <p
-            style={{
-              fontSize: ".84rem",
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-              marginBottom: ".5rem",
-              lineHeight: 1.5,
-              display: open ? "none" : "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
+          <p className={clsx(styles.reflectionPreview, open && styles.hidden)}>
             &ldquo;{c.reflection}&rdquo;
           </p>
         )}
 
         {/* Expand button */}
         {(c.body || c.reflection) && (
-          <button
-            onClick={onToggle}
-            style={{
-              fontSize: ".82rem",
-              color: "var(--sage)",
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              gap: ".3rem",
-            }}
-          >
+          <button onClick={onToggle} className={styles.expandBtn}>
             {open ? "Show less" : "Read more"} →
           </button>
         )}
 
         {/* Expanded body */}
         {open && (
-          <div
-            className="fade-in"
-            style={{
-              borderTop: "1px solid var(--border)",
-              marginTop: ".8rem",
-              paddingTop: ".9rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-            }}
-          >
+          <div className={clsx("fade-in", styles.expandedBody)}>
             {c.body && (
               <div>
-                <div className="label-mono" style={{ marginBottom: ".4rem" }}>
+                <div className={clsx("label-mono", styles.sectionLabel)}>
                   Reading
                 </div>
-                <p
-                  style={{
-                    color: "var(--ink-2)",
-                    lineHeight: 1.7,
-                    fontSize: ".92rem",
-                  }}
-                >
+                <p className={styles.readingText}>
                   {c.body}
                 </p>
               </div>
             )}
             {c.reflection && (
               <div>
-                <div
-                  className="label-mono"
-                  style={{ marginBottom: ".4rem", color: "var(--sage)" }}
-                >
+                <div className={clsx("label-mono", styles.sectionLabelSage)}>
                   Your reflection
                 </div>
-                <p
-                  style={{
-                    fontStyle: "italic",
-                    color: "var(--ink-2)",
-                    lineHeight: 1.65,
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
+                <p className={styles.reflectionText}>
                   &ldquo;{c.reflection}&rdquo;
                 </p>
               </div>

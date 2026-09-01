@@ -1,0 +1,401 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  background: rgba(26, 26, 26, 0.4);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.panel {
+  width: 520px;
+  max-width: 92vw;
+  height: 100%;
+  background: var(--white);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.coverBar {
+  height: 6px;
+  flex-shrink: 0;
+}
+
+.headBody {
+  padding: 1.6rem 1.8rem 0;
+  flex-shrink: 0;
+}
+
+.headTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.emojiCircle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.name {
+  font-size: 1.7rem;
+  font-weight: 600;
+  margin-top: 0.8rem;
+}
+
+.chipRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.4rem 0 0.8rem;
+}
+
+.phaseChip {
+  background: var(--surf-high);
+}
+
+.adminChip {
+  background: var(--ink);
+  color: #fff;
+}
+
+.description {
+  color: var(--ink-2);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.membersSection {
+  margin-bottom: 1.2rem;
+}
+
+.membersRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stack {
+  display: flex;
+}
+
+.stackItem {
+  margin-left: -10px;
+}
+
+.stackItem:first-child {
+  margin-left: 0;
+}
+
+.memberCountLink {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.memberCountText {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+
+.inviteBtn {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--ember);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.rosterList {
+  margin-top: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 0.5rem 0.8rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.rosterRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+}
+
+.rosterName {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.rosterAdminChip {
+  background: var(--surf-high);
+  font-size: 0.62rem;
+  flex-shrink: 0;
+}
+
+.joinCard {
+  padding: 1.3rem;
+  background: var(--surf-low);
+  box-shadow: none;
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+
+.joinIcon {
+  font-size: 1.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.joinTitle {
+  font-weight: 600;
+}
+
+.joinSub {
+  font-size: 0.85rem;
+  color: var(--ink-3);
+}
+
+.joinSubSpaced {
+  font-size: 0.85rem;
+  color: var(--ink-3);
+  margin-bottom: 1rem;
+}
+
+.joinBtn {
+  color: #3a2a18;
+}
+
+.leaveBtn {
+  font-size: 0.78rem;
+  color: var(--ink-4);
+  margin-bottom: 1rem;
+}
+
+.deleteConfirmCard {
+  padding: 0.9rem 1rem;
+  background: var(--red-dim);
+  border: 1px solid var(--red-bdr);
+  box-shadow: none;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.deleteConfirmText {
+  flex: 1;
+  font-size: 0.83rem;
+  color: var(--red);
+  font-weight: 500;
+}
+
+.deleteConfirmBtn {
+  background: var(--red);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  box-shadow: none;
+}
+
+.deleteCancelBtn {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.deleteLink {
+  font-size: 0.78rem;
+  color: var(--red);
+  margin-bottom: 1rem;
+}
+
+.requestsCard {
+  padding: 1rem 1.1rem;
+  background: var(--ember-dim);
+  border: 1px solid var(--ember-bdr);
+  box-shadow: none;
+  margin-bottom: 1.2rem;
+}
+
+.requestsTitle {
+  margin-bottom: 0.7rem;
+}
+
+.requestRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.requestName {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.requestActionBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.requestDenyBtn {
+  background: var(--white);
+}
+
+.requestApproveBtn {
+  background: var(--ink);
+}
+
+.conversation {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1.8rem 1rem;
+  position: relative;
+}
+
+.convoTitle {
+  margin: 0.2rem 0 0.8rem;
+}
+
+.convoLoadingWrap {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.convoEmpty {
+  color: var(--ink-4);
+  font-size: 0.86rem;
+  font-style: italic;
+}
+
+.messageRow {
+  display: flex;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+.messageAvatarSlot {
+  width: 34px;
+  flex-shrink: 0;
+}
+
+.messageBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.messageMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.messageAuthor {
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.messageDate {
+  font-size: 0.64rem;
+  color: var(--ink-4);
+}
+
+.bubble {
+  background: var(--surf-low);
+  border-radius: var(--r-md);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.bubble.mine {
+  background: var(--ember-dim);
+}
+
+.lockedWrap {
+  position: relative;
+  min-height: 140px;
+}
+
+.lockedCard {
+  padding: 1.1rem;
+  filter: blur(4px);
+  user-select: none;
+  box-shadow: var(--shadow-soft);
+}
+
+.lockedCardText {
+  margin: 0;
+  font-style: italic;
+  color: var(--ink-3);
+}
+
+.lockedOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lockedChip {
+  background: var(--white);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.composer {
+  padding: 0.9rem 1.4rem;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.composerInput {
+  flex: 1;
+  padding: 0.65rem 0.95rem;
+  border-radius: 100px;
+  border: 1.5px solid var(--border-2);
+  background: var(--surf-low);
+  font-size: 0.88rem;
+}
+
+.composerInput:focus {
+  border-color: var(--ember);
+}
+
+.sendBtn {
+  padding: 0.6rem 0.8rem;
+}

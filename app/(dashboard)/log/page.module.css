@@ -1,0 +1,225 @@
+/* ── Right panel ── */
+.thisLogCard {
+  padding: 1rem 1.1rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.thisLogHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.spaceIconCircle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spaceName {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.spacePhase {
+  font-size: 0.74rem;
+  color: var(--ink-3);
+}
+
+.progressNote {
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  margin-top: 0.5rem;
+}
+
+.visMenuWrap {
+  position: relative;
+}
+
+.visTrigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 0.9rem;
+  box-shadow: var(--shadow-soft);
+  text-align: left;
+}
+
+.visTitle {
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.visDesc {
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+
+.visMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 0.4rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.visOption {
+  display: flex;
+  width: 100%;
+  text-align: left;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.6rem 0.65rem;
+  border-radius: var(--r-sm);
+  background: transparent;
+}
+
+.visOption.active {
+  background: var(--ember-dim);
+}
+
+.visOptionTitle {
+  font-weight: 500;
+  font-size: 0.84rem;
+  color: var(--ink);
+}
+
+.visOptionTitle.active {
+  color: var(--ember);
+}
+
+.visOptionDesc {
+  font-size: 0.7rem;
+  color: var(--ink-3);
+}
+
+.ritualText {
+  font-size: 0.84rem;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+/* ── Page ── */
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 1.6rem 3rem;
+}
+
+.spaceSwitcher {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  margin-bottom: 1.1rem;
+  padding-bottom: 2px;
+}
+
+.spaceChip {
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  background: var(--surf-high);
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.spaceChip.active {
+  background: var(--ember);
+  color: #fff;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: -0.3rem;
+  margin-bottom: 1.4rem;
+  flex-wrap: wrap;
+}
+
+.metaLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.visBadge {
+  background: var(--surf-high);
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.modeSwitcher {
+  display: flex;
+  gap: 4px;
+  background: var(--surf-high);
+  border-radius: 100px;
+  padding: 3px;
+}
+
+.modeBtn {
+  padding: 0.4rem 0.9rem;
+  border-radius: 100px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  background: transparent;
+  color: var(--ink-3);
+  box-shadow: none;
+}
+
+.modeBtn.active {
+  background: var(--white);
+  color: var(--ember);
+  box-shadow: var(--shadow-soft);
+}
+
+.entrySection {
+  margin-bottom: 2rem;
+}
+
+.gallerySection {
+  margin-bottom: 1.4rem;
+}
+
+.artifactBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 1rem 1.2rem;
+  margin-bottom: 2.2rem;
+  border-radius: var(--r-lg);
+  border: 1.5px solid var(--ember-bdr);
+  background: var(--ember-dim);
+  text-align: left;
+}
+
+.artifactTitle {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ember-deep);
+}
+
+.artifactDesc {
+  font-size: 0.76rem;
+  color: var(--ink-3);
+}
+
+.artifactCta {
+  font-size: 0.8rem;
+  color: var(--ember);
+  font-weight: 500;
+}

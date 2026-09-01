@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import clsx from "clsx";
 import { AppShell } from "@/components/layout/AppShell";
 import { RPSection } from "@/components/layout/RightPanel";
 import { FeatureGate } from "@/components/layout/FeatureGate";
@@ -31,6 +32,7 @@ import { BondReveal } from "@/components/log/BondReveal";
 import { LogViewer } from "@/components/log/LogViewer";
 import { CircleLogFeed } from "@/components/log/CircleLogFeed";
 import { apiToLocal, buildStrip } from "@/components/log/mappers";
+import styles from "./page.module.css";
 
 const LOG_PROMPTS: Record<string, string> = {
   career: "What did you build today, even a little?",
@@ -179,38 +181,17 @@ function LogPageInner() {
   const right = (
     <>
       <RPSection label="This log">
-        <div
-          className="card"
-          style={{ padding: "1rem 1.1rem", boxShadow: "var(--shadow-soft)" }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: ".6rem",
-              marginBottom: ".7rem",
-            }}
-          >
+        <div className={clsx("card", styles.thisLogCard)}>
+          <div className={styles.thisLogHeader}>
             <span
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: space.color,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              className={styles.spaceIconCircle}
+              style={{ background: space.color }}
             >
               <Icon name={space.icon} size={18} stroke={space.ink} sw={1.6} />
             </span>
             <div>
-              <div style={{ fontWeight: 600, fontSize: ".9rem" }}>
-                {space.name}
-              </div>
-              <div style={{ fontSize: ".74rem", color: "var(--ink-3)" }}>
-                {phase}
-              </div>
+              <div className={styles.spaceName}>{space.name}</div>
+              <div className={styles.spacePhase}>{phase}</div>
             </div>
           </div>
           <ProgressBar
@@ -220,13 +201,7 @@ function LogPageInner() {
                 : 0
             }
           />
-          <div
-            style={{
-              fontSize: ".74rem",
-              color: "var(--ink-3)",
-              marginTop: ".5rem",
-            }}
-          >
+          <div className={styles.progressNote}>
             {entriesLoading
               ? "Loading…"
               : `${filled.length} of ${entries.length} days logged`}
@@ -235,19 +210,10 @@ function LogPageInner() {
       </RPSection>
 
       <RPSection label="Who can see your log">
-        <div style={{ position: "relative" }}>
+        <div className={styles.visMenuWrap}>
           <button
             onClick={() => setVisMenu((m) => !m)}
-            className="card"
-            style={{
-              display: "flex",
-              width: "100%",
-              alignItems: "center",
-              gap: ".6rem",
-              padding: ".8rem .9rem",
-              boxShadow: "var(--shadow-soft)",
-              textAlign: "left",
-            }}
+            className={clsx("card", styles.visTrigger)}
           >
             <Icon
               name={vis === "private" ? "lock" : "eye"}
@@ -255,28 +221,13 @@ function LogPageInner() {
               stroke="var(--ember)"
             />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: ".86rem" }}>
-                {visMeta[1]}
-              </div>
-              <div style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
-                {visMeta[2]}
-              </div>
+              <div className={styles.visTitle}>{visMeta[1]}</div>
+              <div className={styles.visDesc}>{visMeta[2]}</div>
             </div>
             <Icon name="dots" size={16} stroke="var(--ink-4)" />
           </button>
           {visMenu && (
-            <div
-              className="card"
-              style={{
-                position: "absolute",
-                top: "calc(100% + 6px)",
-                left: 0,
-                right: 0,
-                zIndex: 20,
-                padding: ".4rem",
-                boxShadow: "var(--shadow-lg)",
-              }}
-            >
+            <div className={clsx("card", styles.visMenu)}>
               {LOG_VIS.map(([id, l, d]) => (
                 <button
                   key={id}
@@ -291,30 +242,21 @@ function LogPageInner() {
                       toast("Could not update.");
                     }
                   }}
-                  style={{
-                    display: "flex",
-                    width: "100%",
-                    textAlign: "left",
-                    gap: ".5rem",
-                    alignItems: "center",
-                    padding: ".6rem .65rem",
-                    borderRadius: "var(--r-sm)",
-                    background: vis === id ? "var(--ember-dim)" : "transparent",
-                  }}
+                  className={clsx(
+                    styles.visOption,
+                    vis === id && styles.active,
+                  )}
                 >
                   <div style={{ flex: 1 }}>
                     <div
-                      style={{
-                        fontWeight: 500,
-                        fontSize: ".84rem",
-                        color: vis === id ? "var(--ember)" : "var(--ink)",
-                      }}
+                      className={clsx(
+                        styles.visOptionTitle,
+                        vis === id && styles.active,
+                      )}
                     >
                       {l}
                     </div>
-                    <div style={{ fontSize: ".7rem", color: "var(--ink-3)" }}>
-                      {d}
-                    </div>
+                    <div className={styles.visOptionDesc}>{d}</div>
                   </div>
                   {vis === id && (
                     <Icon name="check" size={15} stroke="var(--ember)" />
@@ -327,9 +269,7 @@ function LogPageInner() {
       </RPSection>
 
       <RPSection label="The ritual">
-        <p
-          style={{ fontSize: ".84rem", color: "var(--ink-2)", lineHeight: 1.6 }}
-        >
+        <p className={styles.ritualText}>
           One photo. One honest line. Every day you&apos;re in this chapter.
           Choose how you view your past moments, and who else gets to scroll
           them.
@@ -340,21 +280,10 @@ function LogPageInner() {
 
   return (
     <AppShell title="Grouv Log" right={right}>
-      <div
-        style={{ maxWidth: 640, margin: "0 auto", padding: "0 1.6rem 3rem" }}
-      >
+      <div className={styles.page}>
         {/* Per-chapter log switcher — each space keeps its own separate log archive */}
         {userSpaces.length > 1 && (
-          <div
-            className="scroll"
-            style={{
-              display: "flex",
-              gap: ".5rem",
-              overflowX: "auto",
-              marginBottom: "1.1rem",
-              paddingBottom: 2,
-            }}
-          >
+          <div className={clsx("scroll", styles.spaceSwitcher)}>
             {userSpaces.map((id) => {
               const s = spaceById(id);
               const on = id === activeSpaceSlug;
@@ -362,18 +291,11 @@ function LogPageInner() {
                 <button
                   key={id}
                   onClick={() => setSpaceSlug(id)}
-                  className="chip"
-                  style={{
-                    cursor: "pointer",
-                    flexShrink: 0,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: ".4rem",
-                    padding: ".5rem .95rem",
-                    background: on ? "var(--ember)" : "var(--surf-high)",
-                    color: on ? "#fff" : "var(--ink-2)",
-                    fontWeight: 500,
-                  }}
+                  className={clsx(
+                    "chip",
+                    styles.spaceChip,
+                    on && styles.active,
+                  )}
                 >
                   <Icon
                     name={s.icon}
@@ -389,29 +311,10 @@ function LogPageInner() {
         )}
 
         {/* Phase chip + mode toggle */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "1rem",
-            marginTop: "-.3rem",
-            marginBottom: "1.4rem",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: ".6rem" }}>
+        <div className={styles.metaRow}>
+          <div className={styles.metaLeft}>
             <StageChip space={activeSpaceSlug} stage={phase} />
-            <span
-              className="chip"
-              style={{
-                background: "var(--surf-high)",
-                fontSize: ".7rem",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
+            <span className={clsx("chip", styles.visBadge)}>
               <Icon
                 name={vis === "private" ? "lock" : "eye"}
                 size={11}
@@ -421,15 +324,7 @@ function LogPageInner() {
               {visMeta[1]}
             </span>
           </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 4,
-              background: "var(--surf-high)",
-              borderRadius: 100,
-              padding: 3,
-            }}
-          >
+          <div className={styles.modeSwitcher}>
             {(
               [
                 ["solo", "Solo"],
@@ -439,15 +334,7 @@ function LogPageInner() {
               <button
                 key={id}
                 onClick={() => setMode(id)}
-                style={{
-                  padding: ".4rem .9rem",
-                  borderRadius: 100,
-                  fontSize: ".82rem",
-                  fontWeight: 500,
-                  background: mode === id ? "var(--white)" : "transparent",
-                  color: mode === id ? "var(--ember)" : "var(--ink-3)",
-                  boxShadow: mode === id ? "var(--shadow-soft)" : "none",
-                }}
+                className={clsx(styles.modeBtn, mode === id && styles.active)}
               >
                 {l}
               </button>
@@ -456,7 +343,7 @@ function LogPageInner() {
         </div>
 
         {/* Daily entry / Bond reveal */}
-        <div style={{ marginBottom: "2rem" }}>
+        <div className={styles.entrySection}>
           {mode === "solo" ? (
             <MomentsEntryCard
               space={space}
@@ -481,7 +368,7 @@ function LogPageInner() {
         </div>
 
         {/* Memories gallery */}
-        <div style={{ marginBottom: "1.4rem" }}>
+        <div className={styles.gallerySection}>
           <MemoriesGallery
             entries={entries}
             space={space}
@@ -493,44 +380,17 @@ function LogPageInner() {
         {/* Artifact access */}
         <button
           onClick={() => setArtifact(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: ".7rem",
-            width: "100%",
-            padding: "1rem 1.2rem",
-            marginBottom: "2.2rem",
-            borderRadius: "var(--r-lg)",
-            border: "1.5px solid var(--ember-bdr)",
-            background: "var(--ember-dim)",
-            textAlign: "left",
-          }}
+          className={styles.artifactBtn}
         >
           <Icon name="lock" size={18} stroke="var(--ember-deep)" />
           <div style={{ flex: 1 }}>
-            <div
-              style={{
-                fontWeight: 600,
-                fontSize: ".9rem",
-                color: "var(--ember-deep)",
-              }}
-            >
-              The Artifact
-            </div>
-            <div style={{ fontSize: ".76rem", color: "var(--ink-3)" }}>
+            <div className={styles.artifactTitle}>The Artifact</div>
+            <div className={styles.artifactDesc}>
               Unlocks when you close this chapter, your whole log, stitched into
               one piece.
             </div>
           </div>
-          <span
-            style={{
-              fontSize: ".8rem",
-              color: "var(--ember)",
-              fontWeight: 500,
-            }}
-          >
-            Preview →
-          </span>
+          <span className={styles.artifactCta}>Preview →</span>
         </button>
 
         {/* Circle logs */}

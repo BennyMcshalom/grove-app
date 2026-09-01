@@ -1,0 +1,116 @@
+.headerWrap {
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.logCard {
+  overflow: hidden;
+}
+
+.logHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 1.1rem;
+}
+
+.logName {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.logMeta {
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.entryScroll {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0 1.1rem 0.5rem;
+}
+
+.entryCard {
+  flex-shrink: 0;
+  width: 150px;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  text-align: left;
+  box-shadow: var(--shadow-soft);
+}
+
+.entryMediaWrap {
+  height: 180px;
+  position: relative;
+}
+
+.entryMedia {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.entryPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: var(--surf-high);
+}
+
+.entryGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 45%, rgba(20, 14, 8, 0.82));
+}
+
+.entryCaption {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+}
+
+.entryDay {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.6rem;
+  margin-bottom: 2px;
+}
+
+.entryText {
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.openFullBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.8rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ember);
+}

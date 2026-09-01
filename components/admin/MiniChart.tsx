@@ -1,3 +1,6 @@
+import clsx from 'clsx';
+import styles from './MiniChart.module.css';
+
 interface MiniChartProps {
   data: { label: string; value: number }[];
   color?: string;
@@ -19,12 +22,12 @@ export function MiniChart({ data, color = 'var(--ember)', height = 96, headline 
   return (
     <div className="fade-in">
       {headline && (
-        <div className="serif" style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '.6rem' }}>
+        <div className={clsx('serif', styles.headline)}>
           {headline}
         </div>
       )}
       <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none"
-        width="100%" height={height} style={{ display: 'block', overflow: 'visible' }}>
+        width="100%" height={height} className={styles.svg}>
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.55"/>
@@ -49,8 +52,7 @@ export function MiniChart({ data, color = 'var(--ember)', height = 96, headline 
           );
         })}
       </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '.5rem',
-        fontSize: '.64rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
+      <div className={styles.labelsRow}>
         <span>{data[0]?.label}</span>
         <span>{data[data.length - 1]?.label}</span>
       </div>

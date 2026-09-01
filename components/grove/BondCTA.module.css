@@ -1,0 +1,14 @@
+.btn {
+  opacity: 1;
+}
+
+.btn.sent {
+  opacity: 0.8;
+}
+
+.note {
+  text-align: center;
+  font-size: 0.76rem;
+  color: var(--ink-4);
+  margin-top: -0.4rem;
+}

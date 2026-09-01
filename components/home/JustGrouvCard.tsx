@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import clsx from "clsx";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { ReportModal } from "@/components/ui/ReportModal";
@@ -14,6 +15,7 @@ import {
 } from "@/hooks/usePosts";
 import { postsApi } from "@/lib/api";
 import type { Post } from "@/lib/types";
+import styles from "./JustGrouvCard.module.css";
 
 // ── Just Grouv card ──────────────────────────────────────────────
 export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
@@ -75,20 +77,7 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
     <button
       key={label}
       onClick={action}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        width: "100%",
-        textAlign: "left",
-        padding: ".65rem 1rem",
-        fontSize: ".86rem",
-        color: danger ? "var(--red)" : "var(--ink-2)",
-        gap: ".55rem",
-      }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.background = "var(--surf-low)")
-      }
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      className={clsx(styles.menuRow, danger && styles.danger)}
     >
       {label}
     </button>
@@ -146,18 +135,8 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
   };
 
   return (
-    <article
-      className="card"
-      style={{ padding: "1.1rem 1.1rem 1.3rem", marginBottom: ".9rem" }}
-    >
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: ".7rem",
-          marginBottom: ".8rem",
-        }}
-      >
+    <article className={clsx("card", styles.card)}>
+      <header className={styles.header}>
         <button
           onClick={() => {
             if (!post.anon && post.userId) router.push(`/grove/${post.userId}`);
@@ -172,27 +151,10 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
           />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: ".92rem" }}>{name}</div>
-          <div
-            style={{
-              fontSize: ".72rem",
-              color: "var(--ink-4)",
-              fontFamily: "var(--mono)",
-            }}
-          >
-            {post.time}
-          </div>
+          <div className={styles.name}>{name}</div>
+          <div className={styles.time}>{post.time}</div>
         </div>
-        <span
-          className="chip"
-          style={{
-            background: "var(--ember-dim)",
-            color: "var(--ember-deep)",
-            fontSize: ".62rem",
-          }}
-        >
-          Just Grouv
-        </span>
+        <span className={clsx("chip", styles.grouvChip)}>Just Grouv</span>
         {isOwn ? (
           <button
             onClick={(e) => {
@@ -202,7 +164,6 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
               }
               const btn = e.currentTarget.getBoundingClientRect();
               const MENU_H = 160,
-                MENU_W = 180,
                 PAD = 8;
               const vw = window.innerWidth,
                 vh = window.innerHeight;
@@ -215,15 +176,7 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
               setMenu(true);
               setConfirm(false);
             }}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
+            className={styles.iconBtn}
           >
             <Icon name="dots" size={15} stroke="var(--ink-4)" />
           </button>
@@ -231,15 +184,7 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
           <button
             onClick={() => setReportingPost(true)}
             title="Report"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
+            className={styles.iconBtn}
           >
             <Icon name="flag" size={15} stroke="var(--ink-4)" />
           </button>
@@ -248,24 +193,10 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
 
       {menu && menuPos && (
         <>
+          <div className={styles.menuBackdrop} onClick={() => setMenu(false)} />
           <div
-            style={{ position: "fixed", inset: 0, zIndex: 19 }}
-            onClick={() => setMenu(false)}
-          />
-          <div
-            className="fade-in"
-            style={{
-              position: "fixed",
-              top: menuPos.top,
-              right: menuPos.right,
-              zIndex: 20,
-              background: "var(--white)",
-              borderRadius: "var(--r-md)",
-              boxShadow: "var(--shadow-lg)",
-              border: "1px solid var(--border)",
-              overflow: "hidden",
-              width: "min(180px, calc(100vw - 20px))",
-            }}
+            className={clsx("fade-in", styles.menu)}
+            style={{ top: menuPos.top, right: menuPos.right }}
           >
             {menuRow("Edit caption", () => {
               setMenu(false);
@@ -280,7 +211,7 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
               },
               true,
             )}
-            <div style={{ borderTop: "1px solid var(--border)" }} />
+            <div className={styles.menuDivider} />
             {menuRow(
               "Report",
               () => {
@@ -294,46 +225,18 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
       )}
 
       {confirmDel && (
-        <div
-          className="fade-in"
-          style={{
-            background: "var(--red-dim)",
-            borderRadius: "var(--r-sm)",
-            padding: ".75rem 1rem",
-            marginBottom: ".8rem",
-            display: "flex",
-            alignItems: "center",
-            gap: ".8rem",
-            border: "1px solid var(--red-bdr)",
-          }}
-        >
-          <span
-            style={{
-              flex: 1,
-              fontSize: ".86rem",
-              color: "var(--red)",
-              fontWeight: 500,
-            }}
-          >
-            Delete this post?
-          </span>
+        <div className={clsx("fade-in", styles.deleteConfirm)}>
+          <span className={styles.deleteConfirmText}>Delete this post?</span>
           <button
             onClick={handleDelete}
             disabled={deletePost.isPending}
-            className="btn btn-primary"
-            style={{
-              padding: ".35rem .8rem",
-              fontSize: ".8rem",
-              background: "var(--red)",
-              boxShadow: "none",
-            }}
+            className={clsx("btn", "btn-primary", styles.deleteConfirmBtn)}
           >
             {deletePost.isPending ? "Deleting…" : "Delete"}
           </button>
           <button
             onClick={() => setConfirm(false)}
-            className="btn btn-soft"
-            style={{ padding: ".35rem .8rem", fontSize: ".8rem" }}
+            className={clsx("btn", "btn-soft", styles.cancelBtn)}
           >
             Cancel
           </button>
@@ -341,44 +244,25 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
       )}
 
       {editing && (
-        <div style={{ marginBottom: ".8rem" }}>
+        <div className={styles.editWrap}>
           <textarea
             value={editCaption}
             onChange={(e) => setEditCaption(e.target.value)}
             maxLength={200}
             autoFocus
-            style={{
-              width: "100%",
-              resize: "vertical",
-              minHeight: 60,
-              padding: ".6rem .8rem",
-              fontSize: "1rem",
-              lineHeight: 1.5,
-              borderRadius: "var(--r-sm)",
-              border: "1.5px solid var(--ember)",
-              background: "var(--surf-low)",
-              marginBottom: ".5rem",
-            }}
+            className={styles.editTextarea}
           />
-          <div
-            style={{
-              display: "flex",
-              gap: ".5rem",
-              justifyContent: "flex-end",
-            }}
-          >
+          <div className={styles.editActions}>
             <button
               onClick={() => setEditing(false)}
-              className="btn btn-soft"
-              style={{ padding: ".4rem .9rem", fontSize: ".82rem" }}
+              className={clsx("btn", "btn-soft", styles.editActionBtn)}
             >
               Cancel
             </button>
             <button
               onClick={saveEdit}
               disabled={updatePost.isPending || !editCaption.trim()}
-              className="btn btn-primary"
-              style={{ padding: ".4rem .9rem", fontSize: ".82rem" }}
+              className={clsx("btn", "btn-primary", styles.editActionBtn)}
             >
               {updatePost.isPending ? "Saving…" : "Save changes"}
             </button>
@@ -398,13 +282,10 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
       {post.media && (
         <div
           onClick={() => post.media?.type === "video" && togglePlay()}
-          style={{
-            position: "relative",
-            borderRadius: 18,
-            overflow: "hidden",
-            background: "#2a1d12",
-            cursor: post.media.type === "video" ? "pointer" : "default",
-          }}
+          className={clsx(
+            styles.mediaFrame,
+            post.media.type === "video" && styles.clickable,
+          )}
         >
           {post.media.type === "video" ? (
             <video
@@ -417,64 +298,21 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
                 if (videoRef.current) videoRef.current.currentTime = 0.01;
               }}
               onEnded={() => setPlaying(false)}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-              }}
+              className={styles.mediaVideo}
             />
           ) : (
-            <img
-              src={post.media.src}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
+            <img src={post.media.src} alt="" className={styles.mediaImage} />
           )}
 
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(180deg, rgba(20,12,4,.55) 0%, rgba(20,12,4,.05) 28%, rgba(20,12,4,.12) 55%, rgba(20,12,4,.82) 100%)",
-              pointerEvents: "none",
-            }}
-          />
+          <div className={styles.mediaGradient} />
 
           {/* Clock + location */}
-          <div
-            style={{
-              position: "absolute",
-              top: 14,
-              left: 0,
-              right: 0,
-              textAlign: "center",
-              pointerEvents: "none",
-            }}
-          >
-            <div
-              className="mono"
-              style={{
-                color: "rgba(255,255,255,.92)",
-                fontSize: ".82rem",
-                letterSpacing: ".12em",
-              }}
-            >
+          <div className={styles.clockWrap}>
+            <div className={clsx("mono", styles.clockText)}>
               {post.clock ?? nowClock()}
             </div>
             {post.location && (
-              <div
-                style={{
-                  color: "rgba(255,255,255,.7)",
-                  fontSize: ".66rem",
-                  marginTop: 3,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 3,
-                }}
-              >
+              <div className={styles.locationRow}>
                 <Icon name="pin" size={11} stroke="rgba(255,255,255,.7)" />{" "}
                 {post.location}
               </div>
@@ -483,29 +321,8 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
 
           {/* Play/pause button — videos only */}
           {post.media.type === "video" && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                pointerEvents: "none",
-              }}
-            >
-              <div
-                style={{
-                  width: 58,
-                  height: 58,
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,.9)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: playing ? 0 : 1,
-                  transition: "opacity .25s",
-                }}
-              >
+            <div className={styles.playOverlay}>
+              <div className={clsx(styles.playBtn, playing && styles.hidden)}>
                 <Icon name="play" size={24} stroke="var(--ink)" />
               </div>
             </div>
@@ -513,28 +330,8 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
 
           {/* Caption */}
           {post.caption && !editing && (
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 0,
-                padding: "1.4rem 1.3rem 1.5rem",
-                textAlign: "center",
-                pointerEvents: "none",
-              }}
-            >
-              <p
-                className="serif"
-                style={{
-                  color: "#fff",
-                  fontSize: "16px",
-                  fontStyle: "italic",
-                  fontWeight: 500,
-                  lineHeight: 1.2,
-                  textShadow: "0 2px 12px rgba(0,0,0,.4)",
-                }}
-              >
+            <div className={styles.captionWrap}>
+              <p className={clsx("serif", styles.captionText)}>
                 {post.caption}
               </p>
             </div>
@@ -543,73 +340,38 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
       )}
 
       {/* Footer */}
-      <footer
-        style={{
-          marginTop: ".8rem",
-          display: "flex",
-          alignItems: "center",
-          gap: ".4rem",
-        }}
-      >
+      <footer className={styles.footer}>
         <button
           onClick={toggleRoot}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: ".4rem",
-            padding: ".45rem .8rem",
-            borderRadius: 100,
-            fontSize: ".84rem",
-            fontWeight: 500,
-            color: rooted ? "var(--ember)" : "var(--ink-3)",
-            background: rooted ? "var(--ember-dim)" : "transparent",
-          }}
+          className={clsx(
+            styles.actionBtn,
+            styles.rootBtn,
+            rooted && styles.active,
+          )}
         >
           <Icon
             name="sprout"
             size={17}
             stroke={rooted ? "var(--ember)" : "var(--ink-3)"}
           />
-          Root{" "}
-          <span style={{ fontVariantNumeric: "tabular-nums" }}>{roots}</span>
+          Root <span className={styles.tabularNum}>{roots}</span>
         </button>
         <button
           onClick={() => setShowC((s) => !s)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: ".4rem",
-            padding: ".45rem .8rem",
-            borderRadius: 100,
-            fontSize: ".84rem",
-            fontWeight: 500,
-            color: showC ? "var(--slate)" : "var(--ink-3)",
-            background: showC ? "var(--slate-dim)" : "transparent",
-          }}
+          className={clsx(
+            styles.actionBtn,
+            styles.commentBtn,
+            showC && styles.active,
+          )}
         >
           <Icon
             name="comment"
             size={16}
             stroke={showC ? "var(--slate)" : "var(--ink-3)"}
           />
-          Comment{" "}
-          <span style={{ fontVariantNumeric: "tabular-nums" }}>
-            {commentCount}
-          </span>
+          Comment <span className={styles.tabularNum}>{commentCount}</span>
         </button>
-        <button
-          onClick={() => setSharing(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: ".4rem",
-            padding: ".45rem .8rem",
-            borderRadius: 100,
-            fontSize: ".84rem",
-            fontWeight: 500,
-            color: "var(--ink-3)",
-          }}
-        >
+        <button onClick={() => setSharing(true)} className={styles.actionBtn}>
           <Icon name="share" size={16} stroke="var(--ink-3)" /> Share
         </button>
       </footer>
@@ -617,56 +379,24 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
       {sharing && <ShareModal post={post} onClose={() => setSharing(false)} />}
 
       {showC && (
-        <div
-          className="fade-in"
-          style={{
-            marginTop: ".8rem",
-            paddingTop: ".9rem",
-            borderTop: "1px solid var(--border)",
-          }}
-        >
+        <div className={clsx("fade-in", styles.commentsWrap)}>
           {comments.map((c) => (
-            <div
-              key={c.id}
-              style={{ display: "flex", gap: ".6rem", marginBottom: ".8rem" }}
-            >
+            <div key={c.id} className={styles.commentRow}>
               <Avatar
                 name={c.authorName}
                 size={32}
                 avatarUrl={c.authorAvatar}
                 aura={c.authorAura ?? undefined}
               />
-              <div
-                style={{
-                  background: "var(--surf-low)",
-                  borderRadius: "var(--r-md)",
-                  padding: ".55rem .8rem",
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: ".5rem",
-                }}
-              >
+              <div className={styles.commentBubble}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: ".8rem" }}>
-                    {c.authorName}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: ".86rem",
-                      color: "var(--ink-2)",
-                      lineHeight: 1.45,
-                    }}
-                  >
-                    {c.body}
-                  </div>
+                  <div className={styles.commentAuthor}>{c.authorName}</div>
+                  <div className={styles.commentBody}>{c.body}</div>
                 </div>
                 <button
                   onClick={() => setReportingComment(c.id)}
                   title="Report comment"
-                  style={{ flexShrink: 0, opacity: 0.5, marginTop: 1 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = ".5")}
+                  className={styles.reportCommentBtn}
                 >
                   <Icon name="flag" size={12} stroke="var(--ink-4)" />
                 </button>
@@ -681,18 +411,11 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
             />
           )}
           {comments.length === 0 && !addCommentMutation.isPending && (
-            <p
-              style={{
-                fontSize: ".82rem",
-                color: "var(--ink-4)",
-                fontStyle: "italic",
-                marginBottom: ".8rem",
-              }}
-            >
+            <p className={styles.emptyComments}>
               No comments yet. Be the first.
             </p>
           )}
-          <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+          <div className={styles.commentInputRow}>
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -700,29 +423,17 @@ export function JustGrouvCard({ post, myId }: { post: Post; myId?: string }) {
                 if (e.key === "Enter") submitComment();
               }}
               placeholder="Add a comment…"
-              style={{
-                flex: 1,
-                padding: ".6rem .9rem",
-                borderRadius: 100,
-                border: "1.5px solid var(--border-2)",
-                background: "var(--surf-low)",
-                fontSize: ".88rem",
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "var(--ember)";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "var(--border-2)";
-              }}
+              className={styles.commentInput}
             />
             <button
               onClick={submitComment}
               disabled={!draft.trim() || addCommentMutation.isPending}
-              className="btn btn-primary"
-              style={{
-                padding: ".5rem .7rem",
-                opacity: draft.trim() ? 1 : 0.5,
-              }}
+              className={clsx(
+                "btn",
+                "btn-primary",
+                styles.sendBtn,
+                !draft.trim() && styles.dimmed,
+              )}
             >
               <Icon name="send" size={16} stroke="#fff" />
             </button>

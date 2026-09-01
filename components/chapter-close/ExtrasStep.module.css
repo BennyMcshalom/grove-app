@@ -1,0 +1,47 @@
+.meta {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.title {
+  font-size: 1.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  line-height: 1.25;
+}
+
+.subtitle {
+  color: var(--ink-3);
+  font-size: 0.9rem;
+  margin-bottom: 1.6rem;
+  line-height: 1.5;
+}
+
+.body {
+  text-align: left;
+}
+
+.empty {
+  color: var(--ink-4);
+  font-size: 0.88rem;
+  font-style: italic;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.86rem;
+  color: var(--ember);
+  font-weight: 500;
+  padding: 0.5rem 0.9rem;
+  border-radius: 100px;
+  border: 1.5px dashed var(--ember-bdr);
+  background: transparent;
+  margin-bottom: 1rem;
+}

@@ -1,8 +1,10 @@
 "use client";
+import clsx from "clsx";
 import { Icon } from "@/components/ui/Icon";
 import { SpaceIcon } from "@/components/ui/SpaceIcon";
 import { NavRow } from "./NavRow";
 import { ReflectionField } from "./ReflectionField";
+import styles from "./ExtrasStep.module.css";
 
 // ── Step 4: Extra thoughts (any number) ──
 export function ExtrasStep({
@@ -26,51 +28,19 @@ export function ExtrasStep({
 }) {
   return (
     <>
-      <div
-        className="label-mono"
-        style={{
-          marginBottom: "1rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: ".5rem",
-        }}
-      >
+      <div className={clsx("label-mono", styles.meta)}>
         <SpaceIcon spaceId={spaceId} size={12} /> {spaceName} · Anything else?
       </div>
-      <h1
-        className="serif"
-        style={{
-          fontSize: "1.9rem",
-          fontWeight: 600,
-          marginBottom: ".5rem",
-          lineHeight: 1.25,
-        }}
-      >
+      <h1 className={clsx("serif", styles.title)}>
         Anything else you want to record?
       </h1>
-      <p
-        style={{
-          color: "var(--ink-3)",
-          fontSize: ".9rem",
-          marginBottom: "1.6rem",
-          lineHeight: 1.5,
-        }}
-      >
+      <p className={styles.subtitle}>
         Add as many reflections as you like, or skip right through.
       </p>
 
-      <div style={{ textAlign: "left" }}>
+      <div className={styles.body}>
         {extras.length === 0 ? (
-          <p
-            style={{
-              color: "var(--ink-4)",
-              fontSize: ".88rem",
-              fontStyle: "italic",
-              marginBottom: "1rem",
-              textAlign: "center",
-            }}
-          >
+          <p className={styles.empty}>
             Nothing added yet.
           </p>
         ) : (
@@ -86,22 +56,7 @@ export function ExtrasStep({
           ))
         )}
 
-        <button
-          onClick={onAddExtra}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: ".4rem",
-            fontSize: ".86rem",
-            color: "var(--ember)",
-            fontWeight: 500,
-            padding: ".5rem .9rem",
-            borderRadius: 100,
-            border: "1.5px dashed var(--ember-bdr)",
-            background: "transparent",
-            marginBottom: "1rem",
-          }}
-        >
+        <button onClick={onAddExtra} className={styles.addBtn}>
           <Icon name="plus" size={14} stroke="var(--ember)" /> Add a reflection
         </button>
       </div>

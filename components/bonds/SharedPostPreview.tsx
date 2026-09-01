@@ -1,17 +1,13 @@
-"use client";
-import { useRouter } from "next/navigation";
-import { Icon } from "@/components/ui/Icon";
-import { Spinner } from "@/components/ui/Spinner";
-import { useSpaceStore } from "@/store/useSpaceStore";
-import { usePost } from "@/hooks/usePosts";
+'use client';
+import { useRouter } from 'next/navigation';
+import clsx from 'clsx';
+import { Icon } from '@/components/ui/Icon';
+import { Spinner } from '@/components/ui/Spinner';
+import { useSpaceStore } from '@/store/useSpaceStore';
+import { usePost } from '@/hooks/usePosts';
+import styles from './SharedPostPreview.module.css';
 
-export function SharedPostPreview({
-  postId,
-  sent,
-}: {
-  postId: string;
-  sent: boolean;
-}) {
+export function SharedPostPreview({ postId, sent }: { postId: string; sent: boolean }) {
   const router = useRouter();
   const { slugById } = useSpaceStore();
   const { data: post, isLoading, isError } = usePost(postId);
@@ -23,80 +19,28 @@ export function SharedPostPreview({
   };
 
   return (
-    <button
-      onClick={open}
-      disabled={!post}
-      style={{
-        display: "block",
-        width: "100%",
-        maxWidth: 240,
-        textAlign: "left",
-        borderRadius: 18,
-        overflow: "hidden",
-        border: `1px solid ${sent ? "rgba(255,255,255,.25)" : "var(--border)"}`,
-        background: sent ? "var(--ember-deep)" : "var(--surf-high)",
-        cursor: post ? "pointer" : "default",
-      }}
-    >
-      <div
-        style={{
-          padding: ".7rem .8rem .3rem",
-          display: "flex",
-          alignItems: "center",
-          gap: ".35rem",
-          fontSize: ".66rem",
-          fontWeight: 600,
-          textTransform: "uppercase" as const,
-          letterSpacing: ".04em",
-          color: sent ? "rgba(255,255,255,.8)" : "var(--ink-3)",
-        }}
-      >
-        <Icon
-          name="sprout"
-          size={11}
-          stroke={sent ? "rgba(255,255,255,.8)" : "var(--ink-3)"}
-        />{" "}
-        Shared a post
+    <button onClick={open} disabled={!post} className={clsx(styles.wrap, sent && styles.sent, post && styles.clickable)}>
+      <div className={clsx(styles.eyebrow, sent && styles.sent)}>
+        <Icon name="sprout" size={11} stroke={sent ? 'rgba(255,255,255,.8)' : 'var(--ink-3)'} /> Shared a post
       </div>
-      <div style={{ padding: ".2rem .8rem .8rem" }}>
+      <div className={styles.body}>
         {isLoading ? (
-          <div style={{ padding: ".3rem 0" }}>
-            <Spinner size={14} color={sent ? "#fff" : "var(--ink-3)"} />
+          <div className={styles.loadingWrap}>
+            <Spinner size={14} color={sent ? '#fff' : 'var(--ink-3)'} />
           </div>
         ) : isError || !post ? (
-          <p
-            style={{
-              fontSize: ".8rem",
-              fontStyle: "italic",
-              color: sent ? "rgba(255,255,255,.7)" : "var(--ink-4)",
-            }}
-          >
+          <p className={clsx(styles.unavailable, sent && styles.sent)}>
             This post isn&apos;t available anymore.
           </p>
         ) : (
           <>
             {post.doing && (
-              <p
-                style={{
-                  fontSize: ".85rem",
-                  fontWeight: 600,
-                  lineHeight: 1.35,
-                  color: sent ? "#fff" : "var(--ink)",
-                  marginBottom: post.honestThing ? ".25rem" : 0,
-                }}
-              >
+              <p className={clsx(styles.doing, sent && styles.sent, post.honestThing && styles.hasHonest)}>
                 {post.doing}
               </p>
             )}
             {post.honestThing && (
-              <p
-                style={{
-                  fontSize: ".78rem",
-                  fontStyle: "italic",
-                  lineHeight: 1.4,
-                  color: sent ? "rgba(255,255,255,.8)" : "var(--ink-2)",
-                }}
-              >
+              <p className={clsx(styles.honest, sent && styles.sent)}>
                 &ldquo;{post.honestThing}&rdquo;
               </p>
             )}

@@ -1,0 +1,379 @@
+/* ── Style A — Player ── */
+.wrapA {
+  border-radius: 26px;
+  padding: 1.9rem 1.2rem 1.6rem;
+  background: linear-gradient(165deg, #f6c078, #e08a3c 60%, #b5611e);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.stageA {
+  position: relative;
+  height: 340px;
+  perspective: 1200px;
+}
+
+.cardA {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 220px;
+  height: 288px;
+  transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+  border-radius: 20px;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mediaPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: var(--surf-high);
+}
+
+.cardGradientA {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 12, 4, 0.05) 40%,
+    rgba(20, 12, 4, 0.82)
+  );
+}
+
+.captionA {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1.2rem;
+}
+
+.captionDayA {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.7rem;
+  margin-bottom: 0.35rem;
+}
+
+.captionTextA {
+  color: #fff;
+  font-size: 1.28rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.cardRingA {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.controlsA {
+  margin-top: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  border-radius: 18px;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.navBtnA {
+  color: #fff;
+}
+
+.navBtnA.flipped {
+  transform: scaleX(-1);
+}
+
+.infoA {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  color: #fff;
+}
+
+.infoTitleA {
+  font-weight: 600;
+  font-size: 0.94rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.infoSubA {
+  font-size: 0.76rem;
+  opacity: 0.8;
+}
+
+.bookmarkCircleA {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Style B — Minimal ── */
+.wrapB {
+  border-radius: 28px;
+  padding: 2.4rem 1.2rem 2.6rem;
+  background: linear-gradient(170deg, #fbfbfa, #ecebe8);
+}
+
+.stageB {
+  position: relative;
+  height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stackCardB {
+  position: absolute;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 12px 34px -16px rgba(40, 36, 30, 0.4);
+  z-index: 1;
+}
+
+.frontCardB {
+  position: relative;
+  z-index: 3;
+  width: 240px;
+  height: 300px;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 26px 52px -18px rgba(40, 36, 30, 0.5);
+  text-align: left;
+}
+
+.mediaWrapB {
+  height: 184px;
+  position: relative;
+}
+
+.bookmarkCircleB {
+  position: absolute;
+  right: 12px;
+  bottom: -18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.textBlockB {
+  padding: 1.3rem 1.2rem 1rem;
+}
+
+.dayLabelB {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 0.35rem;
+}
+
+.captionB {
+  font-weight: 600;
+  font-size: 1.02rem;
+  line-height: 1.32;
+  color: var(--ink);
+}
+
+.logoLabelB {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
+}
+
+.yearChipB {
+  background: #fff;
+  margin-top: 0.6rem;
+  box-shadow: var(--shadow-soft);
+  font-size: 0.8rem;
+  padding: 0.4rem 0.9rem;
+  display: inline-block;
+}
+
+.navRowB {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+
+.navBtnB {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navBtnB.flipped {
+  transform: scaleX(-1);
+}
+
+/* ── Style C — Card (dark) ── */
+.wrapC {
+  border-radius: 28px;
+  padding: 2.1rem 1.2rem 1.6rem;
+  background: #fafaf8;
+}
+
+.stageC {
+  position: relative;
+  height: 460px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stackCardC {
+  position: absolute;
+  border-radius: 24px;
+  background: #15110d;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+.frontCardC {
+  position: relative;
+  z-index: 3;
+  width: 314px;
+  min-height: 424px;
+  border-radius: 24px;
+  background: #15110d;
+  padding: 1.4rem;
+  box-shadow: 0 34px 64px -22px rgba(0, 0, 0, 0.7);
+}
+
+.headerC {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.iconBadgeC {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrowBtnC {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.titleC {
+  color: #fff;
+  font-size: 1.85rem;
+  font-weight: 600;
+  line-height: 1.16;
+  padding: 0 0.2rem 1.1rem;
+  min-height: 86px;
+}
+
+.mediaWrapC {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  height: 192px;
+}
+
+.mediaPlaceholderC {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dayBadgeWrapC {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+}
+
+.dayPillC {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.74rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+}
+
+.dateLineC {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+  margin: 1.1rem 0.2rem 0.95rem;
+}
+
+.openBtnC {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 14px;
+  background: #fff;
+  color: #15110d;
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.navRowC {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.navBtnC {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #15110d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navBtnC.flipped {
+  transform: scaleX(-1);
+}

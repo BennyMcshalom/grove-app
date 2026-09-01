@@ -1,9 +1,11 @@
 "use client";
+import clsx from "clsx";
 import { Icon } from "@/components/ui/Icon";
 import { Spinner } from "@/components/ui/Spinner";
 import { PostCard } from "@/components/ui/RootsPostCard";
 import { usePost } from "@/hooks/usePosts";
 import { mapPostRecordToPost } from "@/lib/mappers";
+import styles from "./PostDetailModal.module.css";
 
 export function PostDetailModal({
   postId,
@@ -18,77 +20,26 @@ export function PostDetailModal({
 }) {
   const { data: post, isLoading, isError } = usePost(postId);
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9000,
-        background: "rgba(26,26,26,.55)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "1.5rem",
-      }}
-      onClick={onClose}
-    >
+    <div className={styles.overlay} onClick={onClose}>
       <div
-        className="rise"
-        style={{
-          width: "min(480px, 94vw)",
-          maxHeight: "85vh",
-          overflowY: "auto",
-          background: "var(--cream)",
-          borderRadius: 20,
-          boxShadow: "var(--shadow-lg)",
-        }}
+        className={clsx("rise", styles.modal)}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          style={{
-            padding: "1.2rem 1.3rem .4rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <h3 className="serif" style={{ fontSize: "1.1rem", fontWeight: 600 }}>
+        <div className={styles.header}>
+          <h3 className={clsx("serif", styles.title)}>
             Post
           </h3>
-          <button
-            onClick={onClose}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
+          <button onClick={onClose} className={styles.closeBtn}>
             <Icon name="close" size={16} stroke="var(--ink-3)" />
           </button>
         </div>
-        <div style={{ padding: ".4rem 1.3rem 1.3rem" }}>
+        <div className={styles.body}>
           {isLoading ? (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                padding: "2rem 0",
-              }}
-            >
+            <div className={styles.loadingWrap}>
               <Spinner />
             </div>
           ) : isError || !post ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "1.5rem 0",
-                color: "var(--ink-3)",
-              }}
-            >
+            <div className={styles.errorWrap}>
               This post isn&apos;t available anymore.
             </div>
           ) : (

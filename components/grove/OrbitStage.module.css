@@ -1,0 +1,88 @@
+.stage {
+  position: relative;
+  max-width: 92vw;
+  aspect-ratio: 1;
+}
+
+.ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: opacity .25s, box-shadow .25s, background .2s;
+}
+
+.ringLabel {
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  transform: translate(-50%, -100%);
+  background: var(--white);
+  border-radius: 100px;
+  padding: .25rem .7rem;
+  box-shadow: var(--shadow-soft);
+  font-size: .66rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.orbitLayer {
+  position: absolute;
+  inset: 0;
+  animation: orbit 48s linear infinite;
+  pointer-events: none;
+}
+
+.spaceOrbitItem {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  animation: orbitR 48s linear infinite;
+}
+
+.spaceIconCircle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  animation: groveFloat 4s ease-in-out infinite;
+}
+
+.centerBtn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  z-index: 6;
+}
+
+.ambienceWrap {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--white);
+  border-radius: 100px;
+  padding: .4rem .8rem;
+  box-shadow: var(--shadow);
+}
+
+.waveformWrap {
+  width: 54px;
+}
+
+.ambienceLabel {
+  font-size: .72rem;
+  color: var(--ink-2);
+}

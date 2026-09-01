@@ -1,0 +1,110 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  background: rgba(26, 26, 26, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  padding: 4vh 1rem;
+}
+
+.modal {
+  width: min(620px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--cream);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  background: var(--cream);
+  border-bottom: 1px solid var(--border);
+  padding: 1.1rem 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 2;
+}
+
+.headerLabel {
+  color: var(--ember);
+}
+
+.closeBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.body {
+  padding: 2.2rem 2rem 3rem;
+}
+
+.titleBlock {
+  text-align: center;
+  margin-bottom: 2.2rem;
+}
+
+.iconRow {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.4rem;
+}
+
+.title {
+  font-size: clamp(1.6rem, 7.5vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.range {
+  font-size: 0.72rem;
+  color: var(--ink-4);
+  margin-top: 0.5rem;
+}
+
+.entry {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.entry.last {
+  border-bottom: none;
+}
+
+.entryLabel {
+  margin-bottom: 0.7rem;
+}
+
+.entryMedia {
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+  max-height: 280px;
+}
+
+.entryImg {
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.entryText {
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+.footer {
+  text-align: center;
+  color: var(--ink-3);
+  font-style: italic;
+  font-size: 0.9rem;
+}

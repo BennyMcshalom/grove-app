@@ -1,10 +1,12 @@
 "use client";
+import clsx from "clsx";
 import { useState } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { SpaceIcon } from "@/components/ui/SpaceIcon";
 import { useMyLogEntries } from "@/hooks/useLog";
 import { spaceById } from "@/lib/data";
 import type { ChapterRecord } from "@/lib/api";
+import styles from "./ChapterCard.module.css";
 
 export function ChapterCard({
   chapter: c,
@@ -31,150 +33,64 @@ export function ChapterCard({
     : "";
 
   return (
-    <div
-      className="card"
-      style={{
-        marginBottom: "1.1rem",
-        borderLeft: `6px solid ${s.color}`,
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ padding: "1.3rem 1.5rem" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: ".7rem",
-            marginBottom: ".3rem",
-          }}
-        >
+    <div className={clsx("card", styles.card)} style={{ borderLeft: `6px solid ${s.color}` }}>
+      <div className={styles.body}>
+        <div className={styles.headerRow}>
           <SpaceIcon spaceId={slug} size={22} pill pillSize={40} />
-          <div
-            className="serif"
-            style={{ fontSize: "1.4rem", fontWeight: 600 }}
-          >
+          <div className={clsx("serif", styles.spaceName)}>
             {s.name}
           </div>
         </div>
-        <div
-          style={{
-            color: "var(--ink-3)",
-            fontSize: ".88rem",
-            marginBottom: ".9rem",
-          }}
-        >
+        <div className={styles.dateRange}>
           {openedDate} – {closedDate}
         </div>
 
-        <div style={{ display: "flex", gap: "1.3rem", flexWrap: "wrap" }}>
-          <button
-            onClick={() => setOpen((o) => !o)}
-            style={{
-              fontSize: ".85rem",
-              color: "var(--ember)",
-              fontWeight: 500,
-            }}
-          >
+        <div className={styles.actionsRow}>
+          <button onClick={() => setOpen((o) => !o)} className={styles.reflectionsBtn}>
             {open ? "Hide reflections" : "Read reflections"} →
           </button>
-          <button
-            onClick={() => setLogOpen((o) => !o)}
-            style={{
-              fontSize: ".85rem",
-              color: "var(--sage)",
-              fontWeight: 500,
-            }}
-          >
+          <button onClick={() => setLogOpen((o) => !o)} className={styles.logBtn}>
             {logOpen ? "Hide Grouv Log" : "View Grouv Log"} →
           </button>
         </div>
 
         {open && (
-          <div
-            className="fade-in"
-            style={{
-              borderTop: "1px solid var(--border)",
-              marginTop: "1rem",
-              paddingTop: "1rem",
-            }}
-          >
+          <div className={clsx("fade-in", styles.panel)}>
             {!c.closingLearned &&
             !c.closingAdvice &&
             !c.closingCarryForward &&
             !c.reflectionQ1 ? (
-              <p
-                style={{
-                  fontSize: ".88rem",
-                  color: "var(--ink-4)",
-                  fontStyle: "italic",
-                }}
-              >
+              <p className={styles.emptyText}>
                 No reflections were recorded for this chapter.
               </p>
             ) : (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1rem",
-                }}
-              >
+              <div className={styles.sectionsCol}>
                 {c.closingLearned && (
                   <div>
-                    <div
-                      className="label-mono"
-                      style={{ marginBottom: ".3rem" }}
-                    >
+                    <div className={clsx("label-mono", styles.sectionLabel)}>
                       What this chapter taught me
                     </div>
-                    <p
-                      style={{
-                        fontStyle: "italic",
-                        color: "var(--ink-2)",
-                        lineHeight: 1.6,
-                        whiteSpace: "pre-wrap",
-                      }}
-                    >
+                    <p className={styles.sectionText}>
                       &apos;{c.closingLearned}&apos;
                     </p>
                   </div>
                 )}
                 {c.closingAdvice && (
                   <div>
-                    <div
-                      className="label-mono"
-                      style={{ marginBottom: ".3rem" }}
-                    >
+                    <div className={clsx("label-mono", styles.sectionLabel)}>
                       What I&apos;d tell someone starting
                     </div>
-                    <p
-                      style={{
-                        fontStyle: "italic",
-                        color: "var(--ink-2)",
-                        lineHeight: 1.6,
-                        whiteSpace: "pre-wrap",
-                      }}
-                    >
+                    <p className={styles.sectionText}>
                       &apos;{c.closingAdvice}&apos;
                     </p>
                   </div>
                 )}
                 {c.closingCarryForward && (
                   <div>
-                    <div
-                      className="label-mono"
-                      style={{ marginBottom: ".3rem" }}
-                    >
+                    <div className={clsx("label-mono", styles.sectionLabel)}>
                       Who I&apos;m carrying forward
                     </div>
-                    <p
-                      style={{
-                        fontStyle: "italic",
-                        color: "var(--ink-2)",
-                        lineHeight: 1.6,
-                        whiteSpace: "pre-wrap",
-                      }}
-                    >
+                    <p className={styles.sectionText}>
                       &apos;{c.closingCarryForward}&apos;
                     </p>
                   </div>
@@ -184,20 +100,10 @@ export function ChapterCard({
                     (entry, i) =>
                       entry.trim() && (
                         <div key={i}>
-                          <div
-                            className="label-mono"
-                            style={{ marginBottom: ".3rem" }}
-                          >
+                          <div className={clsx("label-mono", styles.sectionLabel)}>
                             Extra reflection {i + 1}
                           </div>
-                          <p
-                            style={{
-                              fontStyle: "italic",
-                              color: "var(--ink-2)",
-                              lineHeight: 1.6,
-                              whiteSpace: "pre-wrap",
-                            }}
-                          >
+                          <p className={styles.sectionText}>
                             {entry.trim()}
                           </p>
                         </div>
@@ -209,48 +115,20 @@ export function ChapterCard({
         )}
 
         {logOpen && (
-          <div
-            className="fade-in"
-            style={{
-              borderTop: "1px solid var(--border)",
-              marginTop: "1rem",
-              paddingTop: "1rem",
-            }}
-          >
+          <div className={clsx("fade-in", styles.panel)}>
             {logLoading ? (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  padding: "1rem 0",
-                }}
-              >
+              <div className={styles.logLoadingWrap}>
                 <Spinner />
               </div>
             ) : !logEntries || logEntries.length === 0 ? (
-              <p
-                style={{
-                  fontSize: ".88rem",
-                  color: "var(--ink-4)",
-                  fontStyle: "italic",
-                }}
-              >
+              <p className={styles.emptyText}>
                 No Grouv Log entries were written during this chapter.
               </p>
             ) : (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1rem",
-                }}
-              >
+              <div className={styles.sectionsCol}>
                 {logEntries.map((e) => (
                   <div key={e.id}>
-                    <div
-                      className="label-mono"
-                      style={{ marginBottom: ".3rem", color: "var(--sage)" }}
-                    >
+                    <div className={clsx("label-mono", styles.logEntryDate)}>
                       Day {e.dayNumber} ·{" "}
                       {new Date(e.entryDate).toLocaleDateString("en-US", {
                         month: "short",
@@ -258,45 +136,23 @@ export function ChapterCard({
                         year: "numeric",
                       })}
                     </div>
-                    <p
-                      style={{
-                        color: "var(--ink-2)",
-                        lineHeight: 1.6,
-                        whiteSpace: "pre-wrap",
-                      }}
-                    >
+                    <p className={styles.logEntryText}>
                       {e.body}
                     </p>
                     {e.mediaUrl && (
-                      <div
-                        style={{
-                          marginTop: ".6rem",
-                          borderRadius: "var(--r-md)",
-                          overflow: "hidden",
-                          background: "var(--surf-high)",
-                        }}
-                      >
+                      <div className={styles.logMedia}>
                         {e.mediaType?.startsWith("video") ? (
                           <video
                             src={e.mediaUrl}
                             controls
-                            style={{
-                              width: "100%",
-                              maxHeight: 260,
-                              display: "block",
-                            }}
+                            className={styles.logMediaVisual}
                           />
                         ) : (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={e.mediaUrl}
                             alt=""
-                            style={{
-                              width: "100%",
-                              maxHeight: 260,
-                              objectFit: "contain",
-                              display: "block",
-                            }}
+                            className={styles.logMediaImg}
                           />
                         )}
                       </div>

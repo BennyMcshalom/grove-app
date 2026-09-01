@@ -1,7 +1,9 @@
 "use client";
+import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { PLAN_FEATURES, TRIAL_END, REMIND_DATE, type Plan } from "./constants";
+import styles from "./PlanStep.module.css";
 
 export function PlanStep({
   plan,
@@ -16,40 +18,21 @@ export function PlanStep({
 
   return (
     <div className="screen-enter">
-      <div style={{ textAlign: "center", marginBottom: "1.6rem" }}>
-        <span
-          className="chip"
-          style={{
-            background: "var(--ember-dim)",
-            color: "var(--ember-deep)",
-            fontWeight: 600,
-            marginBottom: ".9rem",
-            display: "inline-block",
-          }}
-        >
+      <div className={styles.head}>
+        <span className={clsx("chip", styles.headChip)}>
           14 days free, then choose to stay
         </span>
-        <h1
-          className="serif"
-          style={{
-            fontSize: "clamp(1.7rem, 7.5vw, 2.4rem)",
-            fontWeight: 600,
-            lineHeight: 1.1,
-          }}
-        >
+        <h1 className={clsx("serif", styles.title)}>
           Go deeper into Grouv.
         </h1>
-        <p style={{ color: "var(--ink-3)", marginTop: ".5rem" }}>
+        <p className={styles.subtitle}>
           Start a 14-day trial. Full access from minute one.
         </p>
       </div>
 
       {/* Trial timeline */}
-      <div
-        className="card"
-        style={{ padding: "1.4rem 1.5rem", marginBottom: "1.4rem" }}
-      >
-        <div className="label-mono" style={{ marginBottom: "1.1rem" }}>
+      <div className={clsx("card", styles.timelineCard)}>
+        <div className={clsx("label-mono", styles.timelineLabel)}>
           How your trial works
         </div>
         {(
@@ -74,62 +57,26 @@ export function PlanStep({
             ],
           ] as [string, string, string, string][]
         ).map(([color, date, title, desc], i, arr) => (
-          <div key={date} style={{ display: "flex", gap: ".9rem" }}>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
+          <div key={date} className={styles.timelineRow}>
+            <div className={styles.timelineDotCol}>
               <span
-                style={{
-                  width: 13,
-                  height: 13,
-                  borderRadius: "50%",
-                  background: color,
-                  flexShrink: 0,
-                  marginTop: 3,
-                  boxShadow: `0 0 0 4px ${color}22`,
-                }}
+                className={styles.timelineDot}
+                style={{ background: color, boxShadow: `0 0 0 4px ${color}22` }}
               />
               {i < arr.length - 1 && (
-                <span
-                  style={{
-                    width: 2,
-                    flex: 1,
-                    background: "var(--border-2)",
-                    margin: "4px 0",
-                    display: "block",
-                  }}
-                />
+                <span className={styles.timelineConnector} />
               )}
             </div>
-            <div style={{ paddingBottom: i < arr.length - 1 ? "1.1rem" : 0 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: ".5rem",
-                }}
-              >
-                <span
-                  className="mono"
-                  style={{ fontSize: ".66rem", color: "var(--ink-4)" }}
-                >
+            <div className={styles.timelineContent}>
+              <div className={styles.timelineMeta}>
+                <span className={clsx("mono", styles.timelineDate)}>
                   {date}
                 </span>
-                <span style={{ fontWeight: 600, fontSize: ".92rem" }}>
+                <span className={styles.timelineTitle}>
                   {title}
                 </span>
               </div>
-              <div
-                style={{
-                  fontSize: ".82rem",
-                  color: "var(--ink-3)",
-                  marginTop: 1,
-                }}
-              >
+              <div className={styles.timelineDesc}>
                 {desc}
               </div>
             </div>
@@ -138,14 +85,7 @@ export function PlanStep({
       </div>
 
       {/* Plan selector */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: ".7rem",
-          marginBottom: "1.4rem",
-        }}
-      >
+      <div className={styles.plans}>
         {(
           [
             [
@@ -164,74 +104,27 @@ export function PlanStep({
             <button
               key={id}
               onClick={() => setPlan(id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: ".9rem",
-                textAlign: "left",
-                padding: "1.1rem 1.3rem",
-                borderRadius: "var(--r-lg)",
-                background: "var(--white)",
-                border: on
-                  ? "2px solid var(--ember)"
-                  : "1.5px solid var(--border-2)",
-                boxShadow: on
-                  ? "0 6px 20px -8px rgba(243,112,30,.4)"
-                  : "var(--shadow-soft)",
-                transition: "all .15s",
-              }}
+              className={clsx(styles.planBtn, on && styles.selected)}
             >
-              <span
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: "50%",
-                  flexShrink: 0,
-                  border: on
-                    ? "7px solid var(--ember)"
-                    : "2px solid var(--border-2)",
-                  transition: "all .15s",
-                }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: ".5rem",
-                  }}
-                >
-                  <span style={{ fontWeight: 600 }}>{label}</span>
+              <span className={clsx(styles.radioDot, on && styles.selected)} />
+              <div className={styles.planInfo}>
+                <div className={styles.planLabelRow}>
+                  <span className={styles.planLabel}>{label}</span>
                   {badge && (
-                    <span
-                      className="chip"
-                      style={{
-                        background: "var(--ember-dim)",
-                        color: "var(--ember-deep)",
-                        fontSize: ".62rem",
-                        padding: ".15rem .5rem",
-                      }}
-                    >
+                    <span className={clsx("chip", styles.planBadge)}>
                       {badge}
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: ".8rem", color: "var(--ink-3)" }}>
+                <div className={styles.planNote}>
                   {note}
                 </div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <span
-                  className="serif"
-                  style={{
-                    fontSize: "1.7rem",
-                    fontWeight: 600,
-                    color: "var(--ember)",
-                  }}
-                >
+              <div className={styles.planPrice}>
+                <span className={clsx("serif", styles.planAmount)}>
                   {amt}
                 </span>
-                <span style={{ fontSize: ".78rem", color: "var(--ink-4)" }}>
+                <span className={styles.planCadence}>
                   {cad}
                 </span>
               </div>
@@ -241,48 +134,25 @@ export function PlanStep({
       </div>
 
       <button
-        className="btn btn-primary btn-lg btn-block"
+        className={clsx("btn", "btn-primary", "btn-lg", "btn-block", styles.startBtn)}
         onClick={onStartTrial}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: ".5rem",
-        }}
       >
         Start my 14 free days <Icon name="arrow" stroke="#fff" />
       </button>
-      <p
-        style={{
-          textAlign: "center",
-          fontSize: ".78rem",
-          color: "var(--ink-3)",
-          marginTop: ".8rem",
-        }}
-      >
+      <p className={styles.startHint}>
         No card needed. We&apos;ll remind you before {TRIAL_END}, keep going
         only if you want to.
       </p>
 
       {/* Features */}
-      <div
-        className="card"
-        style={{ padding: "1.3rem 1.5rem", marginTop: "1.6rem" }}
-      >
-        <div className="label-mono" style={{ marginBottom: ".9rem" }}>
+      <div className={clsx("card", styles.featuresCard)}>
+        <div className={clsx("label-mono", styles.featuresLabel)}>
           Everything&apos;s included
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: ".7rem" }}>
+        <div className={styles.featuresList}>
           {PLAN_FEATURES.map(([iconName, title, desc]) => (
-            <div
-              key={title}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: ".7rem",
-              }}
-            >
-              <span style={{ flexShrink: 0, marginTop: 1 }}>
+            <div key={title} className={styles.featureRow}>
+              <span className={styles.featureIcon}>
                 <Icon
                   name={iconName}
                   size={18}
@@ -291,10 +161,10 @@ export function PlanStep({
                 />
               </span>
               <div>
-                <div style={{ fontWeight: 500, fontSize: ".9rem" }}>
+                <div className={styles.featureTitle}>
                   {title}
                 </div>
-                <div style={{ fontSize: ".78rem", color: "var(--ink-3)" }}>
+                <div className={styles.featureDesc}>
                   {desc}
                 </div>
               </div>
@@ -303,20 +173,9 @@ export function PlanStep({
         </div>
       </div>
 
-      <p
-        style={{
-          textAlign: "center",
-          color: "var(--ink-4)",
-          fontSize: ".8rem",
-          marginTop: "1.2rem",
-          fontStyle: "italic",
-        }}
-      >
+      <p className={styles.footnote}>
         No ads. No data selling. You pay us, so you&apos;re never the product.{" "}
-        <button
-          onClick={() => router.push("/legal")}
-          style={{ color: "var(--ember)" }}
-        >
+        <button onClick={() => router.push("/legal")} className={styles.footnoteLink}>
           Our promise →
         </button>
       </p>

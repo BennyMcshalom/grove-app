@@ -1,9 +1,11 @@
 'use client';
+import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { useCallStore } from '@/store/useCallStore';
 import { acceptCall, declineCall, hangUp, toggleMute, toggleCamera } from '@/lib/calling';
+import styles from './CallOverlay.module.css';
 
 function useElapsed(connectedAt: number | null): string {
   const [now, setNow] = useState(() => Date.now());
@@ -43,72 +45,60 @@ export function CallOverlay() {
     `${isVideo ? 'Video' : 'Voice'} call · ${elapsed}`;
 
   return (
-    <div className="fade-in" style={{
-      position: 'fixed', inset: 0, zIndex: 9000, background: isVideo && status === 'connected' ? '#16231C' : 'rgba(26,26,26,.94)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    }}>
+    <div className={clsx('fade-in', styles.overlay, isVideo && status === 'connected' && styles.videoConnected)}>
       {/* Remote video fills the background for connected video calls */}
       {isVideo && (
         <video ref={remoteVideoRef} autoPlay playsInline
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-            opacity: status === 'connected' && remoteStream ? 1 : 0, transition: 'opacity .3s' }}/>
+          className={clsx(styles.remoteVideo, status === 'connected' && remoteStream && styles.visible)}/>
       )}
       {!isVideo && <audio ref={remoteAudioRef} autoPlay/>}
 
       {isVideo && status === 'connected' && (
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 35%, rgba(78,125,94,.25), transparent 60%)' }}/>
+        <div className={styles.videoGlow}/>
       )}
 
       {/* Local self-view PIP for video calls */}
       {isVideo && localStream && !cameraOff && (
-        <video ref={localVideoRef} autoPlay playsInline muted
-          style={{ position: 'absolute', top: 24, right: 20, width: 96, height: 128, borderRadius: 14,
-            objectFit: 'cover', border: '2px solid rgba(255,255,255,.15)', boxShadow: '0 6px 20px rgba(0,0,0,.4)' }}/>
+        <video ref={localVideoRef} autoPlay playsInline muted className={styles.localPip}/>
       )}
 
-      <div style={{ position: 'relative', textAlign: 'center', padding: '0 1.5rem' }}>
+      <div className={styles.center}>
         {(!isVideo || status !== 'connected' || !remoteStream) && (
           <Avatar name={name} size={110} ring={2} avatarUrl={otherUser.avatarUrl} style={{ margin: '0 auto 1.3rem' }}/>
         )}
-        <div className="serif" style={{ fontSize: '1.7rem', fontWeight: 600, color: '#fff' }}>{name}</div>
-        <div className="mono" style={{ color: 'rgba(255,255,255,.6)', marginTop: '.35rem', fontSize: '.9rem' }}>{label}</div>
+        <div className={clsx('serif', styles.name)}>{name}</div>
+        <div className={clsx('mono', styles.label)}>{label}</div>
 
         {status === 'incoming' ? (
-          <div style={{ display: 'flex', gap: '2.2rem', justifyContent: 'center', marginTop: '2.4rem' }}>
-            <button onClick={declineCall} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.5rem' }}>
-              <span style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--red)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px -4px rgba(186,26,26,.6)' }}>
+          <div className={styles.incomingRow}>
+            <button onClick={declineCall} className={styles.incomingBtn}>
+              <span className={clsx(styles.incomingCircle, styles.declineCircle)}>
                 <Icon name="close" size={24} stroke="#fff"/>
               </span>
-              <span style={{ color: 'rgba(255,255,255,.7)', fontSize: '.78rem' }}>Decline</span>
+              <span className={styles.incomingLabel}>Decline</span>
             </button>
-            <button onClick={acceptCall} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.5rem' }}>
-              <span style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--sage)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px -4px rgba(78,125,94,.6)' }}>
+            <button onClick={acceptCall} className={styles.incomingBtn}>
+              <span className={clsx(styles.incomingCircle, styles.acceptCircle)}>
                 <Icon name="phone" size={24} stroke="#fff"/>
               </span>
-              <span style={{ color: 'rgba(255,255,255,.7)', fontSize: '.78rem' }}>Accept</span>
+              <span className={styles.incomingLabel}>Accept</span>
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2.4rem' }}>
+          <div className={styles.controlsRow}>
             {status === 'connected' && (
               <button onClick={toggleMute} title={muted ? 'Unmute' : 'Mute'}
-                style={{ width: 52, height: 52, borderRadius: '50%', background: muted ? '#fff' : 'rgba(255,255,255,.15)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                className={clsx(styles.controlBtn, muted && styles.active)}>
                 <Icon name={muted ? 'mic-off' : 'mic'} size={20} stroke={muted ? 'var(--ink)' : '#fff'}/>
               </button>
             )}
             {status === 'connected' && isVideo && (
               <button onClick={toggleCamera} title={cameraOff ? 'Turn camera on' : 'Turn camera off'}
-                style={{ width: 52, height: 52, borderRadius: '50%', background: cameraOff ? '#fff' : 'rgba(255,255,255,.15)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                className={clsx(styles.controlBtn, cameraOff && styles.active)}>
                 <Icon name="video" size={20} stroke={cameraOff ? 'var(--ink)' : '#fff'}/>
               </button>
             )}
-            <button onClick={hangUp} title="End call" style={{ width: 58, height: 58, borderRadius: '50%',
-              background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 6px 18px -4px rgba(186,26,26,.6)' }}>
+            <button onClick={hangUp} title="End call" className={styles.hangUpBtn}>
               <Icon name="phone" size={24} stroke="#fff"/>
             </button>
           </div>

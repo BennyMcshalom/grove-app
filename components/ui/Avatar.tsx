@@ -1,7 +1,11 @@
-import Image from "next/image";
-import { AVATAR_MAP, avatarFor, PHASE } from "@/lib/data";
-import { AuraRing } from "./AuraRing";
-import type { AuraKey, TimePhase } from "@/lib/types";
+'use client';
+import Image from 'next/image';
+import clsx from 'clsx';
+import { useState } from 'react';
+import { AVATAR_MAP, avatarFor, PHASE } from '@/lib/data';
+import { AuraRing } from './AuraRing';
+import type { AuraKey, TimePhase } from '@/lib/types';
+import styles from './Avatar.module.css';
 
 interface AvatarProps {
   name?: string;
@@ -17,57 +21,30 @@ interface AvatarProps {
   priority?: boolean;
 }
 
-export function Avatar({
-  name = "",
-  size = 44,
-  ring,
-  dot,
-  anon,
-  aura,
-  timePhase,
-  style,
-  avatarUrl,
-  priority,
-}: AvatarProps) {
+export function Avatar({ name = '', size = 44, ring, dot, anon, aura, timePhase, style, avatarUrl, priority }: AvatarProps) {
+  const [imgError, setImgError] = useState(false);
+  const [lastAvatarUrl, setLastAvatarUrl] = useState(avatarUrl);
+  if (avatarUrl !== lastAvatarUrl) {
+    setLastAvatarUrl(avatarUrl);
+    setImgError(false);
+  }
+  const sizeVar = { '--size': `${size}px` } as React.CSSProperties;
   const ringShadow = ring
-    ? `0 0 0 2.5px var(--white), 0 0 0 ${2.5 + ring}px ${ring === 3 ? "var(--ember)" : "var(--border-2)"}`
-    : "none";
+    ? `0 0 0 2.5px var(--white), 0 0 0 ${2.5 + ring}px ${ring === 3 ? 'var(--ember)' : 'var(--border-2)'}`
+    : 'none';
 
   const phaseCfg = timePhase ? PHASE[timePhase] : null;
   const auraEl = aura ? <AuraRing aura={aura} size={size} /> : null;
 
   if (anon) {
     return (
-      <div
-        style={{
-          position: "relative",
-          width: size,
-          height: size,
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          ...style,
-        }}
-      >
+      <div className={styles.wrap} style={{ ...sizeVar, ...style }}>
         {auraEl}
         <div
-          style={{
-            width: size,
-            height: size,
-            borderRadius: "50%",
-            background: "var(--surf-high)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--ink-4)",
-            fontSize: size * 0.5,
-            boxShadow: ring
-              ? `0 0 0 2px var(--white), 0 0 0 ${ring}px ${ring === 3 ? "var(--ember)" : "var(--border-2)"}`
-              : undefined,
-          }}
+          className={styles.anonCircle}
+          style={{ boxShadow: ring ? `0 0 0 2px var(--white), 0 0 0 ${ring}px ${ring === 3 ? 'var(--ember)' : 'var(--border-2)'}` : undefined }}
         >
-          <span style={{ filter: "grayscale(1)", opacity: 0.7 }}>🫥</span>
+          <span className={styles.emoji}>🫥</span>
         </div>
       </div>
     );
@@ -78,198 +55,50 @@ export function Avatar({
   const staticImg = AVATAR_MAP[name];
   const { grad, initials } = avatarFor(name);
 
-  if (avatarUrl) {
+  if (avatarUrl && !imgError) {
     return (
-      <div
-        style={{
-          position: "relative",
-          flexShrink: 0,
-          width: size,
-          height: size,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          ...style,
-        }}
-      >
+      <div className={styles.wrap} style={{ ...sizeVar, ...style }}>
         {auraEl}
-        <div
-          style={{
-            position: "relative",
-            width: size,
-            height: size,
-            borderRadius: "50%",
-            overflow: "hidden",
-            boxShadow: ringShadow,
-          }}
-        >
+        <div className={styles.circle} style={{ boxShadow: ringShadow }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={avatarUrl}
             alt={name}
             width={size}
             height={size}
-            loading={priority ? "eager" : "lazy"}
-            fetchPriority={priority ? "high" : "auto"}
-            style={{
-              objectFit: "cover",
-              objectPosition: "50% 38%",
-              display: "block",
-              width: size,
-              height: size,
-            }}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            className={styles.img}
+            onError={() => setImgError(true)}
           />
-          {phaseCfg && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: phaseCfg.overlay,
-                mixBlendMode: "soft-light",
-                pointerEvents: "none",
-              }}
-            />
-          )}
+          {phaseCfg && <div className={styles.phaseOverlay} style={{ background: phaseCfg.overlay }} />}
         </div>
-        {dot && (
-          <span
-            style={{
-              position: "absolute",
-              right: 1,
-              bottom: 1,
-              width: size * 0.26,
-              height: size * 0.26,
-              minWidth: 9,
-              minHeight: 9,
-              borderRadius: "50%",
-              background: "var(--sage)",
-              border: "2px solid var(--white)",
-              zIndex: 2,
-            }}
-          />
-        )}
+        {dot && <span className={clsx(styles.dot, styles.stacked)} />}
       </div>
     );
   }
 
   if (staticImg) {
     return (
-      <div
-        style={{
-          position: "relative",
-          flexShrink: 0,
-          width: size,
-          height: size,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          ...style,
-        }}
-      >
+      <div className={styles.wrap} style={{ ...sizeVar, ...style }}>
         {auraEl}
-        <div
-          style={{
-            position: "relative",
-            width: size,
-            height: size,
-            borderRadius: "50%",
-            overflow: "hidden",
-            boxShadow: ringShadow,
-          }}
-        >
-          <Image
-            src={staticImg}
-            alt={name}
-            width={size}
-            height={size}
-            priority={priority}
-            style={{
-              objectFit: "cover",
-              objectPosition: "50% 38%",
-              display: "block",
-            }}
-          />
-          {phaseCfg && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: phaseCfg.overlay,
-                mixBlendMode: "soft-light",
-                pointerEvents: "none",
-              }}
-            />
-          )}
+        <div className={styles.circle} style={{ boxShadow: ringShadow }}>
+          <Image src={staticImg} alt={name} width={size} height={size} priority={priority}
+            style={{ objectFit: 'cover', objectPosition: '50% 38%', display: 'block' }} />
+          {phaseCfg && <div className={styles.phaseOverlay} style={{ background: phaseCfg.overlay }} />}
         </div>
-        {dot && (
-          <span
-            style={{
-              position: "absolute",
-              right: 1,
-              bottom: 1,
-              width: size * 0.26,
-              height: size * 0.26,
-              minWidth: 9,
-              minHeight: 9,
-              borderRadius: "50%",
-              background: "var(--sage)",
-              border: "2px solid var(--white)",
-              zIndex: 2,
-            }}
-          />
-        )}
+        {dot && <span className={clsx(styles.dot, styles.stacked)} />}
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        position: "relative",
-        flexShrink: 0,
-        width: size,
-        height: size,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        ...style,
-      }}
-    >
+    <div className={styles.wrap} style={{ ...sizeVar, ...style }}>
       {auraEl}
-      <div
-        style={{
-          width: size,
-          height: size,
-          borderRadius: "50%",
-          background: `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#fff",
-          fontWeight: 600,
-          fontSize: size * 0.36,
-          letterSpacing: ".01em",
-          boxShadow: ringShadow,
-        }}
-      >
+      <div className={styles.initialsCircle} style={{ background: `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`, boxShadow: ringShadow }}>
         {initials}
       </div>
-      {dot && (
-        <span
-          style={{
-            position: "absolute",
-            right: 1,
-            bottom: 1,
-            width: size * 0.26,
-            height: size * 0.26,
-            minWidth: 9,
-            minHeight: 9,
-            borderRadius: "50%",
-            background: "var(--sage)",
-            border: "2px solid var(--white)",
-          }}
-        />
-      )}
+      {dot && <span className={styles.dot} />}
     </div>
   );
 }

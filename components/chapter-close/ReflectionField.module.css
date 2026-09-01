@@ -1,0 +1,42 @@
+.wrap {
+  margin-bottom: 1.2rem;
+  position: relative;
+}
+
+.label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin-bottom: 0.4rem;
+  text-align: left;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 1rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  resize: vertical;
+}
+
+.removeBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surf-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.removeBtn.withLabel {
+  top: 28px;
+}

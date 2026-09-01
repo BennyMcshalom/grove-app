@@ -1,8 +1,16 @@
+import clsx from "clsx";
+import { Icon } from "./Icon";
+import styles from "./EmptyState.module.css";
+
 interface EmptyStateProps {
   variant: keyof typeof VARIANTS;
   title?: string;
   body?: string;
-  action?: { label: string; onClick: () => void };
+  /** Swaps the variant's inline SVG for a raster illustration (e.g. from /public/media) */
+  image?: string;
+  action?: { label: string; onClick: () => void; icon?: string };
+  /** 'pill' (default) is a solid button; 'link' is a plain colored text link, optionally with a leading icon */
+  actionVariant?: "pill" | "link";
   /** Smaller illustration + tighter padding, for narrow contexts like a sidebar widget */
   compact?: boolean;
 }
@@ -415,65 +423,64 @@ export function EmptyState({
   variant,
   title,
   body,
+  image,
   action,
+  actionVariant = "pill",
   compact,
 }: EmptyStateProps) {
   const v = VARIANTS[variant];
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        textAlign: "center",
-        padding: compact ? "1.6rem 1.1rem" : "3rem 1.5rem",
-        gap: compact ? ".7rem" : "1rem",
-      }}
-    >
+    <div className={clsx(styles.wrap, compact && styles.compact)}>
       <div
-        style={{
-          animation: "rise .6s cubic-bezier(.22,.61,.36,1) both",
-          transform: compact ? "scale(.7)" : undefined,
-          margin: compact ? "-10px 0" : undefined,
-        }}
+        className={clsx(
+          styles.illustration,
+          compact && styles.compact,
+          image && styles.imageIllustration,
+        )}
       >
-        {v.illustration}
+        {image ? (
+          <img src={image} alt="" className={styles.illustrationImg} />
+        ) : (
+          v.illustration
+        )}
       </div>
-      <div style={{ maxWidth: compact ? 230 : 320 }}>
-        <h3
-          className="serif"
-          style={{
-            fontSize: compact ? "1.05rem" : "1.4rem",
-            fontWeight: 600,
-            marginBottom: ".35rem",
-            color: "var(--ink)",
-          }}
-        >
+      <div className={clsx(styles.textWrap, compact && styles.compact)}>
+        <h3 className={clsx("serif", styles.title, compact && styles.compact)}>
           {title ?? v.title}
         </h3>
-        <p
-          style={{
-            fontSize: compact ? ".78rem" : ".88rem",
-            color: "var(--ink-3)",
-            lineHeight: 1.55,
-          }}
-        >
+        <p className={clsx(styles.body, compact && styles.compact)}>
           {body ?? v.body}
         </p>
       </div>
-      {action && (
-        <button
-          onClick={action.onClick}
-          className="btn btn-primary btn-pill"
-          style={{
-            padding: compact ? ".5rem 1.1rem" : ".6rem 1.4rem",
-            fontSize: compact ? ".78rem" : ".88rem",
-            marginTop: compact ? ".1rem" : ".4rem",
-          }}
-        >
-          {action.label}
-        </button>
-      )}
+      {action &&
+        (actionVariant === "link" ? (
+          <button
+            onClick={action.onClick}
+            className={clsx(
+              "serif",
+              styles.actionLink,
+              compact && styles.compact,
+            )}
+          >
+            {action.icon && (
+              <Icon name={action.icon} size={15} stroke="var(--ember)" />
+            )}
+            {action.label}
+          </button>
+        ) : (
+          <button
+            onClick={action.onClick}
+            className={clsx(
+              "btn",
+              "btn-primary",
+              "btn-pill",
+              styles.actionBtn,
+              compact && styles.compact,
+            )}
+          >
+            {action.label}
+          </button>
+        ))}
     </div>
   );
 }

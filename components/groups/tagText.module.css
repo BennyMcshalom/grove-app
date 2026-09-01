@@ -1,0 +1,7 @@
+.mention {
+  color: var(--ember);
+  font-weight: 600;
+  background: var(--ember-dim);
+  padding: 0 0.3rem;
+  border-radius: 6px;
+}

@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import clsx from "clsx";
 import { Icon } from "@/components/ui/Icon";
 import type { Space } from "@/lib/types";
 import type { LogEntry } from "./types";
+import styles from "./MemoryLightbox.module.css";
 
 // ── Memory lightbox — open one entry full, prev/next through the log ──
 export function MemoryLightbox({
@@ -53,41 +55,14 @@ export function MemoryLightbox({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 7200,
-        background: "rgba(20,14,8,.62)",
-        backdropFilter: "blur(5px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1.5rem",
-      }}
-      onClick={onClose}
-    >
+    <div className={styles.overlay} onClick={onClose}>
       {canPrev && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             prev();
           }}
-          style={{
-            position: "absolute",
-            left: "max(1rem, calc(50% - 260px))",
-            top: "50%",
-            transform: "translateY(-50%)",
-            width: 46,
-            height: 46,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,.16)",
-            backdropFilter: "blur(6px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2,
-          }}
+          className={clsx(styles.navBtn, styles.prev)}
         >
           <Icon name="back" size={20} stroke="#fff" />
         </button>
@@ -98,161 +73,54 @@ export function MemoryLightbox({
             e.stopPropagation();
             next();
           }}
-          style={{
-            position: "absolute",
-            right: "max(1rem, calc(50% - 260px))",
-            top: "50%",
-            transform: "translateY(-50%) scaleX(-1)",
-            width: 46,
-            height: 46,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,.16)",
-            backdropFilter: "blur(6px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2,
-          }}
+          className={clsx(styles.navBtn, styles.next)}
         >
           <Icon name="back" size={20} stroke="#fff" />
         </button>
       )}
       <div
-        className="swap-in"
+        className={clsx("swap-in", styles.card)}
         key={idx}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        style={{
-          width: "min(400px, 94vw)",
-          background: "var(--cream)",
-          borderRadius: 26,
-          overflow: "hidden",
-          boxShadow: "var(--shadow-lg)",
-        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ position: "relative", height: 320 }}>
+        <div className={styles.mediaWrap}>
           {entry.media ? (
-            <img
-              src={entry.media}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
+            <img src={entry.media} alt="" className={styles.mediaImg} />
           ) : (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                background: "var(--surf-high)",
-              }}
-            />
+            <div className={styles.mediaPlaceholder} />
           )}
-          <button
-            onClick={onClose}
-            style={{
-              position: "absolute",
-              top: 12,
-              right: 12,
-              width: 34,
-              height: 34,
-              borderRadius: "50%",
-              background: "rgba(20,14,8,.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <button onClick={onClose} className={styles.closeBtn}>
             <Icon name="close" size={17} stroke="#fff" />
           </button>
-          <div
-            style={{
-              position: "absolute",
-              left: 14,
-              bottom: 12,
-              display: "flex",
-              alignItems: "center",
-              gap: ".5rem",
-            }}
-          >
-            <span
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 9,
-                background: "rgba(255,255,255,.92)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+          <div className={styles.dayBadge}>
+            <span className={styles.dayIcon}>
               <Icon name={space.icon} size={15} stroke={space.ink} />
             </span>
-            <span
-              className="mono"
-              style={{
-                color: "#fff",
-                fontSize: ".7rem",
-                textShadow: "0 1px 4px rgba(0,0,0,.5)",
-              }}
-            >
+            <span className={clsx("mono", styles.dayLabel)}>
               Day {entry.day} · {entry.date}
             </span>
           </div>
           {entries.length > 1 && (
-            <span
-              className="mono"
-              style={{
-                position: "absolute",
-                right: 14,
-                bottom: 12,
-                color: "#fff",
-                fontSize: ".68rem",
-                textShadow: "0 1px 4px rgba(0,0,0,.5)",
-              }}
-            >
+            <span className={clsx("mono", styles.counter)}>
               {idx + 1} / {entries.length}
             </span>
           )}
         </div>
-        <div style={{ padding: "1.4rem 1.5rem 1.6rem" }}>
-          <p
-            className="serif"
-            style={{ fontSize: "1.5rem", fontWeight: 600, lineHeight: 1.35 }}
-          >
-            {entry.text}
-          </p>
+        <div className={styles.body}>
+          <p className={clsx("serif", styles.text)}>{entry.text}</p>
           {entries.length > 1 && (
-            <div
-              style={{
-                display: "flex",
-                gap: 5,
-                marginTop: "1.1rem",
-                justifyContent: "center",
-              }}
-            >
+            <div className={styles.dots}>
               {entries.map((_, i) => (
                 <span
                   key={i}
-                  style={{
-                    width: i === idx ? 16 : 6,
-                    height: 6,
-                    borderRadius: 100,
-                    background: i === idx ? "var(--ember)" : "var(--border-2)",
-                    transition: "all .2s",
-                    display: "block",
-                  }}
+                  className={clsx(styles.dot, i === idx && styles.active)}
                 />
               ))}
             </div>
           )}
-          <div
-            style={{
-              textAlign: "center",
-              marginTop: ".9rem",
-              fontSize: ".72rem",
-              color: "var(--ink-4)",
-            }}
-          >
+          <div className={styles.hint}>
             ← → keys or swipe to move between moments
           </div>
         </div>

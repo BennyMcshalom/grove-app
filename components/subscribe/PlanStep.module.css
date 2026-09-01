@@ -1,0 +1,231 @@
+.head {
+  text-align: center;
+  margin-bottom: 1.6rem;
+}
+
+.headChip {
+  background: var(--ember-dim);
+  color: var(--ember-deep);
+  font-weight: 600;
+  margin-bottom: 0.9rem;
+  display: inline-block;
+}
+
+.title {
+  font-size: clamp(1.7rem, 7.5vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.subtitle {
+  color: var(--ink-3);
+  margin-top: 0.5rem;
+}
+
+.timelineCard {
+  padding: 1.4rem 1.5rem;
+  margin-bottom: 1.4rem;
+}
+
+.timelineLabel {
+  margin-bottom: 1.1rem;
+}
+
+.timelineRow {
+  display: flex;
+  gap: 0.9rem;
+}
+
+.timelineDotCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timelineDot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.timelineConnector {
+  width: 2px;
+  flex: 1;
+  background: var(--border-2);
+  margin: 4px 0;
+  display: block;
+}
+
+.timelineContent {
+  padding-bottom: 1.1rem;
+}
+
+.timelineRow:last-child .timelineContent {
+  padding-bottom: 0;
+}
+
+.timelineMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.timelineDate {
+  font-size: 0.66rem;
+  color: var(--ink-4);
+}
+
+.timelineTitle {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.timelineDesc {
+  font-size: 0.82rem;
+  color: var(--ink-3);
+  margin-top: 1px;
+}
+
+.plans {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-bottom: 1.4rem;
+}
+
+.planBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  text-align: left;
+  padding: 1.1rem 1.3rem;
+  border-radius: var(--r-lg);
+  background: var(--white);
+  border: 1.5px solid var(--border-2);
+  box-shadow: var(--shadow-soft);
+  transition: all 0.15s;
+}
+
+.planBtn.selected {
+  border: 2px solid var(--ember);
+  box-shadow: 0 6px 20px -8px rgba(243, 112, 30, 0.4);
+}
+
+.radioDot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--border-2);
+  transition: all 0.15s;
+}
+
+.radioDot.selected {
+  border: 7px solid var(--ember);
+}
+
+.planInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.planLabelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.planLabel {
+  font-weight: 600;
+}
+
+.planBadge {
+  background: var(--ember-dim);
+  color: var(--ember-deep);
+  font-size: 0.62rem;
+  padding: 0.15rem 0.5rem;
+}
+
+.planNote {
+  font-size: 0.8rem;
+  color: var(--ink-3);
+}
+
+.planPrice {
+  text-align: right;
+}
+
+.planAmount {
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--ember);
+}
+
+.planCadence {
+  font-size: 0.78rem;
+  color: var(--ink-4);
+}
+
+.startBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.startHint {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  margin-top: 0.8rem;
+}
+
+.featuresCard {
+  padding: 1.3rem 1.5rem;
+  margin-top: 1.6rem;
+}
+
+.featuresLabel {
+  margin-bottom: 0.9rem;
+}
+
+.featuresList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.featureRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.featureIcon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.featureTitle {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.featureDesc {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+
+.footnote {
+  text-align: center;
+  color: var(--ink-4);
+  font-size: 0.8rem;
+  margin-top: 1.2rem;
+  font-style: italic;
+}
+
+.footnoteLink {
+  color: var(--ember);
+}

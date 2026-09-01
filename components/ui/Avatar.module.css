@@ -1,0 +1,77 @@
+.wrap {
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.circle {
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.img {
+  object-fit: cover;
+  object-position: 50% 38%;
+  display: block;
+  width: var(--size);
+  height: var(--size);
+}
+
+.phaseOverlay {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+.dot {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: max(9px, calc(var(--size) * .26));
+  height: max(9px, calc(var(--size) * .26));
+  border-radius: 50%;
+  background: var(--sage);
+  border: 2px solid var(--white);
+}
+
+.dot.stacked {
+  z-index: 2;
+}
+
+.anonCircle {
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: var(--surf-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-4);
+  font-size: calc(var(--size) * .5);
+}
+
+.emoji {
+  filter: grayscale(1);
+  opacity: .7;
+}
+
+.initialsCircle {
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: calc(var(--size) * .36);
+  letter-spacing: .01em;
+}

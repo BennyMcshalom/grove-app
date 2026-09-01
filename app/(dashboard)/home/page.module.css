@@ -1,0 +1,217 @@
+/* ── Right panel: suggestions ── */
+.suggestionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.4rem;
+}
+
+.suggestionName {
+  font-weight: 500;
+  font-size: 0.86rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestionReason {
+  font-size: 0.7rem;
+  color: var(--ember);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inviteBtn {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.emptyNote {
+  font-size: 0.82rem;
+  color: var(--ink-4);
+  font-style: italic;
+  padding: 0.2rem 0;
+}
+
+/* ── Right panel: active bonds ── */
+.bondRow {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0;
+  text-align: left;
+}
+
+.bondName {
+  font-weight: 500;
+  font-size: 0.86rem;
+}
+
+.bondDate {
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+
+.emptyBonds {
+  background: linear-gradient(160deg, var(--ember-dim), var(--slate-dim));
+}
+
+/* ── Right panel: chapter groups ── */
+.groupCard {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.6rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.5rem;
+}
+
+.groupIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.groupName {
+  font-weight: 600;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupPhase {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+
+.emptyGroups {
+  background: linear-gradient(160deg, var(--slate-dim), var(--green-dim));
+}
+
+.tabsScroll {
+  display: flex;
+  gap: 0.4rem;
+  /* overflow-x: auto; */
+}
+
+.tabBtn {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-bottom: -1px;
+  color: var(--ink-3);
+  border-bottom: 2px solid transparent;
+}
+
+.tabBtn.active {
+  color: var(--ember);
+  border-bottom: 2px solid var(--ember);
+}
+
+.searchWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.65rem 2.6rem 0.65rem 1rem;
+  border-radius: 8px;
+  background: var(--surf-high);
+  border: 1.5px solid transparent;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.searchIcon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* ── Main feed ── */
+.pageWrap {
+  margin: 0 auto;
+  padding: 1.4rem 1.6rem 3rem;
+  max-width: 800px;
+  height: 100vh;
+}
+
+.loadingWrap {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.emptyFeedCard {
+  max-width: 480px;
+  height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.endOfFeedWrap {
+  text-align: center;
+  padding: 3rem 1rem 1.5rem;
+}
+
+.endRuleRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.ruleLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.ruleDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-2);
+  flex-shrink: 0;
+}
+
+.endTitle {
+  font-size: 1.35rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.endSub {
+  font-size: 0.84rem;
+  color: var(--ink-4);
+  letter-spacing: 0.015em;
+  line-height: 1.6;
+}

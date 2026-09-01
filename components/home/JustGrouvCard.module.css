@@ -1,0 +1,361 @@
+.card {
+  padding: 1.1rem 1.1rem 1.3rem;
+  margin-bottom: 0.9rem;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.8rem;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.time {
+  font-size: 0.72rem;
+  color: var(--ink-4);
+}
+
+.grouvChip {
+  background: var(--ember-dim);
+  color: var(--ember-deep);
+  font-size: 0.62rem;
+}
+
+.iconBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Overflow menu ── */
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}
+
+.menu {
+  position: fixed;
+  z-index: 20;
+  background: var(--white);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  width: min(180px, calc(100vw - 20px));
+}
+
+.menuRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 1rem;
+  font-size: 0.86rem;
+  color: var(--ink-2);
+  gap: 0.55rem;
+  transition: background 0.15s;
+}
+
+.menuRow:hover {
+  background: var(--surf-low);
+}
+
+.menuRow.danger {
+  color: var(--red);
+}
+
+.menuDivider {
+  border-top: 1px solid var(--border);
+}
+
+/* ── Delete confirmation ── */
+.deleteConfirm {
+  background: var(--red-dim);
+  border-radius: var(--r-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  border: 1px solid var(--red-bdr);
+}
+
+.deleteConfirmText {
+  flex: 1;
+  font-size: 0.86rem;
+  color: var(--red);
+  font-weight: 500;
+}
+
+.deleteConfirmBtn {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+  background: var(--red);
+  box-shadow: none;
+}
+
+.cancelBtn {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+/* ── Edit mode ── */
+.editWrap {
+  margin-bottom: 0.8rem;
+}
+
+.editTextarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--ember);
+  background: var(--surf-low);
+  margin-bottom: 0.5rem;
+}
+
+.editActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.editActionBtn {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.82rem;
+}
+
+/* ── Portrait media frame ── */
+.mediaFrame {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #2a1d12;
+  cursor: default;
+}
+
+.mediaFrame.clickable {
+  cursor: pointer;
+}
+
+.mediaVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mediaImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mediaGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 12, 4, 0.55) 0%,
+    rgba(20, 12, 4, 0.05) 28%,
+    rgba(20, 12, 4, 0.12) 55%,
+    rgba(20, 12, 4, 0.82) 100%
+  );
+  pointer-events: none;
+}
+
+.clockWrap {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+.clockText {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+}
+
+.locationRow {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.66rem;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.playOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.playBtn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 0.25s;
+}
+
+.playBtn.hidden {
+  opacity: 0;
+}
+
+.captionWrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1.4rem 1.3rem 1.5rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.captionText {
+  color: #fff;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.2;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Footer ── */
+.footer {
+  margin-top: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 100px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: transparent;
+}
+
+.rootBtn.active {
+  color: var(--ember);
+  background: var(--ember-dim);
+}
+
+.commentBtn.active {
+  color: var(--slate);
+  background: var(--slate-dim);
+}
+
+.tabularNum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Comment thread ── */
+.commentsWrap {
+  margin-top: 0.8rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+.commentRow {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.commentBubble {
+  background: var(--surf-low);
+  border-radius: var(--r-md);
+  padding: 0.55rem 0.8rem;
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.commentAuthor {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.commentBody {
+  font-size: 0.86rem;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+.reportCommentBtn {
+  flex-shrink: 0;
+  opacity: 0.5;
+  margin-top: 1px;
+  transition: opacity 0.15s;
+}
+
+.reportCommentBtn:hover {
+  opacity: 1;
+}
+
+.emptyComments {
+  font-size: 0.82rem;
+  color: var(--ink-4);
+  font-style: italic;
+  margin-bottom: 0.8rem;
+}
+
+.commentInputRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.commentInput {
+  flex: 1;
+  padding: 0.6rem 0.9rem;
+  border-radius: 100px;
+  border: 1.5px solid var(--border-2);
+  background: var(--surf-low);
+  font-size: 0.88rem;
+}
+
+.commentInput:focus {
+  border-color: var(--ember);
+}
+
+.sendBtn {
+  padding: 0.5rem 0.7rem;
+}
+
+.sendBtn.dimmed {
+  opacity: 0.5;
+}

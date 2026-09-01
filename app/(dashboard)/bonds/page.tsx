@@ -1,6 +1,7 @@
 "use client";
 import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import clsx from "clsx";
 import { AppShell } from "@/components/layout/AppShell";
 import { RPSection } from "@/components/layout/RightPanel";
 import { FeatureGate } from "@/components/layout/FeatureGate";
@@ -22,6 +23,7 @@ import { BondThread } from "@/components/bonds/BondThread";
 import { BondListRow } from "@/components/bonds/BondListRow";
 import { CircleRow } from "@/components/bonds/CircleRow";
 import { BondInfoPanel } from "@/components/bonds/BondInfoPanel";
+import styles from "./page.module.css";
 
 function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
@@ -98,23 +100,8 @@ function BondsPageInner() {
       {pending.length > 0 && (
         <RPSection label={`Bond invitations (${pending.length})`}>
           {pending.map((inv) => (
-            <div
-              key={inv.id}
-              className="card"
-              style={{
-                padding: ".85rem",
-                marginBottom: ".6rem",
-                boxShadow: "var(--shadow-soft)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: ".6rem",
-                  marginBottom: ".7rem",
-                }}
-              >
+            <div key={inv.id} className={clsx("card", styles.invCard)}>
+              <div className={styles.invHeader}>
                 <Avatar
                   name={inv.fromUser?.displayName ?? "?"}
                   size={40}
@@ -122,27 +109,18 @@ function BondsPageInner() {
                   aura={inv.fromUser?.aura ?? undefined}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: ".86rem" }}>
+                  <div className={styles.invName}>
                     {inv.fromUser?.displayName ?? "Someone"}
                   </div>
                   {inv.message && (
-                    <div
-                      style={{
-                        fontSize: ".72rem",
-                        color: "var(--ink-3)",
-                        fontStyle: "italic",
-                      }}
-                    >
-                      {inv.message}
-                    </div>
+                    <div className={styles.invMessage}>{inv.message}</div>
                   )}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: ".5rem" }}>
+              <div className={styles.invActions}>
                 <button
                   disabled={busyInvIds.has(inv.id)}
-                  className="btn btn-primary"
-                  style={{ flex: 1, padding: ".4rem", fontSize: ".8rem" }}
+                  className={clsx("btn", "btn-primary", styles.invActionBtn)}
                   onClick={async () => {
                     setBusyInvIds((s) => new Set(s).add(inv.id));
                     try {
@@ -172,8 +150,7 @@ function BondsPageInner() {
                 </button>
                 <button
                   disabled={busyInvIds.has(inv.id)}
-                  className="btn btn-soft"
-                  style={{ flex: 1, padding: ".4rem", fontSize: ".8rem" }}
+                  className={clsx("btn", "btn-soft", styles.invActionBtn)}
                   onClick={async () => {
                     setBusyInvIds((s) => new Set(s).add(inv.id));
                     try {
@@ -205,15 +182,7 @@ function BondsPageInner() {
       <RPSection label="Suggested for you" suggested>
         {suggestions && suggestions.length > 0 ? (
           suggestions.slice(0, 5).map((s) => (
-            <div
-              key={s.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: ".6rem",
-                padding: ".5rem 0",
-              }}
-            >
+            <div key={s.id} className={styles.suggestionRow}>
               <Avatar
                 name={s.displayName}
                 size={38}
@@ -221,29 +190,8 @@ function BondsPageInner() {
                 aura={s.aura ?? undefined}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontWeight: 500,
-                    fontSize: ".84rem",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {s.displayName}
-                </div>
-                <div
-                  style={{
-                    fontSize: ".7rem",
-                    color: "var(--ember)",
-                    fontWeight: 500,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {s.reason}
-                </div>
+                <div className={styles.suggestionName}>{s.displayName}</div>
+                <div className={styles.suggestionReason}>{s.reason}</div>
               </div>
               <button
                 disabled={
@@ -262,12 +210,7 @@ function BondsPageInner() {
                     toast("Could not send.");
                   }
                 }}
-                className="btn btn-ghost"
-                style={{
-                  padding: ".35rem .75rem",
-                  fontSize: ".76rem",
-                  flexShrink: 0,
-                }}
+                className={clsx("btn", "btn-ghost", styles.inviteBtn)}
               >
                 {invited.includes(s.id) || sentIds.has(s.id)
                   ? "Sent"
@@ -276,14 +219,7 @@ function BondsPageInner() {
             </div>
           ))
         ) : (
-          <p
-            style={{
-              fontSize: ".82rem",
-              color: "var(--ink-4)",
-              fontStyle: "italic",
-              padding: ".4rem 0",
-            }}
-          >
+          <p className={styles.emptyNote}>
             Open a space to discover people in the same chapter.
           </p>
         )}
@@ -293,94 +229,38 @@ function BondsPageInner() {
 
   return (
     <AppShell title="Your Bonds" right={panelOpen ? undefined : right}>
-      <div
-        style={{
-          padding: "0 1.6rem 1rem",
-          flex: 1,
-          minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <p
-          style={{
-            color: "var(--ink-3)",
-            marginTop: "-.4rem",
-            marginBottom: "1rem",
-            fontSize: ".88rem",
-          }}
-        >
-          Up to five. Earned, not assigned.
-        </p>
-        <div
-          className="bonds-layout"
-          style={{ display: "flex", gap: "1rem", flex: 1, minHeight: 0 }}
-        >
+      <div className={styles.page}>
+        <p className={styles.subtitle}>Up to five. Earned, not assigned.</p>
+        <div className={clsx("bonds-layout", styles.layout)}>
           {/* ── Bond list ── */}
           <div
-            className={`bonds-list-col scroll${mobileView === "thread" ? " bonds-list-hidden-mobile" : ""}`}
-            style={{
-              width: "38%",
-              minWidth: 280,
-              maxWidth: 360,
-              flexShrink: 0,
-              overflowY: "auto",
-            }}
+            className={clsx(
+              "bonds-list-col",
+              "scroll",
+              styles.listCol,
+              mobileView === "thread" && "bonds-list-hidden-mobile",
+            )}
           >
             {allConnections.length > 0 && (
-              <div style={{ position: "relative", marginBottom: "1rem" }}>
-                <span
-                  style={{
-                    position: "absolute",
-                    left: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                  }}
-                >
+              <div className={styles.searchWrap}>
+                <span className={styles.searchIcon}>
                   <Icon name="search" size={16} stroke="var(--ink-4)" />
                 </span>
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search Bonds & Circle…"
-                  style={{
-                    width: "100%",
-                    padding: ".7rem .9rem .7rem 2.5rem",
-                    borderRadius: 100,
-                    border: "1.5px solid var(--border-2)",
-                    background: "var(--white)",
-                    fontSize: ".85rem",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "var(--ember)";
-                    e.target.style.boxShadow = "0 0 0 3px var(--ember-dim)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "var(--border-2)";
-                    e.target.style.boxShadow = "none";
-                  }}
+                  className={styles.searchInput}
                 />
               </div>
             )}
 
             {isLoading ? (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  padding: "2rem",
-                }}
-              >
+              <div className={styles.loadingWrap}>
                 <Spinner />
               </div>
             ) : allConnections.length === 0 ? (
-              <div
-                className="card"
-                style={{
-                  background:
-                    "linear-gradient(160deg, var(--ember-dim), var(--slate-dim))",
-                }}
-              >
+              <div className={clsx("card", styles.emptyCard)}>
                 <EmptyState
                   variant="bonds"
                   compact
@@ -393,14 +273,7 @@ function BondsPageInner() {
                 />
               </div>
             ) : noMatches ? (
-              <p
-                style={{
-                  fontSize: ".84rem",
-                  color: "var(--ink-4)",
-                  textAlign: "center",
-                  padding: "2rem 1rem",
-                }}
-              >
+              <p className={styles.noMatches}>
                 No matches for &ldquo;{search}&rdquo;.
               </p>
             ) : (
@@ -419,19 +292,7 @@ function BondsPageInner() {
                 ))}
                 {!q &&
                   [...Array(slots)].map((_, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        borderRadius: "var(--r-md)",
-                        border: "1.5px dashed var(--border-2)",
-                        padding: ".9rem",
-                        marginBottom: ".4rem",
-                        fontSize: ".8rem",
-                        color: "var(--ink-4)",
-                        fontStyle: "italic",
-                        lineHeight: 1.45,
-                      }}
-                    >
+                    <div key={i} className={styles.slotPlaceholder}>
                       A Bond forms when you consistently show up for someone.
                     </div>
                   ))}
@@ -439,29 +300,13 @@ function BondsPageInner() {
                 {/* ── Circle: recent connections, sorted by last chatted ── */}
                 {visibleCircle.length > 0 && (
                   <>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        margin: "1.4rem 0 .6rem",
-                        padding: "0 .2rem",
-                      }}
-                    >
+                    <div className={styles.circleHeader}>
                       <div className="label-mono">Your Circle</div>
-                      <span
-                        style={{ fontSize: ".7rem", color: "var(--ink-4)" }}
-                      >
+                      <span className={styles.circleCount}>
                         {circle.length} connected
                       </span>
                     </div>
-                    <div
-                      className="card"
-                      style={{
-                        padding: ".3rem .4rem",
-                        boxShadow: "var(--shadow-soft)",
-                      }}
-                    >
+                    <div className={clsx("card", styles.circleCard)}>
                       {visibleCircle.map((b, i) => (
                         <CircleRow
                           key={b.id}
@@ -483,15 +328,7 @@ function BondsPageInner() {
                       ))}
                     </div>
                     {!q && (
-                      <p
-                        style={{
-                          fontSize: ".72rem",
-                          color: "var(--ink-4)",
-                          fontStyle: "italic",
-                          margin: ".7rem .2rem 0",
-                          lineHeight: 1.45,
-                        }}
-                      >
+                      <p className={styles.circleNote}>
                         Everyone you&apos;ve started Grouving with. Whoever you
                         spoke to most recently rises to the top.
                       </p>
@@ -504,29 +341,16 @@ function BondsPageInner() {
 
           {/* ── Thread ── */}
           <div
-            className={`bonds-thread-col${mobileView === "list" ? " bonds-thread-hidden-mobile" : ""}`}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 0,
-              display: "flex",
-              flexDirection: "column",
-            }}
+            className={clsx(
+              "bonds-thread-col",
+              styles.threadCol,
+              mobileView === "list" && "bonds-thread-hidden-mobile",
+            )}
           >
             {/* Mobile back button */}
             <button
-              className="bonds-back-btn"
+              className={clsx("bonds-back-btn", styles.backBtn)}
               onClick={() => setMobileView("list")}
-              style={{
-                display: "none",
-                alignItems: "center",
-                gap: ".4rem",
-                padding: ".5rem 0",
-                marginBottom: ".5rem",
-                fontSize: ".86rem",
-                color: "var(--ink-3)",
-                fontWeight: 500,
-              }}
             >
               <Icon name="back" size={16} stroke="var(--ink-3)" /> All bonds
             </button>
@@ -537,25 +361,8 @@ function BondsPageInner() {
                 onTogglePanel={togglePanel}
               />
             ) : !isLoading ? (
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "1.5rem",
-                }}
-              >
-                <div
-                  className="card"
-                  style={{
-                    background:
-                      "linear-gradient(160deg, var(--ember-dim), var(--slate-dim))",
-                    boxShadow: "var(--shadow-lg)",
-                    maxWidth: 420,
-                    width: "100%",
-                  }}
-                >
+              <div className={styles.threadEmptyWrap}>
+                <div className={clsx("card", styles.threadEmptyCard)}>
                   <EmptyState
                     variant="bonds"
                     title="Your first Bond is waiting."

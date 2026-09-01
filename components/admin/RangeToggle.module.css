@@ -1,0 +1,16 @@
+.wrap {
+  display: flex;
+  gap: .3rem;
+}
+
+.chip {
+  cursor: pointer;
+  background: var(--surf-high);
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.chip.active {
+  background: var(--ember);
+  color: #fff;
+}

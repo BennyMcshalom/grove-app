@@ -1,0 +1,88 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(26, 26, 26, .55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+.modal {
+  width: min(420px, 94vw);
+  background: var(--cream);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.body {
+  padding: 1.4rem 1.5rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.reasonLabel {
+  margin-bottom: .6rem;
+}
+
+.reasonsWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+
+.reasonChip {
+  cursor: pointer;
+  background: var(--surf-high);
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.reasonChip.active {
+  background: var(--ember);
+  color: #fff;
+}
+
+.detailsInput {
+  width: 100%;
+  min-height: 70px;
+  padding: .7rem .85rem;
+  font-size: .86rem;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-sm);
+  resize: vertical;
+  margin-bottom: 1.1rem;
+  background: var(--white);
+}
+
+.submitBtn {
+  opacity: .6;
+}
+
+.submitBtn.active {
+  opacity: 1;
+}

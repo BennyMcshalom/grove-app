@@ -1,0 +1,15 @@
+.mark {
+  width: var(--size);
+  height: var(--size);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.letter {
+  font-weight: 700;
+  line-height: 1;
+  font-size: var(--font-size);
+}

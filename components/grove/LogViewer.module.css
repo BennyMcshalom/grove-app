@@ -1,0 +1,79 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  background: rgba(26, 26, 26, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.panel {
+  width: min(520px, 94vw);
+  height: 100%;
+  background: var(--white);
+  overflow-y: auto;
+  animation: slideIn 0.3s ease both;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  background: var(--white);
+  z-index: 2;
+  border-bottom: 1px solid var(--border);
+  padding: 1.1rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.closeBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.body {
+  padding: 1.4rem;
+}
+
+.emptyText {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.entry {
+  margin-bottom: 1.8rem;
+  padding-bottom: 1.8rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.entry.last {
+  border-bottom: none;
+}
+
+.entryLabel {
+  margin-bottom: 0.6rem;
+}
+
+.entryMedia {
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.entryImg {
+  width: 100%;
+  object-fit: cover;
+  display: block;
+  max-height: 240px;
+}
+
+.entryBody {
+  font-size: 1.15rem;
+  line-height: 1.5;
+}

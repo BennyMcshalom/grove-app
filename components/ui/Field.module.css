@@ -1,0 +1,50 @@
+.label {
+  display: block;
+  margin-bottom: .95rem;
+}
+
+.labelText {
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-bottom: .35rem;
+}
+
+.inputWrap {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  padding: .8rem .95rem;
+  font-size: 1rem;
+  background: var(--surf-high);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-md);
+  transition: border .15s, box-shadow .15s, background .15s;
+  color: var(--ink);
+}
+
+.input:focus {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 3px var(--ember-dim);
+  background: var(--white);
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-3);
+}
+
+.rightBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .78rem;
+  color: var(--ember);
+  font-weight: 500;
+}

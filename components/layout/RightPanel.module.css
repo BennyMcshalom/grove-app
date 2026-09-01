@@ -1,0 +1,36 @@
+.panel {
+  width: 400px;
+  flex-shrink: 0;
+  padding: 24px 32px;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--white);
+}
+
+.section {
+  margin-bottom: 1.6rem;
+}
+
+.section.suggested {
+  background: linear-gradient(160deg, var(--ember-dim), var(--surf-low));
+  border: 1px solid var(--ember-bdr);
+  border-radius: var(--r-lg);
+  padding: 0.9rem 1rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.7rem;
+}
+
+.sectionLabel.suggested {
+  color: var(--ember-deep);
+}
+
+.sectionAction {
+  font-size: 0.72rem;
+  color: var(--ember);
+  font-weight: 500;
+}

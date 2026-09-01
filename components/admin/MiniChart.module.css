@@ -1,0 +1,18 @@
+.headline {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: .6rem;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+}
+
+.labelsRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: .5rem;
+  font-size: .64rem;
+  color: var(--ink-4);
+}

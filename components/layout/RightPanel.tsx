@@ -1,23 +1,12 @@
+import clsx from "clsx";
+import styles from "./RightPanel.module.css";
+
 interface RightPanelProps {
   children: React.ReactNode;
 }
 
 export function RightPanel({ children }: RightPanelProps) {
-  return (
-    <aside
-      className="scroll"
-      style={{
-        width: 400,
-        flexShrink: 0,
-        padding: "24px 32px",
-        height: "100%",
-        overflowY: "auto",
-        background: "var(--white)",
-      }}
-    >
-      {children}
-    </aside>
-  );
+  return <aside className={clsx("scroll", styles.panel)}>{children}</aside>;
 }
 
 interface RPSectionProps {
@@ -25,7 +14,6 @@ interface RPSectionProps {
   action?: string;
   onAction?: () => void;
   children: React.ReactNode;
-  /** Sets this section apart as a recommendation module, distinct from the main feed. */
   suggested?: boolean;
 }
 
@@ -37,43 +25,19 @@ export function RPSection({
   suggested,
 }: RPSectionProps) {
   return (
-    <section
-      style={{
-        marginBottom: "1.6rem",
-        ...(suggested
-          ? {
-              background:
-                "linear-gradient(160deg, var(--ember-dim), var(--surf-low))",
-              border: "1px solid var(--ember-bdr)",
-              borderRadius: "var(--r-lg)",
-              padding: ".9rem 1rem",
-            }
-          : {}),
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: ".7rem",
-        }}
-      >
+    <section className={clsx(styles.section, suggested && styles.suggested)}>
+      <div className={styles.sectionHeader}>
         <div
-          className="label-mono"
-          style={suggested ? { color: "var(--ember-deep)" } : undefined}
+          className={clsx(
+            "label-mono",
+            styles.sectionLabel,
+            suggested && styles.suggested,
+          )}
         >
           {label}
         </div>
         {action && (
-          <button
-            onClick={onAction}
-            style={{
-              fontSize: ".72rem",
-              color: "var(--ember)",
-              fontWeight: 500,
-            }}
-          >
+          <button onClick={onAction} className={styles.sectionAction}>
             {action}
           </button>
         )}

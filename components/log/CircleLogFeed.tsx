@@ -1,8 +1,10 @@
 "use client";
+import clsx from "clsx";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { SpaceIcon } from "@/components/ui/SpaceIcon";
 import type { OtherLog } from "./types";
+import styles from "./CircleLogFeed.module.css";
 
 // ── CircleLogFeed — scroll others' logs ──
 export function CircleLogFeed({
@@ -14,25 +16,16 @@ export function CircleLogFeed({
 }) {
   return (
     <section>
-      <div style={{ marginBottom: "1rem" }}>
-        <div className="serif" style={{ fontSize: "1.5rem", fontWeight: 600 }}>
-          Logs from your circle
-        </div>
-        <div style={{ fontSize: ".78rem", color: "var(--ink-3)" }}>
+      <div className={styles.headerWrap}>
+        <div className={clsx("serif", styles.title)}>Logs from your circle</div>
+        <div className={styles.subtitle}>
           Different lives, different phases. Scroll through.
         </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+      <div className={styles.list}>
         {logs.map((log, li) => (
-          <article key={li} className="card" style={{ overflow: "hidden" }}>
-            <header
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: ".7rem",
-                padding: ".9rem 1.1rem",
-              }}
-            >
+          <article key={li} className={clsx("card", styles.logCard)}>
+            <header className={styles.logHeader}>
               <Avatar
                 name={log.name}
                 size={42}
@@ -40,100 +33,32 @@ export function CircleLogFeed({
                 aura={log.aura ?? undefined}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: ".92rem" }}>
-                  {log.name}
-                </div>
-                <div
-                  style={{
-                    fontSize: ".74rem",
-                    color: "var(--ink-3)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: ".3rem",
-                  }}
-                >
+                <div className={styles.logName}>{log.name}</div>
+                <div className={styles.logMeta}>
                   <SpaceIcon spaceId={log.space} size={11} /> {log.phase} ·{" "}
                   {log.when}
                 </div>
               </div>
             </header>
-            <div
-              className="scroll"
-              style={{
-                display: "flex",
-                gap: ".6rem",
-                overflowX: "auto",
-                padding: "0 1.1rem .5rem",
-              }}
-            >
+            <div className={clsx("scroll", styles.entryScroll)}>
               {log.entries.slice(0, 6).map((e, i) => (
                 <button
                   key={i}
                   onClick={() => onOpen(log)}
-                  style={{
-                    flexShrink: 0,
-                    width: 150,
-                    borderRadius: 16,
-                    overflow: "hidden",
-                    position: "relative",
-                    textAlign: "left",
-                    boxShadow: "var(--shadow-soft)",
-                  }}
+                  className={styles.entryCard}
                 >
-                  <div style={{ height: 180, position: "relative" }}>
+                  <div className={styles.entryMediaWrap}>
                     {e.media ? (
-                      <img
-                        src={e.media}
-                        alt=""
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                      />
+                      <img src={e.media} alt="" className={styles.entryMedia} />
                     ) : (
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          background: "var(--surf-high)",
-                        }}
-                      />
+                      <div className={styles.entryPlaceholder} />
                     )}
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        background:
-                          "linear-gradient(180deg, transparent 45%, rgba(20,14,8,.82))",
-                      }}
-                    />
-                    <div
-                      style={{
-                        position: "absolute",
-                        left: 8,
-                        right: 8,
-                        bottom: 8,
-                      }}
-                    >
-                      <div
-                        className="mono"
-                        style={{
-                          color: "rgba(255,255,255,.8)",
-                          fontSize: ".6rem",
-                          marginBottom: 2,
-                        }}
-                      >
+                    <div className={styles.entryGradient} />
+                    <div className={styles.entryCaption}>
+                      <div className={clsx("mono", styles.entryDay)}>
                         DAY {e.day} · {e.date}
                       </div>
-                      <div
-                        style={{
-                          color: "#fff",
-                          fontSize: ".78rem",
-                          fontWeight: 500,
-                          lineHeight: 1.3,
-                        }}
-                      >
+                      <div className={styles.entryText}>
                         {(e.text ?? "").length > 44
                           ? e.text!.slice(0, 44) + "…"
                           : e.text}
@@ -143,21 +68,7 @@ export function CircleLogFeed({
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => onOpen(log)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: ".4rem",
-                width: "100%",
-                padding: ".8rem",
-                borderTop: "1px solid var(--border)",
-                fontSize: ".85rem",
-                fontWeight: 500,
-                color: "var(--ember)",
-              }}
-            >
+            <button onClick={() => onOpen(log)} className={styles.openFullBtn}>
               Open {log.name.split(" ")[0]}&apos;s full log{" "}
               <Icon name="arrow" size={15} stroke="var(--ember)" />
             </button>

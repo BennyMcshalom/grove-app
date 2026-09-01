@@ -1,0 +1,28 @@
+.bodyCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.main {
+  position: relative;
+  background: var(--bg);
+}
+
+.main.dark {
+  background: var(--forest);
+}
+
+.contentTopGap {
+  margin-top: 20px;
+}

@@ -1,0 +1,80 @@
+.wrap {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  text-align: left;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surf-high);
+  cursor: default;
+}
+
+.wrap.sent {
+  border: 1px solid rgba(255, 255, 255, .25);
+  background: var(--ember-deep);
+}
+
+.wrap.clickable {
+  cursor: pointer;
+}
+
+.eyebrow {
+  padding: .7rem .8rem .3rem;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-3);
+}
+
+.eyebrow.sent {
+  color: rgba(255, 255, 255, .8);
+}
+
+.body {
+  padding: .2rem .8rem .8rem;
+}
+
+.loadingWrap {
+  padding: .3rem 0;
+}
+
+.unavailable {
+  font-size: .8rem;
+  font-style: italic;
+  color: var(--ink-4);
+}
+
+.unavailable.sent {
+  color: rgba(255, 255, 255, .7);
+}
+
+.doing {
+  font-size: .85rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.doing.sent {
+  color: #fff;
+}
+
+.doing.hasHonest {
+  margin-bottom: .25rem;
+}
+
+.honest {
+  font-size: .78rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.honest.sent {
+  color: rgba(255, 255, 255, .8);
+}

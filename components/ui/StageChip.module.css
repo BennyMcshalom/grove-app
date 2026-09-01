@@ -1,0 +1,33 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 100px;
+  padding: .3rem .7rem;
+  background: var(--surf-high);
+  color: var(--ink-2);
+  font-size: .74rem;
+}
+
+.chip.small {
+  font-size: .7rem;
+}
+
+.chip.ember {
+  background: var(--ember-pale);
+  color: var(--ember-deep);
+  padding: .35rem .75rem;
+  font-size: .9rem;
+}
+
+.chip.ember.small {
+  font-size: .85rem;
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}

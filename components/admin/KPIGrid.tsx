@@ -1,8 +1,10 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import clsx from 'clsx';
 import { Spinner } from '@/components/ui/Spinner';
 import { Icon } from '@/components/ui/Icon';
 import type { useAdminStats } from '@/hooks/useAdmin';
+import styles from './KPIGrid.module.css';
 
 export function KPIGrid({ stats, loading }: {
   stats: ReturnType<typeof useAdminStats>['data'];
@@ -11,7 +13,7 @@ export function KPIGrid({ stats, loading }: {
   const router = useRouter();
 
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Spinner /></div>;
+    return <div className={styles.loadingWrap}><Spinner /></div>;
   }
 
   const kpis = stats ? [
@@ -48,27 +50,21 @@ export function KPIGrid({ stats, loading }: {
   ] : [];
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-      gap: '.8rem', marginBottom: '1.6rem'
-    }}>
+    <div className={styles.grid}>
       {kpis.map((k, i) => {
         const Tag = k.href ? 'button' : 'div';
         return (
-          <Tag className="card rise" key={k.label}
+          <Tag className={clsx('card', 'rise', styles.kpiCard)} key={k.label}
             onClick={k.href ? () => router.push(k.href!) : undefined}
-            style={{ padding: '1.05rem 1.2rem', animationDelay: `${i * 0.04}s`, textAlign: 'left', width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.55rem', marginBottom: '.65rem' }}>
-              <span style={{
-                width: 30, height: 30, borderRadius: '50%', background: k.bg, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
+            style={{ animationDelay: `${i * 0.04}s` }}>
+            <div className={styles.kpiHeader}>
+              <span className={styles.kpiIconCircle} style={{ background: k.bg }}>
                 <Icon name={k.icon} size={14} stroke={k.color} sw={1.8} />
               </span>
               <div className="label-mono">{k.label}</div>
             </div>
-            <div className="serif" style={{ fontSize: '1.7rem', fontWeight: 600, lineHeight: 1 }}>{k.value}</div>
-            {k.sub && <div style={{ fontSize: '.72rem', color: 'var(--ink-3)', marginTop: '.35rem' }}>{k.sub}</div>}
+            <div className={clsx('serif', styles.kpiValue)}>{k.value}</div>
+            {k.sub && <div className={styles.kpiSub}>{k.sub}</div>}
           </Tag>
         );
       })}

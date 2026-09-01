@@ -1,0 +1,45 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 1.2rem clamp(1rem, 4vw, 1.6rem);
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink-3);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emphasis {
+  color: var(--ember);
+  font-weight: 600;
+}
+
+.overlapChip {
+  cursor: pointer;
+  flex-shrink: 0;
+  background: var(--surf-high);
+  color: var(--ink-2);
+}
+
+.overlapChip.active {
+  background: var(--ember-dim);
+  color: var(--ember-deep);
+}

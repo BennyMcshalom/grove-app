@@ -1,0 +1,65 @@
+.bar {
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.2rem;
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.searchWrap {
+  position: relative;
+  flex: 1 1 220px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.6rem 0.9rem 0.6rem 2.2rem;
+  border-radius: 100px;
+  border: 1.5px solid var(--border-2);
+  background: var(--surf-low);
+  font-size: 0.86rem;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterLabel {
+  font-size: 0.7rem;
+  color: var(--ink-4);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.filterOptions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.filterChip {
+  cursor: pointer;
+  background: var(--surf-high);
+  color: var(--ink-2);
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.filterChip.active {
+  background: var(--slate);
+  color: #fff;
+}
+
+.filterChip.activeEmber {
+  background: var(--ember);
+  color: #fff;
+}

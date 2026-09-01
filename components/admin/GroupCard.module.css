@@ -1,0 +1,155 @@
+.card {
+  padding: 1rem 1.2rem;
+}
+
+.headerBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  text-align: left;
+}
+
+.emojiCircle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.meta {
+  font-size: 0.76rem;
+  color: var(--ink-3);
+}
+
+.arrowWrap {
+  display: flex;
+  transition: transform 0.15s;
+}
+
+.arrowWrap.open {
+  transform: rotate(90deg);
+}
+
+.body {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.removeMemberRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.removeMemberInput {
+  flex: 1;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.82rem;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--border-2);
+  background: var(--surf-low);
+}
+
+.removeMemberBtn {
+  font-size: 0.8rem;
+  padding: 0.5rem 0.9rem;
+}
+
+.postsLabel {
+  margin-bottom: 0.6rem;
+}
+
+.postsLoadingWrap {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.emptyPosts {
+  font-size: 0.82rem;
+  color: var(--ink-4);
+  font-style: italic;
+}
+
+.postsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.postRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: var(--surf-low);
+  border-radius: var(--r-md);
+  padding: 0.6rem 0.8rem;
+}
+
+.postBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.postAuthor {
+  font-size: 0.76rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.postContent {
+  font-size: 0.84rem;
+  color: var(--ink-2);
+}
+
+.postRemoveBtn {
+  flex-shrink: 0;
+  color: var(--red);
+}
+
+.confirmWrap {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.confirmText {
+  font-size: 0.8rem;
+  color: var(--red);
+  font-weight: 500;
+}
+
+.dangerBtn {
+  background: var(--red);
+  box-shadow: none;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.8rem;
+}
+
+.softBtn {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.8rem;
+}
+
+.disbandLink {
+  font-size: 0.78rem;
+  color: var(--red);
+  font-weight: 600;
+}

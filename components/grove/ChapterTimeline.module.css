@@ -1,0 +1,35 @@
+.wrap {
+  text-align: center;
+  margin-top: 0.4rem;
+}
+
+.hint {
+  margin-bottom: 0.9rem;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  justify-content: center;
+}
+
+.sliderLabel {
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+
+.slider {
+  width: min(240px, 60vw);
+  accent-color: var(--ember);
+}
+
+.chapterNote {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+
+.chapterEmphasis {
+  color: var(--ink);
+}

@@ -1,47 +1,25 @@
 'use client';
 import { Icon } from '@/components/ui/Icon';
 import { Spinner } from '@/components/ui/Spinner';
-
+import styles from './RecordingBar.module.css';
 
 export function RecordingBar({ elapsed, onSend, onCancel, sending }: {
   elapsed: number; onSend: () => void; onCancel: () => void; sending: boolean;
 }) {
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '.75rem',
-      background: 'var(--surf-low)', border: '1.5px solid var(--border-2)',
-      borderRadius: 100, padding: '.5rem .5rem .5rem .9rem'
-    }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flex: 1 }}>
-        <span style={{
-          width: 9, height: 9, borderRadius: '50%', background: 'var(--red)',
-          animation: 'pulseDot 1s ease infinite', display: 'block', flexShrink: 0
-        }} />
-        <span style={{
-          fontSize: '.84rem', color: 'var(--ink-2)', fontWeight: 500,
-          fontFamily: 'inherit'
-        }}>
-          {fmt(elapsed)}
-        </span>
-        <span style={{ flex: 1, height: 3, background: 'var(--border-2)', borderRadius: 2, overflow: 'hidden' }}>
-          <span style={{
-            display: 'block', height: '100%', background: 'var(--ember)', borderRadius: 2,
-            width: `${Math.min(elapsed / 120 * 100, 100)}%`, transition: 'width 1s linear'
-          }} />
+    <div className={styles.wrap}>
+      <span className={styles.left}>
+        <span className={styles.dot} />
+        <span className={styles.time}>{fmt(elapsed)}</span>
+        <span className={styles.track}>
+          <span className={styles.fill} style={{ width: `${Math.min(elapsed / 120 * 100, 100)}%` }} />
         </span>
       </span>
-      <button onClick={onCancel} style={{
-        width: 38, height: 38, borderRadius: '50%',
-        background: 'var(--red-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-      }}>
+      <button onClick={onCancel} className={styles.cancelBtn}>
         <Icon name="close" size={16} stroke="var(--red)" />
       </button>
-      <button onClick={onSend} disabled={sending} style={{
-        width: 38, height: 38, borderRadius: '50%',
-        background: 'var(--ember)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        boxShadow: '0 2px 10px -2px rgba(243,112,30,.5)'
-      }}>
+      <button onClick={onSend} disabled={sending} className={styles.sendBtn}>
         {sending ? <Spinner size={14} color="#fff" /> : <Icon name="send" size={16} stroke="#fff" />}
       </button>
     </div>

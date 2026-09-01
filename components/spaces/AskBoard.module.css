@@ -1,0 +1,154 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.7rem;
+}
+
+.askLink {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--sage);
+  font-weight: 600;
+}
+
+.composerCard {
+  padding: 1.3rem 1.4rem;
+}
+
+.composerHint {
+  font-size: 0.86rem;
+  color: var(--ink-3);
+  line-height: 1.55;
+  margin-bottom: 0.9rem;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 0.85rem 1rem;
+  background: var(--surf-low);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-md);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  resize: vertical;
+  margin-bottom: 0.8rem;
+  color: var(--ink);
+  transition: border 0.15s, box-shadow 0.15s;
+}
+
+.textarea:focus {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px rgba(78, 125, 94, 0.15);
+}
+
+.composerActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cancelBtn {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.84rem;
+}
+
+.submitBtn {
+  flex: 1;
+  background: var(--sage);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: var(--r-md);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+.submitBtn.ready {
+  opacity: 1;
+}
+
+.composerFootnote {
+  font-size: 0.72rem;
+  color: var(--ink-4);
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.dashedPrompt {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 1rem 1.2rem;
+  border-radius: var(--r-lg);
+  border: 1.5px dashed var(--border-2);
+  background: var(--surf-low);
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dashedPrompt:hover {
+  border-color: var(--sage);
+  background: rgba(78, 125, 94, 0.04);
+}
+
+.dashedIconCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-soft);
+}
+
+.dashedTitle {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.dashedSub {
+  font-size: 0.76rem;
+  color: var(--ink-4);
+  margin-top: 2px;
+}
+
+.spaceSectionHead {
+  margin-bottom: 0.7rem;
+}
+
+.spaceFootnote {
+  font-size: 0.72rem;
+  color: var(--ink-4);
+  font-style: italic;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.emptyWrap {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--ink-3);
+}
+
+.emptyText {
+  font-size: 0.88rem;
+  line-height: 1.6;
+}

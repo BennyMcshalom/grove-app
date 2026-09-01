@@ -1,0 +1,20 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn {
+  opacity: 1;
+  font-size: .82rem;
+}
+
+.btn.disabled {
+  opacity: .4;
+}
+
+.label {
+  font-size: .8rem;
+  color: var(--ink-3);
+}

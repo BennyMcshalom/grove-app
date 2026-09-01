@@ -1,0 +1,121 @@
+.row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: .6rem .6rem;
+  border-radius: var(--r-md);
+  background: transparent;
+  border-bottom: none;
+  transition: background .15s;
+}
+
+.row.active {
+  background: var(--ember-dim);
+}
+
+.row.divider {
+  border-bottom: 1px solid var(--border);
+}
+
+.row:hover:not(.active) {
+  background: var(--surf-low);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+}
+
+.avatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.focusBadge {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nameCol {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 600;
+  font-size: .86rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status {
+  font-size: .72rem;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaCol {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.time {
+  font-size: .66rem;
+  color: var(--ink-4);
+}
+
+.unreadBadge {
+  display: inline-block;
+  margin-top: 3px;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 100px;
+  background: var(--ember);
+  color: #fff;
+  font-size: .6rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.streakRow {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: .4rem;
+  padding-left: 50px;
+}
+
+.streakTrack {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--surf-high);
+  overflow: hidden;
+}
+
+.streakFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .5s ease;
+}
+
+.lastSeen {
+  font-size: .62rem;
+  color: var(--ink-4);
+  white-space: nowrap;
+}

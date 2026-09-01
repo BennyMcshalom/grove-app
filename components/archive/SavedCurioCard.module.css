@@ -1,0 +1,83 @@
+.card {
+  margin-bottom: 0.9rem;
+  border-left: 4px solid var(--sage);
+  overflow: hidden;
+}
+
+.body {
+  padding: 1.1rem 1.4rem;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.dateStr {
+  color: var(--sage);
+}
+
+.title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  line-height: 1.3;
+}
+
+.reflectionPreview {
+  font-size: 0.84rem;
+  color: var(--ink-3);
+  font-style: italic;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.reflectionPreview.hidden {
+  display: none;
+}
+
+.expandBtn {
+  font-size: 0.82rem;
+  color: var(--sage);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.expandedBody {
+  border-top: 1px solid var(--border);
+  margin-top: 0.8rem;
+  padding-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sectionLabel {
+  margin-bottom: 0.4rem;
+}
+
+.sectionLabelSage {
+  margin-bottom: 0.4rem;
+  color: var(--sage);
+}
+
+.readingText {
+  color: var(--ink-2);
+  line-height: 1.7;
+  font-size: 0.92rem;
+}
+
+.reflectionText {
+  font-style: italic;
+  color: var(--ink-2);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}

@@ -1,0 +1,90 @@
+.card {
+  padding: 1.3rem 1.4rem;
+}
+
+.skeletonWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.skeletonLine {
+  height: 28px;
+  width: 65%;
+  background: var(--surf-high);
+  border-radius: 6px;
+  animation: pulse 1.5s ease infinite;
+}
+
+.skeletonLine.short {
+  height: 18px;
+  width: 40%;
+}
+
+.editWrap {
+  margin-bottom: 0.6rem;
+}
+
+.editInput {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  font-size: 1.1rem;
+  font-family: inherit;
+  border: 1.5px solid var(--ember);
+  border-radius: var(--r-md);
+  background: var(--surf-low);
+}
+
+.editActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.editActionBtn {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.nameRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.name {
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1.15;
+  margin-bottom: 0.6rem;
+}
+
+.editLink {
+  font-size: 0.8rem;
+  color: var(--ember);
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.auraRow {
+  margin-top: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--ink-3);
+}
+
+.auraDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: block;
+}
+
+.auraHint {
+  font-style: italic;
+}

@@ -2,10 +2,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { useToastStore } from "@/store/useToastStore";
 import { spacesApi } from "@/lib/api";
+import styles from "./OverlapCard.module.css";
 
 // ── Overlap card ──
 export function OverlapCard() {
@@ -28,20 +30,9 @@ export function OverlapCard() {
 
   if (state === "introduced")
     return (
-      <div
-        className="card fade-in"
-        style={{
-          padding: "1.2rem 1.4rem",
-          marginBottom: ".9rem",
-          background: "var(--green-dim)",
-          border: "1px solid rgba(46,107,58,.2)",
-          display: "flex",
-          alignItems: "center",
-          gap: ".6rem",
-        }}
-      >
+      <div className={clsx("card", "fade-in", styles.introducedCard)}>
         <Icon name="check" size={18} stroke="var(--green)" />
-        <span style={{ color: "var(--ink-2)", fontSize: ".92rem" }}>
+        <span className={styles.introducedText}>
           Introduced. {nameA.split(" ")[0]} and {nameB.split(" ")[0]} will each
           get a notification.
         </span>
@@ -49,29 +40,11 @@ export function OverlapCard() {
     );
 
   return (
-    <div
-      className="card"
-      style={{
-        padding: "1.2rem 1.4rem",
-        marginBottom: ".9rem",
-        background: "linear-gradient(135deg, var(--cream), var(--ember-soft))",
-        border: "1px solid var(--ember-bdr)",
-      }}
-    >
-      <div
-        className="label-mono"
-        style={{ color: "var(--ember-deep)", marginBottom: ".6rem" }}
-      >
+    <div className={clsx("card", styles.card)}>
+      <div className={clsx("label-mono", styles.observationLabel)}>
         A quiet observation
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: ".6rem",
-          marginBottom: ".8rem",
-        }}
-      >
+      <div className={styles.peopleRow}>
         <button
           onClick={() =>
             overlap.connectionA?.id &&
@@ -89,7 +62,7 @@ export function OverlapCard() {
             overlap.connectionB?.id &&
             router.push(`/grove/${overlap.connectionB.id}`)
           }
-          style={{ marginLeft: -12 }}
+          className={styles.avatarB}
         >
           <Avatar
             name={nameB}
@@ -97,26 +70,22 @@ export function OverlapCard() {
             avatarUrl={overlap.connectionB?.avatarUrl}
           />
         </button>
-        <p style={{ fontSize: ".92rem", color: "var(--ink-2)" }}>
-          <strong style={{ color: "var(--ink)" }}>{nameA.split(" ")[0]}</strong>{" "}
-          and{" "}
-          <strong style={{ color: "var(--ink)" }}>{nameB.split(" ")[0]}</strong>{" "}
+        <p className={styles.peopleText}>
+          <strong className={styles.emphasis}>{nameA.split(" ")[0]}</strong> and{" "}
+          <strong className={styles.emphasis}>{nameB.split(" ")[0]}</strong>{" "}
           seem to be in a similar{" "}
           {overlap.sharedSpace ? (
-            <strong style={{ color: "var(--ink)" }}>
-              {overlap.sharedSpace}
-            </strong>
+            <strong className={styles.emphasis}>{overlap.sharedSpace}</strong>
           ) : (
             "chapter"
           )}
           .
         </p>
       </div>
-      <div style={{ display: "flex", gap: ".5rem" }}>
+      <div className={styles.actionsRow}>
         <button
           disabled={busy}
-          className="btn btn-primary"
-          style={{ padding: ".5rem 1rem", fontSize: ".85rem" }}
+          className={clsx("btn", "btn-primary", styles.actionBtn)}
           onClick={async () => {
             setBusy(true);
             try {
@@ -136,8 +105,7 @@ export function OverlapCard() {
         </button>
         <button
           disabled={busy}
-          className="btn btn-soft"
-          style={{ padding: ".5rem 1rem", fontSize: ".85rem" }}
+          className={clsx("btn", "btn-soft", styles.actionBtn)}
           onClick={() => {
             setState("dismissed");
             spacesApi.dismissOverlap(overlap.id!).catch(() => {});

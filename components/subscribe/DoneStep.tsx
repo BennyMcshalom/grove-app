@@ -1,99 +1,46 @@
 "use client";
+import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { useToastStore } from "@/store/useToastStore";
 import { TRIAL_END, REMIND_DATE, type Plan } from "./constants";
+import styles from "./DoneStep.module.css";
 
 export function DoneStep({ plan }: { plan: Plan }) {
   const router = useRouter();
   const { toast } = useToastStore();
 
   return (
-    <div
-      className="screen-enter"
-      style={{ textAlign: "center", paddingTop: "1.5rem" }}
-    >
-      <div
-        style={{
-          width: 84,
-          height: 84,
-          borderRadius: "50%",
-          background: "var(--green-dim)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: "0 auto 1.4rem",
-        }}
-      >
+    <div className={clsx("screen-enter", styles.wrap)}>
+      <div className={styles.checkCircle}>
         <Icon name="check" size={40} stroke="var(--green)" />
       </div>
-      <h1
-        className="serif"
-        style={{
-          fontSize: "clamp(1.7rem, 7.5vw, 2.4rem)",
-          fontWeight: 600,
-          lineHeight: 1.1,
-        }}
-      >
+      <h1 className={clsx("serif", styles.title)}>
         Your 14 days start now.
       </h1>
-      <p
-        style={{
-          color: "var(--ink-2)",
-          marginTop: ".6rem",
-          maxWidth: 380,
-          marginInline: "auto",
-          lineHeight: 1.6,
-        }}
-      >
+      <p className={styles.subtitle}>
         Full access to all of Grouv is unlocked. We&apos;ll remind you on{" "}
         {REMIND_DATE}, before your {plan} membership begins.
       </p>
-      <div
-        className="card"
-        style={{
-          padding: "1.1rem 1.4rem",
-          margin: "1.8rem 0",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          textAlign: "left",
-        }}
-      >
+      <div className={clsx("card", styles.trialCard)}>
         <div>
           <div className="label-mono">Trial ends</div>
-          <div style={{ fontWeight: 600, marginTop: 2 }}>{TRIAL_END}</div>
+          <div className={styles.trialEndDate}>{TRIAL_END}</div>
         </div>
-        <span
-          className="chip"
-          style={{
-            background: "var(--ember-dim)",
-            color: "var(--ember-deep)",
-            fontWeight: 600,
-          }}
-        >
+        <span className={clsx("chip", styles.trialChip)}>
           14 days left
         </span>
       </div>
       <button
-        className="btn btn-primary btn-lg btn-block"
+        className={clsx("btn", "btn-primary", "btn-lg", "btn-block", styles.enterBtn)}
         onClick={() => {
           toast("Welcome in. Enjoy all of Grouv.");
           router.push("/home");
         }}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: ".5rem",
-        }}
       >
         Enter Grouv <Icon name="arrow" stroke="#fff" />
       </button>
-      <button
-        onClick={() => router.push("/settings")}
-        style={{ marginTop: "1rem", fontSize: ".82rem", color: "var(--ink-3)" }}
-      >
+      <button onClick={() => router.push("/settings")} className={styles.manageBtn}>
         Manage trial in Settings
       </button>
     </div>

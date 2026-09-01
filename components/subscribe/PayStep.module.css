@@ -1,0 +1,169 @@
+.head {
+  text-align: center;
+  margin-bottom: 1.4rem;
+}
+
+.title {
+  font-size: clamp(1.5rem, 6.5vw, 2.1rem);
+  font-weight: 600;
+}
+
+.subtitle {
+  color: var(--ink-3);
+  margin-top: 0.4rem;
+}
+
+.summaryCard {
+  padding: 1.1rem 1.4rem;
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.summaryTitle {
+  font-weight: 600;
+}
+
+.summarySub {
+  font-size: 0.8rem;
+  color: var(--ink-3);
+}
+
+.summaryPrice {
+  text-align: right;
+}
+
+.summaryAmount {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--ember);
+}
+
+.summaryCadence {
+  font-size: 0.76rem;
+  color: var(--ink-4);
+}
+
+.changeBtn {
+  font-size: 0.72rem;
+  color: var(--ember);
+}
+
+.dueRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.3rem;
+  border-radius: var(--r-md);
+  background: var(--green-dim);
+  margin-bottom: 1.4rem;
+}
+
+.dueLabel {
+  font-weight: 600;
+  color: var(--green);
+}
+
+.dueAmount {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.formCard {
+  padding: 1.4rem 1.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.fieldLabel {
+  display: block;
+  margin-bottom: 0.9rem;
+}
+
+.fieldTitle {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-bottom: 0.35rem;
+}
+
+.cardNumWrap {
+  position: relative;
+}
+
+.textInput {
+  width: 100%;
+  padding: 0.8rem 0.95rem;
+  font-size: 1rem;
+  background: var(--surf-low);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-md);
+}
+
+.textInput:focus {
+  border-color: var(--ember);
+}
+
+.cardNumInput {
+  font-family: var(--mono);
+}
+
+.cardNumInput:focus {
+  box-shadow: 0 0 0 3px var(--ember-dim);
+}
+
+.cardBrands {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 3px;
+}
+
+.cardBrand {
+  width: 24px;
+  height: 16px;
+  border-radius: 3px;
+  display: block;
+}
+
+.cardBrandA {
+  background: linear-gradient(135deg, #f3701e, #c9551a);
+}
+
+.cardBrandB {
+  background: linear-gradient(135deg, #4b607f, #7e93b3);
+}
+
+.expCvcRow {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
+.expCvcField {
+  flex: 1;
+}
+
+.monoInput {
+  font-family: var(--mono);
+}
+
+.submitBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.securedRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+  font-size: 0.76rem;
+  color: var(--ink-4);
+}

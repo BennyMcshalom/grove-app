@@ -1,11 +1,13 @@
 "use client";
 import { useState, useRef } from "react";
+import clsx from "clsx";
 import { Icon } from "@/components/ui/Icon";
 import { SpaceIcon } from "@/components/ui/SpaceIcon";
 import { Spinner } from "@/components/ui/Spinner";
 import type { Space } from "@/lib/types";
 import type { LogEntry } from "./types";
 import { GMark } from "./GMark";
+import styles from "./MomentsEntryCard.module.css";
 
 // ── Daily entry — tactile "greeting card" composer ──────────────────
 export function MomentsEntryCard({
@@ -73,93 +75,33 @@ export function MomentsEntryCard({
   // ── Sealed state — editable until midnight ──
   if (posted && !editing) {
     return (
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <div
-          className="log-card-shadow"
-          style={{
-            width: 316,
-            maxWidth: "100%",
-            borderRadius: 24,
-            overflow: "hidden",
-            background: "var(--cream)",
-            transform: "rotate(-1.5deg)",
-          }}
-        >
+      <div className={styles.centerWrap}>
+        <div className={clsx("log-card-shadow", styles.sealedCard)}>
           {todayEntry?.media && (
-            <div style={{ height: 170, position: "relative" }}>
+            <div className={styles.sealedMediaWrap}>
               <img
                 src={todayEntry.media}
                 alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                className={styles.sealedMedia}
               />
             </div>
           )}
-          <div style={{ padding: "1.3rem 1.4rem", textAlign: "center" }}>
-            <div
-              style={{
-                display: "inline-block",
-                animation: "stamp .6s ease both",
-                border: "2.5px solid var(--ember)",
-                color: "var(--ember)",
-                borderRadius: 10,
-                padding: ".35rem .8rem",
-                fontWeight: 700,
-                letterSpacing: ".04em",
-                textTransform: "uppercase",
-                fontSize: ".78rem",
-              }}
-            >
-              Today&apos;s moment, sealed
-            </div>
+          <div className={styles.sealedBody}>
+            <div className={styles.stamp}>Today&apos;s moment, sealed</div>
             {todayEntry?.text && (
-              <p
-                className="serif"
-                style={{
-                  fontSize: "1.15rem",
-                  fontStyle: "italic",
-                  lineHeight: 1.4,
-                  marginTop: ".9rem",
-                }}
-              >
+              <p className={clsx("serif", styles.sealedText)}>
                 {todayEntry.text}
               </p>
             )}
-            <button
-              onClick={startEdit}
-              style={{
-                marginTop: "1rem",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: ".4rem",
-                fontSize: ".82rem",
-                color: "var(--ember)",
-                fontWeight: 600,
-              }}
-            >
+            <button onClick={startEdit} className={styles.editLink}>
               <Icon name="image" size={15} stroke="var(--ember)" /> Edit
               today&apos;s moment
             </button>
           </div>
-          <div
-            style={{
-              background: "var(--ember)",
-              padding: ".8rem 1.3rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+          <div className={styles.footerBar}>
             <div>
-              <div
-                style={{ color: "#fff", fontWeight: 600, fontSize: ".9rem" }}
-              >
-                Entry sealed
-              </div>
-              <div
-                style={{ color: "rgba(255,255,255,.8)", fontSize: ".72rem" }}
-              >
-                editable until midnight
-              </div>
+              <div className={styles.footerTitle}>Entry sealed</div>
+              <div className={styles.footerSub}>editable until midnight</div>
             </div>
             <GMark size={22} />
           </div>
@@ -169,7 +111,7 @@ export function MomentsEntryCard({
   }
 
   return (
-    <div style={{ display: "flex", justifyContent: "center" }}>
+    <div className={styles.centerWrap}>
       <input
         ref={fileRef}
         type="file"
@@ -178,56 +120,23 @@ export function MomentsEntryCard({
         style={{ display: "none" }}
       />
       <div
-        className="log-card-shadow"
-        style={{
-          width: 316,
-          maxWidth: "100%",
-          borderRadius: 24,
-          overflow: "hidden",
-          background: "var(--cream)",
-          transform: open ? "rotate(0deg)" : "rotate(-1.5deg)",
-          transition: "transform .3s",
-        }}
+        className={clsx(
+          "log-card-shadow",
+          styles.composerCard,
+          open && styles.open,
+        )}
       >
-        <div style={{ padding: "1.5rem 1.5rem 1.2rem" }}>
-          <div
-            className="label-mono"
-            style={{
-              marginBottom: ".9rem",
-              textAlign: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: ".35rem",
-            }}
-          >
+        <div className={styles.composerBody}>
+          <div className={clsx("label-mono", styles.composerLabel)}>
             <SpaceIcon spaceId={space.id} size={12} /> {space.name} ·{" "}
             {editing ? "Editing today" : "Today"}
           </div>
-          <p
-            className="serif"
-            style={{
-              fontSize: "1.5rem",
-              fontWeight: 600,
-              fontStyle: "italic",
-              color: "var(--ember)",
-              lineHeight: 1.25,
-              textAlign: "center",
-              marginBottom: "1.2rem",
-            }}
-          >
-            {prompt}
-          </p>
+          <p className={clsx("serif", styles.promptText)}>{prompt}</p>
 
           {!open ? (
             <button
               onClick={() => setOpen(true)}
-              className="btn btn-soft btn-block"
-              style={{
-                background: "var(--surf-high)",
-                color: "var(--ink-2)",
-                borderRadius: 14,
-              }}
+              className={clsx("btn", "btn-soft", "btn-block", styles.writeBtn)}
             >
               <Icon name="plus" size={17} stroke="var(--ink-2)" /> Write
               today&apos;s moment
@@ -235,35 +144,14 @@ export function MomentsEntryCard({
           ) : (
             <div className="swap-in">
               {imgSrc ? (
-                <div style={{ position: "relative", marginBottom: ".8rem" }}>
-                  <img
-                    src={imgSrc}
-                    alt=""
-                    style={{
-                      width: "100%",
-                      height: 150,
-                      objectFit: "cover",
-                      borderRadius: 14,
-                      display: "block",
-                    }}
-                  />
+                <div className={styles.imgPreviewWrap}>
+                  <img src={imgSrc} alt="" className={styles.imgPreview} />
                   <button
                     onClick={() => {
                       setImgSrc(null);
                       setFile(null);
                     }}
-                    style={{
-                      position: "absolute",
-                      top: 8,
-                      right: 8,
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      background: "var(--ink)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                    className={styles.imgRemoveBtn}
                   >
                     <Icon name="close" size={13} stroke="#fff" />
                   </button>
@@ -271,30 +159,10 @@ export function MomentsEntryCard({
               ) : (
                 <button
                   onClick={() => fileRef.current?.click()}
-                  style={{
-                    width: "100%",
-                    height: 120,
-                    borderRadius: 14,
-                    border: "1.5px dashed var(--border-2)",
-                    background: "var(--surf-low)",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: ".4rem",
-                    marginBottom: ".8rem",
-                  }}
+                  className={styles.uploadBtn}
                 >
                   <Icon name="image" size={20} stroke="var(--ember)" />
-                  <span
-                    style={{
-                      fontSize: ".78rem",
-                      color: "var(--ink-3)",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Add a photo
-                  </span>
+                  <span className={styles.uploadHint}>Add a photo</span>
                 </button>
               )}
               <textarea
@@ -302,59 +170,25 @@ export function MomentsEntryCard({
                 value={text}
                 onChange={(e) => setText(e.target.value.slice(0, 140))}
                 placeholder="One honest line about today…"
-                style={{
-                  width: "100%",
-                  minHeight: 74,
-                  resize: "none",
-                  padding: ".8rem .9rem",
-                  fontSize: "1rem",
-                  lineHeight: 1.5,
-                  background: "var(--white)",
-                  border: "1.5px solid var(--border-2)",
-                  borderRadius: 12,
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "var(--ember)";
-                  e.target.style.boxShadow = "0 0 0 3px var(--ember-dim)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "var(--border-2)";
-                  e.target.style.boxShadow = "none";
-                }}
+                className={styles.textareaEntry}
               />
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginTop: ".7rem",
-                }}
-              >
-                <span
-                  className="mono"
-                  style={{ fontSize: ".66rem", color: "var(--ink-4)" }}
-                >
+              <div className={styles.actionsRow}>
+                <span className={clsx("mono", styles.charCount)}>
                   {text.length}/140
                 </span>
-                <div style={{ display: "flex", gap: ".5rem" }}>
+                <div className={styles.btnGroup}>
                   {editing && (
                     <button
                       onClick={cancel}
-                      className="btn btn-soft"
-                      style={{
-                        borderRadius: 12,
-                        padding: ".5rem .8rem",
-                        fontSize: ".84rem",
-                      }}
+                      className={clsx("btn", "btn-soft", styles.cancelBtn)}
                     >
                       Cancel
                     </button>
                   )}
                   <button
-                    className="btn btn-primary"
+                    className={clsx("btn", "btn-primary", styles.saveBtn)}
                     disabled={!ready}
                     onClick={save}
-                    style={{ borderRadius: 12 }}
                   >
                     {submitting ? (
                       <Spinner size={14} color="#fff" />
@@ -369,20 +203,12 @@ export function MomentsEntryCard({
             </div>
           )}
         </div>
-        <div
-          style={{
-            background: "var(--ember)",
-            padding: ".9rem 1.4rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div className={styles.footerBar}>
           <div>
-            <div style={{ color: "#fff", fontWeight: 600, fontSize: ".95rem" }}>
+            <div className={clsx(styles.footerTitle, styles.composer)}>
               {editing ? "Editing entry" : "New Entry"}
             </div>
-            <div style={{ color: "rgba(255,255,255,.8)", fontSize: ".74rem" }}>
+            <div className={clsx(styles.footerSub, styles.composer)}>
               the story of your life
             </div>
           </div>

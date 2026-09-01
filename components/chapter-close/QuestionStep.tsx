@@ -1,6 +1,8 @@
 "use client";
+import clsx from "clsx";
 import { SpaceIcon } from "@/components/ui/SpaceIcon";
 import { NavRow } from "./NavRow";
+import styles from "./QuestionStep.module.css";
 
 // ── Steps 1–3: Preset questions ──
 export function QuestionStep({
@@ -30,28 +32,11 @@ export function QuestionStep({
 }) {
   return (
     <>
-      <div
-        className="label-mono"
-        style={{
-          marginBottom: "1rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: ".5rem",
-        }}
-      >
+      <div className={clsx("label-mono", styles.meta)}>
         <SpaceIcon spaceId={spaceId} size={12} /> {spaceName} · Question {step}{" "}
         of {total}
       </div>
-      <h1
-        className="serif"
-        style={{
-          fontSize: "1.9rem",
-          fontWeight: 600,
-          marginBottom: "1.4rem",
-          lineHeight: 1.25,
-        }}
-      >
+      <h1 className={clsx("serif", styles.title)}>
         {label}
       </h1>
       <textarea
@@ -59,28 +44,9 @@ export function QuestionStep({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        style={{
-          width: "100%",
-          minHeight: 140,
-          padding: "1.1rem",
-          fontSize: "1.05rem",
-          lineHeight: 1.6,
-          background: "var(--white)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-md)",
-          resize: "vertical",
-          marginBottom: ".2rem",
-          textAlign: "left",
-        }}
+        className={styles.textarea}
       />
-      <p
-        style={{
-          fontSize: ".78rem",
-          color: "var(--ink-4)",
-          marginBottom: 0,
-          textAlign: "right",
-        }}
-      >
+      <p className={styles.hint}>
         Optional. Write as much or as little as you need.
       </p>
       <NavRow

@@ -1,0 +1,58 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(26, 26, 26, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+.modal {
+  width: min(480px, 94vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--cream);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+}
+
+.header {
+  padding: 1.2rem 1.3rem 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.body {
+  padding: 0.4rem 1.3rem 1.3rem;
+}
+
+.loadingWrap {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.errorWrap {
+  text-align: center;
+  padding: 1.5rem 0;
+  color: var(--ink-3);
+}

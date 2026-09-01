@@ -1,0 +1,58 @@
+.wrap {
+  margin-top: 0.7rem;
+  padding: 0.9rem 1rem;
+  background: var(--surf-low);
+  box-shadow: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.closeBtn {
+  color: var(--ink-4);
+}
+
+.loadingWrap {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.emptyText {
+  font-size: 0.82rem;
+  color: var(--ink-4);
+  font-style: italic;
+  margin: 0;
+}
+
+.list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.inviteBtn {
+  padding: 0.32rem 0.75rem;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}

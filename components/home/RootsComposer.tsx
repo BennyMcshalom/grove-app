@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import clsx from "clsx";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import { SpaceIcon } from "@/components/ui/SpaceIcon";
@@ -9,19 +10,25 @@ import { useMySpaces } from "@/hooks/useSpaces";
 import { PROGRESS, spaceById } from "@/lib/data";
 import { postsApi } from "@/lib/api";
 import type { Post } from "@/lib/types";
+import styles from "./RootsComposer.module.css";
+
+export interface RootsComposerHandle {
+  open: () => void;
+}
 
 // ── Roots Composer ──
 // A slim always-visible bar that, on any click, opens the full compose
 // modal — nothing expands inline anymore.
-export function RootsComposer({
-  onPost,
-}: {
-  onPost?: (p: Post & { _mediaFile?: File }) => void;
-}) {
+export const RootsComposer = React.forwardRef<
+  RootsComposerHandle,
+  {
+    onPost?: (p: Post & { _mediaFile?: File }) => void;
+    /** Keeps the component mounted (so `ref.open()` still works) but hides the slim trigger bar */
+    hideTrigger?: boolean;
+  }
+>(function RootsComposer({ onPost, hideTrigger }, ref) {
   const { user } = useUserStore();
   const { toast } = useToastStore();
-  // user.spaces is a one-time onboarding snapshot, never updated when a
-  // space is opened/closed later — mySpaceSlugs is the real, live list.
   const { data: mySpaces } = useMySpaces();
   const mySpaceSlugs = (mySpaces ?? [])
     .map((s) => s.space?.slug)
@@ -179,6 +186,7 @@ export function RootsComposer({
   };
 
   const openModal = () => setOpen(true);
+  React.useImperativeHandle(ref, () => ({ open: openModal }));
 
   return (
     <>
@@ -206,152 +214,76 @@ export function RootsComposer({
       />
 
       {/* Slim trigger bar — clicking anywhere on it opens the compose modal */}
-      <div
-        className="card"
-        style={{ padding: "1.4rem", marginBottom: "1.1rem" }}
-      >
-        <button
-          onClick={openModal}
-          style={{
-            display: "flex",
-            width: "100%",
-            alignItems: "center",
-            gap: ".8rem",
-            marginBottom: ".9rem",
-            textAlign: "left",
-          }}
-        >
-          <Avatar name={user.name} size={40} avatarUrl={user.avatar_url} />
-          <span
-            style={{
-              flex: 1,
-              padding: ".8rem 1rem",
-              fontSize: ".78rem",
-              fontWeight: 500,
-              letterSpacing: ".02em",
-              textTransform: "uppercase",
-              background: "var(--surf-low)",
-              border: "1.5px solid var(--border-2)",
-              borderRadius: "16px",
-              color: "var(--ink-3)",
-            }}
-          >
-            {mode === "root"
-              ? "What are you doing right now?"
-              : "Say anything. A line is enough."}
-          </span>
-        </button>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: ".5rem",
-          }}
-        >
-          <button
-            onClick={openModal}
-            className="chip"
-            style={{
-              cursor: "pointer",
-              background: "var(--ember-pale)",
-              color: "var(--ink-2)",
-              fontWeight: 500,
-            }}
-          >
-            <Icon
-              name={mode === "root" ? "sprout" : "image"}
-              size={13}
-              stroke="var(--ink-3)"
-            />
-            {mode === "root" ? "Root a thought" : "Just Grouv"}
-            <Icon name="chevron-down" size={13} stroke="var(--ink-3)" />
+      {!hideTrigger && (
+        <div className={clsx("card", styles.triggerCard)}>
+          <button onClick={openModal} className={styles.triggerRow}>
+            <Avatar name={user.name} size={40} avatarUrl={user.avatar_url} />
+            <span className={styles.triggerInput}>
+              {mode === "root"
+                ? "What are you doing right now?"
+                : "Say anything. A line is enough."}
+            </span>
           </button>
 
-          {mySpaceSlugs.length > 0 && (
+          <div className={styles.chipRow}>
             <button
               onClick={openModal}
-              className="chip"
-              style={{
-                cursor: "pointer",
-                background: "var(--ember-pale)",
-                color: "var(--ink-2)",
-                fontWeight: 500,
-              }}
+              className={clsx("chip", styles.pillChip)}
             >
-              <SpaceIcon spaceId={activeSpace} size={13} />
-              {spaceById(activeSpace).name}
+              <Icon
+                name={mode === "root" ? "sprout" : "image"}
+                size={16}
+                stroke="var(--ink-3)"
+              />
+              {mode === "root" ? "Root a thought" : "Just Grouv"}
               <Icon name="chevron-down" size={13} stroke="var(--ink-3)" />
             </button>
-          )}
 
-          <button
-            onClick={openModal}
-            className="chip"
-            style={{
-              cursor: "pointer",
-              background: "var(--ember-pale)",
-              color: "var(--ink-2)",
-              fontWeight: 500,
-            }}
-          >
-            <Icon name="image" size={13} stroke="var(--ink-3)" /> Photo
-            <Icon name="chevron-down" size={13} stroke="var(--ink-3)" />
-          </button>
+            {mySpaceSlugs.length > 0 && (
+              <button
+                onClick={openModal}
+                className={clsx("chip", styles.pillChip)}
+              >
+                <SpaceIcon spaceId={activeSpace} size={13} />
+                {spaceById(activeSpace).name}
+                <Icon name="chevron-down" size={13} stroke="var(--ink-3)" />
+              </button>
+            )}
 
-          <div style={{ flex: 1 }} />
+            <button
+              onClick={openModal}
+              className={clsx("chip", styles.pillChip)}
+            >
+              <Icon name="image" size={13} stroke="var(--ink-3)" /> Photo
+              <Icon name="chevron-down" size={13} stroke="var(--ink-3)" />
+            </button>
 
-          <button
-            onClick={openModal}
-            className="btn btn-primary"
-            style={{ minWidth: 110, opacity: ready ? 1 : 0.55 }}
-          >
-            {mode === "root" ? "Root this" : "Grouv it"}
-          </button>
+            <div className={styles.grow} />
+
+            <button
+              onClick={openModal}
+              className={clsx(
+                "btn",
+                "btn-primary",
+                styles.submitBtn,
+                !ready && styles.dimmed,
+              )}
+            >
+              {mode === "root" ? "Root this" : "Grouv it"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {open && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9000,
-            background: "rgba(26,26,26,.55)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "1.5rem",
-          }}
-          onClick={() => setOpen(false)}
-        >
+        <div className={styles.overlay} onClick={() => setOpen(false)}>
           <div
-            className="rise"
-            style={{
-              width: "min(520px, 94vw)",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              background: "var(--white)",
-              borderRadius: 24,
-              boxShadow: "var(--shadow-lg)",
-              padding: "1.6rem",
-            }}
+            className={clsx("rise", styles.modal)}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header: avatar, name, space picker — close button */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                marginBottom: "1.2rem",
-              }}
-            >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: ".7rem" }}
-              >
+            <div className={styles.modalHeader}>
+              <div className={styles.headerLeft}>
                 <Avatar
                   name={user.name}
                   size={44}
@@ -359,20 +291,12 @@ export function RootsComposer({
                   dot
                 />
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: "1rem" }}>
-                    {user.name}
-                  </div>
+                  <div className={styles.userName}>{user.name}</div>
                   {mySpaceSlugs.length > 0 && (
-                    <div style={{ position: "relative", marginTop: 4 }}>
+                    <div className={styles.spaceMenuWrap}>
                       <button
                         onClick={() => setSpaceMenuOpen((v) => !v)}
-                        className="chip"
-                        style={{
-                          cursor: "pointer",
-                          background: "var(--ember-pale)",
-                          color: "var(--ember-deep)",
-                          fontWeight: 500,
-                        }}
+                        className={clsx("chip", styles.spaceChip)}
                       >
                         <SpaceIcon spaceId={activeSpace} size={13} />
                         {spaceById(activeSpace).name}
@@ -383,23 +307,7 @@ export function RootsComposer({
                         />
                       </button>
                       {spaceMenuOpen && (
-                        <div
-                          className="fade-in"
-                          style={{
-                            position: "absolute",
-                            top: "calc(100% + 6px)",
-                            left: 0,
-                            zIndex: 20,
-                            minWidth: 180,
-                            background: "var(--white)",
-                            borderRadius: "var(--r-md)",
-                            boxShadow: "var(--shadow-lg)",
-                            border: "1px solid var(--border)",
-                            overflow: "hidden",
-                            maxHeight: 260,
-                            overflowY: "auto",
-                          }}
-                        >
+                        <div className={clsx("fade-in", styles.spaceMenuList)}>
                           {mySpaceSlugs.map((slug) => {
                             const sp = spaceById(slug);
                             const active = slug === activeSpace;
@@ -410,22 +318,10 @@ export function RootsComposer({
                                   setSelectedSpace(slug);
                                   setSpaceMenuOpen(false);
                                 }}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: ".55rem",
-                                  width: "100%",
-                                  textAlign: "left",
-                                  padding: ".65rem .9rem",
-                                  fontSize: ".85rem",
-                                  fontWeight: 500,
-                                  color: active
-                                    ? "var(--ember)"
-                                    : "var(--ink-2)",
-                                  background: active
-                                    ? "var(--ember-dim)"
-                                    : "transparent",
-                                }}
+                                className={clsx(
+                                  styles.spaceMenuItem,
+                                  active && styles.active,
+                                )}
                               >
                                 <SpaceIcon spaceId={slug} size={14} /> {sp.name}
                               </button>
@@ -439,20 +335,13 @@ export function RootsComposer({
               </div>
               <button
                 onClick={() => setOpen(false)}
-                style={{
-                  width: 32,
-                  height: 32,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
+                className={styles.closeBtn}
               >
                 <Icon name="close" size={20} stroke="var(--ink)" />
               </button>
               {spaceMenuOpen && (
                 <div
-                  style={{ position: "fixed", inset: 0, zIndex: 10 }}
+                  className={styles.clickCatcher}
                   onClick={() => setSpaceMenuOpen(false)}
                 />
               )}
@@ -460,33 +349,17 @@ export function RootsComposer({
 
             {/* Full-bleed media preview — breaks out of the modal's side padding */}
             {mode === "root" && media && (
-              <div
-                style={{
-                  position: "relative",
-                  margin: "0 -1.6rem 1.3rem",
-                  overflow: "hidden",
-                }}
-              >
+              <div className={styles.mediaBand}>
                 {media.type === "image" ? (
                   <img
                     src={media.src}
                     alt=""
-                    style={{
-                      width: "100%",
-                      height: 320,
-                      objectFit: "cover",
-                      display: "block",
-                    }}
+                    className={styles.mediaBandMedia}
                   />
                 ) : (
                   <video
                     src={media.src}
-                    style={{
-                      width: "100%",
-                      height: 320,
-                      objectFit: "cover",
-                      display: "block",
-                    }}
+                    className={styles.mediaBandMedia}
                     controls={false}
                   />
                 )}
@@ -495,18 +368,7 @@ export function RootsComposer({
                     URL.revokeObjectURL(media.src);
                     setMedia(null);
                   }}
-                  style={{
-                    position: "absolute",
-                    top: 12,
-                    right: 12,
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
-                    background: "rgba(26,26,26,.55)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                  className={styles.mediaBandClose}
                 >
                   <Icon name="close" size={16} stroke="#fff" />
                 </button>
@@ -514,13 +376,7 @@ export function RootsComposer({
             )}
 
             {/* Tabs */}
-            <div
-              style={{
-                display: "flex",
-                borderBottom: "1px solid var(--border)",
-                marginBottom: "1.3rem",
-              }}
-            >
+            <div className={styles.tabs}>
               {(
                 [
                   ["root", "Root a thought"],
@@ -533,19 +389,7 @@ export function RootsComposer({
                     setMode(id);
                     setMedia(null);
                   }}
-                  style={{
-                    flex: 1,
-                    textAlign: "center",
-                    padding: ".75rem 0",
-                    fontSize: ".92rem",
-                    fontWeight: 500,
-                    color: mode === id ? "var(--ember)" : "var(--ink-3)",
-                    borderBottom:
-                      mode === id
-                        ? "2px solid var(--ember)"
-                        : "2px solid transparent",
-                    marginBottom: -1,
-                  }}
+                  className={clsx(styles.tab, mode === id && styles.active)}
                 >
                   {label}
                 </button>
@@ -554,68 +398,39 @@ export function RootsComposer({
 
             {mode === "root" ? (
               <>
-                <div style={{ marginBottom: "1rem" }}>
-                  <div
-                    className="label-mono"
-                    style={{ marginBottom: ".5rem", fontFamily: "inherit" }}
-                  >
+                <div className={styles.field}>
+                  <div className={clsx("label-mono", styles.fieldLabel)}>
                     What are you doing right now?
                   </div>
                   <input
                     value={doing}
                     maxLength={100}
                     onChange={(e) => setDoing(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: ".8rem .9rem",
-                      fontSize: ".95rem",
-                      background: "var(--surf-low)",
-                      border: "1.5px solid var(--border-2)",
-                      borderRadius: "var(--r-md)",
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "var(--ember)";
-                      e.target.style.boxShadow = "0 0 0 3px var(--ember-dim)";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "var(--border-2)";
-                      e.target.style.boxShadow = "none";
-                    }}
+                    className={styles.textInput}
                   />
                 </div>
 
-                <div style={{ marginBottom: "1rem" }}>
+                <div className={styles.field}>
                   <div
-                    className="label-mono"
-                    style={{ marginBottom: ".6rem", fontFamily: "inherit" }}
+                    className={clsx(
+                      "label-mono",
+                      styles.fieldLabel,
+                      styles.wide,
+                    )}
                   >
                     Where are you in it?{" "}
-                    <span
-                      style={{
-                        textTransform: "none",
-                        letterSpacing: 0,
-                        color: "var(--ink-4)",
-                      }}
-                    >
-                      · optional
-                    </span>
+                    <span className={styles.optionalNote}>· optional</span>
                   </div>
-                  <div
-                    style={{ display: "flex", flexWrap: "wrap", gap: ".5rem" }}
-                  >
+                  <div className={styles.progressPillsWrap}>
                     {PROGRESS.map((p) => (
                       <button
                         key={p}
                         onClick={() => setProg(prog === p ? null : p)}
-                        className="chip"
-                        style={{
-                          cursor: "pointer",
-                          padding: ".45rem .85rem",
-                          background:
-                            prog === p ? "var(--ember)" : "var(--ember-pale)",
-                          color: prog === p ? "#fff" : "var(--ink-2)",
-                          fontWeight: 500,
-                        }}
+                        className={clsx(
+                          "chip",
+                          styles.progressChip,
+                          prog === p && styles.active,
+                        )}
                       >
                         {p}
                       </button>
@@ -623,117 +438,55 @@ export function RootsComposer({
                   </div>
                 </div>
 
-                <div style={{ marginBottom: "1.1rem" }}>
-                  <div
-                    className="label-mono"
-                    style={{ marginBottom: ".5rem", fontFamily: "inherit" }}
-                  >
+                <div className={styles.fieldWide}>
+                  <div className={clsx("label-mono", styles.fieldLabel)}>
                     One honest thing about where you are
                   </div>
                   <textarea
                     value={honest}
-                    maxLength={200}
+                    maxLength={2000}
                     onChange={(e) => setHonest(e.target.value)}
                     placeholder="The honest thing is…"
-                    style={{
-                      width: "100%",
-                      minHeight: 96,
-                      resize: "vertical",
-                      padding: ".8rem .9rem",
-                      fontSize: ".95rem",
-                      lineHeight: 1.55,
-                      background: "var(--surf-low)",
-                      border: "1.5px solid var(--border-2)",
-                      borderRadius: "var(--r-md)",
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "var(--ember)";
-                      e.target.style.boxShadow = "0 0 0 3px var(--ember-dim)";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "var(--border-2)";
-                      e.target.style.boxShadow = "none";
-                    }}
+                    className={clsx(styles.textarea, styles.honestTextarea)}
                   />
-                  <div
-                    style={{
-                      textAlign: "right",
-                      fontSize: ".68rem",
-                      color: "var(--ink-4)",
-                    }}
-                  >
-                    {honest.length}/200
-                  </div>
+                  <div className={styles.charCount}>{honest.length}/2000</div>
                 </div>
 
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: ".55rem",
-                    fontSize: ".88rem",
-                    color: "var(--ink-2)",
-                    cursor: "pointer",
-                    marginBottom: "1.1rem",
-                  }}
-                >
+                <label className={styles.anonLabel}>
                   <input
                     type="checkbox"
                     checked={anon}
                     onChange={(e) => setAnon(e.target.checked)}
-                    style={{
-                      accentColor: "var(--ember)",
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                    }}
+                    className={styles.anonCheckbox}
                   />
                   Post anonymously
                 </label>
 
-                <div
-                  style={{
-                    borderTop: "1px solid var(--border)",
-                    paddingTop: "1.1rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: ".7rem",
-                  }}
-                >
-                  <div style={{ display: "flex", gap: ".5rem" }}>
+                <div className={styles.footerRow}>
+                  <div className={styles.footerLeft}>
                     <button
                       onClick={() => imageRef.current?.click()}
-                      className="chip"
-                      style={{
-                        cursor: "pointer",
-                        background: "var(--surf-high)",
-                        color: "var(--ink-2)",
-                        fontWeight: 500,
-                      }}
+                      className={clsx("chip", styles.mediaChip)}
                     >
                       <Icon name="image" size={14} stroke="var(--ink-3)" />{" "}
                       Photo
                     </button>
                     <button
                       onClick={() => videoRef.current?.click()}
-                      className="chip"
-                      style={{
-                        cursor: "pointer",
-                        background: "var(--surf-high)",
-                        color: "var(--ink-2)",
-                        fontWeight: 500,
-                      }}
+                      className={clsx("chip", styles.mediaChip)}
                     >
                       <Icon name="video" size={14} stroke="var(--ink-3)" />{" "}
                       Video
                     </button>
                   </div>
                   <button
-                    className="btn btn-primary"
+                    className={clsx(
+                      "btn",
+                      "btn-primary",
+                      styles.footerSubmitBtn,
+                    )}
                     disabled={!ready}
                     onClick={submit}
-                    style={{ minWidth: 120 }}
                   >
                     {uploading ? "Posting…" : "Root this"}
                   </button>
@@ -742,13 +495,7 @@ export function RootsComposer({
             ) : (
               <>
                 {!media ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: ".9rem",
-                      marginBottom: "1.1rem",
-                    }}
-                  >
+                  <div className={styles.uploadTilesRow}>
                     {(
                       [
                         ["image", "Photo", "image"],
@@ -763,51 +510,20 @@ export function RootsComposer({
                             : videoRef
                           ).current?.click()
                         }
-                        style={{
-                          flex: 1,
-                          padding: "1.8rem 1rem",
-                          borderRadius: "var(--r-md)",
-                          background: "var(--surf-high)",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: ".6rem",
-                        }}
+                        className={styles.uploadTile}
                       >
-                        <span
-                          style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: "50%",
-                            background: "var(--ember-dim)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
+                        <span className={styles.uploadTileIcon}>
                           <Icon name={icon} size={21} stroke="var(--ember)" />
                         </span>
-                        <span style={{ fontWeight: 600, fontSize: ".9rem" }}>
-                          {label}
-                        </span>
-                        <span
-                          style={{ fontSize: ".72rem", color: "var(--ink-4)" }}
-                        >
+                        <span className={styles.uploadTileLabel}>{label}</span>
+                        <span className={styles.uploadTileHint}>
                           Upload a {label.toLowerCase()}
                         </span>
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div
-                    style={{
-                      position: "relative",
-                      margin: "0 -1.6rem 1.1rem",
-                      overflow: "hidden",
-                      height: 320,
-                      background: "#2a1d12",
-                    }}
-                  >
+                  <div className={clsx(styles.mediaBand, styles.grouv)}>
                     {media.type === "video" ? (
                       <video
                         src={media.src}
@@ -817,65 +533,20 @@ export function RootsComposer({
                         onLoadedMetadata={(e) => {
                           (e.target as HTMLVideoElement).currentTime = 0.01;
                         }}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          display: "block",
-                        }}
+                        className={styles.mediaBandMedia}
                       />
                     ) : (
                       <img
                         src={media.src}
                         alt=""
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
+                        className={styles.mediaBandMedia}
                       />
                     )}
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        background:
-                          "linear-gradient(180deg, rgba(20,12,4,.5) 0%, transparent 30%, transparent 55%, rgba(20,12,4,.8) 100%)",
-                        pointerEvents: "none",
-                      }}
-                    />
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 16,
-                        left: 0,
-                        right: 0,
-                        textAlign: "center",
-                        pointerEvents: "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          color: "#fff",
-                          fontSize: "1.05rem",
-                          fontWeight: 700,
-                          letterSpacing: ".02em",
-                        }}
-                      >
-                        {nowClock()}
-                      </div>
+                    <div className={styles.grouvGradient} />
+                    <div className={styles.grouvTopOverlay}>
+                      <div className={styles.grouvClock}>{nowClock()}</div>
                       {user.location && (
-                        <div
-                          style={{
-                            color: "rgba(255,255,255,.85)",
-                            fontSize: ".78rem",
-                            marginTop: 4,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 4,
-                          }}
-                        >
+                        <div className={styles.grouvLocation}>
                           <Icon
                             name="pin"
                             size={12}
@@ -886,51 +557,14 @@ export function RootsComposer({
                       )}
                     </div>
                     {media.type === "video" && (
-                      <span
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          pointerEvents: "none",
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 52,
-                            height: 52,
-                            borderRadius: "50%",
-                            background: "rgba(255,255,255,.9)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
+                      <span className={styles.grouvPlayOverlay}>
+                        <span className={styles.grouvPlayBtn}>
                           <Icon name="play" size={22} stroke="var(--ink)" />
                         </span>
                       </span>
                     )}
-                    <div
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        padding: "1.2rem 1.2rem 1.3rem",
-                        textAlign: "center",
-                      }}
-                    >
-                      <p
-                        style={{
-                          color: "#fff",
-                          fontSize: "1rem",
-                          fontWeight: 500,
-                          lineHeight: 1.3,
-                          minHeight: "1.4em",
-                          textShadow: "0 2px 12px rgba(0,0,0,.4)",
-                        }}
-                      >
+                    <div className={styles.grouvCaptionWrap}>
+                      <p className={styles.grouvCaptionText}>
                         {caption || "Caption here"}
                       </p>
                     </div>
@@ -939,29 +573,15 @@ export function RootsComposer({
                         URL.revokeObjectURL(media.src);
                         setMedia(null);
                       }}
-                      style={{
-                        position: "absolute",
-                        top: 10,
-                        right: 10,
-                        width: 30,
-                        height: 30,
-                        borderRadius: "50%",
-                        background: "rgba(26,26,26,.6)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
+                      className={styles.grouvCloseBtn}
                     >
                       <Icon name="close" size={16} stroke="#fff" />
                     </button>
                   </div>
                 )}
 
-                <div style={{ marginBottom: "1.1rem" }}>
-                  <div
-                    className="label-mono"
-                    style={{ marginBottom: ".5rem", fontFamily: "inherit" }}
-                  >
+                <div className={styles.fieldWide}>
+                  <div className={clsx("label-mono", styles.fieldLabel)}>
                     Caption
                   </div>
                   <textarea
@@ -969,75 +589,30 @@ export function RootsComposer({
                     maxLength={120}
                     onChange={(e) => setCaption(e.target.value)}
                     placeholder="Share a thought, feeling, or moment…"
-                    style={{
-                      width: "100%",
-                      minHeight: 60,
-                      resize: "vertical",
-                      padding: ".8rem .9rem",
-                      fontSize: ".95rem",
-                      lineHeight: 1.5,
-                      background: "var(--surf-low)",
-                      border: "1.5px solid var(--border-2)",
-                      borderRadius: "var(--r-md)",
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "var(--ember)";
-                      e.target.style.boxShadow = "0 0 0 3px var(--ember-dim)";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "var(--border-2)";
-                      e.target.style.boxShadow = "none";
-                    }}
+                    className={clsx(styles.textarea, styles.captionTextarea)}
                   />
-                  <div
-                    style={{
-                      textAlign: "right",
-                      fontSize: ".68rem",
-                      color: "var(--ink-4)",
-                    }}
-                  >
-                    {caption.length}/120
-                  </div>
+                  <div className={styles.charCount}>{caption.length}/120</div>
                 </div>
 
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: ".55rem",
-                    fontSize: ".88rem",
-                    color: "var(--ink-2)",
-                    cursor: "pointer",
-                    marginBottom: "1.1rem",
-                  }}
-                >
+                <label className={styles.anonLabel}>
                   <input
                     type="checkbox"
                     checked={anon}
                     onChange={(e) => setAnon(e.target.checked)}
-                    style={{
-                      accentColor: "var(--ember)",
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                    }}
+                    className={styles.anonCheckbox}
                   />
                   Post anonymously
                 </label>
 
-                <div
-                  style={{
-                    borderTop: "1px solid var(--border)",
-                    paddingTop: "1.1rem",
-                    display: "flex",
-                    justifyContent: "flex-end",
-                  }}
-                >
+                <div className={clsx(styles.footerRow, styles.end)}>
                   <button
-                    className="btn btn-primary"
+                    className={clsx(
+                      "btn",
+                      "btn-primary",
+                      styles.footerSubmitBtn,
+                    )}
                     disabled={!ready}
                     onClick={submit}
-                    style={{ minWidth: 120 }}
                   >
                     {uploading ? "Posting…" : "Grouv it"}
                   </button>
@@ -1049,4 +624,4 @@ export function RootsComposer({
       )}
     </>
   );
-}
+});

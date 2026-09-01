@@ -1,0 +1,73 @@
+.card {
+  overflow: hidden;
+}
+
+.head {
+  padding: 1.2rem 1.4rem;
+  border-left: 4px solid var(--sage);
+  background: linear-gradient(160deg, var(--white) 55%, rgba(78, 125, 94, 0.05));
+}
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.7rem;
+}
+
+.question {
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+  flex: 1;
+}
+
+.badge {
+  flex-shrink: 0;
+  background: rgba(78, 125, 94, 0.12);
+  color: var(--sage);
+  font-weight: 600;
+  font-size: 0.66rem;
+}
+
+.badge.urgent {
+  background: var(--ember-dim);
+  color: var(--ember-deep);
+}
+
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--ink-4);
+  font-weight: 500;
+}
+
+.toggleBtn.hasReplies {
+  color: var(--sage);
+}
+
+.chevron {
+  transform: rotate(0deg);
+  transition: transform 0.2s;
+}
+
+.chevron.open {
+  transform: rotate(90deg);
+}
+
+.repliesWrap {
+  border-top: 1px solid var(--border);
+  padding: 0.9rem 1.4rem 1.2rem;
+}
+
+.footnote {
+  font-size: 0.7rem;
+  color: var(--ink-4);
+  font-style: italic;
+  text-align: center;
+  margin-top: 0.3rem;
+}

@@ -1,0 +1,149 @@
+.card {
+  padding: 1rem 1.2rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.iconCircle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surf-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.contentLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.reasonChip {
+  font-size: 0.66rem;
+  text-transform: capitalize;
+}
+
+.reasonChip.spam {
+  background: var(--slate-dim);
+  color: var(--slate);
+}
+
+.reasonChip.harassment {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.reasonChip.inappropriate {
+  background: var(--amber-dim);
+  color: var(--amber);
+}
+
+.reasonChip.other {
+  background: var(--surf-high);
+  color: var(--ink-3);
+}
+
+.date {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--ink-4);
+  font-family: inherit;
+}
+
+.snapshot {
+  font-size: 0.88rem;
+  color: var(--ink-2);
+  font-style: italic;
+  line-height: 1.55;
+  background: var(--surf-low);
+  border-radius: var(--r-sm);
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.7rem;
+}
+
+.details {
+  font-size: 0.8rem;
+  color: var(--ink-3);
+  margin-bottom: 0.7rem;
+}
+
+.detailsLabel {
+  margin-right: 0.4rem;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.reportedBy {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+
+.authorLink {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.confirmWrap {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.confirmText {
+  font-size: 0.78rem;
+  color: var(--red);
+  font-weight: 500;
+}
+
+.dangerBtn {
+  background: var(--red);
+  box-shadow: none;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.8rem;
+}
+
+.softBtn {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.8rem;
+}
+
+.actionsWrap {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dismissBtn {
+  font-size: 0.78rem;
+  padding: 0.4rem 0.85rem;
+}
+
+.removeBtn {
+  font-size: 0.78rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--r-md);
+  background: var(--red-dim);
+  color: var(--red);
+  font-weight: 600;
+}
+
+.resolvedLabel {
+  font-size: 0.74rem;
+  color: var(--ink-4);
+  font-style: italic;
+  text-transform: capitalize;
+}

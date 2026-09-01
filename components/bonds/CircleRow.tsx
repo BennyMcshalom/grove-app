@@ -1,8 +1,10 @@
 'use client';
+import clsx from 'clsx';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { formatRelativeTime, formatLastSeen, isOnline } from '@/lib/mappers';
 import type { BondRecord } from '@/lib/api';
+import styles from './CircleRow.module.css';
 
 export function CircleRow({ bond, active, onClick, showDivider }: {
   bond: BondRecord; active: boolean; onClick: () => void; showDivider: boolean;
@@ -15,57 +17,31 @@ export function CircleRow({ bond, active, onClick, showDivider }: {
   const online = isOnline(bond.otherUser?.lastActiveAt);
 
   return (
-    <button onClick={onClick} style={{
-      display: 'block', width: '100%', textAlign: 'left', padding: '.6rem .6rem', borderRadius: 'var(--r-md)',
-      background: active ? 'var(--ember-dim)' : 'transparent',
-      borderBottom: showDivider ? '1px solid var(--border)' : 'none',
-    }}
-      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--surf-low)'; }}
-      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '.7rem' }}>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
+    <button onClick={onClick} className={clsx(styles.row, active && styles.active, showDivider && styles.divider)}>
+      <div className={styles.header}>
+        <div className={styles.avatarWrap}>
           <Avatar name={name} size={40} avatarUrl={bond.otherUser?.avatarUrl} aura={bond.otherUser?.aura ?? undefined} dot={online && !inFocus} />
           {inFocus && (
-            <div title="In Deep Focus" style={{
-              position: 'absolute', bottom: -1, right: -1,
-              width: 14, height: 14, borderRadius: '50%', background: 'var(--ink)',
-              border: '2px solid var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
+            <div title="In Deep Focus" className={styles.focusBadge}>
               <Icon name="moon" size={7} stroke="var(--cream)" sw={1.8} />
             </div>
           )}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: '.86rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-          <div style={{ fontSize: '.72rem', color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {inFocus ? 'in focus' : (bond.otherUser?.openTo || ' ')}
-          </div>
+        <div className={styles.nameCol}>
+          <div className={styles.name}>{name}</div>
+          <div className={styles.status}>{inFocus ? 'in focus' : (bond.otherUser?.openTo || ' ')}</div>
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: '.66rem', color: 'var(--ink-4)', fontFamily: 'inherit' }}>
-            {bond.lastMessageAt ? formatRelativeTime(bond.lastMessageAt) : 'new'}
-          </div>
-          {unread > 0 && (
-            <span style={{
-              display: 'inline-block', marginTop: 3, minWidth: 16, height: 16, lineHeight: '16px',
-              borderRadius: 100, background: 'var(--ember)', color: '#fff', fontSize: '.6rem', fontWeight: 600,
-              textAlign: 'center', padding: '0 4px'
-            }}>{unread}</span>
-          )}
+        <div className={styles.metaCol}>
+          <div className={styles.time}>{bond.lastMessageAt ? formatRelativeTime(bond.lastMessageAt) : 'new'}</div>
+          {unread > 0 && <span className={styles.unreadBadge}>{unread}</span>}
         </div>
       </div>
       {/* Streak — fills toward the 7-day Bond threshold */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginTop: '.4rem', paddingLeft: 50 }}>
-        <div style={{ flex: 1, height: 3, borderRadius: 2, background: 'var(--surf-high)', overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', width: `${pct}%`,
-            background: pct >= 85 ? 'var(--sage)' : 'var(--ink-4)',
-            borderRadius: 2, transition: 'width .5s ease'
-          }} />
+      <div className={styles.streakRow}>
+        <div className={styles.streakTrack}>
+          <div className={styles.streakFill} style={{ width: `${pct}%`, background: pct >= 85 ? 'var(--sage)' : 'var(--ink-4)' }} />
         </div>
-        <span style={{ fontSize: '.62rem', color: 'var(--ink-4)', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-          {formatLastSeen(bond.otherUser?.lastActiveAt)}
-        </span>
+        <span className={styles.lastSeen}>{formatLastSeen(bond.otherUser?.lastActiveAt)}</span>
       </div>
     </button>
   );

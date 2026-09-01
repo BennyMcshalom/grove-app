@@ -20,7 +20,7 @@ export function AvatarCropper({
   onSave,
   saving,
 }: AvatarCropperProps) {
-  const [imgUrl] = useState(() => URL.createObjectURL(file));
+  const [imgUrl, setImgUrl] = useState<string | null>(null);
   const [natural, setNatural] = useState({ w: 0, h: 0 });
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -33,7 +33,12 @@ export function AvatarCropper({
   } | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  useEffect(() => () => URL.revokeObjectURL(imgUrl), [imgUrl]);
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setImgUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   // Base scale so the image fully covers the circular frame at zoom = 1
   const baseScale =
@@ -173,29 +178,31 @@ export function AvatarCropper({
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            ref={imgRef}
-            src={imgUrl}
-            alt=""
-            draggable={false}
-            onLoad={(e) =>
-              setNatural({
-                w: e.currentTarget.naturalWidth,
-                h: e.currentTarget.naturalHeight,
-              })
-            }
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              width: dispW || undefined,
-              height: dispH || undefined,
-              transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
-              userSelect: "none",
-              maxWidth: "none",
-            }}
-          />
+          {imgUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              ref={imgRef}
+              src={imgUrl}
+              alt=""
+              draggable={false}
+              onLoad={(e) =>
+                setNatural({
+                  w: e.currentTarget.naturalWidth,
+                  h: e.currentTarget.naturalHeight,
+                })
+              }
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                width: dispW || undefined,
+                height: dispH || undefined,
+                transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
+                userSelect: "none",
+                maxWidth: "none",
+              }}
+            />
+          )}
         </div>
         <div
           style={{

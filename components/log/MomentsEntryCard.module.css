@@ -1,0 +1,241 @@
+.centerWrap {
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Sealed state ── */
+.sealedCard {
+  width: 316px;
+  max-width: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cream);
+  transform: rotate(-1.5deg);
+}
+
+.sealedMediaWrap {
+  height: 170px;
+  position: relative;
+}
+
+.sealedMedia {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sealedBody {
+  padding: 1.3rem 1.4rem;
+  text-align: center;
+}
+
+.stamp {
+  display: inline-block;
+  animation: stamp 0.6s ease both;
+  border: 2.5px solid var(--ember);
+  color: var(--ember);
+  border-radius: 10px;
+  padding: 0.35rem 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.sealedText {
+  font-size: 1.15rem;
+  font-style: italic;
+  line-height: 1.4;
+  margin-top: 0.9rem;
+}
+
+.editLink {
+  margin-top: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--ember);
+  font-weight: 600;
+}
+
+.footerBar {
+  background: var(--ember);
+  padding: 0.8rem 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footerTitle {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.footerSub {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.72rem;
+}
+
+.footerTitle.composer {
+  font-size: 0.95rem;
+}
+
+.footerSub.composer {
+  font-size: 0.74rem;
+}
+
+/* ── Composer state ── */
+.composerCard {
+  width: 316px;
+  max-width: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cream);
+  transform: rotate(-1.5deg);
+  transition: transform 0.3s;
+}
+
+.composerCard.open {
+  transform: rotate(0deg);
+}
+
+.composerBody {
+  padding: 1.5rem 1.5rem 1.2rem;
+}
+
+.composerLabel {
+  margin-bottom: 0.9rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.promptText {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--ember);
+  line-height: 1.25;
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+
+.writeBtn {
+  background: var(--surf-high);
+  color: var(--ink-2);
+  border-radius: 14px;
+}
+
+.imgPreviewWrap {
+  position: relative;
+  margin-bottom: 0.8rem;
+}
+
+.imgPreview {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+
+.imgRemoveBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uploadBtn {
+  width: 100%;
+  height: 120px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--border-2);
+  background: var(--surf-low);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
+}
+
+.uploadHint {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.textareaEntry {
+  width: 100%;
+  min-height: 74px;
+  resize: none;
+  padding: 0.8rem 0.9rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  background: var(--white);
+  border: 1.5px solid var(--border-2);
+  border-radius: 12px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.textareaEntry:focus {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 3px var(--ember-dim);
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.7rem;
+}
+
+.charCount {
+  font-size: 0.66rem;
+  color: var(--ink-4);
+}
+
+.btnGroup {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cancelBtn {
+  border-radius: 12px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.84rem;
+}
+
+.saveBtn {
+  border-radius: 12px;
+}
+
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.6) rotate(-14deg);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(0.94) rotate(-2deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}

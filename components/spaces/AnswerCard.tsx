@@ -1,4 +1,5 @@
 "use client";
+import clsx from "clsx";
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { ReportModal } from "@/components/ui/ReportModal";
@@ -10,6 +11,7 @@ import {
 import { formatRelativeTime } from "@/lib/mappers";
 import type { AnonAskAnswer } from "@/lib/api";
 import { ANSWER_COLORS } from "./helpers";
+import styles from "./AnswerCard.module.css";
 
 // ── Single enriched answer with anonymous like + comment ──────────
 export function AnswerCard({
@@ -59,68 +61,23 @@ export function AnswerCard({
 
   return (
     <div
-      className="rise"
-      style={{
-        padding: "1rem 1.1rem 0",
-        background: "var(--white)",
-        borderRadius: "var(--r-md)",
-        borderLeft: `3px solid ${color}`,
-        boxShadow: "var(--shadow-soft)",
-        marginBottom: ".6rem",
-        overflow: "hidden",
-      }}
+      className={clsx("rise", styles.card)}
+      style={{ borderLeft: `3px solid ${color}` }}
     >
       {/* Body */}
-      <p
-        className="serif"
-        style={{
-          fontSize: "1rem",
-          lineHeight: 1.65,
-          color: "var(--ink)",
-          marginBottom: ".5rem",
-        }}
-      >
+      <p className={clsx("serif", styles.body)}>
         &ldquo;{answer.body}&rdquo;
       </p>
-      <div
-        style={{
-          fontSize: ".68rem",
-          color: "var(--ink-4)",
-          display: "flex",
-          alignItems: "center",
-          gap: ".35rem",
-          marginBottom: ".65rem",
-        }}
-      >
+      <div className={styles.meta}>
         <Icon name="lock" size={10} stroke="var(--ink-4)" sw={2} />
         Anonymous · {formatRelativeTime(answer.createdAt)}
       </div>
 
       {/* Like + comment actions */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: ".3rem",
-          borderTop: "1px solid var(--border)",
-          paddingTop: ".5rem",
-          paddingBottom: ".55rem",
-        }}
-      >
+      <div className={styles.actions}>
         <button
           onClick={toggleLike}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: ".3rem",
-            padding: ".35rem .65rem",
-            borderRadius: 100,
-            fontSize: ".78rem",
-            fontWeight: 500,
-            color: liked ? "var(--ember)" : "var(--ink-3)",
-            background: liked ? "var(--ember-dim)" : "transparent",
-            transition: "all .15s",
-          }}
+          className={clsx(styles.actionBtn, styles.likeBtn, liked && styles.liked)}
         >
           <Icon
             name="heart"
@@ -129,7 +86,7 @@ export function AnswerCard({
             sw={liked ? 0 : 1.8}
           />
           {likeCount > 0 && (
-            <span style={{ fontVariantNumeric: "tabular-nums" }}>
+            <span className={styles.likeCount}>
               {likeCount}
             </span>
           )}
@@ -137,18 +94,7 @@ export function AnswerCard({
         </button>
         <button
           onClick={() => setShowComments((s) => !s)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: ".3rem",
-            padding: ".35rem .65rem",
-            borderRadius: 100,
-            fontSize: ".78rem",
-            fontWeight: 500,
-            color: showComments ? "var(--slate)" : "var(--ink-3)",
-            background: showComments ? "var(--slate-dim)" : "transparent",
-            transition: "all .15s",
-          }}
+          className={clsx(styles.actionBtn, styles.commentBtn, showComments && styles.active)}
         >
           <Icon
             name="comment"
@@ -165,16 +111,7 @@ export function AnswerCard({
         </button>
         <button
           onClick={() => setReporting(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: ".3rem",
-            padding: ".35rem .65rem",
-            borderRadius: 100,
-            fontSize: ".78rem",
-            fontWeight: 500,
-            color: "var(--ink-3)",
-          }}
+          className={styles.actionBtn}
         >
           <Icon name="flag" size={12} stroke="var(--ink-3)" /> Report
         </button>
@@ -190,86 +127,28 @@ export function AnswerCard({
 
       {/* Anonymous comments thread */}
       {showComments && (
-        <div
-          className="fade-in"
-          style={{
-            borderTop: "1px solid var(--border)",
-            padding: ".7rem .2rem .7rem",
-            background: "var(--surf-low)",
-            margin: "0 -1.1rem",
-            paddingLeft: "1.1rem",
-            paddingRight: "1.1rem",
-          }}
-        >
+        <div className={clsx("fade-in", styles.commentsThread)}>
           {(comments ?? []).map((c) => (
-            <div
-              key={c.id}
-              style={{ display: "flex", gap: ".55rem", marginBottom: ".55rem" }}
-            >
-              <div
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: "50%",
-                  background: "var(--border-2)",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginTop: 1,
-                }}
-              >
+            <div key={c.id} className={styles.commentRow}>
+              <div className={styles.commentAvatar}>
                 <Icon name="lock" size={10} stroke="var(--ink-4)" sw={1.8} />
               </div>
-              <div
-                style={{
-                  flex: 1,
-                  background: "var(--white)",
-                  borderRadius: "var(--r-md)",
-                  padding: ".5rem .75rem",
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: ".86rem",
-                    color: "var(--ink-2)",
-                    lineHeight: 1.45,
-                  }}
-                >
+              <div className={styles.commentBubble}>
+                <p className={styles.commentText}>
                   {c.body}
                 </p>
-                <div
-                  style={{
-                    fontSize: ".66rem",
-                    color: "var(--ink-4)",
-                    marginTop: 3,
-                  }}
-                >
+                <div className={styles.commentMeta}>
                   Anonymous · {formatRelativeTime(c.createdAt)}
                 </div>
               </div>
             </div>
           ))}
           {(comments ?? []).length === 0 && !addComment.isPending && (
-            <p
-              style={{
-                fontSize: ".78rem",
-                color: "var(--ink-4)",
-                fontStyle: "italic",
-                marginBottom: ".5rem",
-              }}
-            >
+            <p className={styles.emptyComments}>
               No replies yet.
             </p>
           )}
-          <div
-            style={{
-              display: "flex",
-              gap: ".4rem",
-              alignItems: "center",
-              marginTop: ".3rem",
-            }}
-          >
+          <div className={styles.commentComposer}>
             <input
               value={commentDraft}
               onChange={(e) => setCommentDraft(e.target.value)}
@@ -277,36 +156,12 @@ export function AnswerCard({
                 if (e.key === "Enter") submitComment();
               }}
               placeholder="Reply anonymously…"
-              style={{
-                flex: 1,
-                padding: ".55rem .8rem",
-                borderRadius: 100,
-                fontSize: ".84rem",
-                border: "1.5px solid var(--border-2)",
-                background: "var(--white)",
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "var(--sage)";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "var(--border-2)";
-              }}
+              className={styles.commentInput}
             />
             <button
               onClick={submitComment}
               disabled={!commentDraft.trim() || addComment.isPending}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: "50%",
-                background: "var(--sage)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                opacity: commentDraft.trim() ? 1 : 0.45,
-                transition: "opacity .15s",
-              }}
+              className={clsx(styles.commentSendBtn, commentDraft.trim() && styles.filled)}
             >
               <Icon name="send" size={14} stroke="#fff" />
             </button>
