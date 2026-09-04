@@ -1,26 +1,112 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ---------------------------------------------------------------------------
+   Design tokens — mirrored from the Grouv Figma style guide (node 3:12).
+   Names match Figma exactly so a swatch called Primary/primary-600 in the
+   file is `primary-600` here. Do not hand-tune these; change them in Figma.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-primary-50: #fef1e9;
+  --color-primary-100: #fbd3b9;
+  --color-primary-200: #f9bd98;
+  --color-primary-300: #f79f68;
+  --color-primary-400: #f58d4b;
+  --color-primary-500: #f3701e; /* Base */
+  --color-primary-600: #dd661b;
+  --color-primary-700: #ad5015;
+  --color-primary-800: #863e11;
+  --color-primary-900: #662f0d;
+
+  --color-ivory-50: #fdfdfd;
+  --color-ivory-100: #faf9f7;
+  --color-ivory-200: #f8f6f4;
+  --color-ivory-300: #f4f2ee;
+  --color-ivory-400: #f2f0eb;
+  --color-ivory-500: #efece6; /* Base */
+  --color-ivory-600: #d9d7d1;
+  --color-ivory-700: #aaa8a3;
+  --color-ivory-800: #83827f;
+  --color-ivory-900: #646361;
+
+  --color-ink-0: #ffffff;
+  --color-ink-50: #e8e8e8;
+  --color-ink-100: #b9b8b8;
+  --color-ink-200: #979696;
+  --color-ink-300: #676666;
+  --color-ink-400: #494948;
+  --color-ink-500: #1c1b1a;
+  --color-ink-600: #191918;
+  --color-ink-700: #141312;
+  --color-ink-800: #0f0f0e;
+  --color-ink-900: #0c0b0b;
+
+  --color-success-5: #f0fdf4;
+  --color-success-10: #dcfce7;
+  --color-success-20: #bbf7d0;
+  --color-success-30: #86efac;
+  --color-success-40: #4ade80;
+  --color-success-50: #22c55e;
+  --color-success-60: #16a34a;
+  --color-success-70: #15803d;
+  --color-success-80: #166534;
+  --color-success-90: #14532d;
+
+  --color-warning-5: #fffbeb;
+  --color-warning-10: #fef3c7;
+  --color-warning-20: #fde68a;
+  --color-warning-30: #fcd34d;
+  --color-warning-40: #fbbf24;
+  --color-warning-50: #f59e0b;
+  --color-warning-60: #d97706;
+  --color-warning-70: #b45309;
+  --color-warning-80: #92400e;
+  --color-warning-90: #78350f;
+
+  --color-destructive-5: #fff1f2;
+  --color-destructive-10: #ffe4e6;
+  --color-destructive-20: #fecdd3;
+  --color-destructive-30: #fda4af;
+  --color-destructive-40: #fb7185;
+  --color-destructive-50: #f43f5e;
+  --color-destructive-60: #e11d48;
+  --color-destructive-70: #be123c;
+  --color-destructive-80: #9f1239;
+  --color-destructive-90: #881337;
+
+  /* Type. Outfit = display, Figtree = body, Lato = buttons/labels. */
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-ui: var(--font-lato), ui-sans-serif, system-ui, sans-serif;
+
+  /* Display md/Bold — the splash + onboarding headline style. */
+  --text-display-md: 4.5rem;
+  --text-display-md--line-height: 1.1111;
+  --text-display-md--letter-spacing: -0.02em;
+  --text-display-md--font-weight: 700;
+
+  /* The pill radius used across buttons, avatars and chips. */
+  --radius-pill: 9999px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
 
-@media (prefers-color-scheme: dark) {
+  body {
+    background-color: var(--color-ivory-100);
+    color: var(--color-ink-500);
+    font-family: var(--font-sans);
+  }
+
+  /* The design has no dark mode; keep form controls in the light palette
+     so browsers don't auto-invert inputs on dark-set devices. */
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: light;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility focus-ring {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
 }
