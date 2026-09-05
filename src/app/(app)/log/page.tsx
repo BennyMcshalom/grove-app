@@ -1,4 +1,8 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
+import { ViewLogModal } from "@/components/app/ViewLogModal";
 import { TopBar } from "@/components/app/TopBar";
 import { RightRail } from "@/components/app/RightRail";
 import { LogPrompt, LogMemories } from "@/components/app/LogPrompt";
@@ -24,7 +28,7 @@ const CIRCLE_LOGS = [
   {
     name: "Mira Langston",
     status: "Building a business",
-    avatar: "/images/people/mira.png",
+    avatar: "/images/people/m2.png",
     entries: [
       "/images/log/memory-3.png",
       "/images/log/memory-4.png",
@@ -34,7 +38,7 @@ const CIRCLE_LOGS = [
   {
     name: "Evan Thorne",
     status: "Mid-project",
-    avatar: "/images/people/evan.png",
+    avatar: "/images/people/m4.png",
     entries: [
       "/images/log/memory-4.png",
       "/images/log/memory-1.png",
@@ -44,6 +48,11 @@ const CIRCLE_LOGS = [
 ];
 
 export default function LogPage() {
+  // "View log" opens that member's log sheet (246:7102).
+  const [viewing, setViewing] = useState<(typeof CIRCLE_LOGS)[number] | null>(
+    null,
+  );
+
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -110,6 +119,7 @@ export default function LogPage() {
                     <div className="flex justify-center py-1">
                       <button
                         type="button"
+                        onClick={() => setViewing(member)}
                         className="flex items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm text-primary-800 transition-colors hover:bg-primary-50"
                       >
                         View log
@@ -138,6 +148,15 @@ export default function LogPage() {
       </div>
 
       <RightRail />
+
+      {viewing && (
+        <ViewLogModal
+          name={viewing.name.split(" ")[0]}
+          avatar={viewing.avatar}
+          entries={viewing.entries}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }

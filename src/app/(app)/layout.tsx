@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/app/Sidebar";
 import { MobileNav } from "@/components/app/MobileNav";
+import { ToastProvider } from "@/components/app/ToastProvider";
 
 /**
  * App shell — Figma frame 58:2301 (desktop) and 601:30182 (mobile).
@@ -14,14 +15,16 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-dvh overflow-hidden bg-ivory-100">
-      <Sidebar className="hidden lg:flex" />
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {children}
+    <ToastProvider>
+      <div className="flex h-dvh overflow-hidden bg-ivory-100">
+        <Sidebar className="hidden lg:flex" />
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {children}
+          </div>
+          <MobileNav />
         </div>
-        <MobileNav />
       </div>
-    </div>
+    </ToastProvider>
   );
 }

@@ -1,4 +1,8 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
+import { cn } from "@/lib/cn";
 
 /**
  * Today's prompt card — Figma frame 249:12723.
@@ -14,6 +18,9 @@ export function LogPrompt({
   chapter?: string;
   prompt?: string;
 }) {
+  const [writing, setWriting] = useState(false);
+  const [entry, setEntry] = useState("");
+
   return (
     <section className="flex w-full flex-col items-center gap-6 overflow-hidden rounded-3xl bg-white pt-6 shadow-[0px_0px_16px_0px_rgba(0,0,0,0.1)]">
       <div className="flex items-center gap-2 px-4">
@@ -31,15 +38,27 @@ export function LogPrompt({
         {prompt}
       </h2>
 
-      <button
-        type="button"
-        className="mx-4 flex w-full max-w-[515px] items-center gap-2 rounded-lg bg-ivory-100 px-3.5 py-4 text-left shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] transition-colors hover:bg-ivory-200"
-      >
-        <PlusIcon className="size-5 shrink-0 text-primary-500" />
-        <span className="font-sans text-base text-ink-500">
-          Write today&rsquo;s moment
-        </span>
-      </button>
+      {writing ? (
+        <textarea
+          autoFocus
+          value={entry}
+          onChange={(e) => setEntry(e.target.value)}
+          placeholder="Write today's moment"
+          rows={3}
+          className="mx-4 w-full max-w-[515px] resize-y rounded-lg bg-ivory-100 px-3.5 py-4 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setWriting(true)}
+          className="mx-4 flex w-full max-w-[515px] items-center gap-2 rounded-lg bg-ivory-100 px-3.5 py-4 text-left shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] transition-colors hover:bg-ivory-200"
+        >
+          <PlusIcon className="size-5 shrink-0 text-primary-500" />
+          <span className="font-sans text-base text-ink-500">
+            Write today&rsquo;s moment
+          </span>
+        </button>
+      )}
 
       <div className="flex w-full flex-col bg-primary-600 p-4">
         <span className="font-sans text-base font-medium text-ink-0">
@@ -73,24 +92,69 @@ const MEMORIES = [
   { src: "/images/log/memory-1.png", left: "62%", top: "10%", w: "26%", rotate: -3 },
 ];
 
-export function LogMemories({ count = 4 }: { count?: number }) {
+/**
+ * The Career Archive draws the same fan on a 1096x389 card (433:17113), where
+ * the cards sit at x = 334 / 351 / 388 / 445 / 522 with widths 140-240. Those
+ * are a different fraction of the container than the 708px panel's, so each
+ * surface carries its own set rather than reusing one and overflowing.
+ */
+const ARCHIVE_MEMORIES = [
+  { src: "/images/log/memory-1.png", left: "30.5%", top: "27.2%", w: "12.8%", rotate: -7 },
+  { src: "/images/log/memory-2.png", left: "32.0%", top: "23.9%", w: "14.6%", rotate: 4 },
+  { src: "/images/log/memory-3.png", left: "35.4%", top: "20.6%", w: "16.4%", rotate: -4 },
+  { src: "/images/log/memory-4.png", left: "40.6%", top: "17.2%", w: "18.2%", rotate: 6 },
+  { src: "/images/log/memory-1.png", left: "47.6%", top: "10.8%", w: "21.9%", rotate: -3 },
+];
+
+export function LogMemories({
+  count = 4,
+  header = true,
+  surface = "gradient",
+}: {
+  count?: number;
+  /** The Career Archive (433:17113) drops the "Log Memories" heading. */
+  header?: boolean;
+  /**
+   * Grouv Log lays the fan on a warm gradient with captions below each card;
+   * the Career Archive lays it on a white 16px card with the caption over the
+   * photo instead.
+   */
+  surface?: "gradient" | "white";
+}) {
+  // Figma draws a static fan; the arrows rotate which card is frontmost.
+  const [offset, setOffset] = useState(0);
+  const cards = surface === "white" ? ARCHIVE_MEMORIES : MEMORIES;
+  const step = (dir: number) =>
+    setOffset((o) => (o + dir + cards.length) % cards.length);
+
   return (
     <section className="flex w-full flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <h2 className="font-display text-2xl font-semibold text-ink-800">
-          Log Memories
-        </h2>
-        <p className="font-sans text-base text-ink-400">{count} moments</p>
-      </header>
+      {header && (
+        <header className="flex flex-col gap-1">
+          <h2 className="font-display text-2xl font-semibold text-ink-800">
+            Log Memories
+          </h2>
+          <p className="font-sans text-base text-ink-400">{count} moments</p>
+        </header>
+      )}
 
       <div
-        className="relative h-[280px] w-full overflow-hidden rounded-2xl lg:h-[354px]"
-        style={{
-          backgroundImage:
-            "linear-gradient(195deg, rgba(232,163,118,0.8) 0%, rgba(243,163,111,1) 36%)",
-        }}
+        className={cn(
+          "relative w-full overflow-hidden rounded-2xl",
+          surface === "white"
+            ? "bg-white"
+            : "h-[280px] lg:h-[354px]",
+        )}
+        style={
+          surface === "gradient"
+            ? {
+                backgroundImage:
+                  "linear-gradient(195deg, rgba(232,163,118,0.8) 0%, rgba(243,163,111,1) 36%)",
+              }
+            : { aspectRatio: "1096 / 389" }
+        }
       >
-        {MEMORIES.map((m, i) => (
+        {cards.map((m, i) => (
           <figure
             key={`${m.src}-${i}`}
             className="absolute overflow-hidden rounded-[20px] border border-ink-100 bg-white shadow-md"
@@ -99,7 +163,7 @@ export function LogMemories({ count = 4 }: { count?: number }) {
               top: m.top,
               width: m.w,
               transform: `rotate(${m.rotate}deg)`,
-              zIndex: i,
+              zIndex: (i + offset) % cards.length,
             }}
           >
             <div className="relative aspect-[3/4] w-full">
@@ -110,25 +174,39 @@ export function LogMemories({ count = 4 }: { count?: number }) {
                 sizes="200px"
                 className="object-cover"
               />
+              {surface === "white" && (
+                <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/70 to-transparent px-2 pt-6 pb-2 text-center font-sans text-[10px] font-medium text-white">
+                  Shipped the ugly version. It&rsquo;s out
+                </figcaption>
+              )}
             </div>
-            <figcaption className="px-2 py-1.5 text-center font-sans text-[10px] font-medium text-ink-700">
-              Shipped the ugly version. It&rsquo;s out
-            </figcaption>
+            {surface === "gradient" && (
+              <figcaption className="px-2 py-1.5 text-center font-sans text-[10px] font-medium text-ink-700">
+                Shipped the ugly version. It&rsquo;s out
+              </figcaption>
+            )}
           </figure>
         ))}
 
-        <NavArrow side="left" />
-        <NavArrow side="right" />
+        <NavArrow side="left" onClick={() => step(-1)} />
+        <NavArrow side="right" onClick={() => step(1)} />
       </div>
     </section>
   );
 }
 
 /** The 40px glassy scrubbers at each end of the collage (Figma 249:12327/8). */
-function NavArrow({ side }: { side: "left" | "right" }) {
+function NavArrow({
+  side,
+  onClick,
+}: {
+  side: "left" | "right";
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
+      onClick={onClick}
       aria-label={side === "left" ? "Previous memory" : "Next memory"}
       className="absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-white/40 text-ink-700 backdrop-blur-[20px]"
       style={{

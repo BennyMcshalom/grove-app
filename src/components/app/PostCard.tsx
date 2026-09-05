@@ -3,6 +3,12 @@
 import Image from "next/image";
 import { useState } from "react";
 import { PostMenu } from "@/components/app/PostMenu";
+import {
+  DeletePostModal,
+  EditPostModal,
+  ReportPostModal,
+} from "@/components/app/PostModals";
+import { useToast } from "@/components/app/ToastProvider";
 import { cn } from "@/lib/cn";
 
 /**
@@ -26,6 +32,15 @@ export interface Post {
 
 export function PostCard({ post }: { post: Post }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [rooted, setRooted] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [shared, setShared] = useState(false);
+  // Figma pairs each menu item with a modal and a confirming alert.
+  const [dialog, setDialog] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState(false);
+  const toast = useToast();
+
+  if (deleted) return null;
 
   return (
     <article className="flex gap-4 rounded-2xl bg-white p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
@@ -69,7 +84,19 @@ export function PostCard({ post }: { post: Post }) {
             >
               <DotsIcon className="size-6" />
             </button>
-            {menuOpen && <PostMenu onClose={() => setMenuOpen(false)} />}
+            {menuOpen && (
+              <PostMenu
+                onClose={() => setMenuOpen(false)}
+                onSelect={(label) => {
+                  setMenuOpen(false);
+                  if (label === "Send to a Bond") {
+                    toast({ title: "Post Grouved. Your Circle will see this post." });
+                    return;
+                  }
+                  setDialog(label);
+                }}
+              />
+            )}
           </div>
         </header>
 
@@ -106,20 +133,76 @@ export function PostCard({ post }: { post: Post }) {
         <footer className="flex flex-wrap gap-5 py-3">
           <Action
             icon={<PlantIcon className="size-6" />}
-            label={`Root ${post.roots}`}
+            label={`Root ${post.roots + (rooted ? 1 : 0)}`}
             tone="root"
+            active={rooted}
+            onClick={() => {
+              setRooted((v) => {
+                if (!v) {
+                  toast({
+                    title: "Post rooted. Your Circle will see this post.",
+                  });
+                }
+                return !v;
+              });
+            }}
           />
           <Action
             icon={<ChatIcon className="size-6" />}
             label={`Comment ${post.comments}`}
             tone="muted"
+            onClick={() => setCommentsOpen((v) => !v)}
           />
           <Action
             icon={<ShareIcon className="size-6" />}
-            label="Share"
+            label={shared ? "Copied" : "Share"}
             tone="outline"
+            onClick={() => {
+              // No backend yet; copying the permalink is the honest local action.
+              navigator.clipboard?.writeText(
+                `${window.location.origin}/home#post-${post.id}`,
+              );
+              setShared(true);
+              setTimeout(() => setShared(false), 2000);
+            }}
           />
         </footer>
+
+        {dialog === "Edit Post" && (
+          <EditPostModal
+            post={post}
+            onClose={() => setDialog(null)}
+            onSave={() => {
+              setDialog(null);
+              toast({ title: "Post updated" });
+            }}
+          />
+        )}
+        {dialog === "Report Post" && (
+          <ReportPostModal
+            onClose={() => setDialog(null)}
+            onSubmit={() => {
+              setDialog(null);
+              toast({ title: "Report submitted" });
+            }}
+          />
+        )}
+        {dialog === "Delete Post" && (
+          <DeletePostModal
+            onClose={() => setDialog(null)}
+            onDelete={() => {
+              setDialog(null);
+              setDeleted(true);
+              toast({ title: "Post deleted", tone: "danger" });
+            }}
+          />
+        )}
+
+        {commentsOpen && (
+          <p className="rounded-lg bg-ivory-200 px-4 py-3 font-sans text-sm text-ink-400">
+            Comments aren&rsquo;t wired to a backend yet.
+          </p>
+        )}
       </div>
     </article>
   );
@@ -129,17 +212,26 @@ function Action({
   icon,
   label,
   tone,
+  active = false,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   tone: "root" | "muted" | "outline";
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
+      onClick={onClick}
+      aria-pressed={active || undefined}
       className={cn(
         "flex items-center gap-2 rounded-full px-4 py-2 font-sans text-sm transition-colors",
-        tone === "root" && "bg-primary-50 text-primary-500 hover:bg-primary-100",
+        tone === "root" &&
+          (active
+            ? "bg-primary-500 text-white hover:bg-primary-400"
+            : "bg-primary-50 text-primary-500 hover:bg-primary-100"),
         tone === "muted" && "bg-ivory-400 text-ink-400 hover:bg-ivory-500",
         tone === "outline" &&
           "border-[1.3px] border-ink-400 text-ink-400 hover:bg-ivory-200",

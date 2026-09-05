@@ -36,7 +36,11 @@ const NOTIFICATIONS = [
 ];
 
 const ACCOUNT = [
-  { title: "Edit Profile", body: "Make your profile feel more like you." },
+  {
+    title: "Edit Profile",
+    body: "Make your profile feel more like you.",
+    href: "/settings/edit-profile",
+  },
   {
     title: "Change password",
     body: "Update your password to keep your account secure.",
@@ -55,6 +59,7 @@ export default function SettingsPage() {
   const [lightMode, setLightMode] = useState(true);
   const [toggles, setToggles] = useState(NOTIFICATIONS.map((n) => n.on));
   const [confirm, setConfirm] = useState("");
+  const [deleted, setDeleted] = useState(false);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -98,6 +103,7 @@ export default function SettingsPage() {
                 key={row.title}
                 title={row.title}
                 body={row.body}
+                href={row.href}
                 divider={i < ACCOUNT.length - 1}
               />
             ))}
@@ -166,6 +172,7 @@ export default function SettingsPage() {
               />
               <button
                 type="button"
+                onClick={() => setDeleted(true)}
                 disabled={confirm !== "DELETE"}
                 className="shrink-0 rounded-full bg-destructive-60 px-5 py-2.5 font-ui text-sm font-medium text-ink-50 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -182,16 +189,19 @@ export default function SettingsPage() {
               <Link href="/terms" className="rounded-full px-5 py-2 font-sans text-base text-ink-300 hover:bg-ivory-200">
                 Terms
               </Link>
-              <button type="button" className="rounded-full px-5 py-2 font-sans text-base text-ink-300 hover:bg-ivory-200">
+              <Link
+                href="/privacy"
+                className="rounded-full px-5 py-2 font-sans text-base text-ink-300 hover:bg-ivory-200"
+              >
                 Our Promise
-              </button>
+              </Link>
             </div>
-            <button
-              type="button"
+            <Link
+              href="/sign-in"
               className="rounded-full px-5 py-6 font-sans text-base font-medium text-primary-600 hover:underline"
             >
               Sign out
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -241,8 +251,10 @@ function ProfileBanner() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button size="sm">Enter my Grouv</Button>
-          <Button variant="secondary" size="sm">
+          <Button size="sm" href="/settings/your-grouv">
+            Enter my Grouv
+          </Button>
+          <Button variant="secondary" size="sm" href="/settings/edit-profile">
             Edit Profile
           </Button>
         </div>
@@ -269,20 +281,23 @@ function Row({
   title,
   body,
   trailing,
+  href,
   divider = false,
 }: {
   title: string;
   body: string;
   trailing?: React.ReactNode;
+  href?: string;
   divider?: boolean;
 }) {
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-between gap-4",
-        divider ? "border-b border-ink-50 pb-5" : "pb-4",
-      )}
-    >
+  const className = cn(
+    "flex items-center justify-between gap-4",
+    href && "rounded-lg transition-colors hover:bg-ivory-100",
+    divider ? "border-b border-ink-50 pb-5" : "pb-4",
+  );
+
+  const body_ = (
+    <>
       <div className="flex flex-col gap-1">
         <span className="font-sans text-xl font-semibold text-ink-600">
           {title}
@@ -290,7 +305,15 @@ function Row({
         <span className="font-sans text-base text-ink-300">{body}</span>
       </div>
       {trailing}
-    </div>
+    </>
+  );
+
+  return href ? (
+    <Link href={href} className={className}>
+      {body_}
+    </Link>
+  ) : (
+    <div className={className}>{body_}</div>
   );
 }
 

@@ -1,11 +1,25 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+
 /**
  * "Continue with Google" — Figma frame 11:26627.
  * 1px ivory-600 border, 8px radius, 16/32 padding, 16px gap.
+ *
+ * There is no OAuth backend yet, so this completes the same step the email
+ * form does rather than being a dead control.
  */
-export function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
+export function GoogleButton({
+  label = "Continue with Google",
+}: {
+  label?: string;
+}) {
+  const router = useRouter();
+
   return (
     <button
       type="button"
+      onClick={() => router.push("/verify")}
       className="flex w-full items-center justify-center gap-4 rounded-lg border border-ivory-600 px-8 py-4 font-sans text-base text-ink-500 transition-colors hover:bg-ivory-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
     >
       <GoogleMark />

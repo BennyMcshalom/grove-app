@@ -67,7 +67,7 @@ export const CHAPTERS: Chapter[] = [
   {
     slug: "adventure",
     name: "Adventure",
-    tagline: "Travel, exploration, new experiences",
+    tagline: "Travel, risk, new experiences",
     tint: "#B9E5FB",
     icon: "/icons/chapters/adventure.svg",
     options: [
@@ -97,7 +97,7 @@ export const CHAPTERS: Chapter[] = [
   {
     slug: "creative",
     name: "Creative",
-    tagline: "Making, expressing, creating",
+    tagline: "Making, expressing, building",
     tint: "#E9D4FB",
     icon: "/icons/chapters/creative.svg",
     options: [
@@ -112,7 +112,7 @@ export const CHAPTERS: Chapter[] = [
   {
     slug: "learning",
     name: "Learning",
-    tagline: "Study, skills, personal growth",
+    tagline: "Study, growth, new skills",
     tint: "#E6FAE6",
     icon: "/icons/chapters/learning.svg",
     options: [

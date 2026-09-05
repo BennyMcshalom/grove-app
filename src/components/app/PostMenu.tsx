@@ -19,7 +19,14 @@ const GROUP_TWO = [
   { label: "Report Post", danger: true },
 ];
 
-export function PostMenu({ onClose }: { onClose: () => void }) {
+export function PostMenu({
+  onClose,
+  onSelect,
+}: {
+  onClose: () => void;
+  /** Figma pairs each item with a modal or an alert; the card wires them up. */
+  onSelect?: (label: string) => void;
+}) {
   const ref = useDismiss(onClose);
 
   return (
@@ -28,17 +35,19 @@ export function PostMenu({ onClose }: { onClose: () => void }) {
       role="menu"
       className="absolute top-full right-0 z-20 mt-1 flex w-[245px] flex-col items-center gap-2.5 rounded-lg bg-white py-4 shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)]"
     >
-      <MenuGroup items={GROUP_ONE} />
+      <MenuGroup items={GROUP_ONE} onSelect={onSelect} />
       <hr className="w-[225px] border-ink-50" />
-      <MenuGroup items={GROUP_TWO} />
+      <MenuGroup items={GROUP_TWO} onSelect={onSelect} />
     </div>
   );
 }
 
 function MenuGroup({
   items,
+  onSelect,
 }: {
   items: { label: string; danger: boolean }[];
+  onSelect?: (label: string) => void;
 }) {
   return (
     <div className="flex w-full flex-col">
@@ -47,6 +56,7 @@ function MenuGroup({
           key={item.label}
           type="button"
           role="menuitem"
+          onClick={() => onSelect?.(item.label)}
           className={cn(
             "px-5 py-2 text-left font-sans text-sm font-medium transition-colors hover:bg-ivory-200",
             item.danger ? "text-destructive-60" : "text-ink-500",

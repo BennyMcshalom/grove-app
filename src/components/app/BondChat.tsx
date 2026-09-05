@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -77,6 +80,30 @@ export function BondChat({
   duration: string;
   status: string;
 }) {
+  // Sent messages are appended locally — there is no backend yet, but the
+  // composer should do something rather than swallow what you type.
+  const [sent, setSent] = useState<Message[]>([]);
+  const [draft, setDraft] = useState("");
+
+  const send = () => {
+    const body = draft.trim();
+    if (!body) return;
+    setSent((prev) => [
+      ...prev,
+      {
+        kind: "text",
+        from: "me",
+        body,
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        status: "Sent",
+      },
+    ]);
+    setDraft("");
+  };
+
   return (
     <section className="flex min-h-0 flex-1 flex-col border-l border-ink-50">
       <header className="flex shrink-0 flex-col gap-2.5 border-b border-ink-50 bg-ivory-300 px-6 pt-4 pb-2">
@@ -138,24 +165,42 @@ export function BondChat({
             </div>
           </div>
         ))}
+
+        {sent.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {sent.map((m, i) => (
+              <Bubble key={`sent-${i}`} message={m} avatar={avatar} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="shrink-0 p-5">
         <div className="flex items-center gap-4 rounded-full border border-ink-50 bg-white p-3 shadow-[0px_2px_4px_-2px_rgba(23,23,23,0.06),0px_4px_8px_-2px_rgba(23,23,23,0.1)]">
           <button
             type="button"
-            aria-label="Add attachment"
-            className="grid size-8 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-ivory-200"
+            aria-label="Add attachment — not available yet"
+            title="Not available yet"
+            aria-disabled
+            className="grid size-8 shrink-0 cursor-not-allowed place-items-center rounded-full text-ink-400 opacity-40"
           >
             <PlusIcon />
           </button>
           <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                send();
+              }
+            }}
             placeholder="Write your message..."
             className="min-w-0 flex-1 bg-transparent font-sans text-base text-ink-500 outline-none placeholder:text-ink-500"
           />
           <div className="flex shrink-0 items-center gap-1 text-ink-400">
             <IconButton label="Record voice note"><MicIcon /></IconButton>
-            <IconButton label="Send"><SendIcon /></IconButton>
+            <IconButton label="Send" onClick={send}><SendIcon /></IconButton>
           </div>
         </div>
       </div>
@@ -276,7 +321,7 @@ export function ChapterBadge({ label }: { label: string }) {
   return (
     <span className="flex w-fit items-center gap-2 rounded-full bg-ivory-200 px-3 py-1">
       <Image
-        src="/images/people/mira.png"
+        src="/images/people/m2.png"
         alt=""
         width={20}
         height={20}
@@ -325,15 +370,29 @@ export function GlowAvatar({
 function IconButton({
   label,
   children,
+  onClick,
 }: {
   label: string;
   children: React.ReactNode;
+  onClick?: () => void;
 }) {
+  // Calls, capture and uploads need capabilities this build does not have, so
+  // those controls say so rather than silently doing nothing.
+  const unavailable = !onClick;
+
   return (
     <button
       type="button"
-      aria-label={label}
-      className="grid size-8 place-items-center rounded-full transition-colors hover:bg-ivory-200"
+      onClick={onClick}
+      aria-label={unavailable ? `${label} — not available yet` : label}
+      title={unavailable ? "Not available yet" : undefined}
+      aria-disabled={unavailable || undefined}
+      className={cn(
+        "grid size-8 place-items-center rounded-full transition-colors",
+        unavailable
+          ? "cursor-not-allowed opacity-40"
+          : "hover:bg-ivory-200",
+      )}
     >
       {children}
     </button>

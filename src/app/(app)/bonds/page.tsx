@@ -17,16 +17,27 @@ const BONDS = [
   { name: "Morgan Lee", avatar: "/images/bonds/morgan.png", depth: 70, online: true, status: "Mid-project" },
 ];
 
-const CIRCLE = [
-  { name: "Jalen Crestwood", avatar: "/images/people/jalen.png", time: "12:25", unread: 23, online: true },
-  { name: "Jalen Crestwood", avatar: "/images/people/jalen.png", time: "12:25", online: true },
-  { name: "Jalen Crestwood", avatar: "/images/people/jalen.png", time: "12:25", online: false },
-  { name: "Jalen Crestwood", avatar: "/images/people/jalen.png", time: "12:25", online: false },
+const CIRCLE: { name: string; avatar: string; time: string; unread?: number; online: boolean; status: string }[] = [
+  { name: "Jalen Crestwood", avatar: "/images/people/jalen.png", time: "12:25", unread: 23, online: true, status: "Mid-project" },
+  { name: "Jalen Crestwood", avatar: "/images/people/jalen.png", time: "12:25", online: true, status: "Mid-project" },
+  { name: "Jalen Crestwood", avatar: "/images/people/jalen.png", time: "12:25", online: false, status: "Mid-project" },
+  { name: "Jalen Crestwood", avatar: "/images/people/jalen.png", time: "12:25", online: false, status: "Mid-project" },
 ];
+
+/** What the chat pane needs, whether the row came from Bonds or Circle. */
+type Conversation = {
+  name: string;
+  avatar: string;
+  status: string;
+  depth: number;
+};
 
 export default function BondsPage() {
   const [active, setActive] = useState(0);
-  const current = BONDS[active];
+  // Circle rows open a conversation too, so selection is the conversation
+  // itself rather than an index into BONDS.
+  const [selected, setSelected] = useState<Conversation | null>(null);
+  const current: Conversation = selected ?? BONDS[active];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -46,11 +57,16 @@ export default function BondsPage() {
                 <li key={bond.name}>
                   <button
                     type="button"
-                    onClick={() => setActive(i)}
-                    aria-current={i === active ? "true" : undefined}
+                    onClick={() => {
+                      setActive(i);
+                      setSelected(null);
+                    }}
+                    aria-current={!selected && i === active ? "true" : undefined}
                     className={cn(
                       "flex w-full flex-col gap-3 border-b border-ink-50 p-4 text-left transition-colors",
-                      i === active ? "bg-primary-50" : "bg-white hover:bg-ivory-100",
+                      !selected && i === active
+                        ? "bg-primary-50"
+                        : "bg-white hover:bg-ivory-100",
                     )}
                   >
                     <span className="flex items-center gap-4 py-2 pl-2">
@@ -88,6 +104,7 @@ export default function BondsPage() {
                 <li key={i}>
                   <button
                     type="button"
+                    onClick={() => setSelected({ ...person, depth: 40 })}
                     className="flex w-full items-center gap-3 border-b border-ink-50 bg-white p-4 text-left transition-colors hover:bg-ivory-100"
                   >
                     <span className="flex flex-1 items-center gap-4 p-2">

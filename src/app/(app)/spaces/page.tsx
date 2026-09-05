@@ -20,7 +20,8 @@ const OPEN = ["career", "health", "spiritual"];
 const STATUS = "Building a habit";
 
 export default function SpacesPage() {
-  const open = CHAPTERS.filter((c) => OPEN.includes(c.slug));
+  // Figma lists them Career, Health, Spiritual, so follow OPEN, not the table.
+  const open = OPEN.map((slug) => CHAPTERS.find((c) => c.slug === slug)!);
   const directory = CHAPTERS.filter((c) => !OPEN.includes(c.slug));
 
   return (
@@ -31,7 +32,7 @@ export default function SpacesPage() {
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-8 pb-10">
             <section className="flex flex-col gap-6">
-              <h1 className="font-display text-2xl font-medium text-ink-500">
+              <h1 className="font-display text-2xl font-semibold text-ink-500">
                 Your open chapters
               </h1>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -47,7 +48,7 @@ export default function SpacesPage() {
 
             <section className="flex flex-col gap-6">
               <header className="flex flex-col gap-1">
-                <h2 className="font-display text-2xl font-medium text-ink-500">
+                <h2 className="font-display text-2xl font-semibold text-ink-500">
                   Spaces Directory
                 </h2>
                 <p className="font-sans text-base text-ink-200">

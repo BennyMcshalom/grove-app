@@ -1,5 +1,11 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { CloseChapterWizard } from "@/components/app/CloseChapterWizard";
+import { JoinSpaceModal } from "@/components/app/JoinSpaceModal";
+import { useToast } from "@/components/app/ToastProvider";
 import type { Chapter } from "@/lib/chapters";
 
 /** The four overlapping members shown on an open chapter card. */
@@ -20,13 +26,15 @@ export function OpenSpaceCard({
   chapter,
   status,
   members = 4,
-  onClose,
 }: {
   chapter: Chapter;
   status: string;
   members?: number;
-  onClose?: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
+  const [closed, setClosed] = useState(false);
+  const toast = useToast();
+
   return (
     <article className="flex flex-col justify-between gap-4 rounded-lg bg-white p-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       <div className="flex flex-col gap-2">
@@ -66,16 +74,39 @@ export function OpenSpaceCard({
       </div>
 
       <div className="flex flex-col gap-1">
-        <Button size="sm" fullWidth className="px-3 py-1.5 text-xs">
+        <Button
+          size="sm"
+          fullWidth
+          href={`/spaces/${chapter.slug}`}
+          className="px-3 py-1.5 text-xs"
+        >
           Open feed
         </Button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full rounded-full px-3 py-1.5 font-ui text-xs text-destructive-60 transition-colors hover:bg-destructive-5"
-        >
-          Close chapter
-        </button>
+        {closed ? (
+          <p className="px-3 py-1.5 text-center font-sans text-xs text-ink-300">
+            Chapter closed and added to life archive
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            className="w-full rounded-full px-3 py-1.5 font-ui text-xs text-destructive-60 transition-colors hover:bg-destructive-5"
+          >
+            Close chapter
+          </button>
+        )}
+
+        {confirming && (
+          <CloseChapterWizard
+            chapter={chapter}
+            onClose={() => setConfirming(false)}
+            onFinish={() => {
+              setConfirming(false);
+              setClosed(true);
+              toast({ title: "Chapter closed and added to life archive" });
+            }}
+          />
+        )}
       </div>
     </article>
   );
@@ -86,6 +117,11 @@ export function OpenSpaceCard({
  * secondary button and no member row.
  */
 export function DirectorySpaceCard({ chapter }: { chapter: Chapter }) {
+  // "Join" opens the chapter's "where are you?" sheet (223:14200).
+  const [joining, setJoining] = useState(false);
+  const [joined, setJoined] = useState<string[] | null>(null);
+  const toast = useToast();
+
   return (
     <article className="flex h-[142px] flex-col justify-between rounded-lg bg-white p-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       <div className="flex flex-col gap-2">
@@ -102,9 +138,33 @@ export function DirectorySpaceCard({ chapter }: { chapter: Chapter }) {
         </div>
       </div>
 
-      <Button variant="secondary" size="sm" fullWidth className="px-3 py-1.5 text-xs">
-        Join
-      </Button>
+      {joined ? (
+        <p className="px-3 py-1.5 text-center font-sans text-xs text-ink-300">
+          {joined.length} added to your spaces
+        </p>
+      ) : (
+        <Button
+          variant="secondary"
+          size="sm"
+          fullWidth
+          className="px-3 py-1.5 text-xs"
+          onClick={() => setJoining(true)}
+        >
+          Join
+        </Button>
+      )}
+
+      {joining && (
+        <JoinSpaceModal
+          chapter={chapter}
+          onClose={() => setJoining(false)}
+          onJoin={(options) => {
+            setJoined(options);
+            setJoining(false);
+            toast({ title: "New space added" });
+          }}
+        />
+      )}
     </article>
   );
 }

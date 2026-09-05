@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -16,6 +16,13 @@ const SUGGESTIONS = [
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
+
+  // Carries over whatever was typed in the top bar. Read from the URL after
+  // mount rather than useSearchParams, so the route stays statically rendered.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) setQuery(q);
+  }, []);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto bg-ivory-100 px-6 py-10">

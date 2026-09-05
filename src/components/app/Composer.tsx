@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { PostingToMenu } from "@/components/app/PostMenu";
+import { getChapter } from "@/lib/chapters";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { cn } from "@/lib/cn";
@@ -28,6 +30,18 @@ export function Composer() {
   const [mode, setMode] = useState(MODES[0]);
   const [stage, setStage] = useState<string | null>(null);
   const [anonymous, setAnonymous] = useState(false);
+  const [chapter, setChapter] = useState("career");
+  const [chapterMenuOpen, setChapterMenuOpen] = useState(false);
+  const [attachments, setAttachments] = useState<string[]>([]);
+
+  /** The close button clears the draft rather than doing nothing. */
+  const reset = () => {
+    setMode(MODES[0]);
+    setStage(null);
+    setAnonymous(false);
+    setAttachments([]);
+    setChapterMenuOpen(false);
+  };
 
   return (
     <article className="flex flex-col gap-6 rounded-2xl bg-white p-6 lg:p-8">
@@ -48,20 +62,34 @@ export function Composer() {
             <span className="font-sans text-base font-bold text-[#101928]">
               Oreoluwa
             </span>
-            <button
-              type="button"
-              className="flex w-fit items-center gap-2 rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm font-semibold text-primary-600"
-            >
-              <BagIcon className="size-4" />
-              Career
-              <CaretDownIcon className="size-4" />
-            </button>
+            {/* Figma 110:3828 — this chip opens the "POSTING TO" chapter menu. */}
+            <div className="relative w-fit">
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={chapterMenuOpen}
+                onClick={() => setChapterMenuOpen((open) => !open)}
+                className="flex w-fit items-center gap-2 rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm font-semibold text-primary-600"
+              >
+                <BagIcon className="size-4" />
+                {getChapter(chapter)?.name ?? "Career"}
+                <CaretDownIcon className="size-4" />
+              </button>
+              {chapterMenuOpen && (
+                <PostingToMenu
+                  value={chapter}
+                  onSelect={setChapter}
+                  onClose={() => setChapterMenuOpen(false)}
+                />
+              )}
+            </div>
           </div>
         </div>
 
         <button
           type="button"
           aria-label="Close"
+          onClick={reset}
           className="rounded p-3 text-ink-800 transition-colors hover:bg-ivory-200"
         >
           <CloseIcon className="size-5" />
@@ -136,8 +164,23 @@ export function Composer() {
 
       <footer className="flex items-center justify-between gap-4 border-t border-ink-50 pt-6">
         <div className="flex items-center gap-3">
-          <MediaChip icon={<ImagesIcon className="size-4" />} label="Photo" />
-          <MediaChip icon={<VideoIcon className="size-4" />} label="Video" />
+          <MediaChip
+            icon={<ImagesIcon className="size-4" />}
+            label="Photo"
+            accept="image/*"
+            onPick={(names) => setAttachments((a) => [...a, ...names])}
+          />
+          <MediaChip
+            icon={<VideoIcon className="size-4" />}
+            label="Video"
+            accept="video/*"
+            onPick={(names) => setAttachments((a) => [...a, ...names])}
+          />
+          {attachments.length > 0 && (
+            <span className="font-sans text-xs text-ink-300">
+              {attachments.length} attached
+            </span>
+          )}
         </div>
         <Button size="sm">Root this</Button>
       </footer>
@@ -176,18 +219,31 @@ function Field({
 function MediaChip({
   icon,
   label,
+  accept,
+  onPick,
 }: {
   icon: React.ReactNode;
   label: string;
+  accept: string;
+  onPick: (names: string[]) => void;
 }) {
+  // `relative` matters: the sr-only input is absolutely positioned, and with
+  // no positioned ancestor it resolves against the initial containing block,
+  // escaping the app shell's overflow and stretching the page.
   return (
-    <button
-      type="button"
-      className="flex items-center gap-2 rounded-full bg-ivory-400 px-3 py-1.5 font-sans text-sm font-semibold text-ivory-900 transition-colors hover:bg-ivory-500"
-    >
+    <label className="relative flex cursor-pointer items-center gap-2 rounded-full bg-ivory-400 px-3 py-1.5 font-sans text-sm font-semibold text-ivory-900 transition-colors hover:bg-ivory-500">
       {icon}
       {label}
-    </button>
+      <input
+        type="file"
+        accept={accept}
+        multiple
+        className="sr-only"
+        onChange={(e) =>
+          onPick(Array.from(e.target.files ?? []).map((f) => f.name))
+        }
+      />
+    </label>
   );
 }
 

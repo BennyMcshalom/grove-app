@@ -13,7 +13,6 @@ import {
   EventsIcon,
   NearbyIcon,
   ArchiveIcon,
-  DarkModeIcon,
   FocusIcon,
   SettingsIcon,
 } from "@/components/icons/nav";
@@ -25,19 +24,29 @@ import {
  * promo card, then a 3-item secondary menu pinned to the bottom.
  */
 const PRIMARY = [
-  { href: "/home", label: "Home", Icon: HomeIcon },
-  { href: "/spaces", label: "My Spaces", Icon: SpacesIcon },
-  { href: "/log", label: "Grouv Log", Icon: LogIcon },
-  { href: "/bonds", label: "Bonds", Icon: BondsIcon },
-  { href: "/events", label: "Events", Icon: EventsIcon },
-  { href: "/nearby", label: "Nearby", Icon: NearbyIcon },
-  { href: "/archive", label: "Archive", Icon: ArchiveIcon },
+  { href: "/home", label: "Home", Icon: HomeIcon, outline: "home" },
+  { href: "/spaces", label: "My Spaces", Icon: SpacesIcon, outline: "spaces" },
+  { href: "/log", label: "Grouv Log", Icon: LogIcon, outline: "log" },
+  { href: "/bonds", label: "Bonds", Icon: BondsIcon, outline: "bonds" },
+  { href: "/events", label: "Events", Icon: EventsIcon, outline: "events" },
+  { href: "/nearby", label: "Nearby", Icon: NearbyIcon, outline: "nearby" },
+  { href: "/archive", label: "Archive", Icon: ArchiveIcon, outline: "archive" },
 ];
 
-// "Dark mode" is a toggle in the design, not a destination, so it is a button.
+// "Dark mode" is rendered separately below: the theme switch lives in Settings.
 const SECONDARY = [
-  { href: "/deep-focus", label: "Deep Focus", Icon: FocusIcon },
-  { href: "/settings", label: "Settings", Icon: SettingsIcon },
+  {
+    href: "/deep-focus",
+    label: "Deep Focus",
+    Icon: FocusIcon,
+    outline: "deep-focus",
+  },
+  {
+    href: "/settings",
+    label: "Settings",
+    Icon: SettingsIcon,
+    outline: "settings",
+  },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
@@ -51,7 +60,9 @@ export function Sidebar({ className }: { className?: string }) {
       )}
     >
       <div className="px-4 py-2">
-        <Logo className="h-10" />
+        <Link href="/home" aria-label="Grouv home">
+          <Logo className="h-10" />
+        </Link>
       </div>
 
       <CurrentUser />
@@ -67,13 +78,26 @@ export function Sidebar({ className }: { className?: string }) {
           <TrialCard />
           <ul className="flex flex-col px-2">
             <li>
-              <button
-                type="button"
+              {/* The theme switch itself lives in Settings > Appearance. */}
+              <Link
+                href="/settings"
                 className="flex w-full items-center gap-3 rounded px-4 py-3 font-sans text-sm text-ink-600 transition-colors hover:bg-ivory-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
               >
-                <DarkModeIcon className="size-5 shrink-0" />
+                <span
+                  className="size-5 shrink-0 bg-current"
+                  style={{
+                    maskImage: "url(/icons/nav-outline/dark-mode.svg)",
+                    WebkitMaskImage: "url(/icons/nav-outline/dark-mode.svg)",
+                    maskSize: "contain",
+                    WebkitMaskSize: "contain",
+                    maskRepeat: "no-repeat",
+                    WebkitMaskRepeat: "no-repeat",
+                    maskPosition: "center",
+                    WebkitMaskPosition: "center",
+                  }}
+                />
                 Dark mode
-              </button>
+              </Link>
             </li>
             {SECONDARY.map((item) => (
               <MenuItem key={item.href} {...item} pathname={pathname} />
@@ -89,11 +113,14 @@ function MenuItem({
   href,
   label,
   Icon,
+  outline,
   pathname,
 }: {
   href: string;
   label: string;
   Icon: (p: { className?: string }) => React.ReactElement;
+  /** Figma's Regular (outline) glyph, used until the item is active. */
+  outline: string;
   pathname: string;
 }) {
   const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -107,11 +134,27 @@ function MenuItem({
           "flex items-center gap-3 rounded px-4 py-3 font-sans text-sm transition-colors",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600",
           active
-            ? "bg-primary-50 font-medium text-primary-500"
+            ? "bg-primary-50 font-medium text-primary-600"
             : "text-ink-600 hover:bg-ivory-200",
         )}
       >
-        <Icon className="size-5 shrink-0" />
+        {active ? (
+          <Icon className="size-5 shrink-0" />
+        ) : (
+          <span
+            className="size-5 shrink-0 bg-current"
+            style={{
+              maskImage: `url(/icons/nav-outline/${outline}.svg)`,
+              WebkitMaskImage: `url(/icons/nav-outline/${outline}.svg)`,
+              maskSize: "contain",
+              WebkitMaskSize: "contain",
+              maskRepeat: "no-repeat",
+              WebkitMaskRepeat: "no-repeat",
+              maskPosition: "center",
+              WebkitMaskPosition: "center",
+            }}
+          />
+        )}
         {label}
       </Link>
     </li>

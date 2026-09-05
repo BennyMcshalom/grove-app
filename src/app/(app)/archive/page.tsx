@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { TopBar } from "@/components/app/TopBar";
 import { RightRail } from "@/components/app/RightRail";
 import { getChapter } from "@/lib/chapters";
@@ -108,13 +109,13 @@ export default function ArchivePage() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
+                  <Link
+                    href={`/archive/${chapter.slug}`}
                     className="flex w-full items-center gap-2 rounded-full px-3 py-1.5 font-ui text-xs text-primary-600 transition-colors hover:bg-primary-50"
                   >
                     Read Log
                     <ArrowIcon />
-                  </button>
+                  </Link>
                 </li>
               );
             })}

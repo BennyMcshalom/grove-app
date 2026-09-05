@@ -23,7 +23,7 @@ export default function ReadyPage() {
           </p>
         </header>
 
-        <Button size="md" className="w-[228px]" iconRight={<ArrowRight />} href="/">
+        <Button size="md" className="w-[228px]" iconRight={<ArrowRight />} href="/home">
           Enter Grouv
         </Button>
       </div>

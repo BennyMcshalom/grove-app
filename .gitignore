@@ -42,3 +42,6 @@ next-env.d.ts
 
 # MCP config — contains a plaintext Figma token
 .mcp.json
+
+# Figma reference renders pulled for visual diffing, not app assets
+.figma-ref/

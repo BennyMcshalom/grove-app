@@ -1,10 +1,15 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { TopBar } from "@/components/app/TopBar";
-import { RightRail } from "@/components/app/RightRail";
+import { EventsRail } from "@/components/app/EventsRail";
+import { EmptyState } from "@/components/app/EmptyState";
 import { Button } from "@/components/ui/Button";
+import { MeetAndGreet } from "@/components/app/MeetAndGreet";
+import { CreateEventModal } from "@/components/app/CreateEventModal";
+import { useToast } from "@/components/app/ToastProvider";
 import { cn } from "@/lib/cn";
 
 /**
@@ -23,6 +28,8 @@ const ATTENDEES = [
   "/images/people/jalen.png",
 ];
 
+type Rsvp = Record<number, boolean>;
+
 const EVENTS = Array.from({ length: 4 }, (_, i) => ({
   id: i,
   title: "First Down Walk",
@@ -35,6 +42,15 @@ const EVENTS = Array.from({ length: 4 }, (_, i) => ({
 
 export default function EventsPage() {
   const [tab, setTab] = useState(TABS[0]);
+  const [going, setGoing] = useState<Rsvp>({});
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
+  const toast = useToast();
+
+  const visible = EVENTS.filter((e) =>
+    query ? e.title.toLowerCase().includes(query.toLowerCase()) : true,
+  );
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -62,6 +78,10 @@ export default function EventsPage() {
               ))}
             </nav>
 
+            {tab === "Meet & Greet" ? (
+              <MeetAndGreet onHost={() => setCreating(true)} />
+            ) : (
+            <>
             <header className="flex flex-wrap items-center justify-between gap-3">
               <h1 className="font-sans text-base font-medium tracking-wide text-ink-300 uppercase">
                 Events near you
@@ -70,16 +90,37 @@ export default function EventsPage() {
                 <button
                   type="button"
                   aria-label="Search events"
+                  aria-expanded={searchOpen}
+                  onClick={() => setSearchOpen((v) => !v)}
                   className="grid size-10 place-items-center rounded-full bg-white text-ink-400 transition-colors hover:bg-ivory-200"
                 >
                   <SearchIcon />
                 </button>
-                <Button size="sm">Host an Event</Button>
+                <Button size="sm" onClick={() => setCreating(true)}>
+                  Host an Event
+                </Button>
               </div>
             </header>
 
+            {searchOpen && (
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search events"
+                className="w-full rounded-full border border-ink-100 bg-white px-5 py-3 font-sans text-sm text-ink-500 outline-none placeholder:text-ink-200 focus:border-primary-200"
+              />
+            )}
+
+            {visible.length === 0 ? (
+              <EmptyState
+                variant="screen"
+                title="No Events"
+                body="There are events hosting near you"
+              />
+            ) : (
             <ul className="flex flex-col gap-4">
-              {EVENTS.map((event) => (
+              {visible.map((event) => (
                 <li
                   key={event.id}
                   className="relative flex gap-2 rounded-lg bg-white p-4"
@@ -90,7 +131,13 @@ export default function EventsPage() {
 
                   <div className="flex min-w-0 flex-1 flex-col gap-2 pr-24">
                     <h2 className="font-sans text-sm font-semibold text-ink-600">
-                      {event.title}
+                      {/* Opens the Event View (452:9875). */}
+                      <Link
+                        href={`/events/${event.id}`}
+                        className="hover:underline"
+                      >
+                        {event.title}
+                      </Link>
                     </h2>
 
                     <div className="flex items-center gap-2">
@@ -133,20 +180,43 @@ export default function EventsPage() {
                   <div className="absolute top-4 right-4">
                     <button
                       type="button"
-                      className="flex items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
+                      onClick={() => {
+                        if (!going[event.id]) {
+                          toast({
+                            title: "You're grouv'd. ",
+                            description: "See you at First Down Walk Event",
+                          });
+                        }
+                        setGoing((prev) => ({
+                          ...prev,
+                          [event.id]: !prev[event.id],
+                        }));
+                      }}
+                      aria-pressed={!!going[event.id]}
+                      className={cn(
+                        "flex items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm font-medium transition-colors",
+                        going[event.id]
+                          ? "bg-primary-50 text-primary-800"
+                          : "text-primary-600 hover:bg-primary-50",
+                      )}
                     >
-                      I&rsquo;ll Grouv
+                      {going[event.id] ? "You're grouv'd" : "I'll Grouv"}
                       <ArrowIcon />
                     </button>
                   </div>
                 </li>
               ))}
             </ul>
+            )}
+            </>
+            )}
           </div>
         </div>
       </div>
 
-      <RightRail />
+      <EventsRail />
+
+      {creating && <CreateEventModal onClose={() => setCreating(false)} />}
     </div>
   );
 }
