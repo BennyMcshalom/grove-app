@@ -26,7 +26,7 @@ const PROGRESS = [
   "Starting over",
 ];
 
-export function Composer() {
+export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const [mode, setMode] = useState(MODES[0]);
   const [stage, setStage] = useState<string | null>(null);
   const [anonymous, setAnonymous] = useState(false);
@@ -36,6 +36,7 @@ export function Composer() {
 
   /** The close button clears the draft rather than doing nothing. */
   const reset = () => {
+    if (onClose) return onClose();
     setMode(MODES[0]);
     setStage(null);
     setAnonymous(false);

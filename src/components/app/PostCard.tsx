@@ -133,7 +133,12 @@ export function PostCard({ post }: { post: Post }) {
         <footer className="flex flex-wrap gap-5 py-3">
           <Action
             icon={<PlantIcon className="size-6" />}
-            label={`Root ${post.roots + (rooted ? 1 : 0)}`}
+            label={
+              <>
+                <span className="hidden sm:inline">Root </span>
+                {post.roots + (rooted ? 1 : 0)}
+              </>
+            }
             tone="root"
             active={rooted}
             onClick={() => {
@@ -149,7 +154,12 @@ export function PostCard({ post }: { post: Post }) {
           />
           <Action
             icon={<ChatIcon className="size-6" />}
-            label={`Comment ${post.comments}`}
+            label={
+              <>
+                <span className="hidden sm:inline">Comment </span>
+                {post.comments}
+              </>
+            }
             tone="muted"
             onClick={() => setCommentsOpen((v) => !v)}
           />
@@ -216,7 +226,7 @@ function Action({
   onClick,
 }: {
   icon: React.ReactNode;
-  label: string;
+  label: React.ReactNode;
   tone: "root" | "muted" | "outline";
   active?: boolean;
   onClick?: () => void;

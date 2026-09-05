@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import { NotificationsPanel } from "@/components/app/NotificationsPanel";
+import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 
 /**
@@ -32,8 +34,83 @@ export function TopBar({
   const [query, setQuery] = useState("");
   const router = useRouter();
 
+  const tabs = (
+    /* The five chapter tabs don't fit a 390px phone, so the row scrolls
+       horizontally rather than clipping "Adventure". */
+    <nav
+      aria-label="Filter feed by chapter"
+      className="-mx-5 min-w-0 max-w-full overflow-x-auto px-5 lg:mx-0 lg:px-0"
+    >
+      <ul className="flex w-max">
+        {TABS.map((tab) => {
+          const isActive = tab === active;
+          return (
+            <li key={tab}>
+              <button
+                type="button"
+                onClick={() => setActive(tab)}
+                aria-current={isActive ? "true" : undefined}
+                className={cn(
+                  "h-10 border-b-2 px-4 py-2 font-sans text-sm font-medium transition-colors",
+                  isActive
+                    ? "border-primary-600 text-ink-500"
+                    : "border-ivory-600 text-ink-400 hover:text-ink-500",
+                )}
+              >
+                {tab}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+
   return (
-    <header className="flex shrink-0 flex-wrap items-end justify-between gap-4 bg-white px-6 pt-8 lg:pr-12 lg:pt-13">
+    <>
+    {/* Frame 621:32061 — the phone header carries the logo and three glyphs;
+        the sidebar that holds them on desktop is hidden at this width. */}
+    <header className="flex shrink-0 flex-col gap-3 bg-white px-5 pt-3 lg:hidden">
+      <div className="flex items-center justify-between gap-4">
+        <Link href="/home" aria-label="Grouv home">
+          <Logo className="h-6" />
+        </Link>
+        <div className="flex h-11 items-center gap-5">
+          <button
+            type="button"
+            aria-label={`Notifications, ${unread} unread`}
+            onClick={() => setNotificationsOpen(true)}
+            className="relative text-[#1D2939]"
+          >
+            <BellIcon className="size-8" />
+            {unread > 0 && (
+              <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-[#F04438] font-sans text-xs text-white">
+                {unread}
+              </span>
+            )}
+          </button>
+          <Link href="/search" aria-label="Search" className="text-[#1D2939]">
+            <SearchIcon className="size-7" />
+          </Link>
+          <Link
+            href="/settings"
+            aria-label="Appearance"
+            className="text-[#1D2939]"
+          >
+            <MoonIcon className="size-7" />
+          </Link>
+        </div>
+      </div>
+      {title ? (
+        <h1 className="pb-2 font-display text-2xl font-semibold text-ink-600">
+          {title}
+        </h1>
+      ) : (
+        tabs
+      )}
+    </header>
+
+    <header className="hidden shrink-0 flex-wrap items-end justify-between gap-4 bg-white px-6 pt-8 lg:flex lg:pr-12 lg:pt-13">
       {title ? (
         <div className="flex items-center gap-4 pb-2">
           {icon}
@@ -42,32 +119,7 @@ export function TopBar({
           </h1>
         </div>
       ) : (
-        /* The five chapter tabs don't fit a 390px phone, so the row scrolls
-           horizontally rather than clipping "Adventure". */
-        <nav aria-label="Filter feed by chapter" className="-mx-6 min-w-0 max-w-full overflow-x-auto px-6 lg:mx-0 lg:px-0">
-          <ul className="flex w-max">
-            {TABS.map((tab) => {
-              const isActive = tab === active;
-              return (
-                <li key={tab}>
-                  <button
-                    type="button"
-                    onClick={() => setActive(tab)}
-                    aria-current={isActive ? "true" : undefined}
-                    className={cn(
-                      "h-10 border-b-2 px-4 py-2 font-sans text-sm font-medium transition-colors",
-                      isActive
-                        ? "border-primary-600 text-ink-500"
-                        : "border-ivory-600 text-ink-400 hover:text-ink-500",
-                    )}
-                  >
-                    {tab}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        tabs
       )}
 
       <div className="flex items-center gap-6 pb-2">
@@ -105,10 +157,26 @@ export function TopBar({
         </button>
       </div>
 
-      {notificationsOpen && (
-        <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
-      )}
     </header>
+
+    {notificationsOpen && (
+      <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
+    )}
+    </>
+  );
+}
+
+/** Icon/Moon (8:8644) — the phone header's appearance toggle. */
+function MoonIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
