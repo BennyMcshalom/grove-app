@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { MobileMenuSheet } from "@/components/app/MobileMenuSheet";
 import { cn } from "@/lib/cn";
 import {
   HomeIcon,
@@ -21,13 +23,15 @@ const ITEMS = [
   { href: "/spaces", label: "My Spaces", Icon: SpacesIcon },
   { href: "/log", label: "Grouv Log", Icon: LogIcon },
   { href: "/bonds", label: "Bonds", Icon: BondsIcon },
-  { href: "/settings", label: "More", Icon: MoreIcon },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
+  // "More" opens the sheet (601:31816) rather than navigating.
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
+    <>
     <nav className="shrink-0 border-t border-ink-50 bg-white px-5 py-4 lg:hidden">
       <ul className="flex items-center justify-between">
         {ITEMS.map(({ href, label, Icon }) => {
@@ -53,8 +57,24 @@ export function MobileNav() {
             </li>
           );
         })}
+
+        <li>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={menuOpen}
+            className="flex w-16 flex-col items-center gap-1 font-sans text-xs font-medium text-ink-600"
+          >
+            <MoreIcon className="size-5" />
+            More
+          </button>
+        </li>
       </ul>
     </nav>
+
+    {menuOpen && <MobileMenuSheet onClose={() => setMenuOpen(false)} />}
+    </>
   );
 }
 

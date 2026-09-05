@@ -3,8 +3,11 @@
 import { Button } from "@/components/ui/Button";
 
 /**
- * Notifications — Figma frame 135:28124. A full-height 40/32 padded panel:
- * heading, a list of ivory-200 rows, and "Clear Notifications" pinned bottom.
+ * Notifications — Figma frames 135:28124 (desktop) and 628:35736 (phone).
+ *
+ * A full-height 40/32 padded panel: heading, a list of ivory-200 rows, and
+ * "Clear Notifications" pinned bottom. The phone frame leads with a back arrow
+ * instead of a trailing close button.
  */
 const ITEMS = Array.from({ length: 5 }, (_, i) => ({
   id: i,
@@ -15,7 +18,7 @@ const ITEMS = Array.from({ length: 5 }, (_, i) => ({
 
 export function NotificationsPanel({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-30 flex justify-end bg-black/20">
+    <div className="fixed inset-0 z-40 flex justify-end bg-black/20">
       {/* Clicking the backdrop closes the panel. */}
       <button
         type="button"
@@ -24,17 +27,25 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
         className="flex-1 cursor-default"
       />
 
-      <aside className="flex h-full w-full max-w-[584px] flex-col justify-between overflow-y-auto bg-white px-8 py-10">
+      <aside className="flex h-full w-full max-w-[584px] flex-col justify-between overflow-y-auto bg-white px-5 py-6 lg:px-8 lg:py-10">
         <div className="flex flex-col gap-6">
-          <header className="flex items-center justify-between">
-            <h2 className="font-display text-3xl font-semibold text-ink-800">
+          <header className="flex items-center gap-4 lg:justify-between">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Back"
+              className="text-ink-800 lg:hidden"
+            >
+              <BackIcon />
+            </button>
+            <h2 className="flex-1 font-display text-xl font-semibold text-ink-800 lg:flex-none lg:text-3xl">
               Notifications
             </h2>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="rounded p-3 text-ink-800 transition-colors hover:bg-ivory-200"
+              className="hidden rounded p-3 text-ink-800 transition-colors hover:bg-ivory-200 lg:block"
             >
               <CloseIcon className="size-5" />
             </button>
@@ -86,6 +97,20 @@ function UsersIcon({ className }: { className?: string }) {
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
+      <path
+        d="M19 12H5m0 0 6-6m-6 6 6 6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
