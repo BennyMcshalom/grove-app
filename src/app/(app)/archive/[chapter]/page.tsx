@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { ChapterReflection } from "@/components/app/ChapterReflection";
@@ -31,6 +32,34 @@ const POSTS: Post[] = Array.from({ length: 4 }, (_, i) => ({
   comments: 8,
 }));
 
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
+      <path
+        d="M19 12H5m0 0 6-6m-6 6 6 6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
+      <path
+        d="M1.5 10S4.5 4.5 10 4.5 18.5 10 18.5 10 15.5 15.5 10 15.5 1.5 10 1.5 10Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 export default function ChapterArchivePage() {
   const params = useParams<{ chapter: string }>();
   const [tab, setTab] = useState(TABS[0]);
@@ -40,14 +69,35 @@ export default function ChapterArchivePage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {/* Frame 382:11746 — title left, "Read Reflection" right. */}
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-4 bg-white px-6 py-6 lg:px-8">
-        <h1 className="font-display text-2xl font-semibold text-ink-600">
-          {name} Archive
-        </h1>
-        <Button size="sm" onClick={() => setReflecting(true)}>
+      {/* Frame 382:11746 — title left, "Read Reflection" right. The phone
+          frame (638:28331) adds a back arrow and drops the button's fill. */}
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-4 bg-white px-5 py-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href="/archive"
+            aria-label="Back to archive"
+            className="shrink-0 text-ink-800 lg:hidden"
+          >
+            <BackIcon />
+          </Link>
+          <h1 className="truncate font-display text-xl font-semibold text-ink-600 lg:text-2xl">
+            {name} Archive
+          </h1>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setReflecting(true)}
+          className="flex shrink-0 items-center gap-2 font-ui text-sm font-medium text-primary-500 lg:hidden"
+        >
+          <EyeIcon />
           Read Reflection
-        </Button>
+        </button>
+        <span className="hidden lg:block">
+          <Button size="sm" onClick={() => setReflecting(true)}>
+            Read Reflection
+          </Button>
+        </span>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
