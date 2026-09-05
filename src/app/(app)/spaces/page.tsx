@@ -27,7 +27,7 @@ export default function SpacesPage() {
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBar />
+        <TopBar title="My Spaces" />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-8 pb-10">
@@ -35,7 +35,7 @@ export default function SpacesPage() {
               <h1 className="font-display text-2xl font-semibold text-ink-500">
                 Your open chapters
               </h1>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
                 {open.map((chapter) => (
                   <OpenSpaceCard
                     key={chapter.slug}
@@ -56,7 +56,7 @@ export default function SpacesPage() {
                 </p>
               </header>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
                 {directory.map((chapter) => (
                   <DirectorySpaceCard key={chapter.slug} chapter={chapter} />
                 ))}

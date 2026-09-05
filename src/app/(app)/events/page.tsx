@@ -55,7 +55,7 @@ export default function EventsPage() {
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBar />
+        <TopBar title="Events" />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 lg:px-8">
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-6 pb-10">

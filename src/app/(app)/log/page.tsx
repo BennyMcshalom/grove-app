@@ -4,7 +4,8 @@ import Image from "next/image";
 import { useState } from "react";
 import { ViewLogModal } from "@/components/app/ViewLogModal";
 import { TopBar } from "@/components/app/TopBar";
-import { RightRail } from "@/components/app/RightRail";
+import { LogRail } from "@/components/app/LogRail";
+import { cn } from "@/lib/cn";
 import { LogPrompt, LogMemories } from "@/components/app/LogPrompt";
 
 /**
@@ -14,6 +15,10 @@ import { LogPrompt, LogMemories } from "@/components/app/LogPrompt";
  * "Log from your circle" list where each row shows a member and three of
  * their recent entries (frame 249:12722).
  */
+/** Frame 246:6062 — the log's own chapter tabs and Solo / Bond Log switch. */
+const LOG_TABS = ["Career", "Health", "Spiritual"];
+const SCOPES = ["Solo", "Bond Log"];
+
 const CIRCLE_LOGS = [
   {
     name: "Jalen Crestwood",
@@ -52,15 +57,63 @@ export default function LogPage() {
   const [viewing, setViewing] = useState<(typeof CIRCLE_LOGS)[number] | null>(
     null,
   );
+  // Frame 246:6062 — three chapter tabs beside a Solo / Bond Log switch.
+  const [chapter, setChapter] = useState(LOG_TABS[0]);
+  const [scope, setScope] = useState(SCOPES[0]);
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBar />
+        <TopBar title="Grouv Log" />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-[708px] flex-col items-center gap-8 pb-10">
-            <LogPrompt />
+            <div className="flex w-full flex-wrap items-center justify-between gap-4">
+              <nav aria-label="Log chapter" className="flex min-w-0 flex-1">
+                {LOG_TABS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    aria-current={t === chapter ? "page" : undefined}
+                    onClick={() => setChapter(t)}
+                    className={cn(
+                      "h-10 flex-1 border-b-2 px-4 py-2 font-sans text-sm font-medium transition-colors",
+                      t === chapter
+                        ? "border-primary-600 text-ink-500"
+                        : "border-ivory-600 text-ink-400 hover:text-ink-500",
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </nav>
+
+              <div
+                role="tablist"
+                aria-label="Log scope"
+                className="flex shrink-0 rounded-full bg-ivory-300 p-1"
+              >
+                {SCOPES.map((s_) => (
+                  <button
+                    key={s_}
+                    type="button"
+                    role="tab"
+                    aria-selected={s_ === scope}
+                    onClick={() => setScope(s_)}
+                    className={cn(
+                      "rounded-full px-4 py-1.5 font-sans text-sm font-medium transition-colors",
+                      s_ === scope
+                        ? "bg-white text-ink-700 shadow-sm"
+                        : "text-ink-400 hover:text-ink-600",
+                    )}
+                  >
+                    {s_}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <LogPrompt chapter={chapter} />
             <LogMemories count={4} />
 
             <section className="flex w-full flex-col gap-5">
@@ -147,7 +200,7 @@ export default function LogPage() {
         </div>
       </div>
 
-      <RightRail />
+      <LogRail />
 
       {viewing && (
         <ViewLogModal
