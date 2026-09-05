@@ -73,12 +73,15 @@ export function BondChat({
   depth,
   duration,
   status,
+  onBack,
 }: {
   name: string;
   avatar: string;
   depth: number;
   duration: string;
   status: string;
+  /** The phone chat (635:19212) leads with a back arrow to the list. */
+  onBack?: () => void;
 }) {
   // Sent messages are appended locally — there is no backend yet, but the
   // composer should do something rather than swallow what you type.
@@ -108,6 +111,29 @@ export function BondChat({
     <section className="flex min-h-0 flex-1 flex-col border-l border-ink-50">
       <header className="flex shrink-0 flex-col gap-2.5 border-b border-ink-50 bg-ivory-300 px-6 pt-4 pb-2">
         <div className="flex items-center gap-3.5">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Back to bonds"
+              className="shrink-0 text-ink-800 md:hidden"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="size-6"
+                aria-hidden="true"
+              >
+                <path
+                  d="M19 12H5m0 0 6-6m-6 6 6 6"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
           <div className="flex flex-1 items-center gap-4 p-2">
             <GlowAvatar src={avatar} online />
             <div className="flex min-w-0 flex-col gap-0.5">
