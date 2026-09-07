@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { LiveRoomModal } from "@/components/app/LiveRoomModal";
@@ -13,9 +14,17 @@ import { LiveRoomModal } from "@/components/app/LiveRoomModal";
 const LIVE_ROOMS = Array.from({ length: 5 }, (_, i) => ({
   id: i,
   title: "Creators Summit",
+  venue: "Tafawa Balewa Square",
   place: "Founders & Builders",
   here: 12,
 }));
+
+const MEMBERS = [
+  "/images/people/m1.png",
+  "/images/people/m2.png",
+  "/images/people/m3.png",
+  "/images/people/m5.png",
+];
 
 export function MeetAndGreet({ onHost }: { onHost?: () => void }) {
   const [place, setPlace] = useState("");
@@ -46,6 +55,61 @@ export function MeetAndGreet({ onHost }: { onHost?: () => void }) {
             If someone already started it, you will see it below, tap to join
             them instead.
           </p>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-4 xl:hidden">
+        <h2 className="font-sans text-base font-medium text-ink-600">
+          YOUR LIVE MEET
+        </h2>
+        <div
+          className="flex flex-col gap-2 rounded-lg p-4"
+          style={{
+            backgroundImage:
+              "linear-gradient(135deg, rgba(250,231,237,1) 0%, rgba(240,221,221,1) 100%)",
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-display text-[13.8px] leading-[1.26] font-semibold text-ink-500">
+              Creators Summit
+            </span>
+            <span className="flex items-center gap-1.5 font-sans text-xs font-medium text-success-60">
+              <span className="size-2 rounded-full bg-success-60" />
+              live
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="flex shrink-0">
+              {MEMBERS.map((src, i) => (
+                <span
+                  key={src}
+                  className="relative size-7 overflow-hidden rounded-full border-2 border-white"
+                  style={{ marginLeft: i === 0 ? 0 : -7 }}
+                >
+                  <Image src={src} alt="" fill sizes="28px" className="object-cover" />
+                </span>
+              ))}
+              <span
+                className="grid size-7 shrink-0 place-items-center rounded-full border-2 border-white bg-primary-50 font-ui text-xs font-extrabold text-primary-600"
+                style={{ marginLeft: -7 }}
+              >
+                SL
+              </span>
+            </span>
+            <span className="font-sans text-xs text-ink-400">
+              12 Meeting &amp; Greeting
+            </span>
+          </div>
+          <span className="flex flex-wrap items-center gap-3 border-t border-white/60 pt-2 font-sans text-xs text-ink-400">
+            <span className="flex items-center gap-1">
+              <MapPinIcon className="size-3.5 text-primary-600" />
+              Tafawa Balewa Square
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="size-1.5 rounded-full bg-primary-600" />
+              Founders &amp; Builders
+            </span>
+          </span>
         </div>
       </section>
 
@@ -83,11 +147,18 @@ export function MeetAndGreet({ onHost }: { onHost?: () => void }) {
               <h3 className="font-sans text-sm font-semibold text-ink-600">
                 {room.title}
               </h3>
-              <div className="flex items-center gap-2">
-                <MapPinIcon className="size-4 text-primary-600" />
-                <span className="size-2 rounded-full bg-primary-500" />
-                <span className="font-sans text-xs font-medium text-ink-400">
-                  {room.place}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="flex items-center gap-1">
+                  <MapPinIcon className="size-4 text-primary-600" />
+                  <span className="font-sans text-xs font-medium text-ink-400">
+                    {room.venue}
+                  </span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="size-1.5 rounded-full bg-primary-500" />
+                  <span className="font-sans text-xs font-medium text-ink-400">
+                    {room.place}
+                  </span>
                 </span>
               </div>
             </div>

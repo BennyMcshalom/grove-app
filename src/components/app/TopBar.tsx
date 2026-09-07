@@ -19,6 +19,7 @@ export function TopBar({
   unread = 2,
   title,
   icon,
+  back,
 }: {
   unread?: number;
   /**
@@ -28,6 +29,8 @@ export function TopBar({
   title?: string;
   /** Event View (452:9877) prefixes its title with a primary-50 glyph. */
   icon?: React.ReactNode;
+  /** Titled phone frames lead with a back arrow; pass its destination. */
+  back?: string;
 }) {
   const [active, setActive] = useState("All");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -102,9 +105,16 @@ export function TopBar({
         </div>
       </div>
       {title ? (
-        <h1 className="pb-2 font-display text-2xl font-semibold text-ink-600">
-          {title}
-        </h1>
+        <div className="flex items-center gap-3 pb-2">
+          {back && (
+            <Link href={back} aria-label="Back" className="shrink-0 text-ink-800">
+              <BackIcon />
+            </Link>
+          )}
+          <h1 className="font-display text-2xl font-semibold text-ink-600">
+            {title}
+          </h1>
+        </div>
       ) : (
         tabs
       )}
@@ -163,6 +173,20 @@ export function TopBar({
       <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
     )}
     </>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
+      <path
+        d="M19 12H5m0 0 6-6m-6 6 6 6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
