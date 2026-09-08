@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BondChat, GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
 import { BondsRail } from "@/components/app/BondsRail";
+import { useCollapsedSidebar } from "@/components/app/SidebarProvider";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 
@@ -48,6 +49,10 @@ type Conversation = {
 };
 
 export default function BondsPage() {
+  // Three columns of our own — the list, the chat and the rail — so the app
+  // sidebar starts as a rail here. The toggle in it still overrides this.
+  useCollapsedSidebar();
+
   const [active, setActive] = useState(0);
   // Circle rows open a conversation too, so selection is the conversation
   // itself rather than an index into BONDS.
