@@ -209,48 +209,35 @@ export default function SettingsPage() {
   );
 }
 
-/** Figma 404:15075 — gradient header strip with the avatar overlapping it. */
+/**
+ * Figma 404:15075 (desktop) / 643:31506 (phone).
+ *
+ * Desktop hangs the avatar off a 107px gradient strip with the actions to its
+ * right. The phone frame instead puts the whole identity block inside the
+ * gradient and drops the actions onto the white below it.
+ */
 function ProfileBanner() {
   return (
     <section className="relative w-full overflow-hidden rounded-lg bg-white shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+      {/* On a phone this band wraps the identity block; on desktop it is the
+          bare strip the avatar overlaps. */}
       <div
-        className="h-[107px] w-full"
+        className="px-5 py-4 lg:h-[107px] lg:px-0 lg:py-0"
         style={{
           backgroundImage:
             "linear-gradient(0deg, #FFDFCF 0%, #FFECE4 87%)",
         }}
-      />
-      <div className="flex flex-col gap-4 px-8 pt-0 pb-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="-mt-10 flex items-center gap-4">
-          <span
-            className="relative size-16 shrink-0 rounded-full border-4 border-white"
-            style={{ boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" }}
-          >
-            <Image
-              src="/images/people/jalen.png"
-              alt=""
-              fill
-              sizes="64px"
-              className="rounded-full object-cover"
-            />
-            <span className="absolute right-0 bottom-0 size-4 rounded-full border-[1.5px] border-white bg-success-60" />
-          </span>
-          <div className="flex flex-col gap-3">
-            <span className="font-sans text-lg font-semibold text-ink-800">
-              Oreoluwa
-            </span>
-            <div className="flex flex-wrap gap-4">
-              <Chip>Building a habit</Chip>
-              <Chip dot>In transition</Chip>
-            </div>
-            <span className="flex items-center gap-2 font-sans text-sm font-medium text-ink-400">
-              <PinIcon className="size-5" />
-              Lagos Nigeria
-            </span>
-          </div>
+      >
+        <div className="flex items-center gap-4 lg:hidden">
+          <ProfileIdentity />
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 px-5 pt-4 pb-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:pt-0">
+        <div className="-mt-10 hidden items-center gap-4 lg:flex">
+          <ProfileIdentity />
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <Button size="sm" href="/settings/your-grouv">
             Enter my Grouv
           </Button>
@@ -260,6 +247,40 @@ function ProfileBanner() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Avatar, name, aura chips and location — the same in both layouts. */
+function ProfileIdentity() {
+  return (
+    <>
+      <span
+        className="relative size-16 shrink-0 rounded-full border-4 border-white"
+        style={{ boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" }}
+      >
+        <Image
+          src="/images/people/jalen.png"
+          alt=""
+          fill
+          sizes="64px"
+          className="rounded-full object-cover"
+        />
+        <span className="absolute right-0 bottom-0 size-4 rounded-full border-[1.5px] border-white bg-success-60" />
+      </span>
+      <div className="flex min-w-0 flex-col gap-3">
+        <span className="font-sans text-lg font-semibold text-ink-800">
+          Oreoluwa
+        </span>
+        <div className="flex flex-wrap gap-4">
+          <Chip>Building a habit</Chip>
+          <Chip dot>In transition</Chip>
+        </div>
+        <span className="flex items-center gap-2 font-sans text-sm font-medium text-ink-400">
+          <PinIcon className="size-5" />
+          Lagos Nigeria
+        </span>
+      </div>
+    </>
   );
 }
 

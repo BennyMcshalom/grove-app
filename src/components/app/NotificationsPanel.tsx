@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 /**
@@ -17,6 +18,9 @@ const ITEMS = Array.from({ length: 5 }, (_, i) => ({
 }));
 
 export function NotificationsPanel({ onClose }: { onClose: () => void }) {
+  // Clearing reaches Figma's empty frame (628:35887).
+  const [items, setItems] = useState(ITEMS);
+
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-black/20">
       {/* Clicking the backdrop closes the panel. */}
@@ -51,8 +55,19 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
             </button>
           </header>
 
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 rounded-lg bg-white px-6 py-14 text-center">
+              <BellArt />
+              <p className="font-display text-2xl font-semibold text-ink-800">
+                No Notifications
+              </p>
+              <p className="font-sans text-base text-ink-300">
+                Notification Inbox Empty
+              </p>
+            </div>
+          ) : (
           <ul className="flex flex-col gap-4">
-            {ITEMS.map((item) => (
+            {items.map((item) => (
               <li
                 key={item.id}
                 className="flex gap-4 rounded-lg bg-ivory-200 p-4"
@@ -70,15 +85,67 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
               </li>
             ))}
           </ul>
+          )}
         </div>
 
         <div className="pt-8">
-          <Button size="sm" fullWidth>
+          <Button size="sm" fullWidth onClick={() => setItems([])}>
             Clear Notifications
           </Button>
         </div>
       </aside>
     </div>
+  );
+}
+
+/** The frowning bell from Figma's empty frame (628:35887). */
+function BellArt() {
+  return (
+    <svg
+      viewBox="0 0 220 190"
+      className="h-[170px] w-[200px]"
+      fill="none"
+      aria-hidden="true"
+    >
+      <ellipse cx="78" cy="86" rx="46" ry="38" fill="#FDE7D8" />
+      <ellipse cx="150" cy="96" rx="42" ry="34" fill="#FDE7D8" />
+      <circle cx="112" cy="126" r="20" fill="#F9BE95" />
+      <path
+        d="M110 40c-22 0-38 17-38 39 0 26-6 40-11 47a4 4 0 0 0 3 7h92a4 4 0 0 0 3-7c-5-7-11-21-11-47 0-22-16-39-38-39Z"
+        fill="#FFFFFF"
+        stroke="#C9CDD4"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <circle cx="110" cy="36" r="6" fill="#FFFFFF" stroke="#C9CDD4" strokeWidth="2.5" />
+      <circle cx="96" cy="92" r="3" fill="#C9CDD4" />
+      <circle cx="128" cy="92" r="3" fill="#C9CDD4" />
+      <path
+        d="M98 116a16 16 0 0 1 28 0"
+        stroke="#C9CDD4"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M148 54a18 14 0 1 1 0 28h-4l-8 8v-9a14 14 0 0 1-6-13 18 14 0 0 1 18-14Z"
+        fill="#FFFFFF"
+        stroke="#C9CDD4"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+      <circle cx="141" cy="68" r="2.4" fill="#C9CDD4" />
+      <circle cx="150" cy="68" r="2.4" fill="#C9CDD4" />
+      <circle cx="159" cy="68" r="2.4" fill="#C9CDD4" />
+      <path
+        d="M62 52h9M66.5 47.5v9M170 62h8M174 58v8M158 132h8M162 128v8"
+        stroke="#F3A06A"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <circle cx="88" cy="60" r="2.5" fill="#D9DDE3" />
+      <circle cx="140" cy="46" r="2.5" fill="#D9DDE3" />
+      <ellipse cx="112" cy="156" rx="56" ry="4" fill="#F6D9C6" />
+    </svg>
   );
 }
 
