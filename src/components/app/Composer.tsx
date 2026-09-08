@@ -11,8 +11,9 @@ import { cn } from "@/lib/cn";
 /**
  * Post composer — Figma frame 100:1206 (660px card, 32px padding, 16px radius).
  *
- * Two modes ("Root a thought" / "Just Grouv"), three prompts, a row of
- * progress badges, media chips and the submit button.
+ * "Root a thought" (100:1206) asks three prompts with a row of progress
+ * badges and submits with "Root this". "Just Grouv" (110:3891) is a different
+ * form entirely: two upload tiles, a caption, and "Grouv it".
  */
 const MODES = ["Root a thought", "Just Grouv"];
 
@@ -117,6 +118,47 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         ))}
       </div>
 
+      {mode === MODES[1] ? (
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-6">
+            {/* Frame 112:6433 — two upload tiles side by side. */}
+            <div className="flex flex-col gap-6 sm:flex-row">
+              <UploadTile
+                title="Photo"
+                body="Upload a photo"
+                accept="image/*"
+                icon={<ImagesIcon className="size-6" />}
+                onPick={(names) => setAttachments((a) => [...a, ...names])}
+              />
+              <UploadTile
+                title="Video"
+                body="Upload a video"
+                accept="video/*"
+                icon={<VideoIcon className="size-6" />}
+                onPick={(names) => setAttachments((a) => [...a, ...names])}
+              />
+            </div>
+
+            {attachments.length > 0 && (
+              <p className="font-sans text-xs text-ink-300">
+                {attachments.length} attached
+              </p>
+            )}
+
+            <Field label="Caption" name="caption" rows={4} plainLabel />
+          </div>
+
+          <div className="flex items-center justify-between gap-4 border-t border-ink-50 pt-6">
+            <Checkbox
+              label="Post anonymously"
+              checked={anonymous}
+              onChange={(e) => setAnonymous(e.target.checked)}
+            />
+            <Button size="sm">Grouv it</Button>
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-6">
           <Field
@@ -185,7 +227,49 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         </div>
         <Button size="sm">Root this</Button>
       </footer>
+      </>
+      )}
     </article>
+  );
+}
+
+/** "upload: drag upload" (115:6438) — an ivory tile per media type. */
+function UploadTile({
+  title,
+  body,
+  accept,
+  icon,
+  onPick,
+}: {
+  title: string;
+  body: string;
+  accept: string;
+  icon: React.ReactNode;
+  onPick: (names: string[]) => void;
+}) {
+  // `relative` keeps the sr-only input from resolving against the initial
+  // containing block and stretching the page.
+  return (
+    <label className="relative flex flex-1 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg bg-ivory-500 p-6 text-center transition-colors hover:bg-ivory-600">
+      <span className="grid size-11 place-items-center rounded-lg bg-primary-100 text-primary-600">
+        {icon}
+      </span>
+      <span className="flex flex-col gap-1">
+        <span className="font-sans text-sm font-semibold text-ink-500">
+          {title}
+        </span>
+        <span className="font-sans text-sm text-ink-400">{body}</span>
+      </span>
+      <input
+        type="file"
+        accept={accept}
+        multiple
+        className="sr-only"
+        onChange={(e) =>
+          onPick(Array.from(e.target.files ?? []).map((f) => f.name))
+        }
+      />
+    </label>
   );
 }
 
@@ -193,16 +277,22 @@ function Field({
   label,
   name,
   rows,
+  plainLabel = false,
 }: {
   label: string;
   name: string;
   rows: number;
+  /** Just Grouv labels its caption in sentence case, not the prompts' caps. */
+  plainLabel?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={name}
-        className="font-sans text-sm font-medium tracking-wide text-ink-500 uppercase"
+        className={cn(
+          "font-sans text-sm font-medium text-ink-500",
+          !plainLabel && "tracking-wide uppercase",
+        )}
       >
         {label}
       </label>
