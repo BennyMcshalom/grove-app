@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TopBar } from "@/components/app/TopBar";
 import { Composer } from "@/components/app/Composer";
 import { PostCard, type Post } from "@/components/app/PostCard";
+import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { RightRail } from "@/components/app/RightRail";
 
 /**
@@ -64,9 +65,12 @@ export default function HomePage() {
             <div className="hidden lg:block">
               <Composer />
             </div>
-            {POSTS.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
+            {POSTS.length === 0 ? (
+              /* Frame 664:16902 — the feed's empty state. */
+              <EmptyFeed onCompose={() => setComposing(true)} />
+            ) : (
+              POSTS.map((post) => <PostCard key={post.id} post={post} />)
+            )}
           </div>
         </div>
       </div>

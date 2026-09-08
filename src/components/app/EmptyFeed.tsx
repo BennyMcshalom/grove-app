@@ -1,22 +1,31 @@
-import Image from "next/image";
+"use client";
+
+import { EmptyState } from "@/components/app/EmptyState";
 
 /**
- * Empty feed — Figma frame 650:37394 (desktop) / 664:16902 (mobile).
- * A 466x589 illustration centred in the feed column.
+ * Empty feed — Figma frames 650:37394 (desktop) and 664:16902 (phone).
+ *
+ * The illustration over "No Post" and a "Root a Thought" action.
  */
-export function EmptyFeed() {
+export function EmptyFeed({ onCompose }: { onCompose?: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 py-10 text-center">
-      <Image
-        src="/images/empty-feed.svg"
-        alt=""
-        width={466}
-        height={589}
-        className="h-auto w-full max-w-[300px] lg:max-w-[420px]"
-      />
-      <p className="max-w-[420px] font-sans text-base text-ink-300">
-        Nothing here yet. Root a thought and your Circle will see it.
-      </p>
-    </div>
+    <EmptyState
+      title="No Post"
+      body="There are no post hosting for you yet, add a post to start engaging with others"
+      action={
+        onCompose && (
+          <button
+            type="button"
+            onClick={onCompose}
+            className="flex items-center gap-2 rounded-full px-4 py-2 font-ui text-base font-medium text-primary-600 transition-colors hover:bg-primary-50"
+          >
+            <span aria-hidden="true" className="text-lg leading-none">
+              +
+            </span>
+            Root a Thought
+          </button>
+        )
+      }
+    />
   );
 }

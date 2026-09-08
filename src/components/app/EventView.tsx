@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { TopBar } from "@/components/app/TopBar";
+import { cn } from "@/lib/cn";
 
 /**
  * Event View — Figma frame 452:9875.
@@ -11,6 +12,7 @@ import { TopBar } from "@/components/app/TopBar";
  * A 724px conversation panel with the "group created" notice above the
  * messages, a "Join conversation" composer pinned to the bottom of the column,
  * and a 396px rail holding EVENT DETAILS and the ATTENDEE LIST (452:11307).
+ * The phone frame (635:24106) turns that rail into an "Event Details" tab.
  */
 const EVENT = {
   title: "First Down Walk",
@@ -37,9 +39,52 @@ const MESSAGES = [
   {
     id: "2",
     author: "Amara",
-    avatar: "/images/people/lena.png",
+    avatar: "/images/people/m2.png",
     time: "09:03am",
     body: "I’m literally in the same place right now. The fear of starting over is real.",
+  },
+  {
+    id: "3",
+    author: "Amara",
+    avatar: "/images/people/m2.png",
+    time: "09:03am",
+    mention: "@amara",
+    body: " I’m literally in the same place right now. The fear of starting over is real.",
+  },
+  {
+    id: "4",
+    author: "Jasper",
+    avatar: "/images/people/m4.png",
+    time: "09:01am",
+    body: "Change can be daunting, but it often leads to the most rewarding experiences.",
+  },
+  {
+    id: "5",
+    author: "Nia",
+    avatar: "/images/people/nina.png",
+    time: "08:00am",
+    body: "Every ending is just a new beginning waiting to unfold.",
+  },
+  {
+    id: "6",
+    author: "Theo",
+    avatar: "/images/people/m1.png",
+    time: "08:00am",
+    body: "Sometimes, the hardest step is just deciding to take it.",
+  },
+  {
+    id: "7",
+    author: "Lila",
+    avatar: "/images/people/lena.png",
+    time: "08:00am",
+    body: "I've found that taking small steps can make the transition smoother.",
+  },
+  {
+    id: "8",
+    author: "Ravi",
+    avatar: "/images/people/m3.png",
+    time: "08:00am",
+    body: "Embrace the uncertainty; it often leads to unexpected opportunities.",
   },
 ];
 
@@ -54,9 +99,13 @@ const ATTENDEES = [
   { name: "Ava Martinez", avatar: "/images/people/dominion.png" },
 ];
 
+const TABS = ["Conversation", "Event Details"];
+
 export function EventView() {
   const [draft, setDraft] = useState("");
   const [sent, setSent] = useState<typeof MESSAGES>([]);
+  // Below xl the rail is a tab rather than a column.
+  const [tab, setTab] = useState(TABS[0]);
 
   const send = () => {
     const body = draft.trim();
@@ -82,6 +131,7 @@ export function EventView() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar
           title={EVENT.title}
+          back="/events"
           icon={
             <Link
               href="/events"
@@ -94,7 +144,38 @@ export function EventView() {
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
-          <section className="mx-auto flex w-full max-w-[724px] flex-col items-center gap-4 rounded-2xl bg-white p-6">
+          <div role="tablist" className="mx-auto mb-6 flex w-full max-w-[724px] xl:hidden">
+            {TABS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={t === tab}
+                onClick={() => setTab(t)}
+                className={cn(
+                  "h-10 flex-1 border-b-2 px-4 py-2 font-sans text-sm font-medium transition-colors",
+                  t === tab
+                    ? "border-primary-600 text-ink-800"
+                    : "border-ivory-600 text-ink-500",
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {tab === "Event Details" && (
+            <div className="mx-auto w-full max-w-[724px] xl:hidden">
+              <EventDetails />
+            </div>
+          )}
+
+          <section
+            className={cn(
+              "mx-auto w-full max-w-[724px] flex-col items-center gap-4 rounded-2xl bg-white p-6",
+              tab === "Conversation" ? "flex" : "hidden xl:flex",
+            )}
+          >
             <p className="flex w-full max-w-[427px] items-start gap-2 rounded-xl border border-primary-200 bg-primary-50 p-2 font-sans text-sm text-ink-200">
               <InfoIcon className="size-5 shrink-0 text-primary-600" />
               {EVENT.notice}
@@ -122,6 +203,11 @@ export function EventView() {
                       </span>
                     </span>
                     <p className="font-sans text-sm text-ink-400">
+                      {"mention" in message && message.mention && (
+                        <span className="text-primary-600">
+                          {message.mention}
+                        </span>
+                      )}
                       {message.body}
                     </p>
                   </div>
@@ -132,7 +218,12 @@ export function EventView() {
         </div>
 
         {/* Frame 458:12096 — the composer sits under the panel, above a rule. */}
-        <div className="shrink-0 border-t border-ink-50 bg-white px-4 py-5 lg:px-8">
+        <div
+          className={cn(
+            "shrink-0 border-t border-ink-50 bg-white px-4 py-5 lg:px-8",
+            tab === "Conversation" ? "block" : "hidden xl:block",
+          )}
+        >
           <div className="mx-auto flex w-full max-w-[724px] items-center gap-4">
             <input
               value={draft}
@@ -157,82 +248,91 @@ export function EventView() {
 
       {/* Sidebar 452:11307 — 396px, scrolls on its own. */}
       <aside className="hidden w-[396px] shrink-0 flex-col gap-7 overflow-y-auto bg-white px-8 pt-6 pb-10 xl:flex">
-        <section className="flex flex-col gap-4">
-          <h2 className="font-sans text-base font-semibold text-ink-700">
-            EVENT DETAILS
-          </h2>
-          <div className="flex flex-col">
-            <DetailRow icon={<UserIcon />} label="Organizer">
-              <Value>{EVENT.organizer}</Value>
-            </DetailRow>
-            <DetailRow icon={<TimerIcon />} label="Time">
-              <Value>{EVENT.time}</Value>
-            </DetailRow>
-            <DetailRow icon={<CalendarIcon />} label="Date">
-              <Value>{EVENT.date}</Value>
-            </DetailRow>
-            <DetailRow icon={<PinIcon />} label="Where">
-              <span className="flex items-center justify-between gap-2">
-                <Value>{EVENT.where}</Value>
-                <span className="font-sans text-sm text-ink-200">
-                  {EVENT.distance}
-                </span>
+        <EventDetails />
+      </aside>
+    </div>
+  );
+}
+
+/** The rail's contents — a column on desktop, a tab on the phone. */
+function EventDetails() {
+  return (
+    <div className="flex flex-col gap-7">
+      <section className="flex flex-col gap-4">
+        <h2 className="font-sans text-base font-semibold text-ink-700">
+          EVENT DETAILS
+        </h2>
+        <div className="flex flex-col">
+          <DetailRow icon={<UserIcon />} label="Organizer">
+            <Value>{EVENT.organizer}</Value>
+          </DetailRow>
+          <DetailRow icon={<TimerIcon />} label="Time">
+            <Value>{EVENT.time}</Value>
+          </DetailRow>
+          <DetailRow icon={<CalendarIcon />} label="Date">
+            <Value>{EVENT.date}</Value>
+          </DetailRow>
+          <DetailRow icon={<PinIcon />} label="Where">
+            <span className="flex items-center justify-between gap-2">
+              <Value>{EVENT.where}</Value>
+              <span className="font-sans text-sm text-ink-200">
+                {EVENT.distance}
               </span>
-            </DetailRow>
-            <DetailRow
-              icon={<FileIcon />}
-              label="What is the event about, who is it for?"
-            >
-              <Value>{EVENT.about}</Value>
-            </DetailRow>
+            </span>
+          </DetailRow>
+          <DetailRow
+            icon={<FileIcon />}
+            label="What is the event about, who is it for?"
+          >
+            <Value>{EVENT.about}</Value>
+          </DetailRow>
+        </div>
+      </section>
+
+      <span className="h-px w-full bg-ink-50" />
+
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
+          <h2 className="font-sans text-base font-semibold text-ink-700">
+            ATTENDEE LIST
+          </h2>
+          <div className="flex items-center gap-3">
+            <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-lg bg-ivory-500">
+              <span
+                className="block h-full rounded-lg bg-primary-500"
+                style={{
+                  width: `${(EVENT.going / EVENT.capacity) * 100}%`,
+                }}
+              />
+            </span>
+            <span className="shrink-0 font-sans text-xs font-medium text-ink-400">
+              {EVENT.going}/{EVENT.capacity} Grouving
+            </span>
           </div>
-        </section>
+          <p className="font-sans text-xs text-ink-300">
+            Only people in your Circle are visible here
+          </p>
+        </div>
 
-        <span className="h-px w-full bg-ink-50" />
-
-        <section className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3">
-            <h2 className="font-sans text-base font-semibold text-ink-700">
-              ATTENDEE LIST
-            </h2>
-            <div className="flex items-center gap-3">
-              <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-lg bg-ivory-500">
-                <span
-                  className="block h-full rounded-lg bg-primary-500"
-                  style={{
-                    width: `${(EVENT.going / EVENT.capacity) * 100}%`,
-                  }}
+        <ul className="flex flex-col">
+          {ATTENDEES.map((person) => (
+            <li key={person.name} className="flex items-center gap-3 px-1 py-2">
+              <span className="relative size-8 shrink-0 overflow-hidden rounded-full">
+                <Image
+                  src={person.avatar}
+                  alt=""
+                  fill
+                  sizes="32px"
+                  className="object-cover"
                 />
               </span>
-              <span className="shrink-0 font-sans text-xs font-medium text-ink-400">
-                {EVENT.going}/{EVENT.capacity} Grouving
+              <span className="font-sans text-sm font-medium text-ink-400">
+                {person.name}
               </span>
-            </div>
-            <p className="font-sans text-xs text-ink-300">
-              Only people in your Circle are visible here
-            </p>
-          </div>
-
-          <ul className="flex flex-col">
-            {ATTENDEES.map((person) => (
-              <li key={person.name} className="flex items-center gap-3 px-1 py-2">
-                <span className="relative size-8 shrink-0 overflow-hidden rounded-full">
-                  <Image
-                    src={person.avatar}
-                    alt=""
-                    fill
-                    sizes="32px"
-                    className="object-cover"
-                  />
-                </span>
-                <span className="font-sans text-sm font-medium text-ink-400">
-                  {person.name}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </aside>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

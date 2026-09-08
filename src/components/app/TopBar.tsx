@@ -111,7 +111,8 @@ export function TopBar({
               <BackIcon />
             </Link>
           )}
-          <h1 className="font-display text-2xl font-semibold text-ink-600">
+          {icon}
+          <h1 className="truncate font-display text-2xl font-semibold text-ink-600">
             {title}
           </h1>
         </div>
