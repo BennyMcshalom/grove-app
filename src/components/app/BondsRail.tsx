@@ -36,7 +36,7 @@ export function BondsRail() {
             {PENDING.map((person) => (
               <li
                 key={person.id}
-                className="flex flex-col gap-4 rounded-lg bg-white p-4"
+                className="flex flex-col gap-3 rounded-lg bg-white p-3"
               >
                 <Person {...person} />
                 {handled[person.id] ? (
@@ -51,7 +51,7 @@ export function BondsRail() {
                         setHandled((h) => ({ ...h, [person.id]: "Accepted" }));
                         toast({ title: "Connection request accepted" });
                       }}
-                      className="flex-1 rounded-full bg-primary-500 px-4 py-2.5 font-ui text-sm font-medium text-ink-0 transition-colors hover:bg-primary-400"
+                      className="flex-1 rounded-full bg-primary-500 px-3 py-2 font-ui text-sm font-medium text-ink-0 transition-colors hover:bg-primary-400"
                     >
                       Accept
                     </button>
@@ -64,7 +64,7 @@ export function BondsRail() {
                           tone: "danger",
                         });
                       }}
-                      className="flex-1 rounded-full bg-primary-50 px-4 py-2.5 font-ui text-sm font-medium text-primary-800 transition-colors hover:bg-primary-100"
+                      className="flex-1 rounded-full bg-primary-50 px-3 py-2 font-ui text-sm font-medium text-primary-800 transition-colors hover:bg-primary-100"
                     >
                       Decline
                     </button>
@@ -85,7 +85,7 @@ export function BondsRail() {
             {MIGHT_KNOW.map((person) => (
               <li
                 key={person.id}
-                className="flex flex-col gap-4 rounded-lg bg-white p-4"
+                className="flex flex-col gap-3 rounded-lg bg-white p-3"
               >
                 <Person {...person} />
                 <button
@@ -95,7 +95,7 @@ export function BondsRail() {
                     setHandled((h) => ({ ...h, [person.id]: "Requested" }));
                     toast({ title: "Connection request sent" });
                   }}
-                  className="w-full rounded-full border border-primary-500 px-4 py-2.5 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50 disabled:border-ink-50 disabled:text-ink-300"
+                  className="w-full rounded-full border border-primary-500 px-3 py-2 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50 disabled:border-ink-50 disabled:text-ink-300"
                 >
                   {handled[person.id] ? "Requested" : "Connect"}
                 </button>

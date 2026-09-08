@@ -146,7 +146,7 @@ export default function BondsPage() {
             </div>
           </section>
 
-          <section className="flex flex-col gap-4 bg-white pt-4">
+          <section className="flex flex-col gap-3 bg-white pt-4">
             <h2 className="px-4 font-sans text-base font-medium text-ink-600">
               YOUR BOND
             </h2>
@@ -162,13 +162,13 @@ export default function BondsPage() {
                     }}
                     aria-current={!selected && i === active ? "true" : undefined}
                     className={cn(
-                      "flex w-full flex-col gap-3 border-b border-ink-50 p-4 text-left transition-colors",
+                      "flex w-full flex-col gap-2 border-b border-ink-50 px-4 py-3 text-left transition-colors",
                       !selected && i === active
                         ? "bg-primary-50"
                         : "bg-white hover:bg-ivory-100",
                     )}
                   >
-                    <span className="flex items-center gap-4 py-2 pl-2">
+                    <span className="flex items-center gap-3">
                       <GlowAvatar src={bond.avatar} online={bond.online} />
                       <span className="flex min-w-0 flex-col gap-0.5">
                         <span className="truncate font-sans text-base font-medium text-ink-700">
@@ -194,8 +194,8 @@ export default function BondsPage() {
             </ul>
           </section>
 
-          <section className="flex flex-col bg-white pt-5">
-            <h2 className="p-4 font-sans text-base font-medium text-ink-600">
+          <section className="flex flex-col bg-white pt-4">
+            <h2 className="px-4 py-3 font-sans text-base font-medium text-ink-600">
               YOUR CIRCLE
             </h2>
             <ul>
@@ -207,9 +207,9 @@ export default function BondsPage() {
                       setSelected({ ...person, depth: 40 });
                       setChatOpen(true);
                     }}
-                    className="flex w-full items-center gap-3 border-b border-ink-50 bg-white p-4 text-left transition-colors hover:bg-ivory-100"
+                    className="flex w-full items-center gap-3 border-b border-ink-50 bg-white px-4 py-3 text-left transition-colors hover:bg-ivory-100"
                   >
-                    <span className="flex flex-1 items-center gap-4 p-2">
+                    <span className="flex min-w-0 flex-1 items-center gap-3">
                       <GlowAvatar src={person.avatar} online={person.online} />
                       <span className="flex min-w-0 flex-col gap-0.5">
                         <span className="truncate font-sans text-base font-medium text-ink-700">

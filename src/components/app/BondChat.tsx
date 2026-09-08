@@ -109,7 +109,7 @@ export function BondChat({
 
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-ink-50">
-      <header className="flex shrink-0 flex-col gap-2.5 border-b border-ink-50 bg-ivory-300 px-6 pt-4 pb-2">
+      <header className="flex shrink-0 flex-col gap-2 border-b border-ink-50 bg-ivory-300 px-5 py-3">
         <div className="flex items-center gap-3.5">
           {onBack && (
             <button
@@ -134,7 +134,7 @@ export function BondChat({
               </svg>
             </button>
           )}
-          <div className="flex flex-1 items-center gap-4 p-2">
+          <div className="flex flex-1 items-center gap-3">
             <GlowAvatar src={avatar} online />
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="truncate font-sans text-base font-medium text-ink-700">
@@ -345,15 +345,15 @@ function Bubble({ message, avatar }: { message: Message; avatar: string }) {
  */
 export function ChapterBadge({ label }: { label: string }) {
   return (
-    <span className="flex w-fit items-center gap-2 rounded-full bg-ivory-200 px-3 py-1">
+    <span className="flex w-fit items-center gap-1.5 rounded-full bg-ivory-200 px-2 py-0.5">
       <Image
         src="/images/people/m2.png"
         alt=""
         width={20}
         height={20}
-        className="size-5 shrink-0 rounded-full object-cover"
+        className="size-4 shrink-0 rounded-full object-cover"
       />
-      <span className="font-sans text-sm font-medium text-ivory-900">
+      <span className="font-sans text-xs font-medium text-ivory-900">
         {label}
       </span>
     </span>
@@ -364,7 +364,7 @@ export function ChapterBadge({ label }: { label: string }) {
 export function GlowAvatar({
   src,
   online = false,
-  size = 48,
+  size = 40,
 }: {
   src: string;
   online?: boolean;
@@ -376,14 +376,14 @@ export function GlowAvatar({
       style={{
         width: size,
         height: size,
-        boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)",
+        boxShadow: "0px 2px 6px 5px rgba(251, 148, 31, 0.4)",
       }}
     >
       <Image
         src={src}
         alt=""
         fill
-        sizes="48px"
+        sizes="40px"
         className="rounded-full object-cover"
       />
       {online && (
