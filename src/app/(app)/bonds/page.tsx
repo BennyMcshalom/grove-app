@@ -72,7 +72,7 @@ export default function BondsPage() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <nav
           className={cn(
-            "w-full shrink-0 flex-col overflow-y-auto border-r border-ink-50 bg-ivory-300 md:flex md:w-[296px]",
+            "w-full shrink-0 flex-col overflow-y-auto border-r border-ink-50 bg-ivory-300 md:flex md:w-[256px] xl:w-[296px]",
             chatOpen ? "hidden" : "flex",
           )}
         >

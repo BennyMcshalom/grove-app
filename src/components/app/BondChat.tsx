@@ -108,7 +108,7 @@ export function BondChat({
   };
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col border-l border-ink-50">
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-ink-50">
       <header className="flex shrink-0 flex-col gap-2.5 border-b border-ink-50 bg-ivory-300 px-6 pt-4 pb-2">
         <div className="flex items-center gap-3.5">
           {onBack && (
