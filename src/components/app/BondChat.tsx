@@ -145,9 +145,9 @@ export function BondChat({
           </div>
 
           <div className="flex items-center gap-2 text-ink-400">
-            <IconButton label="Call"><PhoneIcon /></IconButton>
-            <IconButton label="Video call"><VideoIcon /></IconButton>
-            <IconButton label="More"><DotsIcon /></IconButton>
+            <IconButton label="Call" ringed><PhoneIcon /></IconButton>
+            <IconButton label="Video call" ringed><VideoIcon /></IconButton>
+            <IconButton label="More" ringed><DotsIcon /></IconButton>
           </div>
         </div>
 
@@ -397,10 +397,13 @@ function IconButton({
   label,
   children,
   onClick,
+  ringed = false,
 }: {
   label: string;
   children: React.ReactNode;
   onClick?: () => void;
+  /** The chat header's actions sit in outlined circles (452:10158). */
+  ringed?: boolean;
 }) {
   // Calls, capture and uploads need capabilities this build does not have, so
   // those controls say so rather than silently doing nothing.
@@ -414,7 +417,8 @@ function IconButton({
       title={unavailable ? "Not available yet" : undefined}
       aria-disabled={unavailable || undefined}
       className={cn(
-        "grid size-8 place-items-center rounded-full transition-colors",
+        "grid place-items-center rounded-full transition-colors",
+        ringed ? "size-10 border border-ink-100 bg-white" : "size-8",
         unavailable
           ? "cursor-not-allowed opacity-40"
           : "hover:bg-ivory-200",

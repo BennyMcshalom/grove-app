@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BondChat, GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
+import { BondsRail } from "@/components/app/BondsRail";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 
@@ -210,8 +211,11 @@ export default function BondsPage() {
                   >
                     <span className="flex flex-1 items-center gap-4 p-2">
                       <GlowAvatar src={person.avatar} online={person.online} />
-                      <span className="min-w-0 truncate font-sans text-base font-medium text-ink-700">
-                        {person.name}
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="truncate font-sans text-base font-medium text-ink-700">
+                          {person.name}
+                        </span>
+                        <ChapterBadge label={person.status} />
                       </span>
                     </span>
                     <span className="flex shrink-0 flex-col items-end gap-1">
@@ -246,6 +250,8 @@ export default function BondsPage() {
             onBack={() => setChatOpen(false)}
           />
         </div>
+
+        <BondsRail />
       </div>
     </div>
   );
