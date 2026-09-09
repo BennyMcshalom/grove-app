@@ -18,32 +18,49 @@ import { Button } from "@/components/ui/Button";
  * proximity card (481:15568). Copy is Figma's, including "Turn 0ff Proximity".
  */
 
-/** Pin coordinates from frame 476:15061, on its 511 x 461 stage. */
+/**
+ * Pin coordinates from frame 476:15061, on its 511 x 461 stage, each with the
+ * aura Figma gives that person. The three auras read as life stages; every
+ * pin is component 479:15290 with its ring recoloured.
+ */
 const STAGE_W = 511;
 const STAGE_H = 461;
-const PINS = [
-  [136, 387],
-  [188, 123],
-  [368, 347.5],
-  [119, 216],
-  [345, 229],
-  [232, 221],
-  [152, 317],
-  [303, 326],
-  [298, 135],
-  [287, 53],
-  [92, 133],
-  [72, 267],
-  [245, 403],
-  [459, 237],
-  [364, 419],
-  [64, 400],
-  [0, 216],
-  [71, 57],
-  [218, 1],
-  [374, 38],
-  [364, 119.5],
+
+const AURA = {
+  amber: "#F0B231",
+  lime: "#5EF01B",
+  cyan: "#02D6EE",
+} as const;
+
+const PINS: [number, number, keyof typeof AURA][] = [
+  [136, 387, "amber"],
+  [188, 123, "lime"],
+  [368, 347.5, "amber"],
+  [119, 216, "amber"],
+  [345, 229, "cyan"],
+  [232, 221, "amber"],
+  [152, 317, "lime"],
+  [303, 326, "lime"],
+  [298, 135, "amber"],
+  [287, 53, "amber"],
+  [92, 133, "amber"],
+  [72, 267, "cyan"],
+  [245, 403, "amber"],
+  [459, 237, "amber"],
+  [364, 419, "amber"],
+  [64, 400, "amber"],
+  [0, 216, "amber"],
+  [71, 57, "cyan"],
+  [218, 1, "lime"],
+  [374, 38, "lime"],
+  [364, 119.5, "cyan"],
 ];
+
+/** The pin's two glows are its own colour, so they're mixed from the hex. */
+function glow(hex: string, alpha: number) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
 
 const FACES = [
   "/images/people/m1.png",
@@ -75,7 +92,7 @@ export default function NearbyPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <TopBar title="Nearby" />
+      <TopBar title="Nearby" back="/home" />
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-8">
         <div className="flex min-h-full items-center justify-center rounded-3xl bg-white p-6">
@@ -106,6 +123,7 @@ export default function NearbyPage() {
                   onClick={() => setOn(false)}
                   className="flex h-10 w-[278px] items-center justify-center gap-3 rounded-full border border-primary-600 px-6 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
                 >
+                  <LiveDot />
                   <MapPinIcon />
                   Turn 0ff Proximity
                 </button>
@@ -179,33 +197,56 @@ function PulseWithPins({ onSelect }: { onSelect: () => void }) {
         <circle opacity="0.5" cx="255" cy="230" r="55" fill="#727362" />
       </svg>
 
-      {PINS.map(([x, y], i) => (
+      {PINS.map(([x, y, aura], i) => (
         <button
           key={`${x}-${y}`}
           type="button"
           onClick={onSelect}
-          className="absolute flex flex-col items-center gap-0.5 transition-transform hover:scale-110"
+          className="absolute flex flex-col items-center gap-1 transition-transform hover:scale-110"
           style={{
             left: `${(x / STAGE_W) * 100}%`,
             top: `${(y / STAGE_H) * 100}%`,
             width: `${(52 / STAGE_W) * 100}%`,
           }}
         >
-          <span className="relative aspect-square w-2/3 overflow-hidden rounded-full border-2 border-white">
-            <Image
-              src={FACES[i % FACES.length]}
-              alt=""
-              fill
-              sizes="36px"
-              className="object-cover"
-            />
+          {/* 40px disc in the aura colour, 32px portrait centred on it. */}
+          <span
+            className="grid aspect-square w-[76.9%] place-items-center rounded-full"
+            style={{
+              backgroundColor: AURA[aura],
+              boxShadow: `0px 2px 9px 5px ${glow(AURA[aura], 0.2)}`,
+            }}
+          >
+            <span
+              className="relative size-4/5 overflow-hidden rounded-full"
+              style={{ boxShadow: `0px 4px 5px 15px ${glow(AURA[aura], 0.45)}` }}
+            >
+              <Image
+                src={FACES[i % FACES.length]}
+                alt=""
+                fill
+                sizes="32px"
+                className="object-cover"
+              />
+            </span>
           </span>
-          <span className="truncate text-[0.6rem] leading-tight font-sans text-ink-500">
+          <span className="whitespace-nowrap font-sans text-[11px] leading-tight text-ink-500">
             Oreoluwa
           </span>
         </button>
       ))}
     </div>
+  );
+}
+
+/** Frame 480:15445 — three primary rings marking that proximity is live. */
+function LiveDot() {
+  return (
+    <svg viewBox="0 0 12 12" className="size-3 shrink-0" aria-hidden="true">
+      <circle cx="6" cy="6" r="6" fill="#F3701E" opacity="0.2" />
+      <circle cx="6" cy="6" r="4.5" fill="#F3701E" opacity="0.35" />
+      <circle cx="6" cy="6" r="3" fill="#F3701E" />
+    </svg>
   );
 }
 

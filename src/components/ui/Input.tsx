@@ -17,6 +17,8 @@ export interface InputProps
   hint?: string;
   error?: string;
   iconLeft?: ReactNode;
+  /** Figma puts a help glyph inside the password field (585:19998). */
+  iconRight?: ReactNode;
 }
 
 export function Input({
@@ -24,6 +26,7 @@ export function Input({
   hint,
   error,
   iconLeft,
+  iconRight,
   className,
   id,
   disabled,
@@ -77,6 +80,11 @@ export function Input({
           )}
           {...props}
         />
+        {iconRight && (
+          <span className="shrink-0 text-ink-300" aria-hidden="true">
+            {iconRight}
+          </span>
+        )}
       </div>
 
       {message && (

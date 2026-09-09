@@ -113,7 +113,7 @@ export default function SpacePage() {
                       "flex size-6 shrink-0 items-center justify-center rounded-md border",
                       isOn
                         ? "border-primary-500 bg-primary-500 text-white"
-                        : "border-ivory-600 bg-ivory-100",
+                        : "border-transparent bg-ivory-100",
                     )}
                     aria-hidden="true"
                   >

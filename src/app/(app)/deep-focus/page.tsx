@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { TopBar } from "@/components/app/TopBar";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight } from "@/components/ui/ArrowRight";
 import { cn } from "@/lib/cn";
@@ -8,8 +9,10 @@ import { cn } from "@/lib/cn";
 /**
  * Deep Focus — Figma frame 296:11390.
  *
- * No top bar or rail: a single centred 625px column with the clock badge, the
- * pitch, four duration options and the two actions.
+ * No top bar or rail on desktop: a single centred 625px column with the clock
+ * badge, the pitch, four duration options and the two actions. The phone frame
+ * (643:30126) adds a header — Figma titles it "Archive", which reads as a
+ * copy-paste slip, so it carries this page's own name.
  */
 const DURATIONS = [
   "Until this evening",
@@ -22,6 +25,9 @@ export default function DeepFocusPage() {
   const [chosen, setChosen] = useState<string | null>(null);
 
   return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <TopBar title="Deep Focus" back="/settings" phoneOnly />
+
     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-10 lg:px-8">
       <div className="mx-auto flex w-full max-w-[625px] flex-col gap-8 lg:gap-12">
         <header className="flex flex-col items-center gap-2 text-center">
@@ -62,7 +68,7 @@ export default function DeepFocusPage() {
                       "flex size-6 shrink-0 items-center justify-center rounded-md border",
                       isOn
                         ? "border-primary-500 bg-primary-500 text-white"
-                        : "border-ivory-600 bg-ivory-100",
+                        : "border-transparent bg-ivory-100",
                     )}
                     aria-hidden="true"
                   >
@@ -98,6 +104,7 @@ export default function DeepFocusPage() {
           </Button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

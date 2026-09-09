@@ -23,16 +23,20 @@ export function OnboardingShell({
   totalSteps,
   children,
   onBack,
+  chromeless = false,
 }: {
   step: number;
   totalSteps: number;
   children: ReactNode;
   onBack?: () => void;
+  /** The final frame (56:1791) drops the back arrow and the progress dots. */
+  chromeless?: boolean;
 }) {
   const router = useRouter();
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden bg-ivory-100">
+      {!chromeless && (
       <header className="flex shrink-0 items-center justify-between px-4 py-2 sm:px-6 lg:px-16 lg:py-4">
         <button
           type="button"
@@ -62,6 +66,7 @@ export function OnboardingShell({
           ))}
         </div>
       </header>
+      )}
 
       <div className="flex min-h-0 flex-1 flex-col px-4 pb-3 sm:px-6 lg:px-16 lg:pb-5">
         {children}

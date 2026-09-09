@@ -75,6 +75,7 @@ export default function SignUpPage() {
                 type="password"
                 autoComplete="new-password"
                 placeholder="Create password"
+                iconRight={<HelpIcon />}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -99,11 +100,11 @@ export default function SignUpPage() {
             label={
               <>
                 I agree to Grouv&rsquo;s{" "}
-                <Link href="/terms" className="underline">
+                <Link href="/terms" className="text-xs hover:underline">
                   Terms
                 </Link>{" "}
                 and{" "}
-                <Link href="/privacy" className="underline">
+                <Link href="/privacy" className="text-xs hover:underline">
                   Privacy Policy
                 </Link>
                 .
@@ -126,5 +127,16 @@ export default function SignUpPage() {
         <GoogleButton />
       </form>
     </AuthSplitLayout>
+  );
+}
+
+/** Icon/Info (8:9312) — the password field's help glyph. */
+function HelpIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
+      <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10 9v4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="10" cy="6.6" r="0.9" fill="currentColor" />
+    </svg>
   );
 }

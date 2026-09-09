@@ -91,7 +91,10 @@ export function GroupCard({
           <span className="font-sans text-xs text-ink-400">{group.blurb}</span>
         </div>
 
-        <p className="font-sans text-xs text-ink-400">{group.description}</p>
+        {/* Figma sets the description in italics on every card instance. */}
+        <p className="font-sans text-xs text-ink-400 italic">
+          {group.description}
+        </p>
       </div>
 
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">

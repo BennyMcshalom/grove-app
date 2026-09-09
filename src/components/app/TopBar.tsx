@@ -20,6 +20,8 @@ export function TopBar({
   title,
   icon,
   back,
+  desktopActions,
+  phoneOnly = false,
 }: {
   unread?: number;
   /**
@@ -31,6 +33,16 @@ export function TopBar({
   icon?: React.ReactNode;
   /** Titled phone frames lead with a back arrow; pass its destination. */
   back?: string;
+  /**
+   * Chapter Groups (177:3542) puts its Admin Mode toggle where the feed puts
+   * search and the bell; passing this swaps the desktop header's right side.
+   */
+  desktopActions?: React.ReactNode;
+  /**
+   * Deep Focus (296:11390) has no desktop header at all, but its phone frame
+   * (643:30126) still carries one; this drops the desktop half.
+   */
+  phoneOnly?: boolean;
 }) {
   const [active, setActive] = useState("All");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -121,6 +133,7 @@ export function TopBar({
       )}
     </header>
 
+    {!phoneOnly && (
     <header className="hidden shrink-0 flex-wrap items-end justify-between gap-4 bg-white px-6 pt-8 lg:flex lg:pr-12 lg:pt-13">
       {title ? (
         <div className="flex items-center gap-4 pb-2">
@@ -133,6 +146,7 @@ export function TopBar({
         tabs
       )}
 
+      {desktopActions ?? (
       <div className="flex items-center gap-6 pb-2">
         <form
           className="relative block w-full max-w-[260px]"
@@ -167,8 +181,10 @@ export function TopBar({
           )}
         </button>
       </div>
+      )}
 
     </header>
+    )}
 
     {notificationsOpen && (
       <NotificationsPanel onClose={() => setNotificationsOpen(false)} />

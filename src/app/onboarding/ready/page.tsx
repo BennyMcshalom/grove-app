@@ -2,15 +2,40 @@
 
 import Image from "next/image";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
+import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
+import { CHAPTERS, getChapter } from "@/lib/chapters";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight } from "@/components/ui/ArrowRight";
 
 /** Onboarding 3 — "Your Grouv is ready." (Figma 56:1791). */
+/** Figma draws these four when nothing has been chosen yet. */
+const FALLBACK = ["wealth", "career", "spiritual", "adventure"];
+
 export default function ReadyPage() {
+  const { chapters } = useOnboarding();
+  const chosen = (chapters.length > 0 ? chapters : FALLBACK)
+    .map(getChapter)
+    .filter((c): c is (typeof CHAPTERS)[number] => Boolean(c));
+
   return (
-    <OnboardingShell step={3} totalSteps={3}>
+    <OnboardingShell step={3} totalSteps={3} chromeless>
       <div className="m-auto flex w-full max-w-[646px] flex-col items-center gap-5 lg:gap-8">
         <PhotoCluster />
+
+        {/* Frame 56:1866 — the chapters you picked, 32px glyphs at a 12px gap. */}
+        <ul className="flex items-center gap-3">
+          {chosen.map((chapter) => (
+            <li key={chapter.slug}>
+              <Image
+                src={chapter.icon}
+                alt={chapter.name}
+                width={32}
+                height={32}
+                className="size-8"
+              />
+            </li>
+          ))}
+        </ul>
 
         <header className="flex flex-col gap-2 text-center">
           <h1 className="font-display text-2xl leading-[1.04] font-semibold text-[#1F2937] sm:text-3xl lg:text-4xl xl:text-5xl">

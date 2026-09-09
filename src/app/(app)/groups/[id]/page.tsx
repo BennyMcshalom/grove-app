@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { SuggestedRail } from "@/components/app/SuggestedRail";
@@ -90,6 +91,22 @@ export default function GroupPage() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Frame 205:8480 — the glyph beside the group name. */}
         <header className="flex shrink-0 items-center gap-2 bg-white px-6 py-6 lg:px-8">
+          {/* The phone frame (631:14497) leads with a back arrow. */}
+          <Link
+            href="/groups"
+            aria-label="Back to chapter groups"
+            className="mr-1 shrink-0 text-ink-800 lg:hidden"
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
+              <path
+                d="M19 12H5m0 0 6-6m-6 6 6 6"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </Link>
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-600">
             <Glyph icon={group.icon} className="size-5" />
           </span>

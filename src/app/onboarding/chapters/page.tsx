@@ -29,7 +29,7 @@ export default function ChaptersPage() {
               Which chapters of life are you in?
             </h1>
             <p className="font-sans text-xs text-ink-300 lg:text-sm xl:text-base">
-              Choose up to {MAX_CHAPTERS} chapters that reflect where you are
+              Choose up to four chapters that reflect where you are
               right now. These will shape the spaces and people you discover on
               Grouv.
             </p>

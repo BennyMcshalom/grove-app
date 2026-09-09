@@ -14,9 +14,23 @@ export default function ProfilePage() {
   // Figma draws these as 160px-tall input fields — long-form answers, so they
   // are textareas rather than single-line inputs.
   const prompts = [
-    { field: "mind", label: "What’s taking up space in your mind?" },
-    { field: "workingThrough", label: "What are you working through?" },
-    { field: "lookingFor", label: "I’m looking for" },
+    {
+      field: "mind",
+      label: "What’s taking up space in your mind?",
+      placeholder: "Something you’ve been thinking about lately...",
+    },
+    {
+      field: "workingThrough",
+      label: "What are you working through?",
+      placeholder:
+        "Something you’re navigating, figuring out, or making peace with...",
+    },
+    {
+      field: "lookingFor",
+      label: "I’m looking for",
+      placeholder:
+        "The kind of people, conversations, or connections I’d love to have...",
+    },
   ] as const;
 
   return (
@@ -40,7 +54,7 @@ export default function ProfilePage() {
 
         {/* Only the prompts scroll. */}
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-          {prompts.map(({ field, label }) => (
+          {prompts.map(({ field, label, placeholder }) => (
             <div key={field} className="flex shrink-0 flex-col gap-1.5">
               <label
                 htmlFor={field}
@@ -52,9 +66,10 @@ export default function ProfilePage() {
                 id={field}
                 name={field}
                 rows={3}
+                placeholder={placeholder}
                 value={profile[field]}
                 onChange={(e) => setProfileField(field, e.target.value)}
-                className="min-h-24 w-full resize-y rounded-lg border border-ink-50 bg-white px-3.5 py-2.5 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] transition-[border-color,box-shadow] duration-150 placeholder:text-ink-200 focus:border-primary-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)] focus:outline-none lg:min-h-32"
+                className="min-h-24 w-full resize-none rounded-lg border border-ink-50 bg-white px-3.5 py-2.5 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] transition-[border-color,box-shadow] duration-150 placeholder:text-ink-200 focus:border-primary-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)] focus:outline-none lg:min-h-32"
               />
             </div>
           ))}
