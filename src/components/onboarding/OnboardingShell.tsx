@@ -14,7 +14,7 @@ import { cn } from "@/lib/cn";
  * action button stay put while just that list moves.
  *
  * Children are placed in a `min-h-0 flex-1` column; a page puts
- * `min-h-0 flex-1 overflow-y-auto` on whichever section should scroll.
+ * `min-h-0 flex-1 scroll-slim overflow-y-auto` on whichever section should scroll.
  * (`min-h-0` matters: without it a flex child refuses to shrink below its
  * content and the scrollbar lands on the page instead.)
  */

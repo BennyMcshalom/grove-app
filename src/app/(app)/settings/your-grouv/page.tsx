@@ -90,7 +90,7 @@ export default function YourGrouvPage() {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <TopBar title="Your Grouv" />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+      <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[1096px] flex-col gap-10 pb-10">
           <GrouvRings />
 

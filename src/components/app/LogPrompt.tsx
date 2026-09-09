@@ -34,7 +34,7 @@ export function LogPrompt({
         <span className="font-sans text-sm text-ink-800">TODAY</span>
       </div>
 
-      <h2 className="max-w-[501px] px-4 text-center font-sans text-2xl leading-[1.2] font-bold text-primary-600 lg:text-[2rem]">
+      <h2 className="max-w-[501px] px-4 text-center font-sans text-xl leading-[1.2] font-bold text-primary-600 lg:text-[1.75rem]">
         {prompt}
       </h2>
 

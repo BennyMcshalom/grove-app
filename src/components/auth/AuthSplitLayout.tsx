@@ -22,7 +22,7 @@ export function AuthSplitLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Figma's mobile auth frames carry no logo, so none is added here. */}
-      <div className="h-full flex-1 overflow-y-auto px-5 py-8 sm:px-8 lg:px-[6%] lg:py-10">
+      <div className="h-full flex-1 scroll-slim overflow-y-auto px-5 py-8 sm:px-8 lg:px-[6%] lg:py-10">
         <div className="mx-auto flex min-h-full w-full max-w-[560px] flex-col justify-center">
           {children}
         </div>

@@ -143,7 +143,7 @@ export function EventView() {
           }
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+        <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
           <div role="tablist" className="mx-auto mb-6 flex w-full max-w-[724px] xl:hidden">
             {TABS.map((t) => (
               <button
@@ -247,7 +247,7 @@ export function EventView() {
       </div>
 
       {/* Sidebar 452:11307 — 396px, scrolls on its own. */}
-      <aside className="hidden w-[396px] shrink-0 flex-col gap-7 overflow-y-auto bg-white px-8 pt-6 pb-10 xl:flex">
+      <aside className="hidden w-[396px] shrink-0 flex-col gap-7 scroll-slim overflow-y-auto bg-white px-8 pt-6 pb-10 xl:flex">
         <EventDetails />
       </aside>
     </div>

@@ -110,3 +110,28 @@
   outline: 2px solid var(--color-primary-600);
   outline-offset: 2px;
 }
+
+/* Scrolling panels sit inside cards and lists, where the platform scrollbar is
+   wide enough to read as part of the design. This keeps it out of the way. */
+@utility scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ivory-600) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-ivory-600);
+    border-radius: 9999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-ink-100);
+  }
+}

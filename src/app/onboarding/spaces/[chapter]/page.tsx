@@ -45,13 +45,10 @@ export default function SpacePage() {
     );
   }
 
-  const toggle = (option: string) => {
-    setSpaceOptions(
-      chapter.slug,
-      selected.includes(option)
-        ? selected.filter((o) => o !== option)
-        : [...selected, option],
-    );
+  // One answer per chapter: choosing an option replaces the last one, and
+  // choosing the current one clears it.
+  const choose = (option: string) => {
+    setSpaceOptions(chapter.slug, selected.includes(option) ? [] : [option]);
   };
 
   const goNext = () => {
@@ -76,28 +73,33 @@ export default function SpacePage() {
               alt=""
               width={56}
               height={56}
-              className="size-9 shrink-0 lg:size-11"
+              className="size-8 shrink-0 lg:size-9"
             />
             {/* text-balance keeps the wrap even on narrow phones, where the
                 longest chapter names cannot fit on one line at any size. */}
-            <h1 className="text-balance font-display text-xl leading-[1.15] font-semibold text-[#1F2937] sm:text-2xl lg:text-3xl xl:text-4xl">
+            <h1 className="text-balance font-display text-lg leading-[1.15] font-semibold text-[#1F2937] sm:text-xl lg:text-2xl xl:text-3xl">
               {chapter.name}, where are you?
             </h1>
           </div>
         </header>
 
         {/* Only this list scrolls — Figma layout_D5T24D. */}
-        <ul className="mx-auto flex w-full min-h-0 max-w-[625px] flex-col gap-3 overflow-y-auto pr-1 lg:gap-4">
+        <ul
+          role="radiogroup"
+          aria-label={`${chapter.name}, where are you?`}
+          className="scroll-slim mx-auto flex w-full min-h-0 max-w-[560px] flex-col gap-2.5 overflow-y-auto pr-1 lg:gap-3"
+        >
           {chapter.options.map((option) => {
             const isOn = selected.includes(option);
             return (
               <li key={option} className="shrink-0">
                 <button
                   type="button"
-                  onClick={() => toggle(option)}
-                  aria-pressed={isOn}
+                  role="radio"
+                  onClick={() => choose(option)}
+                  aria-checked={isOn}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 rounded-2xl border bg-white p-4 text-left lg:p-5",
+                    "flex w-full items-center justify-between gap-3 rounded-2xl border bg-white p-3.5 text-left lg:p-4",
                     "transition-colors duration-150",
                     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600",
                     isOn
@@ -105,12 +107,12 @@ export default function SpacePage() {
                       : "border-ink-50 hover:border-ivory-600",
                   )}
                 >
-                  <span className="font-sans text-base font-medium text-[#1F2937] lg:text-lg xl:text-xl">
+                  <span className="font-sans text-sm font-medium text-[#1F2937] lg:text-base xl:text-lg">
                     {option}
                   </span>
                   <span
                     className={cn(
-                      "flex size-6 shrink-0 items-center justify-center rounded-md border",
+                      "flex size-5 shrink-0 items-center justify-center rounded-md border",
                       isOn
                         ? "border-primary-500 bg-primary-500 text-white"
                         : "border-transparent bg-ivory-100",
@@ -118,7 +120,7 @@ export default function SpacePage() {
                     aria-hidden="true"
                   >
                     {isOn && (
-                      <svg viewBox="0 0 16 16" fill="none" className="size-4">
+                      <svg viewBox="0 0 16 16" fill="none" className="size-3.5">
                         <path
                           d="m3.5 8.5 3 3 6-6"
                           stroke="currentColor"

@@ -115,7 +115,7 @@ export default function GroupPage() {
           </h1>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+        <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-8 pb-10">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">

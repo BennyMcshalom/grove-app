@@ -167,7 +167,7 @@ export function BondChat({
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 scroll-slim overflow-y-auto p-5">
         {BOND_THREAD.map((group) => (
           <div key={group.date} className="flex flex-col gap-4">
             {group.date === "Today" ? (

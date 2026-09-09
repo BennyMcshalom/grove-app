@@ -82,7 +82,7 @@ export function RightRail({
   variant?: "feed" | "space";
 } = {}) {
   return (
-    <aside className="hidden w-[396px] shrink-0 overflow-y-auto bg-white shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] xl:block">
+    <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-white shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] xl:block">
       <div className="flex w-full flex-col gap-7 px-8 pt-6 pb-10">
         <Section
           title={variant === "space" ? "In this space" : "Your circle"}

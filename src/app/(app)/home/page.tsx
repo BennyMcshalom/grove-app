@@ -60,7 +60,7 @@ export default function HomePage() {
         <TopBar />
 
         {/* Figma 90:1355 — the feed column is the scroll region. */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+        <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-6">
             <div className="hidden lg:block">
               <Composer />
@@ -96,7 +96,7 @@ export default function HomePage() {
 
       {composing && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-900/40 p-4 lg:hidden"
+          className="fixed inset-0 z-50 flex items-start justify-center scroll-slim overflow-y-auto bg-ink-900/40 p-4 lg:hidden"
           onClick={() => setComposing(false)}
         >
           <div

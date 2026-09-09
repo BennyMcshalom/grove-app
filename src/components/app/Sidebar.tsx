@@ -57,7 +57,7 @@ export function Sidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "relative flex h-full shrink-0 flex-col gap-5 overflow-y-auto overflow-x-hidden bg-white py-10 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] transition-[width] duration-200",
+        "relative flex h-full shrink-0 flex-col gap-5 scroll-slim overflow-y-auto overflow-x-hidden bg-white py-10 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] transition-[width] duration-200",
         collapsed ? "w-[76px]" : "w-[272px]",
         className,
       )}

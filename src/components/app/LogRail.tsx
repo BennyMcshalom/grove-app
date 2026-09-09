@@ -11,7 +11,7 @@ export function LogRail({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "hidden w-[396px] shrink-0 overflow-y-auto bg-ivory-100 px-8 py-6 xl:block",
+        "hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-ivory-100 px-8 py-6 xl:block",
         className,
       )}
     >

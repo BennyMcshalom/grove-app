@@ -31,17 +31,17 @@ export default function ReadyPage() {
                 alt={chapter.name}
                 width={32}
                 height={32}
-                className="size-8"
+                className="size-7"
               />
             </li>
           ))}
         </ul>
 
         <header className="flex flex-col gap-2 text-center">
-          <h1 className="font-display text-2xl leading-[1.04] font-semibold text-[#1F2937] sm:text-3xl lg:text-4xl xl:text-5xl">
+          <h1 className="font-display text-xl leading-[1.04] font-semibold text-[#1F2937] sm:text-2xl lg:text-3xl">
             Your Grouv is ready.
           </h1>
-          <p className="font-sans text-sm text-ink-300 lg:text-base xl:text-lg">
+          <p className="font-sans text-xs text-ink-300 lg:text-sm">
             We&rsquo;ve matched your chapters, interests, and what you&rsquo;re
             looking for with people who are on a similar path. Your people are
             waiting. Come find your Grouv.
@@ -63,7 +63,7 @@ export default function ReadyPage() {
  */
 function PhotoCluster() {
   return (
-    <div className="relative aspect-[418/376] w-full max-w-[200px] shrink-0 sm:max-w-[260px] lg:max-w-[330px] xl:max-w-[418px]">
+    <div className="relative aspect-[418/376] w-full max-w-[180px] shrink-0 sm:max-w-[220px] lg:max-w-[280px] xl:max-w-[330px]">
       <div className="absolute top-[46.8%] left-[4.8%] aspect-square w-[43.06%] overflow-hidden rounded-pill shadow-[0px_0px_15px_15px_rgba(245,126,22,0.3)]">
         <Image
           src="/images/splash-bubble-b-5c8e1f.png"

@@ -65,7 +65,7 @@ export default function SettingsPage() {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <TopBar title="Settings" />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+      <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[1096px] flex-col items-center gap-6 pb-10">
           <ProfileBanner />
 
@@ -77,7 +77,7 @@ export default function SettingsPage() {
                   <span className="font-sans text-sm font-medium text-ink-500">
                     {field.label}
                   </span>
-                  <span className="rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-base text-ink-400 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
+                  <span className="rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-sm text-ink-400 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)]">
                     {field.value}
                   </span>
                 </label>
@@ -148,17 +148,17 @@ export default function SettingsPage() {
                 title={row.title}
                 body={row.body}
                 divider={i < PRIVACY.length - 1}
-                trailing={<CaretIcon className="size-8 text-ink-400" />}
+                trailing={<CaretIcon className="size-6 text-ink-400" />}
               />
             ))}
           </Card>
 
           <Card>
             <div className="flex flex-col gap-2">
-              <span className="font-sans text-base text-destructive-60 uppercase">
+              <span className="font-sans text-sm text-destructive-60 uppercase">
                 Danger zone
               </span>
-              <p className="font-sans text-base text-ink-300">
+              <p className="font-sans text-sm text-ink-300">
                 Permanently deletes your account, all your data, bonds, and
                 posts. This cannot be undone.
               </p>
@@ -183,22 +183,22 @@ export default function SettingsPage() {
 
           <div className="flex flex-col items-center">
             <div className="flex gap-2.5">
-              <Link href="/privacy" className="rounded-full px-5 py-2 font-sans text-base text-ink-300 hover:bg-ivory-200">
+              <Link href="/privacy" className="rounded-full px-5 py-2 font-sans text-sm text-ink-300 hover:bg-ivory-200">
                 Privacy
               </Link>
-              <Link href="/terms" className="rounded-full px-5 py-2 font-sans text-base text-ink-300 hover:bg-ivory-200">
+              <Link href="/terms" className="rounded-full px-5 py-2 font-sans text-sm text-ink-300 hover:bg-ivory-200">
                 Terms
               </Link>
               <Link
                 href="/privacy"
-                className="rounded-full px-5 py-2 font-sans text-base text-ink-300 hover:bg-ivory-200"
+                className="rounded-full px-5 py-2 font-sans text-sm text-ink-300 hover:bg-ivory-200"
               >
                 Our Promise
               </Link>
             </div>
             <Link
               href="/sign-in"
-              className="rounded-full px-5 py-6 font-sans text-base font-medium text-primary-600 hover:underline"
+              className="rounded-full px-5 py-6 font-sans text-sm font-medium text-primary-600 hover:underline"
             >
               Sign out
             </Link>
@@ -268,7 +268,7 @@ function ProfileIdentity() {
         <span className="absolute right-0 bottom-0 size-4 rounded-full border-[1.5px] border-white bg-success-60" />
       </span>
       <div className="flex min-w-0 flex-col gap-3">
-        <span className="font-sans text-lg font-semibold text-ink-800">
+        <span className="font-sans text-base font-semibold text-ink-800">
           Oreoluwa
         </span>
         <div className="flex flex-wrap gap-4">
@@ -286,7 +286,7 @@ function ProfileIdentity() {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <section className="flex w-full flex-col gap-4 rounded-lg bg-white px-6 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+    <section className="flex w-full flex-col gap-3.5 rounded-lg bg-white px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       {children}
     </section>
   );
@@ -294,7 +294,7 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-sans text-base text-ink-200 uppercase">{children}</h2>
+    <h2 className="font-sans text-sm text-ink-200 uppercase">{children}</h2>
   );
 }
 
@@ -320,10 +320,10 @@ function Row({
   const body_ = (
     <>
       <div className="flex flex-col gap-1">
-        <span className="font-sans text-xl font-semibold text-ink-600">
+        <span className="font-sans text-base font-semibold text-ink-600">
           {title}
         </span>
-        <span className="font-sans text-base text-ink-300">{body}</span>
+        <span className="font-sans text-sm text-ink-300">{body}</span>
       </div>
       {trailing}
     </>

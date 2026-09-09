@@ -66,7 +66,7 @@ export default function LogPage() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar title="Grouv Log" />
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+        <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-[708px] flex-col items-center gap-8 pb-10">
             <div className="flex w-full flex-wrap items-center justify-between gap-4">
               <nav aria-label="Log chapter" className="flex min-w-0 flex-1">

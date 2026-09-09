@@ -27,7 +27,7 @@ const GROUVD = Array.from({ length: 3 }, (_, i) => ({
 
 export function EventsRail() {
   return (
-    <aside className="hidden w-[396px] shrink-0 overflow-y-auto bg-white px-8 py-6 xl:block">
+    <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-white px-8 py-6 xl:block">
       <div className="flex flex-col gap-7">
         <section className="flex flex-col gap-4">
           <h2 className="font-sans text-base font-medium text-ink-600">

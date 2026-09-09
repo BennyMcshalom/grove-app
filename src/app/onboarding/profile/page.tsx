@@ -43,22 +43,22 @@ export default function ProfilePage() {
         }}
       >
         <header className="flex shrink-0 flex-col gap-2 text-center">
-          <h1 className="font-display text-2xl leading-[1.04] font-semibold text-[#1F2937] sm:text-3xl lg:text-4xl xl:text-5xl">
+          <h1 className="font-display text-lg leading-[1.04] font-semibold text-[#1F2937] sm:text-xl lg:text-2xl xl:text-3xl">
             This is what makes your profile
           </h1>
-          <p className="font-sans text-sm text-ink-300 lg:text-base xl:text-lg">
+          <p className="font-sans text-xs text-ink-300 lg:text-sm">
             A few honest answers help people get to know the real you. Share only
             what you&rsquo;re comfortable sharing.
           </p>
         </header>
 
         {/* Only the prompts scroll. */}
-        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+        <div className="flex min-h-0 flex-col gap-4 scroll-slim overflow-y-auto pr-1">
           {prompts.map(({ field, label, placeholder }) => (
             <div key={field} className="flex shrink-0 flex-col gap-1.5">
               <label
                 htmlFor={field}
-                className="font-sans text-sm text-ink-500 lg:text-base"
+                className="font-sans text-xs text-ink-500 lg:text-sm"
               >
                 {label}
               </label>
@@ -69,7 +69,7 @@ export default function ProfilePage() {
                 placeholder={placeholder}
                 value={profile[field]}
                 onChange={(e) => setProfileField(field, e.target.value)}
-                className="min-h-24 w-full resize-none rounded-lg border border-ink-50 bg-white px-3.5 py-2.5 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] transition-[border-color,box-shadow] duration-150 placeholder:text-ink-200 focus:border-primary-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)] focus:outline-none lg:min-h-32"
+                className="min-h-20 w-full resize-none rounded-lg border border-ink-50 bg-white px-3.5 py-2.5 font-sans text-sm text-ink-500 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] transition-[border-color,box-shadow] duration-150 placeholder:text-ink-200 focus:border-primary-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)] focus:outline-none lg:min-h-24"
               />
             </div>
           ))}

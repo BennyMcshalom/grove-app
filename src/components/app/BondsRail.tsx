@@ -26,7 +26,7 @@ export function BondsRail() {
   const [handled, setHandled] = useState<Record<string, string>>({});
 
   return (
-    <aside className="hidden w-[260px] shrink-0 overflow-y-auto bg-ivory-100 px-4 py-6 lg:block xl:w-[300px] xl:px-5">
+    <aside className="hidden w-[260px] shrink-0 scroll-slim overflow-y-auto bg-ivory-100 px-4 py-6 lg:block xl:w-[300px] xl:px-5">
       <div className="flex flex-col gap-7">
         <section className="flex flex-col gap-4">
           <h2 className="font-sans text-base font-medium text-ink-600">

@@ -53,7 +53,7 @@ export function CloseChapterWizard({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-900/40 p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center scroll-slim overflow-y-auto bg-ink-900/40 p-4 sm:p-8"
       onClick={onClose}
     >
       <div
@@ -74,13 +74,13 @@ export function CloseChapterWizard({
                 alt=""
                 width={56}
                 height={56}
-                className="size-12"
+                className="size-10"
               />
               <div className="flex flex-col items-center gap-2 text-center">
-                <h2 className="font-display text-3xl font-semibold text-[#101928]">
+                <h2 className="font-display text-2xl font-semibold text-[#101928]">
                   Before you close this chapter.
                 </h2>
-                <p className="font-sans text-base text-ink-400">
+                <p className="font-sans text-sm text-ink-400">
                   Take your time. Answer what you want. Leave what you
                   don&rsquo;t.
                 </p>
@@ -101,9 +101,9 @@ export function CloseChapterWizard({
                   alt=""
                   width={56}
                   height={56}
-                  className="size-12"
+                  className="size-10"
                 />
-                <h2 className="font-display text-2xl font-semibold text-ink-800">
+                <h2 className="font-display text-xl font-semibold text-ink-800">
                   {chapter.name}
                 </h2>
               </span>
@@ -113,10 +113,10 @@ export function CloseChapterWizard({
             {question ? (
               <>
                 <div className="flex flex-col items-center gap-2.5 text-center">
-                  <p className="font-sans text-lg text-ink-200">
+                  <p className="font-sans text-sm text-ink-200">
                     {question.step}
                   </p>
-                  <h3 className="font-display text-3xl font-semibold text-[#1F2937]">
+                  <h3 className="font-display text-2xl font-semibold text-[#1F2937]">
                     {question.question}
                   </h3>
                 </div>
@@ -153,10 +153,10 @@ export function CloseChapterWizard({
             ) : (
               <>
                 <div className="flex flex-col items-center gap-2 text-center">
-                  <p className="font-sans text-lg text-ink-200">
+                  <p className="font-sans text-sm text-ink-200">
                     Anything else?
                   </p>
-                  <h3 className="font-display text-3xl font-semibold text-[#1F2937]">
+                  <h3 className="font-display text-2xl font-semibold text-[#1F2937]">
                     Anything else you want to record?
                   </h3>
                 </div>

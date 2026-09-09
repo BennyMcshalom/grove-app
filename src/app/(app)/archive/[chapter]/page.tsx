@@ -100,7 +100,7 @@ export default function ChapterArchivePage() {
         </span>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+      <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[1096px] flex-col gap-6 pb-10">
           <div role="tablist" className="flex">
             {TABS.map((t) => (

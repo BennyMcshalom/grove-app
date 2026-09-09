@@ -43,7 +43,7 @@ export default function SearchPage() {
         </h1>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 lg:px-6 lg:py-10">
+      <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-5 py-6 lg:px-6 lg:py-10">
       <div className="mx-auto flex w-full max-w-[812px] flex-col gap-10 lg:gap-14">
         <label className="relative block">
           <span className="sr-only">Search Grouv</span>
@@ -58,7 +58,7 @@ export default function SearchPage() {
         </label>
 
         <div className="flex flex-col gap-8">
-          <h1 className="text-center font-display text-xl leading-[1.2] font-semibold text-ink-500 lg:text-left lg:text-4xl lg:leading-[1.04] xl:text-5xl">
+          <h1 className="text-center font-display text-xl leading-[1.2] font-semibold text-ink-500 lg:text-left lg:text-3xl lg:leading-[1.04] xl:text-4xl">
             What are you looking for?
           </h1>
 

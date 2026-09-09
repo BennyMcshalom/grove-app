@@ -44,7 +44,7 @@ export default function EditProfilePage() {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <TopBar title="Edit Profile" />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+      <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <form
           className="mx-auto flex w-full max-w-[1096px] flex-col gap-14 pb-10"
           onSubmit={(e) => e.preventDefault()}

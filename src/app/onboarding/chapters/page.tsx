@@ -22,13 +22,13 @@ export default function ChaptersPage() {
           means you only ever see complete cards. `min-h-full` + `justify-center`
           centres it while it fits and grows from the top when it doesn't, so
           nothing is ever pushed above the scroll origin and clipped. */}
-      <div className="min-h-0 flex-1 snap-y snap-proximity overflow-y-auto">
+      <div className="min-h-0 flex-1 snap-y snap-proximity scroll-slim overflow-y-auto">
         <div className="mx-auto flex min-h-full w-full max-w-[1216px] flex-col justify-center gap-3 py-1 lg:gap-5">
           <header className="flex shrink-0 flex-col gap-2 text-center">
-            <h1 className="mx-auto max-w-[784px] font-display text-xl leading-[1.04] font-semibold text-[#1F2937] sm:text-2xl lg:text-3xl xl:text-4xl [@media(max-height:680px)]:text-lg">
+            <h1 className="mx-auto max-w-[784px] font-display text-lg leading-[1.04] font-semibold text-[#1F2937] sm:text-xl lg:text-2xl xl:text-3xl [@media(max-height:680px)]:text-base">
               Which chapters of life are you in?
             </h1>
-            <p className="font-sans text-xs text-ink-300 lg:text-sm xl:text-base">
+            <p className="font-sans text-xs text-ink-300 lg:text-sm">
               Choose up to four chapters that reflect where you are
               right now. These will shape the spaces and people you discover on
               Grouv.
@@ -73,10 +73,10 @@ export default function ChaptersPage() {
                       className="size-8 shrink-0 lg:size-10 [@media(max-height:680px)]:size-7 [@media(max-height:680px)]:lg:size-8"
                     />
                     <span className="flex flex-col gap-0.5">
-                      <span className="font-display text-sm font-bold text-[#1F2937] lg:text-base xl:text-lg">
+                      <span className="font-display text-sm font-bold text-[#1F2937] lg:text-base">
                         {chapter.name}
                       </span>
-                      <span className="font-sans text-[11px] leading-snug text-ink-300 lg:text-xs xl:text-sm">
+                      <span className="font-sans text-[11px] leading-snug text-ink-300 lg:text-xs">
                         {chapter.tagline}
                       </span>
                     </span>

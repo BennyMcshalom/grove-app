@@ -31,7 +31,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
         className="flex-1 cursor-default"
       />
 
-      <aside className="flex h-full w-full max-w-[584px] flex-col justify-between overflow-y-auto bg-white px-5 py-6 lg:px-8 lg:py-10">
+      <aside className="flex h-full w-full max-w-[584px] flex-col justify-between scroll-slim overflow-y-auto bg-white px-5 py-6 lg:px-8 lg:py-10">
         <div className="flex flex-col gap-6">
           <header className="flex items-center gap-4 lg:justify-between">
             <button
@@ -42,7 +42,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
             >
               <BackIcon />
             </button>
-            <h2 className="flex-1 font-display text-xl font-semibold text-ink-800 lg:flex-none lg:text-3xl">
+            <h2 className="flex-1 font-display text-lg font-semibold text-ink-800 lg:flex-none lg:text-2xl">
               Notifications
             </h2>
             <button

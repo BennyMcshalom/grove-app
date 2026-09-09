@@ -94,7 +94,7 @@ export default function NearbyPage() {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <TopBar title="Nearby" back="/home" />
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-8">
+      <div className="min-h-0 flex-1 scroll-slim overflow-y-auto p-4 lg:p-8">
         <div className="flex min-h-full items-center justify-center rounded-3xl bg-white p-6">
           <div className="flex w-full max-w-[556px] flex-col items-stretch gap-10 lg:gap-12">
             <div className="flex flex-col items-center gap-4">
@@ -105,10 +105,10 @@ export default function NearbyPage() {
               )}
 
               <div className="flex flex-col gap-2 text-center">
-                <h1 className="font-display text-2xl leading-[1.11] font-semibold text-ink-500 sm:text-3xl lg:text-4xl">
+                <h1 className="font-display text-xl leading-[1.11] font-semibold text-ink-500 sm:text-2xl lg:text-3xl">
                   Grouv Nearby
                 </h1>
-                <p className="font-sans text-base text-ink-300 lg:text-lg">
+                <p className="font-sans text-sm text-ink-300 lg:text-base">
                   {on
                     ? "You're open. People nearby in the same life stage can see you too. No events, no plans, just real connections happening right now."
                     : "See who’s in your chapter, right here, right now. No background tracking, ever."}
@@ -137,7 +137,7 @@ export default function NearbyPage() {
                   Turn on Proximity
                 </Button>
               )}
-              <p className="text-center font-sans text-base text-ink-100">
+              <p className="text-center font-sans text-sm text-ink-100">
                 {on
                   ? "Turns off the moment you leave this page"
                   : "Turns off when you leave this page"}
