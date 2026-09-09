@@ -19,6 +19,8 @@ import { cn } from "@/lib/cn";
  */
 export interface Post {
   id: string;
+  /** The chapter this post sits in — what the feed's tabs filter on. */
+  chapter?: string;
   author: string;
   avatar: string;
   badge?: string;

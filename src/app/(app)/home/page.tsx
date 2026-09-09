@@ -12,6 +12,10 @@ import { RightRail } from "@/components/app/RightRail";
  *
  * A 724px scrolling feed column beside the 396px right rail (94:2684). Copy
  * and media are lifted from the Figma post instances in frame 90:1355.
+ *
+ * Figma draws this frame only with "All" selected — there is no per-chapter
+ * frame — so the other four tabs filter this same feed and fall back to the
+ * empty state Figma does draw (650:37394 / 664:16902).
  */
 const POSTS: Post[] = [
   {
@@ -20,6 +24,7 @@ const POSTS: Post[] = [
     avatar: "/images/feed/avatar-helena.png",
     badge: "In progress",
     time: "5 mins ago",
+    chapter: "Career",
     title: "I think I’m ready for a career change.",
     body: "I’ve been in the same role for almost three years, and lately I’ve been feeling like I’ve outgrown it. I’m excited about what could come next, but honestly, I’m also scared of starting over.",
     roots: 22,
@@ -31,6 +36,7 @@ const POSTS: Post[] = [
     avatar: "/images/feed/avatar-helena.png",
     badge: "In progress",
     time: "2 hours ago",
+    chapter: "Health",
     body: "Took the long way home today and actually noticed the walk. Small thing, but it helped.",
     media: { src: "/images/feed/post-photo.png", kind: "photo" },
     roots: 14,
@@ -42,6 +48,7 @@ const POSTS: Post[] = [
     avatar: "/images/feed/avatar-helena.png",
     badge: "In progress",
     time: "Yesterday",
+    chapter: "Adventure",
     body: "Recorded a short update on where the move is at. Still figuring it out as I go.",
     media: { src: "/images/feed/post-video.png", kind: "video" },
     roots: 31,
@@ -53,11 +60,15 @@ export default function HomePage() {
   // Figma's phone Home (601:30182) has no inline composer: it sits behind the
   // orange FAB above the tab bar.
   const [composing, setComposing] = useState(false);
+  const [tab, setTab] = useState("All");
+
+  const visible =
+    tab === "All" ? POSTS : POSTS.filter((post) => post.chapter === tab);
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBar />
+        <TopBar onTabChange={setTab} />
 
         {/* Figma 90:1355 — the feed column is the scroll region. */}
         <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
@@ -65,11 +76,11 @@ export default function HomePage() {
             <div className="hidden lg:block">
               <Composer />
             </div>
-            {POSTS.length === 0 ? (
+            {visible.length === 0 ? (
               /* Frame 664:16902 — the feed's empty state. */
               <EmptyFeed onCompose={() => setComposing(true)} />
             ) : (
-              POSTS.map((post) => <PostCard key={post.id} post={post} />)
+              visible.map((post) => <PostCard key={post.id} post={post} />)
             )}
           </div>
         </div>

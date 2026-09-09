@@ -22,6 +22,7 @@ export function TopBar({
   back,
   desktopActions,
   phoneOnly = false,
+  onTabChange,
 }: {
   unread?: number;
   /**
@@ -43,6 +44,11 @@ export function TopBar({
    * (643:30126) still carries one; this drops the desktop half.
    */
   phoneOnly?: boolean;
+  /**
+   * The feed filters on the chapter tabs; every other screen passes a title
+   * instead, so the tabs never render and this stays unused.
+   */
+  onTabChange?: (tab: string) => void;
 }) {
   const [active, setActive] = useState("All");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -63,7 +69,10 @@ export function TopBar({
             <li key={tab}>
               <button
                 type="button"
-                onClick={() => setActive(tab)}
+                onClick={() => {
+                  setActive(tab);
+                  onTabChange?.(tab);
+                }}
                 aria-current={isActive ? "true" : undefined}
                 className={cn(
                   "h-10 border-b-2 px-4 py-2 font-sans text-sm font-medium transition-colors",
