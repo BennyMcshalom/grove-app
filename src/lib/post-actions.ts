@@ -26,6 +26,7 @@ const FeedQuerySchema = z.object({
   chapterSlug: z.string().nullish(),
   from: z.string().nullish(),
   to: z.string().nullish(),
+  withinKm: z.number().positive().max(20000).nullish(),
   cursor: z.object({ before: z.string(), beforeId: z.uuid() }).nullish(),
 });
 

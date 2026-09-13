@@ -44,6 +44,8 @@ type ReportTarget =
   | "truth"
   | "space_question";
 type ReportReason = "spam" | "harassment" | "inappropriate" | "other";
+type CallKind = "audio" | "video";
+type CallStatus = "ringing" | "active" | "ended" | "missed" | "declined";
 type LogScope = "solo" | "bond";
 type JoinPolicy = "open" | "approval";
 type GroupRole = "admin" | "member";
@@ -273,7 +275,20 @@ export type Database = {
         trial_started_at: string | null;
         trial_ends_at: string | null;
         current_period_end: string | null;
+        stripe_customer_id: string | null;
+        stripe_subscription_id: string | null;
+        cancel_at_period_end: boolean;
         updated_at: string;
+      }>;
+      calls: ReadOnlyTable<{
+        id: string;
+        conversation_id: string;
+        caller_id: string | null;
+        kind: CallKind;
+        status: CallStatus;
+        created_at: string;
+        answered_at: string | null;
+        ended_at: string | null;
       }>;
       focus_sessions: {
         Row: {
@@ -602,6 +617,8 @@ export type Database = {
           venue_name: string;
           starts_at: string;
           capacity: number;
+          latitude?: number | null;
+          longitude?: number | null;
         };
         Update: { status?: EventStatus };
         Relationships: [];
@@ -738,6 +755,7 @@ export type Database = {
           p_before_id?: string | null;
           p_limit?: number;
           p_post_id?: string | null;
+          p_within_km?: number | null;
         };
         Returns: {
           id: string;
@@ -868,6 +886,9 @@ export type Database = {
           i_am_going: boolean;
           circle_going: number;
           circle_avatars: string[];
+          latitude: number | null;
+          longitude: number | null;
+          distance_km: number | null;
         }[];
       };
       start_live_room: {
@@ -942,6 +963,46 @@ export type Database = {
           image: string | null;
           chapter_slug: string | null;
         }[];
+      };
+      link_stripe_customer: {
+        Args: { p_user_id: string; p_customer_id: string };
+        Returns: undefined;
+      };
+      sync_stripe_subscription: {
+        Args: {
+          p_user_id: string;
+          p_customer_id: string | null;
+          p_subscription_id: string;
+          p_status: string;
+          p_current_period_end: string | null;
+          p_trial_end: string | null;
+          p_cancel_at_period_end: boolean;
+        };
+        Returns: undefined;
+      };
+      start_call: {
+        Args: { p_conversation_id: string; p_kind: CallKind };
+        Returns: Database["public"]["Tables"]["calls"]["Row"];
+      };
+      answer_call: {
+        Args: { p_call_id: string };
+        Returns: Database["public"]["Tables"]["calls"]["Row"];
+      };
+      end_call: {
+        Args: { p_call_id: string };
+        Returns: Database["public"]["Tables"]["calls"]["Row"];
+      };
+      finish_call: {
+        Args: { p_call_id: string };
+        Returns: undefined;
+      };
+      set_my_region: {
+        Args: { p_latitude: number | null; p_longitude: number | null };
+        Returns: undefined;
+      };
+      has_region: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
       am_i_staff: {
         Args: Record<string, never>;

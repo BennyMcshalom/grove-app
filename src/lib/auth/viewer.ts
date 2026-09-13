@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { ShellViewer } from "@/components/app/ViewerProvider";
+import { callsEnabled } from "@/lib/livekit";
 import { createClient } from "@/lib/supabase/server";
 
 export type Viewer = NonNullable<Awaited<ReturnType<typeof getViewer>>>;
@@ -88,6 +89,7 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
     trialEndsAt: subscription.data?.trial_ends_at ?? null,
     unreadNotifications: unread.count ?? 0,
     focusEndsAt: focus.data?.ends_at ?? null,
+    callsEnabled: callsEnabled(),
   };
 });
 

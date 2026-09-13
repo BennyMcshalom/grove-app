@@ -19,16 +19,18 @@ export default async function SpacePage({ params }: PageProps<"/spaces/[chapter]
   if (!held) redirect("/spaces");
 
   const supabase = await createClient();
-  const [roots, { data: members }, { data: questions }] = await Promise.all([
+  const [roots, { data: members }, { data: questions }, { data: hasRegion }] = await Promise.all([
     loadFeed({ scope: "roots", chapterSlug: slug }, viewer.firstName),
     supabase.rpc("space_members", { p_chapter_slug: slug }),
     supabase.rpc("live_space_questions", { p_chapter_slug: slug }),
+    supabase.rpc("has_region"),
   ]);
 
   return (
     <SpaceView
       slug={slug}
       phase={held.phase}
+      hasRegion={hasRegion === true}
       roots={roots}
       members={(members ?? []).map(
         (m): SpaceMember => ({

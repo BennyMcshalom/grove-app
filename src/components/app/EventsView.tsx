@@ -12,7 +12,7 @@ import { CreateEventModal } from "@/components/app/CreateEventModal";
 import { useToast } from "@/components/app/ToastProvider";
 import { setRsvp, touchLiveRoom } from "@/app/(app)/events/actions";
 import { cn } from "@/lib/cn";
-import { eventDateLabel, eventTimeLabel, type EventCard, type LiveRoom } from "@/lib/events";
+import { distanceLabel, eventDateLabel, eventTimeLabel, type EventCard, type LiveRoom } from "@/lib/events";
 
 /**
  * Events — Figma frame 354:6662 ("Gatherings").
@@ -190,6 +190,7 @@ function EventRow({ event }: { event: EventCard }) {
           <Chip>{eventDateLabel(event.startsAt)}</Chip>
           <Chip>{eventTimeLabel(event.startsAt)}</Chip>
           <Chip>{event.venueName}</Chip>
+          {distanceLabel(event.distanceKm) && <Chip>{distanceLabel(event.distanceKm)}</Chip>}
         </div>
       </div>
 

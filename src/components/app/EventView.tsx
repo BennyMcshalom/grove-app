@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { cancelEvent, setRsvp } from "@/app/(app)/events/actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
-import { eventDateLabel, eventTimeLabel, type Attendee, type EventCard } from "@/lib/events";
+import { distanceLabel, eventDateLabel, eventTimeLabel, mapUrl, type Attendee, type EventCard } from "@/lib/events";
 
 /**
  * Event View — Figma frame 452:9875.
@@ -192,7 +192,20 @@ function EventDetails({
             <Value>{eventDateLabel(event.startsAt)}</Value>
           </DetailRow>
           <DetailRow icon={<PinIcon />} label="Where">
-            <Value>{event.venueName}</Value>
+            <Value>
+              {event.venueName}
+              {distanceLabel(event.distanceKm) && ` · ${distanceLabel(event.distanceKm)}`}
+            </Value>
+            {event.latitude !== null && event.longitude !== null && (
+              <a
+                href={mapUrl(event.latitude, event.longitude)}
+                target="_blank"
+                rel="noreferrer"
+                className="font-sans text-sm font-medium text-primary-600 hover:underline"
+              >
+                Open in map
+              </a>
+            )}
           </DetailRow>
           <DetailRow icon={<FileIcon />} label="What is the event about, who is it for?">
             <Value>{event.description ?? `A ${getChapter(event.chapterSlug)?.name ?? ""} gathering.`}</Value>

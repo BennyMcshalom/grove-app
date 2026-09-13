@@ -92,6 +92,8 @@ export interface FeedQuery {
   /** Only posts created in this window (a closed chapter's archive). */
   from?: string | null;
   to?: string | null;
+  /** Scope "open" only: people whose region is within this many km. */
+  withinKm?: number | null;
   cursor?: FeedCursor | null;
 }
 

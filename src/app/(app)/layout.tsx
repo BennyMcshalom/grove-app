@@ -1,3 +1,4 @@
+import { CallProvider } from "@/components/app/CallProvider";
 import { Sidebar } from "@/components/app/Sidebar";
 import { MobileNav } from "@/components/app/MobileNav";
 import { ToastProvider } from "@/components/app/ToastProvider";
@@ -26,6 +27,7 @@ export default async function AppLayout({
   return (
     <ViewerProvider viewer={viewer}>
       <ToastProvider>
+        <CallProvider>
         <SidebarProvider>
           <div className="flex h-dvh overflow-hidden bg-ivory-100">
             <Sidebar className="hidden lg:flex" />
@@ -37,6 +39,7 @@ export default async function AppLayout({
             </div>
           </div>
         </SidebarProvider>
+        </CallProvider>
       </ToastProvider>
     </ViewerProvider>
   );

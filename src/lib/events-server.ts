@@ -36,6 +36,9 @@ export async function loadEvents({
     going: e.i_am_going,
     circleGoing: e.circle_going,
     attendeeAvatars: e.circle_avatars,
+    latitude: e.latitude,
+    longitude: e.longitude,
+    distanceKm: e.distance_km,
   }));
 }
 

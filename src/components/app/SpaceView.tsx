@@ -34,6 +34,9 @@ import { removeUploads, uploadFile } from "@/lib/upload";
  */
 const TABS = ["Roots", "Open", "Anonymous", "Ask Members"] as const;
 
+/** "People near you" on the Open tab. */
+const NEAR_KM = 100;
+
 export interface SpaceMember {
   userId: string;
   name: string;
@@ -54,12 +57,15 @@ export interface SpaceQuestion {
 export function SpaceView({
   slug,
   phase,
+  hasRegion,
   roots,
   members: initialMembers,
   questions: initialQuestions,
 }: {
   slug: string;
   phase: string;
+  /** The viewer has a location, so the Open tab can start with people near them. */
+  hasRegion: boolean;
   roots: FeedPage;
   members: SpaceMember[];
   questions: SpaceQuestion[];
@@ -69,6 +75,7 @@ export function SpaceView({
   const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0]);
   const [members, setMembers] = useState(initialMembers);
   const [questions, setQuestions] = useState(initialQuestions);
+  const [acrossRegions, setAcrossRegions] = useState(!hasRegion);
 
   const circle = members.filter((m) => m.inCircle);
   const faces = (circle.length > 0 ? circle : members).slice(0, 4);
@@ -184,16 +191,25 @@ export function SpaceView({
                 <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-5">
                   <div className="flex flex-col gap-1">
                     <span className="font-sans text-base font-semibold text-ink-600">
-                      Search across regions
+                      {acrossRegions && hasRegion ? "Showing every region" : "Search across regions"}
                     </span>
                     <span className="font-sans text-sm text-ink-300">
-                      See this space beyond people near you
+                      {!hasRegion
+                        ? "Add your location in Edit Profile to see people near you first"
+                        : acrossRegions
+                          ? "Back to people within 100 km of you"
+                          : "See this space beyond people near you"}
                     </span>
                   </div>
-                  {/* Needs region-aware matching, which arrives with Nearby. */}
-                  <Button variant="secondary" size="sm" disabled title="Coming with Nearby">
-                    Search
-                  </Button>
+                  {hasRegion ? (
+                    <Button variant="secondary" size="sm" onClick={() => setAcrossRegions((v) => !v)}>
+                      {acrossRegions ? "Near me" : "Search"}
+                    </Button>
+                  ) : (
+                    <Button variant="secondary" size="sm" href="/settings/edit-profile">
+                      Add location
+                    </Button>
+                  )}
                 </div>
 
                 <p className="font-sans text-sm text-ink-400">
@@ -202,10 +218,13 @@ export function SpaceView({
                 </p>
 
                 <FeedList
-                  query={{ scope: "open", chapterSlug: slug }}
+                  key={acrossRegions ? "open:everywhere" : "open:near"}
+                  query={{ scope: "open", chapterSlug: slug, withinKm: acrossRegions ? null : NEAR_KM }}
                   empty={
                     <p className="py-6 text-center font-sans text-sm text-ink-300">
-                      No one outside your circle has posted from where you are yet.
+                      {acrossRegions
+                        ? "No one outside your circle has posted from where you are yet."
+                        : "No one near you has posted from where you are yet. Try searching across regions."}
                     </p>
                   }
                   renderPost={(post) => (

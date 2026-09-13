@@ -20,6 +20,23 @@ export interface EventCard {
   circleGoing: number;
   /** Up to five attendee photos (circle members, and everyone for the host). */
   attendeeAvatars: string[];
+  /** From geocoding the venue when the event was created; null if it wasn't found. */
+  latitude: number | null;
+  longitude: number | null;
+  /** From the viewer's region; null when either location is unknown. */
+  distanceKm: number | null;
+}
+
+/** "3 km away", or "Near you" under a kilometre. */
+export function distanceLabel(km: number | null) {
+  if (km === null) return null;
+  if (km < 1) return "Near you";
+  return `${km < 10 ? km.toFixed(1).replace(/.0$/, "") : Math.round(km)} km away`;
+}
+
+/** OpenStreetMap, which needs no key. */
+export function mapUrl(latitude: number, longitude: number) {
+  return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=16/${latitude}/${longitude}`;
 }
 
 export interface Attendee {

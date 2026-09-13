@@ -23,6 +23,7 @@ export async function loadFeed(query: FeedQuery, viewerName: string): Promise<Fe
     p_before: query.cursor?.before ?? null,
     p_before_id: query.cursor?.beforeId ?? null,
     p_limit: FEED_PAGE_SIZE,
+    p_within_km: query.withinKm ?? null,
   });
 
   if (error) {

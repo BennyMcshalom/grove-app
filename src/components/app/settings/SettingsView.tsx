@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/Input";
 import {
   changePassword,
   deleteAccount,
+  openBillingPortal,
+  startCheckout,
   startTrial,
   updatePreferences,
 } from "@/app/(app)/settings/actions";
@@ -41,14 +43,28 @@ export interface SettingsPreferences {
   emailUpdates: boolean;
 }
 
+export interface SettingsBilling {
+  /** Stripe keys and price are configured. */
+  enabled: boolean;
+  priceLabel: string | null;
+  trialUsed: boolean;
+  hasStripePlan: boolean;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  /** Back from Checkout; the webhook may not have landed yet. */
+  justSubscribed: boolean;
+}
+
 export function SettingsView({
   prompts,
   preferences,
   isStaff,
+  billing,
 }: {
   prompts: SettingsPrompts;
   preferences: SettingsPreferences;
   isStaff: boolean;
+  billing: SettingsBilling;
 }) {
   const toast = useToast();
   const [prefs, setPrefs] = useState(preferences);
@@ -183,7 +199,7 @@ export function SettingsView({
 
           <Card>
             <SectionLabel>Subscription</SectionLabel>
-            <SubscriptionRow />
+            <SubscriptionRow billing={billing} />
           </Card>
 
           <Card>
@@ -335,46 +351,102 @@ function ProfileIdentity() {
   );
 }
 
-function SubscriptionRow() {
+const longDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "long" });
+
+/**
+ * Figma only draws "Start trial". Subscribing and managing billing hand over to
+ * Stripe Checkout and Stripe's customer portal.
+ */
+function SubscriptionRow({ billing }: { billing: SettingsBilling }) {
   const { subscriptionStatus, trialEndsAt } = useViewer();
   const toast = useToast();
-  const [starting, startStarting] = useTransition();
+  const [pending, startPending] = useTransition();
+
+  const run = (action: () => Promise<{ error?: string }>, success?: string) =>
+    startPending(async () => {
+      const result = await action();
+      if (result.error) toast({ title: result.error, tone: "danger" });
+      else if (success) toast({ title: success, tone: "confirm" });
+    });
+
+  const subscribe = billing.enabled && (
+    <Button size="sm" loading={pending} onClick={() => run(startCheckout)}>
+      Subscribe
+    </Button>
+  );
+  const manage = billing.enabled && billing.hasStripePlan && (
+    <Button variant="secondary" size="sm" loading={pending} onClick={() => run(openBillingPortal)}>
+      Manage billing
+    </Button>
+  );
+  const price = billing.priceLabel ? ` ${billing.priceLabel}.` : "";
 
   if (subscriptionStatus === "trialing" && trialEndsAt) {
-    const ends = new Date(trialEndsAt).toLocaleDateString(undefined, {
-      day: "numeric",
-      month: "long",
-    });
-    return <Row title="Free trial" body={`Full access until ${ends}.`} />;
+    return billing.hasStripePlan ? (
+      <Row
+        title="Free trial"
+        body={`Full access until ${longDate(trialEndsAt)}, then your plan starts.${price}`}
+        trailing={manage}
+      />
+    ) : (
+      <Row
+        title="Free trial"
+        body={`Full access until ${longDate(trialEndsAt)}.${billing.enabled ? " Subscribe to keep it after that." : ""}`}
+        trailing={subscribe}
+      />
+    );
   }
   if (subscriptionStatus === "active") {
-    return <Row title="Full access" body="Your plan is active." />;
+    const renewal = billing.currentPeriodEnd
+      ? ` ${billing.cancelAtPeriodEnd ? "Ends" : "Renews"} on ${longDate(billing.currentPeriodEnd)}.`
+      : "";
+    return <Row title="Full access" body={`Your plan is active.${renewal}`} trailing={manage} />;
   }
   if (subscriptionStatus === "past_due") {
-    return <Row title="Payment needed" body="Update your payment details to keep full access." />;
+    return (
+      <Row
+        title="Payment needed"
+        body="Update your payment details to keep full access."
+        trailing={
+          billing.enabled && (
+            <Button size="sm" loading={pending} onClick={() => run(openBillingPortal)}>
+              Update payment
+            </Button>
+          )
+        }
+      />
+    );
+  }
+  if (billing.justSubscribed) {
+    return <Row title="Setting up your plan" body="Payment received. Your plan will show here in a moment." />;
+  }
+
+  if (!billing.trialUsed && subscriptionStatus === "none") {
+    return (
+      <Row
+        title="No active plan"
+        body="Start a free trial to unlock everything."
+        trailing={
+          <Button size="sm" loading={pending} onClick={() => run(startTrial, "Your 14-day trial has started")}>
+            Start trial
+          </Button>
+        }
+      />
+    );
   }
 
   return (
     <Row
-      title="No active plan"
-      body="Start a free trial to unlock everything."
+      title={subscriptionStatus === "canceled" ? "Plan ended" : "Your trial has ended"}
+      body={billing.enabled ? `Subscribe to get full access back.${price}` : "Subscriptions open soon."}
       trailing={
-        <Button
-          size="sm"
-          loading={starting}
-          onClick={() =>
-            startStarting(async () => {
-              const result = await startTrial();
-              toast(
-                result.error
-                  ? { title: result.error, tone: "danger" }
-                  : { title: "Your 14-day trial has started", tone: "confirm" },
-              );
-            })
-          }
-        >
-          Start trial
-        </Button>
+        (manage || subscribe) && (
+          <div className="flex flex-wrap justify-end gap-2">
+            {manage}
+            {subscribe}
+          </div>
+        )
       }
     />
   );

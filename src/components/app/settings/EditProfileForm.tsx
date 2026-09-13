@@ -35,6 +35,8 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
 
   const [name, setName] = useState(viewer.firstName);
   const [location, setLocation] = useState(viewer.locationLabel ?? "");
+  // The coordinates behind a detected location, so saving needn't look the city up again.
+  const [detected, setDetected] = useState<{ label: string; latitude: number; longitude: number } | null>(null);
   const [aura, setAura] = useState<Aura>(viewer.aura);
   const [avatarUrl, setAvatarUrl] = useState(viewer.avatarUrl);
   const [prompts, setPrompts] = useState(initialPrompts);
@@ -77,7 +79,8 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
   };
 
   // "Tap the target icon to detect it automatically." Coordinates are rounded
-  // to ~1km before being turned into "City, Country", and never stored.
+  // to ~1km before being turned into "City, Country"; only a ~11km region is
+  // kept (privately, for "near you").
   const detectLocation = () => {
     if (!navigator.geolocation) {
       toast({ title: "This browser can't detect your location", tone: "danger" });
@@ -98,7 +101,13 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
           const place: { city?: string; locality?: string; countryName?: string } =
             await response.json();
           const city = place.city || place.locality;
-          setLocation([city, place.countryName].filter(Boolean).join(", "));
+          const label = [city, place.countryName].filter(Boolean).join(", ");
+          setLocation(label);
+          setDetected({
+            label,
+            latitude: Number(coords.latitude.toFixed(1)),
+            longitude: Number(coords.longitude.toFixed(1)),
+          });
         } catch {
           toast({ title: "We couldn't work out your city. Type it instead.", tone: "danger" });
         } finally {
@@ -120,6 +129,10 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
       const result = await updateProfile({
         firstName: name,
         locationLabel: location,
+        coordinates:
+          detected && detected.label === location
+            ? { latitude: detected.latitude, longitude: detected.longitude }
+            : null,
         aura,
         avatarUrl,
         prompts,

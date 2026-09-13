@@ -282,9 +282,11 @@ function TrialCard() {
       </svg>
       <span className="flex flex-col">
         <span className="font-sans text-sm font-semibold text-ink-0">
-          Start 14-day trial
+          {subscriptionStatus === "none" ? "Start 14-day trial" : "Get full access"}
         </span>
-        <span className="font-sans text-xs text-ink-50">Full access, free</span>
+        <span className="font-sans text-xs text-ink-50">
+          {subscriptionStatus === "none" ? "Full access, free" : "Subscribe in Settings"}
+        </span>
       </span>
     </Link>
   );

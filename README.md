@@ -1,13 +1,20 @@
 # Grouv
 
 Next.js 16 app on **Railway**, with **Supabase** for Postgres, Auth, Storage
-and Realtime, and **Resend** for email.
+and Realtime. **Resend** sends email, **Stripe** handles billing, **LiveKit**
+carries voice and video calls, and **OpenStreetMap** geocodes places.
 
 ```
 Browser ──► Next.js on Railway ──► Supabase (Postgres + RLS, Auth, Storage, Realtime)
-               │  Server Actions / Route Handlers
-               └─► Resend (app email)      Supabase Auth ──► Resend SMTP (sign-up codes)
+   │           │  Server Actions / Route Handlers
+   │           ├─► Resend (app email)      Supabase Auth ──► Resend SMTP (sign-up codes)
+   │           ├─► Stripe (Checkout, billing portal) ◄── webhook
+   │           └─► Nominatim (geocoding)
+   └─► LiveKit (call audio/video, with a token from the app) ──► webhook
 ```
+
+Stripe, LiveKit and Resend are optional while developing. Without their keys
+the Subscribe, call and email features stay hidden or skip quietly.
 
 ## Local development
 
@@ -80,6 +87,7 @@ The template has to use `{{ .Token }}`. That's what turns the email into the
 | `…1300_bonds_reads` | `bonds_overview()` (bonds + circle with their chat), `pending_requests()`, `people_you_may_know()` |
 | `20260913…0100_log_groups_events_reads` | Log prompts and `circle_logs()`, `group_cards()` / `group_truths()`, `event_cards()`, Meet & Greet (`start_live_room()`, `live_room_cards()`, `live_room_people()`, presence heartbeat), `my_notifications()`, `question_replies()`, `search_everything()`, scheduled jobs |
 | `20260913…0200_trust_and_delivery` | Rate limits on writes, `staff` with `moderation_queue()` / `moderate_target()`, the notification email queue (`claim_notification_emails()`), weekly connection suggestions |
+| `20260913…0300_billing_calls_places` | Stripe columns on `subscriptions` with `sync_stripe_subscription()`, `calls` with `start_call()` / `answer_call()` / `end_call()`, private `user_regions` with `set_my_region()`, distance-aware `feed_posts()` and `event_cards()` |
 
 Every table has row-level security. Content that can be anonymous (posts,
 space questions, truths) keeps its real author in `private.content_owners`,
@@ -99,7 +107,7 @@ capacity, notifications and account deletion.
 
 ### Scheduled jobs
 
-The migrations schedule three `pg_cron` jobs inside the database:
+The migrations schedule five `pg_cron` jobs inside the database:
 
 - `grouv-cleanup` runs every 5 minutes. It removes Meet & Greet presence from
   tabs that closed without leaving, ends empty rooms, deletes expired proximity
@@ -110,6 +118,10 @@ The migrations schedule three `pg_cron` jobs inside the database:
   person one "someone you might connect with" notification: the person outside
   their circle who shares the most open spaces with them. Nobody is suggested
   to the same person twice within 60 days.
+- `grouv-expire-calls` runs every minute. A call nobody answered for 45 seconds
+  becomes missed, and one left open for 6 hours is ended.
+- `grouv-expire-trials` runs hourly. An in-app trial that ran out without a
+  Stripe plan becomes expired.
 
 `pg_cron` ships with Supabase. If `db push` reports it missing, enable it under
 Database → Extensions and push again.
@@ -122,6 +134,7 @@ These update live, over Supabase Realtime:
 - Read receipts
 - The notification badge
 - Meet & Greet rooms and waves
+- Incoming calls ringing, and calls ending
 
 Online dots use a presence channel. Realtime is on by default for new projects,
 and the tables are added to its publication by the storage-and-realtime
@@ -188,6 +201,83 @@ curl -X POST https://<railway-domain>/api/cron/notification-emails \
 On Railway, add a second service from the same repo. Give it a Cron Schedule of
 `*/10 * * * *` and a start command that runs that curl. Any external scheduler
 works too. A notification still unsent after a day is dropped, not sent late.
+
+## Stripe
+
+The plan is one recurring price. People can still start the free 14-day trial
+without a card. Subscribing during the trial keeps its remaining days before
+the first charge.
+
+1. In Stripe, create a product (for example "Grouv Full access") with a
+   recurring price. Put the price ID in `STRIPE_PRICE_ID` and the secret key in
+   `STRIPE_SECRET_KEY`.
+2. Under **Settings → Billing → Customer portal**, save the portal settings at
+   least once. Let customers update their payment method, see invoices and
+   cancel. "Manage billing" fails until the portal is saved.
+3. Under **Developers → Webhooks**, add the endpoint
+   `https://<railway-domain>/api/stripe/webhook` with these events:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `customer.subscription.paused`
+   - `customer.subscription.resumed`
+
+   Copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+
+To test locally, use the Stripe CLI:
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+It prints a `whsec_…` secret to use while it runs.
+
+The webhook always re-reads the subscription from Stripe before saving it, so
+events arriving out of order can't leave a stale status. Deleting an account
+cancels its subscription first.
+
+The app doesn't lock any feature behind the plan yet. `subscriptions.status`
+(`trialing` or `active`) is the thing to check when that's decided.
+
+## LiveKit (calls)
+
+Voice and video calls work between people in each other's circle, from the
+phone and video icons in a bond chat. Supabase does the ringing and keeps the
+call history; each call's audio and video runs in its own LiveKit room.
+
+LiveKit Cloud's free **Build** plan needs no card. It includes 5,000 WebRTC
+minutes and 100 concurrent connections a month. LiveKit is open source, so the
+same code works against a self-hosted server if usage outgrows that.
+
+1. Create a project at cloud.livekit.io. Under **Settings → Keys**, create a
+   key and copy the WebSocket URL, API key and secret into `LIVEKIT_URL`,
+   `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET`.
+2. Under **Settings → Webhooks**, add
+   `https://<railway-domain>/api/livekit/webhook`, signed with the same key.
+   It marks a call over when its room empties, for example when someone closes
+   the tab instead of hanging up.
+
+Calls need HTTPS for camera and microphone access. Railway domains and
+`localhost` both qualify. Each finished, missed or declined call leaves a line
+in the chat, such as "Video call · 12 min".
+
+## Places
+
+Geocoding uses OpenStreetMap's public Nominatim, which is free. It's called
+only from the server, at most once a second per instance, with results cached
+in memory. Nominatim's policy allows this light, user-triggered use, but it
+forbids type-ahead search. If traffic grows, set `LOCATIONIQ_API_KEY`: its API
+is compatible, and its free tier allows 5,000 lookups a day.
+
+- **Events:** the venue is geocoded when the event is created. Events within
+  100 km of you list first, show "12 km away", and link to OpenStreetMap. An
+  event whose venue can't be found is still created, just without those.
+- **Your region:** saving a location in Edit Profile stores a point rounded to
+  about 11 km, in `private.user_regions`. The Data API can't reach that table,
+  so other people only ever get a distance, never the coordinates.
+- **The space Open tab** shows people within 100 km first. "Search across
+  regions" widens it to everyone.
 
 ## Railway
 

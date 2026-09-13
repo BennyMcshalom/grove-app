@@ -6,6 +6,7 @@ import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { getChapter } from "@/lib/chapters";
 import type { LiveRoom, RoomPerson } from "@/lib/events";
 import { loadLiveRooms } from "@/lib/events-server";
+import { geocode } from "@/lib/geocode";
 import { PICKER_ICONS } from "@/lib/icons";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,10 +35,16 @@ export async function createEvent(input: CreateEventInput): Promise<Result & { i
   if (!getChapter(chapterSlug)) return { error: "Choose the space it belongs to." };
   if (Date.parse(startsAt) < Date.now() - 5 * 60 * 1000) return { error: "Pick a date and time in the future." };
 
+  // Best effort: an event whose venue can't be found still gets created, it
+  // just isn't ranked by distance or given a map link.
+  const place = await geocode(venueName);
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("events")
     .insert({
+      latitude: place?.latitude ?? null,
+      longitude: place?.longitude ?? null,
       title,
       icon,
       venue_name: venueName,

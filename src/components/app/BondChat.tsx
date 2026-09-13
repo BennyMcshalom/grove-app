@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
+import { useCalls } from "@/components/app/CallProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { formatSeconds, VoiceRecorder } from "@/components/app/VoiceRecorder";
 import {
@@ -26,8 +27,8 @@ import { mediaDuration, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
  *
  * 525px column: an ivory-300 top nav carrying the bond's depth bar, a
  * scrolling message list, and a pill composer. New messages and read receipts
- * arrive over Realtime. Text, photos, videos and voice notes can be sent;
- * calls aren't built.
+ * arrive over Realtime. Text, photos, videos and voice notes can be sent, and
+ * the header's phone and video icons place calls (CallProvider).
  */
 export function BondChat({
   person,
@@ -47,6 +48,22 @@ export function BondChat({
   const viewer = useViewer();
   const toast = useToast();
   const online = useIsOnline(person.userId);
+  const calls = useCalls();
+
+  // Header phone / video icons. A first call opens the conversation, like a first message.
+  const call = async (kind: "audio" | "video") => {
+    const opened = await ensureConversation(person.userId, conversationId);
+    if (opened.error || !opened.conversationId) {
+      toast({ title: opened.error ?? "We couldn't start this conversation.", tone: "danger" });
+      return;
+    }
+    if (!conversationId) setConversationId(opened.conversationId);
+    await calls.startCall(opened.conversationId, kind, {
+      userId: person.userId,
+      name: person.name,
+      avatarUrl: person.avatarUrl,
+    });
+  };
 
   const [conversationId, setConversationId] = useState(person.conversationId);
   const [messages, setMessages] = useState<ChatMessage[] | null>(person.conversationId ? null : []);
@@ -228,8 +245,12 @@ export function BondChat({
           </div>
 
           <div className="flex items-center gap-2 text-ink-400">
-            <IconButton label="Call" ringed><PhoneIcon /></IconButton>
-            <IconButton label="Video call" ringed><VideoIcon /></IconButton>
+            <IconButton label="Call" ringed onClick={calls.enabled ? () => void call("audio") : undefined}>
+              <PhoneIcon />
+            </IconButton>
+            <IconButton label="Video call" ringed onClick={calls.enabled ? () => void call("video") : undefined}>
+              <VideoIcon />
+            </IconButton>
             <IconButton label="More" ringed><DotsIcon /></IconButton>
           </div>
         </div>

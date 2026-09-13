@@ -23,6 +23,8 @@ export interface ShellViewer {
   unreadNotifications: number;
   /** Set while a Deep Focus session is running. */
   focusEndsAt: string | null;
+  /** LiveKit is configured, so bond chats can place calls. */
+  callsEnabled: boolean;
 }
 
 const ViewerContext = createContext<ShellViewer | null>(null);
