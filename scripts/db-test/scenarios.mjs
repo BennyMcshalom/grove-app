@@ -651,6 +651,117 @@ await step("connection suggestions", async () => {
   check("suggestions wait a week", n === first.length, n);
 });
 
+await step("billing", async () => {
+  await fails("clients can't sync Stripe", A, `select public.sync_stripe_subscription($1, 'cus_1', 'sub_1', 'active', now(), null, false)`, [A], "permission denied");
+  await su(`update public.subscriptions set status = 'none', trial_started_at = null, stripe_subscription_id = null where user_id = $1`, [D]);
+  await su(`select public.link_stripe_customer($1, 'cus_d')`, [D]);
+  await su(`select public.sync_stripe_subscription($1, null, 'sub_new', 'active', now() + interval '30 days', null, false)`, [D]);
+  let [sub] = await su(`select * from public.subscriptions where user_id = $1`, [D]);
+  check("webhook activates the plan", sub.status === "active" && sub.stripe_customer_id === "cus_d" && sub.stripe_subscription_id === "sub_new", sub);
+  await fails("no app trial on a paid plan", D, `select public.start_trial()`, [], "already been used");
+
+  await su(`select public.sync_stripe_subscription($1, 'cus_d', 'sub_old', 'canceled', now(), null, false)`, [D]);
+  [sub] = await su(`select status, stripe_subscription_id from public.subscriptions where user_id = $1`, [D]);
+  check("a late event about an old plan is ignored", sub.status === "active" && sub.stripe_subscription_id === "sub_new", sub);
+  await su(`select public.sync_stripe_subscription($1, 'cus_d', 'sub_new', 'unpaid', now(), null, true)`, [D]);
+  [sub] = await su(`select status, cancel_at_period_end from public.subscriptions where user_id = $1`, [D]);
+  check("unpaid maps to past_due", sub.status === "past_due" && sub.cancel_at_period_end === true, sub);
+
+  await su(`update public.subscriptions set status = 'trialing', stripe_subscription_id = null, trial_ends_at = now() - interval '1 minute' where user_id = $1`, [B]);
+  await su(`select private.expire_trials()`);
+  [sub] = await su(`select status from public.subscriptions where user_id = $1`, [B]);
+  check("finished app trials expire", sub.status === "expired", sub);
+});
+
+await step("calls", async () => {
+  const [call] = await q(C, `select * from public.start_call($1, 'video')`, [dm]);
+  check("caller rings", call.status === "ringing" && call.caller_id === C, call);
+  const seen = await q(A, `select id from public.calls where conversation_id = $1`, [dm]);
+  check("callee sees the ring", seen.length === 1);
+  const outsider = await q(B, `select id from public.calls`);
+  check("outsiders don't see calls", outsider.length === 0, outsider);
+  await fails("outsiders can't answer", B, `select public.answer_call($1)`, [call.id], "not found");
+  await fails("can't insert calls directly", C, `insert into public.calls (conversation_id, caller_id, kind) values ($1, $2, 'audio')`, [dm, C], "row-level security");
+
+  const [again] = await q(A, `select * from public.start_call($1, 'audio')`, [dm]);
+  check("calling back while it rings answers it", again.id === call.id && again.status === "active", again);
+  await su(`update public.calls set answered_at = now() - interval '125 seconds' where id = $1`, [call.id]);
+  const [ended] = await q(C, `select * from public.end_call($1)`, [call.id]);
+  check("hanging up ends it", ended.status === "ended", ended);
+  const [line] = await su(`select body from public.messages where conversation_id = $1 and kind = 'system' order by created_at desc limit 1`, [dm]);
+  check("chat logs the call", line?.body === "Video call · 2 min", line);
+
+  const [ring] = await q(A, `select * from public.start_call($1, 'audio')`, [dm]);
+  const [declined] = await q(C, `select * from public.end_call($1)`, [ring.id]);
+  check("callee hanging up declines", declined.status === "declined", declined);
+  await fails("can't answer a declined call", C, `select public.answer_call($1)`, [ring.id], "has ended");
+
+  const [stale] = await q(A, `select * from public.start_call($1, 'audio')`, [dm]);
+  await su(`update public.calls set created_at = now() - interval '1 minute' where id = $1`, [stale.id]);
+  await su(`select private.expire_calls()`);
+  const [missed] = await su(`select status from public.calls where id = $1`, [stale.id]);
+  check("unanswered rings become missed", missed.status === "missed", missed);
+  const [{ body }] = await su(`select body from public.messages where conversation_id = $1 and kind = 'system' order by created_at desc limit 1`, [dm]);
+  check("missed calls are logged", body === "Missed voice call", body);
+
+  const [webhook] = await q(C, `select * from public.start_call($1, 'audio')`, [dm]);
+  await fails("clients can't finish calls", C, `select public.finish_call($1)`, [webhook.id], "permission denied");
+  await su(`select public.finish_call($1)`, [webhook.id]);
+  const [finished] = await su(`select status from public.calls where id = $1`, [webhook.id]);
+  check("webhook finishes the call", finished.status === "missed", finished);
+
+  const [{ id: groupConv }] = await su(`select conversation_id as id from public.groups limit 1`);
+  await fails("no calls in group chats", B, `select public.start_call($1, 'audio')`, [groupConv], "bond and circle");
+});
+
+await step("places", async () => {
+  // Lagos and Ikeja (~12 km apart), London far away.
+  await q(A, `select public.set_my_region(6.4541, 3.3947)`);
+  await q(B, `select public.set_my_region(6.6018, 3.3515)`);
+  await q(C, `select public.set_my_region(51.5072, -0.1276)`);
+  const [{ has_region }] = await q(A, `select public.has_region()`);
+  check("region saved", has_region === true);
+  const regions = await q(A, `select * from private.user_regions`).catch((e) => e.message);
+  check("regions aren't readable", typeof regions === "string" && regions.includes("permission denied"), regions);
+  const [{ latitude }] = await su(`select latitude from private.user_regions where user_id = $1`, [A]);
+  check("regions are rounded", latitude === 6.5, latitude);
+
+  const [{ km }] = await q(A, `select private.km_from_me($1) as km`, [B]);
+  check("distance between regions", km > 5 && km < 30, km);
+  const [{ far }] = await q(A, `select private.km_from_me($1) as far`, [C]);
+  check("far regions are far", far > 4000, far);
+
+  // Open tab near-you filter: B posts in career where A shares B's phase.
+  await su(`update public.user_chapters set phase = 'Starting over' where user_id = $1 and chapter_slug = 'career' and status = 'open'`, [B]);
+  const aCareer = await su(`select 1 from public.user_chapters where user_id = $1 and chapter_slug = 'career' and status = 'open'`, [A]);
+  if (aCareer.length === 0) {
+    await q(A, `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'career', 'Starting over')`, [A]).catch(async () => {
+      await su(`update public.user_chapters set status = 'closed', closed_at = now() where user_id = $1 and chapter_slug = 'creative'`, [A]);
+      await q(A, `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'career', 'Starting over')`, [A]);
+    });
+  }
+  await su(`delete from public.connections where user_low = least($1::uuid, $2::uuid) and user_high = greatest($1::uuid, $2::uuid)`, [A, B]);
+  await su(`delete from public.bonds where user_low = least($1::uuid, $2::uuid) and user_high = greatest($1::uuid, $2::uuid)`, [A, B]);
+  const [{ id: nearPost }] = await q(B, `insert into public.posts (chapter_slug, body) values ('career', 'Near you') returning id`);
+  const near = await q(A, `select id from public.feed_posts('open', 'career', p_within_km => 50)`);
+  check("open tab finds people nearby", near.some((p) => p.id === nearPost), near);
+  await q(B, `select public.set_my_region(51.5, -0.1)`);
+  const away = await q(A, `select id from public.feed_posts('open', 'career', p_within_km => 50)`);
+  check("open tab hides people far away", !away.some((p) => p.id === nearPost), away);
+  const everywhere = await q(A, `select id from public.feed_posts('open', 'career')`);
+  check("search across regions shows them", everywhere.some((p) => p.id === nearPost), everywhere);
+  await su(`delete from public.posts where id = $1`, [nearPost]);
+  await q(B, `select public.set_my_region(6.6018, 3.3515)`);
+
+  const [{ id: nearEvent }] = await q(
+    B,
+    `insert into public.events (chapter_slug, title, venue_name, starts_at, capacity, latitude, longitude)
+     values ('career', 'Founders dinner', 'Ikeja City Mall', now() + interval '3 days', 20, 6.614, 3.358) returning id`,
+  );
+  const cards = await q(A, `select id, distance_km from public.event_cards()`);
+  check("events near you come first with a distance", cards[0]?.id === nearEvent && cards[0].distance_km < 30, cards);
+});
+
 await step("delete account", async () => {
   await su(`delete from auth.users where id = $1`, [A]);
   const posts = await su(`select count(*)::int n from public.posts`);
