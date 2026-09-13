@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { getChapter } from "@/lib/chapters";
 import { signPaths } from "@/lib/storage-server";
+import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
 import { createClient } from "@/lib/supabase/server";
 
 export type SpaceActionResult = { error?: string };
@@ -28,6 +29,7 @@ export async function joinSpace(slug: string, phase: string): Promise<SpaceActio
     }
     if (error.code === "23505") return { error: `You already hold ${chapter.name}.` };
     console.error("[spaces] joinSpace failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't add that space. Try again." };
   }
 
@@ -49,8 +51,10 @@ export async function connectWithMember(
 
   if (error || !data) {
     console.error("[spaces] connectWithMember failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't send that request. Try again." };
   }
+  if (data.status === "pending") await sendNotificationEmailsSoon();
   return { status: data.status };
 }
 
@@ -68,8 +72,10 @@ export async function inviteMemberToBond(
 
   if (error || !data) {
     console.error("[spaces] inviteMemberToBond failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't send that invite. Try again." };
   }
+  if (data.status === "pending") await sendNotificationEmailsSoon();
   return { status: data.status };
 }
 
@@ -94,6 +100,7 @@ export async function askSpace(
   if (error || !data) {
     if (error?.code === "42501") return { error: "You can only ask spaces you hold." };
     console.error("[spaces] askSpace failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't send your question. Try again." };
   }
   return { question: data };
@@ -127,6 +134,7 @@ export async function closeChapter(input: CloseChapterInput): Promise<SpaceActio
 
   if (error) {
     console.error("[spaces] closeChapter failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't close this chapter. Try again." };
   }
 
@@ -186,6 +194,7 @@ export async function replyToQuestion(
     if (audioPath) await supabase.storage.from("media").remove([audioPath]);
     if (error.code === "42501") return { error: "This question is no longer taking replies." };
     console.error("[spaces] replyToQuestion failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't send your reply. Try again." };
   }
   return {};

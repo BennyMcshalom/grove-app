@@ -87,6 +87,7 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   if (error || !post) {
     if (error?.code === "42501") return { error: "You can only post into chapters you hold." };
     console.error("[posts] createPost failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't post that. Try again." };
   }
 
@@ -117,6 +118,7 @@ export async function setRooted(postId: string, rooted: boolean): Promise<Result
   // Rooting twice (double tap, two tabs) is fine.
   if (error && error.code !== "23505") {
     console.error("[posts] setRooted failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "That didn't go through. Try again." };
   }
   return {};
@@ -150,6 +152,7 @@ export async function updatePost(
 
   if (error || !data?.length) {
     if (error) console.error("[posts] updatePost failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "You can only edit your own posts." };
   }
   return {};
@@ -168,6 +171,7 @@ export async function deletePost(postId: string): Promise<Result> {
   const { data, error } = await supabase.from("posts").delete().eq("id", postId).select("id");
   if (error || !data?.length) {
     if (error) console.error("[posts] deletePost failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "You can only delete your own posts." };
   }
 
@@ -182,27 +186,33 @@ export async function deletePost(postId: string): Promise<Result> {
 
 const reasonValues = REPORT_REASONS.map((r) => r.value) as [ReportReason, ...ReportReason[]];
 
-/** Report Post → "Submit Report". */
-export async function reportPost(
-  postId: string,
+const reportTargets = ["post", "comment", "message", "group", "event", "profile", "truth", "space_question"] as const;
+
+/** Report this → "Submit Report". Posts, and people from their profile page. */
+export async function reportContent(
+  targetType: (typeof reportTargets)[number],
+  targetId: string,
   reason: ReportReason,
   details: string,
 ): Promise<Result> {
   await requireOnboardedViewer();
   const parsedReason = z.enum(reasonValues).safeParse(reason);
   if (!parsedReason.success) return { error: "Choose what's wrong with it." };
+  const parsedTarget = z.object({ type: z.enum(reportTargets), id: z.uuid() }).safeParse({ type: targetType, id: targetId });
+  if (!parsedTarget.success) return { error: "We couldn't tell what you're reporting." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("reports").insert({
-    target_type: "post",
-    target_id: postId,
+    target_type: parsedTarget.data.type,
+    target_id: parsedTarget.data.id,
     reason: parsedReason.data,
     details: details.trim().slice(0, 2000) || null,
   });
 
-  // Reporting the same post twice keeps the first report.
+  // Reporting the same thing twice keeps the first report.
   if (error && error.code !== "23505") {
-    console.error("[posts] reportPost failed", error);
+    console.error("[posts] reportContent failed", error);
+    if (error.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't send that report. Try again." };
   }
   return {};
@@ -256,6 +266,7 @@ export async function addComment(
 
   if (error || !data) {
     console.error("[posts] addComment failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't post your comment. Try again." };
   }
 
@@ -279,6 +290,7 @@ export async function deleteComment(commentId: string): Promise<Result> {
 
   if (error || !data?.length) {
     if (error) console.error("[posts] deleteComment failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "You can only remove your own comments." };
   }
   return {};

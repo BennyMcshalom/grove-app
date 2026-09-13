@@ -81,6 +81,7 @@ export async function sendRoomMessage(
   if (error || !data) {
     if (error?.code === "42501") return { error: "Join first to take part in this conversation." };
     console.error("[rooms] sendRoomMessage failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "Your message didn't send. Try again." };
   }
 

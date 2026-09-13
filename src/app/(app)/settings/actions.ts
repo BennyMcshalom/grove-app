@@ -109,6 +109,7 @@ const PreferencesSchema = z.object({
   logVisibility: z.enum(LOG_VISIBILITY.map((v) => v.value) as [LogVisibility, ...LogVisibility[]]).optional(),
   chapterPrompt: z.boolean().optional(),
   waveReceived: z.boolean().optional(),
+  emailUpdates: z.boolean().optional(),
 });
 
 /** Settings toggles: appearance, log visibility and notifications. */
@@ -119,7 +120,7 @@ export async function updatePreferences(
   const parsed = PreferencesSchema.safeParse(input);
   if (!parsed.success) return { error: "That setting isn't one we recognise." };
 
-  const { theme, logVisibility, chapterPrompt, waveReceived } = parsed.data;
+  const { theme, logVisibility, chapterPrompt, waveReceived, emailUpdates } = parsed.data;
   const supabase = await createClient();
   const writes = [];
 
@@ -134,13 +135,14 @@ export async function updatePreferences(
         .eq("id", viewer.userId),
     );
   }
-  if (chapterPrompt !== undefined || waveReceived !== undefined) {
+  if (chapterPrompt !== undefined || waveReceived !== undefined || emailUpdates !== undefined) {
     writes.push(
       supabase
         .from("notification_preferences")
         .update({
           ...(chapterPrompt !== undefined && { chapter_prompt: chapterPrompt }),
           ...(waveReceived !== undefined && { wave_received: waveReceived }),
+          ...(emailUpdates !== undefined && { email_updates: emailUpdates }),
         })
         .eq("user_id", viewer.userId),
     );

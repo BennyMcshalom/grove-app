@@ -49,6 +49,7 @@ export async function saveLogEntry(input: LogEntryInput): Promise<{ error?: stri
   if (error) {
     if (error.code === "42501") return { error: "You can only log into chapters you hold." };
     console.error("[log] saveLogEntry failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't save that moment. Try again." };
   }
 
@@ -68,6 +69,7 @@ export async function deleteLogEntry(entryId: string): Promise<{ error?: string 
 
   if (error || !data?.length) {
     if (error) console.error("[log] deleteLogEntry failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "You can only remove your own moments." };
   }
 

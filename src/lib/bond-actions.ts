@@ -5,6 +5,7 @@ import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import type { BondPerson, ChatMessage, Suggestion } from "@/lib/bonds";
 import { loadBondPeople, loadSuggestions } from "@/lib/bonds-server";
 import { signPaths } from "@/lib/storage-server";
+import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
 import { createClient } from "@/lib/supabase/server";
 
 type Result = { error?: string };
@@ -32,6 +33,7 @@ export async function respondToRequest(
 
   if (error) {
     console.error("[bonds] respondToRequest failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "That request is no longer waiting on you." };
   }
 
@@ -49,9 +51,11 @@ export async function connectWith(
 
   if (error || !data) {
     console.error("[bonds] connectWith failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't send that request. Try again." };
   }
   if (data.status === "accepted") refresh();
+  if (data.status === "pending") await sendNotificationEmailsSoon();
   return { status: data.status };
 }
 
@@ -193,6 +197,7 @@ export async function sendMediaMessage(
   if (error || !data) {
     await supabase.storage.from("chat").remove([mediaPath]);
     console.error("[bonds] sendMediaMessage failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "That didn't send. Try again." };
   }
 
@@ -227,6 +232,7 @@ export async function sendMessage(
 
   if (error || !data) {
     console.error("[bonds] sendMessage failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "Your message didn't send. Try again." };
   }
 
@@ -275,6 +281,7 @@ export async function sendPostToBond(postId: string, userId: string): Promise<Re
 
   if (error) {
     console.error("[bonds] sendPostToBond failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't share that post. Try again." };
   }
   return {};

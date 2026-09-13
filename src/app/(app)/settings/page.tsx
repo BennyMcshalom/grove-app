@@ -7,7 +7,7 @@ export default async function SettingsPage() {
   const viewer = await getShellViewer();
   const supabase = await createClient();
 
-  const [{ data: prompts }, { data: preferences }, { data: profile }] = await Promise.all([
+  const [{ data: prompts }, { data: preferences }, { data: profile }, { data: isStaff }] = await Promise.all([
     supabase
       .from("profile_prompts")
       .select("honest_tension, sitting_with, open_to")
@@ -15,10 +15,11 @@ export default async function SettingsPage() {
       .maybeSingle(),
     supabase
       .from("notification_preferences")
-      .select("chapter_prompt, wave_received")
+      .select("chapter_prompt, wave_received, email_updates")
       .eq("user_id", viewer.id)
       .single(),
     supabase.from("profiles").select("theme, log_visibility").eq("id", viewer.id).single(),
+    supabase.rpc("am_i_staff"),
   ]);
 
   return (
@@ -33,7 +34,9 @@ export default async function SettingsPage() {
         logVisibility: profile?.log_visibility ?? "circle",
         chapterPrompt: preferences?.chapter_prompt ?? true,
         waveReceived: preferences?.wave_received ?? true,
+        emailUpdates: preferences?.email_updates ?? true,
       }}
+      isStaff={isStaff === true}
     />
   );
 }

@@ -78,7 +78,8 @@ The template has to use `{{ .Token }}`. That's what turns the email into the
 | `…1100_space_and_archive_reads` | `space_summaries()` (member counts per space), `chapter_tallies()` (a closed chapter's posts and log moments) |
 | `…1200_feed_reads` | `feed_posts()` (paged feed: all / roots / open / mine), `space_members()`, `live_space_questions()` |
 | `…1300_bonds_reads` | `bonds_overview()` (bonds + circle with their chat), `pending_requests()`, `people_you_may_know()` |
-| `20260913…_log_groups_events_reads` | Log prompts and `circle_logs()`, `group_cards()` / `group_truths()`, `event_cards()`, Meet & Greet (`start_live_room()`, `live_room_cards()`, `live_room_people()`, presence heartbeat), `my_notifications()`, `question_replies()`, `search_everything()`, scheduled jobs |
+| `20260913…0100_log_groups_events_reads` | Log prompts and `circle_logs()`, `group_cards()` / `group_truths()`, `event_cards()`, Meet & Greet (`start_live_room()`, `live_room_cards()`, `live_room_people()`, presence heartbeat), `my_notifications()`, `question_replies()`, `search_everything()`, scheduled jobs |
+| `20260913…0200_trust_and_delivery` | Rate limits on writes, `staff` with `moderation_queue()` / `moderate_target()`, the notification email queue (`claim_notification_emails()`), weekly connection suggestions |
 
 Every table has row-level security. Content that can be anonymous (posts,
 space questions, truths) keeps its real author in `private.content_owners`,
@@ -98,14 +99,17 @@ capacity, notifications and account deletion.
 
 ### Scheduled jobs
 
-The last migration schedules two `pg_cron` jobs inside the database. No Railway
-cron service is needed:
+The migrations schedule three `pg_cron` jobs inside the database:
 
 - `grouv-cleanup` runs every 5 minutes. It removes Meet & Greet presence from
   tabs that closed without leaving, ends empty rooms, deletes expired proximity
   sessions, and drops read notifications older than 90 days.
 - `grouv-chapter-prompts` runs Mondays at 09:00 UTC. It sends the "Chapter
   prompt" weekly nudge to people who kept it switched on.
+- `grouv-connection-suggestions` runs Wednesdays at 10:00 UTC. It gives each
+  person one "someone you might connect with" notification: the person outside
+  their circle who shares the most open spaces with them. Nobody is suggested
+  to the same person twice within 60 days.
 
 `pg_cron` ships with Supabase. If `db push` reports it missing, enable it under
 Database → Extensions and push again.
@@ -123,6 +127,38 @@ Online dots use a presence channel. Realtime is on by default for new projects,
 and the tables are added to its publication by the storage-and-realtime
 migration.
 
+### Rate limits
+
+Triggers cap how fast one person can write:
+
+- 20 posts or truths an hour
+- 60 comments an hour
+- 120 messages every 5 minutes
+- daily caps on requests, reports, groups, events, questions and log entries
+
+The numbers live in `…0200_trust_and_delivery.sql`. A blocked write fails with
+the hint `rate_limited`, and the app shows the "take a breather" message
+instead of a generic error.
+
+### Moderation
+
+Reports land in `public.reports`. Staff review them at `/moderation`, which
+Settings links to only for staff. Reports are grouped by what they point at:
+
+- **Keep it** closes the reports.
+- **Remove it** deletes the post, comment, group, truth or question, hides a
+  message, or cancels an event.
+
+Profiles can only be kept. To remove an account, delete the user in the
+Supabase dashboard.
+
+To make someone staff, run this in the SQL editor:
+
+```sql
+insert into public.staff (user_id)
+select id from auth.users where email = 'you@example.com';
+```
+
 ## Resend
 
 1. Verify your sending domain in Resend.
@@ -131,15 +167,35 @@ migration.
 
 The same key is the SMTP password in the Supabase settings above.
 
-App email (for example the welcome email sent after onboarding) goes through
-`src/lib/email/send.ts`. Without a key it logs and skips instead of failing.
+App email goes through `src/lib/email/send.ts`. Without a key it logs and
+skips instead of failing. It sends:
+
+- the welcome email after onboarding
+- notification emails for connection requests, bond invitations, group join
+  requests and their outcomes, and weekly suggestions. People can switch these
+  off under Settings → Email updates.
+
+Notification emails are claimed in the database before they're sent, so none
+goes out twice. Most are sent right after the action that created them.
+Suggestions come from `pg_cron`, though, so something has to call the sender on
+a schedule:
+
+```bash
+curl -X POST https://<railway-domain>/api/cron/notification-emails \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+On Railway, add a second service from the same repo. Give it a Cron Schedule of
+`*/10 * * * *` and a start command that runs that curl. Any external scheduler
+works too. A notification still unsent after a day is dropped, not sent late.
 
 ## Railway
 
 1. New project → Deploy from GitHub repo. `railway.json` sets the build and
    start commands and a health check on `/api/health`. Railpack picks Node 22
    from `engines`.
-2. Add every variable from `.env.example` to the service. `NEXT_PUBLIC_*`
+2. Add every variable from `.env.example` to the service, including a long
+   random `CRON_SECRET`. `NEXT_PUBLIC_*`
    values are baked in at build time, so redeploy after changing them.
 3. Generate a domain. Then set `NEXT_PUBLIC_SITE_URL` to it and add
    `https://<domain>/auth/callback` to Supabase's redirect URLs.

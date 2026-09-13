@@ -90,7 +90,16 @@ export function toInboxItem(row: NotificationRow): InboxItem {
         href: "/log",
       };
     }
+    case "connection_suggested": {
+      const shared = Number(data.shared_spaces) || 1;
+      return {
+        ...base,
+        title: "We found someone you might connect with",
+        body: `${who} is holding ${shared === 1 ? "one of your spaces" : `${shared} of your spaces`}.`,
+        href: row.entity_id ? `/people/${row.entity_id}` : "/bonds",
+      };
+    }
     default:
-      return { ...base, title: "We found someone you might connect with", body: "", href: "/bonds" };
+      return { ...base, title: "Something new on Grouv", body: "", href: "/home" };
   }
 }

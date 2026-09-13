@@ -259,10 +259,11 @@ export type Database = {
           chapter_prompt: boolean;
           wave_received: boolean;
           bond_invitation: boolean;
+          email_updates: boolean;
           updated_at: string;
         };
         Insert: never;
-        Update: { chapter_prompt?: boolean; wave_received?: boolean };
+        Update: { chapter_prompt?: boolean; wave_received?: boolean; email_updates?: boolean };
         Relationships: [];
       };
       subscriptions: ReadOnlyTable<{
@@ -296,6 +297,20 @@ export type Database = {
           ProfilesFk<"bonds_invitee_id_fkey", "invitee_id">,
         ];
       };
+      connections: {
+        Row: {
+          id: string;
+          requester_id: string;
+          addressee_id: string;
+          status: ConnectionStatus;
+          chapter_slug: string | null;
+          created_at: string;
+          responded_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
@@ -305,6 +320,7 @@ export type Database = {
           entity_id: string | null;
           data: Json;
           read_at: string | null;
+          emailed_at: string | null;
           created_at: string;
         };
         Insert: never;
@@ -390,6 +406,9 @@ export type Database = {
           reason: ReportReason;
           details: string | null;
           status: "open" | "reviewing" | "actioned" | "dismissed";
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          resolution_note: string | null;
           created_at: string;
         };
         Insert: {
@@ -398,6 +417,12 @@ export type Database = {
           reason: ReportReason;
           details?: string | null;
         };
+        Update: never;
+        Relationships: [];
+      };
+      staff: {
+        Row: { user_id: string; added_at: string };
+        Insert: never;
         Update: never;
         Relationships: [];
       };
@@ -916,6 +941,43 @@ export type Database = {
           subtitle: string | null;
           image: string | null;
           chapter_slug: string | null;
+        }[];
+      };
+      am_i_staff: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      moderation_queue: {
+        Args: { p_limit?: number };
+        Returns: {
+          target_type: ReportTarget;
+          target_id: string;
+          report_count: number;
+          reasons: ReportReason[];
+          details: string[];
+          first_reported_at: string;
+          preview: string | null;
+          target_author_id: string | null;
+          target_author_name: string | null;
+          target_gone: boolean;
+        }[];
+      };
+      moderate_target: {
+        Args: { p_target_type: ReportTarget; p_target_id: string; p_action: "dismiss" | "remove"; p_note?: string | null };
+        Returns: number;
+      };
+      claim_notification_emails: {
+        Args: { p_limit?: number };
+        Returns: {
+          notification_id: string;
+          kind: NotificationKind;
+          recipient_email: string;
+          recipient_name: string;
+          actor_name: string | null;
+          entity_id: string | null;
+          data: Json;
+          group_slug: string | null;
+          group_title: string | null;
         }[];
       };
       nearby_people: {

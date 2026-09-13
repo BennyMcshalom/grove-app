@@ -154,7 +154,7 @@ function ResultRow({ result, held }: { result: SearchResult; held: boolean }) {
   const chapter = result.chapterSlug ? getChapter(result.chapterSlug) : undefined;
   const href =
     result.kind === "person"
-      ? `/bonds?with=${result.id}`
+      ? `/people/${result.id}`
       : result.kind === "post"
         ? `/posts/${result.id}`
         : result.kind === "group"

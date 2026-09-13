@@ -6,7 +6,7 @@ import { Avatar } from "@/components/app/Avatar";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
-import { deletePost, reportPost, updatePost } from "@/lib/post-actions";
+import { deletePost, reportContent, updatePost } from "@/lib/post-actions";
 import { getChapter } from "@/lib/chapters";
 import { PROGRESS, REPORT_REASONS, type Post, type PostProgress, type ReportReason } from "@/lib/posts";
 import { cn } from "@/lib/cn";
@@ -207,13 +207,15 @@ export function EditPostModal({
   );
 }
 
-/** Report this — Figma 115:7248. */
+/** Report this — Figma 115:7248. Also reports a person from their profile. */
 export function ReportPostModal({
   postId,
+  targetType = "post",
   onClose,
   onReported,
 }: {
   postId: string;
+  targetType?: "post" | "profile";
   onClose: () => void;
   onReported: () => void;
 }) {
@@ -231,7 +233,7 @@ export function ReportPostModal({
           if (!reason) return;
           setError(undefined);
           startSending(async () => {
-            const result = await reportPost(postId, reason, details);
+            const result = await reportContent(targetType, postId, reason, details);
             if (result.error) setError(result.error);
             else onReported();
           });

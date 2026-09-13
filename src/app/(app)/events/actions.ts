@@ -51,6 +51,7 @@ export async function createEvent(input: CreateEventInput): Promise<Result & { i
 
   if (error || !data) {
     console.error("[events] createEvent failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't create that event. Try again." };
   }
 
@@ -71,6 +72,7 @@ export async function setRsvp(eventId: string, going: boolean): Promise<Result> 
     if (error.hint === "event_full") return { error: "This event is full." };
     if (error.hint === "event_closed") return { error: "This event isn't taking RSVPs any more." };
     console.error("[events] setRsvp failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "That didn't go through. Try again." };
   }
 
@@ -101,6 +103,7 @@ export async function startLiveRoom(title: string): Promise<Result & { roomId?: 
   const { data, error } = await supabase.rpc("start_live_room", { p_title: name });
   if (error || !data) {
     console.error("[events] startLiveRoom failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't turn this on. Try again." };
   }
   refresh();

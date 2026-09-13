@@ -38,14 +38,17 @@ export interface SettingsPreferences {
   logVisibility: LogVisibility;
   chapterPrompt: boolean;
   waveReceived: boolean;
+  emailUpdates: boolean;
 }
 
 export function SettingsView({
   prompts,
   preferences,
+  isStaff,
 }: {
   prompts: SettingsPrompts;
   preferences: SettingsPreferences;
+  isStaff: boolean;
 }) {
   const toast = useToast();
   const [prefs, setPrefs] = useState(preferences);
@@ -83,6 +86,13 @@ export function SettingsView({
     },
     // Locked on in the database too (notification_preferences check).
     { title: "Bond invitation", body: "Always on, required for safety", on: true },
+    // Not in Figma: requests and invitations also arrive by email.
+    {
+      title: "Email updates",
+      body: "Requests, invitations and suggestions by email",
+      on: prefs.emailUpdates,
+      onChange: () => savePreference({ emailUpdates: !prefs.emailUpdates }),
+    },
   ];
 
   const lightMode = prefs.theme === "light";
@@ -144,7 +154,11 @@ export function SettingsView({
               title="Change password"
               body="Update your password to keep your account secure."
               onClick={() => setChangingPassword(true)}
+              divider={isStaff}
             />
+            {isStaff && (
+              <Row title="Moderation" body="Review what people have reported." href="/moderation" />
+            )}
           </Card>
 
           <Card>

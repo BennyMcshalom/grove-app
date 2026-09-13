@@ -7,6 +7,7 @@ import { getChapter } from "@/lib/chapters";
 import { GROUP_COLORS, type Group } from "@/lib/groups";
 import { PICKER_ICONS } from "@/lib/icons";
 import { loadGroups } from "@/lib/groups-server";
+import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
 import { createClient } from "@/lib/supabase/server";
 
 type Result = { error?: string };
@@ -40,6 +41,7 @@ export async function createGroup(input: CreateGroupInput): Promise<Result & { s
 
   if (error || !data) {
     console.error("[groups] createGroup failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't start that group. Try again." };
   }
 
@@ -59,6 +61,7 @@ export async function joinGroup(groupId: string): Promise<Result & { status?: "j
     const { error } = await supabase.from("group_members").insert({ group_id: groupId, user_id: viewer.userId });
     if (error && error.code !== "23505") {
       console.error("[groups] joinGroup failed", error);
+      if (error?.hint === "rate_limited") return { error: error.message };
       return { error: "We couldn't add you to that group. Try again." };
     }
     refresh();
@@ -68,8 +71,10 @@ export async function joinGroup(groupId: string): Promise<Result & { status?: "j
   const { error } = await supabase.from("group_join_requests").insert({ group_id: groupId });
   if (error && error.code !== "23505") {
     console.error("[groups] join request failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't send your request. Try again." };
   }
+  if (!error) await sendNotificationEmailsSoon();
   refresh();
   return { status: "requested" };
 }
@@ -97,6 +102,7 @@ export async function leaveGroup(groupId: string): Promise<Result> {
     .eq("user_id", viewer.userId);
   if (error) {
     console.error("[groups] leaveGroup failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't take you out of that group. Try again." };
   }
   refresh();
@@ -110,6 +116,7 @@ export async function reviewJoinRequest(requestId: string, approve: boolean): Pr
   if (error) {
     return { error: error.code === "42501" ? "Only group admins can review requests." : "That request is no longer pending." };
   }
+  await sendNotificationEmailsSoon();
   refresh();
   return {};
 }
@@ -126,6 +133,7 @@ export async function postTruth(groupId: string, body: string): Promise<Result> 
   if (error) {
     if (error.code === "42501") return { error: "Only members can post to the Truth Board." };
     console.error("[groups] postTruth failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't post that. Try again." };
   }
   refresh();
@@ -171,6 +179,7 @@ export async function addVideoTruth(
     await supabase.storage.from("media").remove([storagePath]);
     if (error.code === "42501") return { error: "Only members can add video truths." };
     console.error("[groups] addVideoTruth failed", error);
+    if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't add your video. Try again." };
   }
   refresh();
