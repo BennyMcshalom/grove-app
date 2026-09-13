@@ -2,6 +2,8 @@ import { Sidebar } from "@/components/app/Sidebar";
 import { MobileNav } from "@/components/app/MobileNav";
 import { ToastProvider } from "@/components/app/ToastProvider";
 import { SidebarProvider } from "@/components/app/SidebarProvider";
+import { ViewerProvider } from "@/components/app/ViewerProvider";
+import { getShellViewer } from "@/lib/auth/viewer";
 
 /**
  * App shell — Figma frame 58:2301 (desktop) and 601:30182 (mobile).
@@ -10,25 +12,32 @@ import { SidebarProvider } from "@/components/app/SidebarProvider";
  * rail (SidebarProvider) so three-column screens like Bonds get the width. Mobile: no sidebar, a
  * bottom nav bar instead (Figma 601:30105). The shell is `h-dvh` so only the
  * inner columns scroll.
+ *
+ * Signed-out visitors go to sign-in and new users finish onboarding first.
+ * This is routing, not protection — data access is guarded by RLS.
  */
-export default function AppLayout({
+export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const viewer = await getShellViewer();
+
   return (
-    <ToastProvider>
-      <SidebarProvider>
-        <div className="flex h-dvh overflow-hidden bg-ivory-100">
-          <Sidebar className="hidden lg:flex" />
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              {children}
+    <ViewerProvider viewer={viewer}>
+      <ToastProvider>
+        <SidebarProvider>
+          <div className="flex h-dvh overflow-hidden bg-ivory-100">
+            <Sidebar className="hidden lg:flex" />
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                {children}
+              </div>
+              <MobileNav />
             </div>
-            <MobileNav />
           </div>
-        </div>
-      </SidebarProvider>
-    </ToastProvider>
+        </SidebarProvider>
+      </ToastProvider>
+    </ViewerProvider>
   );
 }

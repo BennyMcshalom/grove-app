@@ -1,32 +1,29 @@
 "use client";
 
-import Image from "next/image";
+import { useState } from "react";
+import { Avatar } from "@/components/app/Avatar";
 import { Button } from "@/components/ui/Button";
+import type { NearbyMatch } from "@/app/(app)/nearby/actions";
+import { getChapter } from "@/lib/chapters";
+import { auraLabel } from "@/lib/profile";
 
 /**
  * Proximity card — Figma frame 481:15568.
  *
  * A 383px white card: the person's glowing portrait, their distance, their
- * chapter chips and note, and a full-width Connect button.
+ * chapter chips and aura, and a full-width Connect button.
  */
-export interface NearbyPerson {
-  name: string;
-  avatar: string;
-  distance: string;
-  chapter: string;
-  status: string;
-  message: string;
-}
-
 export function ProximityCard({
   person,
   onClose,
   onConnect,
 }: {
-  person: NearbyPerson;
+  person: NearbyMatch;
   onClose: () => void;
-  onConnect: () => void;
+  onConnect: () => Promise<void>;
 }) {
+  const [connecting, setConnecting] = useState(false);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4"
@@ -58,13 +55,7 @@ export function ProximityCard({
                     boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)",
                   }}
                 />
-                <Image
-                  src={person.avatar}
-                  alt=""
-                  fill
-                  sizes="48px"
-                  className="rounded-full object-cover"
-                />
+                <Avatar src={person.avatarUrl} name={person.name} sizes="48px" className="relative size-12" />
                 <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-white bg-success-60" />
               </span>
 
@@ -74,25 +65,36 @@ export function ProximityCard({
                     {person.name}
                   </span>
                   <span className="font-sans text-sm font-medium text-ink-200">
-                    {person.distance}
+                    {person.distanceKm < 0.1 ? "Right here" : `${person.distanceKm.toFixed(1)}KM away`}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="font-sans text-xs font-medium text-ink-400">
-                    {person.chapter}
+                    {getChapter(person.chapterSlug)?.name}
                   </span>
                   <span className="size-2 rounded-full bg-primary-500" />
                   <span className="rounded-full bg-ivory-200 px-3 py-1 font-sans text-xs font-medium text-ink-400">
-                    {person.status}
+                    {person.phase}
                   </span>
                 </div>
               </div>
             </div>
 
-            <p className="font-sans text-sm text-ink-300">{person.message}</p>
+            <p className="font-sans text-sm text-ink-300">
+              {auraLabel(person.aura)} &middot; in {getChapter(person.chapterSlug)?.name ?? "your chapter"} with you
+            </p>
           </div>
 
-          <Button size="sm" fullWidth onClick={onConnect}>
+          <Button
+            size="sm"
+            fullWidth
+            loading={connecting}
+            onClick={async () => {
+              setConnecting(true);
+              await onConnect();
+              setConnecting(false);
+            }}
+          >
             Connect
           </Button>
         </div>

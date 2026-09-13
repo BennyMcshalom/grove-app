@@ -1,10 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { Avatar } from "@/components/app/Avatar";
+import { Glyph } from "@/components/app/EventsView";
+import { RoomComposer, RoomMessageList, useRoomMessages } from "@/components/app/RoomChat";
+import { useToast } from "@/components/app/ToastProvider";
 import { TopBar } from "@/components/app/TopBar";
+import { Button } from "@/components/ui/Button";
+import { cancelEvent, setRsvp } from "@/app/(app)/events/actions";
+import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import { eventDateLabel, eventTimeLabel, type Attendee, type EventCard } from "@/lib/events";
 
 /**
  * Event View — Figma frame 452:9875.
@@ -13,124 +20,49 @@ import { cn } from "@/lib/cn";
  * messages, a "Join conversation" composer pinned to the bottom of the column,
  * and a 396px rail holding EVENT DETAILS and the ATTENDEE LIST (452:11307).
  * The phone frame (635:24106) turns that rail into an "Event Details" tab.
+ * The conversation is for people going; everyone else sees the RSVP.
  */
-const EVENT = {
-  title: "First Down Walk",
-  notice: "Group created for First DownEvent. 78 people going so far.",
-  organizer: "David",
-  time: "10am",
-  date: "Friday, 28th August 2026",
-  where: "Tafawa Balewa Square",
-  distance: "1.4 away",
-  about:
-    "“Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut”",
-  going: 78,
-  capacity: 100,
-};
+const TABS = ["Conversation", "Event Details"] as const;
 
-const MESSAGES = [
-  {
-    id: "1",
-    author: "David(host)",
-    avatar: "/images/people/john.png",
-    time: "09:03am",
-    body: " Hey everyone! Excited to have you all, bring good energy, we’re playing casual, no pressure. See you Friday!",
-  },
-  {
-    id: "2",
-    author: "Amara",
-    avatar: "/images/people/m2.png",
-    time: "09:03am",
-    body: "I’m literally in the same place right now. The fear of starting over is real.",
-  },
-  {
-    id: "3",
-    author: "Amara",
-    avatar: "/images/people/m2.png",
-    time: "09:03am",
-    mention: "@amara",
-    body: " I’m literally in the same place right now. The fear of starting over is real.",
-  },
-  {
-    id: "4",
-    author: "Jasper",
-    avatar: "/images/people/m4.png",
-    time: "09:01am",
-    body: "Change can be daunting, but it often leads to the most rewarding experiences.",
-  },
-  {
-    id: "5",
-    author: "Nia",
-    avatar: "/images/people/nina.png",
-    time: "08:00am",
-    body: "Every ending is just a new beginning waiting to unfold.",
-  },
-  {
-    id: "6",
-    author: "Theo",
-    avatar: "/images/people/m1.png",
-    time: "08:00am",
-    body: "Sometimes, the hardest step is just deciding to take it.",
-  },
-  {
-    id: "7",
-    author: "Lila",
-    avatar: "/images/people/lena.png",
-    time: "08:00am",
-    body: "I've found that taking small steps can make the transition smoother.",
-  },
-  {
-    id: "8",
-    author: "Ravi",
-    avatar: "/images/people/m3.png",
-    time: "08:00am",
-    body: "Embrace the uncertainty; it often leads to unexpected opportunities.",
-  },
-];
+export function EventView({
+  event,
+  attendees,
+  isHost,
+}: {
+  event: EventCard;
+  attendees: Attendee[];
+  isHost: boolean;
+}) {
+  const toast = useToast();
+  const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0]);
+  const [pending, startTransition] = useTransition();
+  const chat = useRoomMessages(event.conversationId, event.going);
+  const cancelled = event.status === "cancelled";
+  const full = !event.going && event.goingCount >= event.capacity;
 
-/** Table Content Cells 458:11662 … 458:11712. */
-const ATTENDEES = [
-  { name: "Amina Johnson", avatar: "/images/people/nina.png" },
-  { name: "Liam O'Connor", avatar: "/images/people/m4.png" },
-  { name: "Sophia Patel", avatar: "/images/people/m2.png" },
-  { name: "Ethan Zhang", avatar: "/images/people/m1.png" },
-  { name: "Isabella Rossi", avatar: "/images/people/lena.png" },
-  { name: "Liam Johnson", avatar: "/images/people/m3.png" },
-  { name: "Ava Martinez", avatar: "/images/people/dominion.png" },
-];
+  const rsvp = (going: boolean) =>
+    startTransition(async () => {
+      const result = await setRsvp(event.id, going);
+      if (result.error) return toast({ title: result.error, tone: "danger" });
+      if (going) toast({ title: "You're grouv'd.", description: `See you at ${event.title}` });
+    });
 
-const TABS = ["Conversation", "Event Details"];
-
-export function EventView() {
-  const [draft, setDraft] = useState("");
-  const [sent, setSent] = useState<typeof MESSAGES>([]);
-  // Below xl the rail is a tab rather than a column.
-  const [tab, setTab] = useState(TABS[0]);
-
-  const send = () => {
-    const body = draft.trim();
-    if (!body) return;
-    setSent((prev) => [
-      ...prev,
-      {
-        id: `me-${prev.length}`,
-        author: "Oreoluwa",
-        avatar: "/images/avatar-oreoluwa.png",
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        body,
-      },
-    ]);
-    setDraft("");
-  };
+  const details = (
+    <EventDetails
+      event={event}
+      attendees={attendees}
+      isHost={isHost}
+      onRsvp={rsvp}
+      pending={pending}
+      full={full}
+    />
+  );
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar
-          title={EVENT.title}
+          title={event.title}
           back="/events"
           icon={
             <Link
@@ -138,7 +70,7 @@ export function EventView() {
               aria-label="Back to events"
               className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600 transition-colors hover:bg-primary-100"
             >
-              <PlanetIcon className="size-5" />
+              <Glyph icon={event.icon} />
             </Link>
           }
         />
@@ -165,9 +97,7 @@ export function EventView() {
           </div>
 
           {tab === "Event Details" && (
-            <div className="mx-auto w-full max-w-[724px] xl:hidden">
-              <EventDetails />
-            </div>
+            <div className="mx-auto w-full max-w-[724px] xl:hidden">{details}</div>
           )}
 
           <section
@@ -178,115 +108,127 @@ export function EventView() {
           >
             <p className="flex w-full max-w-[427px] items-start gap-2 rounded-xl border border-primary-200 bg-primary-50 p-2 font-sans text-sm text-ink-200">
               <InfoIcon className="size-5 shrink-0 text-primary-600" />
-              {EVENT.notice}
+              {cancelled
+                ? "This event has been cancelled."
+                : `Group created for ${event.title}. ${event.goingCount} ${event.goingCount === 1 ? "person" : "people"} going so far.`}
             </p>
 
-            <ul className="flex w-full flex-col gap-5">
-              {[...MESSAGES, ...sent].map((message) => (
-                <li key={message.id} className="flex gap-4">
-                  <span className="relative size-10 shrink-0 overflow-hidden rounded-full">
-                    <Image
-                      src={message.avatar}
-                      alt=""
-                      fill
-                      sizes="40px"
-                      className="object-cover"
-                    />
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-lg bg-ivory-100 px-3 py-2">
-                    <span className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-sans text-base font-semibold text-ink-700">
-                        {message.author}
-                      </span>
-                      <span className="font-sans text-sm text-ink-300">
-                        {message.time}
-                      </span>
-                    </span>
-                    <p className="font-sans text-sm text-ink-400">
-                      {"mention" in message && message.mention && (
-                        <span className="text-primary-600">
-                          {message.mention}
-                        </span>
-                      )}
-                      {message.body}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {event.going ? (
+              <RoomMessageList
+                messages={chat.messages}
+                hostId={event.hostId}
+                empty="No messages yet. Say hello to everyone going."
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
+                <p className="font-sans text-sm text-ink-300">
+                  The conversation is for people going to this event.
+                </p>
+                {!cancelled && (
+                  <Button size="sm" onClick={() => rsvp(true)} loading={pending} disabled={full}>
+                    {full ? "This event is full" : "I'll Grouv"}
+                  </Button>
+                )}
+              </div>
+            )}
           </section>
         </div>
 
         {/* Frame 458:12096 — the composer sits under the panel, above a rule. */}
-        <div
-          className={cn(
-            "shrink-0 border-t border-ink-50 bg-white px-4 py-5 lg:px-8",
-            tab === "Conversation" ? "block" : "hidden xl:block",
-          )}
-        >
-          <div className="mx-auto flex w-full max-w-[724px] items-center gap-4">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Join conversation"
-              aria-label="Join conversation"
-              className="min-w-0 flex-1 rounded-2xl bg-ivory-100 px-5 py-4 font-sans text-xs text-ink-300 outline-none placeholder:text-ink-300 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
-            />
-            <button
-              type="button"
-              onClick={send}
-              disabled={!draft.trim()}
-              aria-label="Send message"
-              className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-500 text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <SendIcon className="size-5" />
-            </button>
+        {event.going && !cancelled && (
+          <div
+            className={cn(
+              "shrink-0 border-t border-ink-50 bg-white px-4 py-5 lg:px-8",
+              tab === "Conversation" ? "block" : "hidden xl:block",
+            )}
+          >
+            <RoomComposer placeholder="Join conversation" onSend={chat.send} sending={chat.sending} />
           </div>
-        </div>
+        )}
       </div>
 
       {/* Sidebar 452:11307 — 396px, scrolls on its own. */}
       <aside className="hidden w-[396px] shrink-0 flex-col gap-7 scroll-slim overflow-y-auto bg-white px-8 pt-6 pb-10 xl:flex">
-        <EventDetails />
+        {details}
       </aside>
     </div>
   );
 }
 
 /** The rail's contents — a column on desktop, a tab on the phone. */
-function EventDetails() {
+function EventDetails({
+  event,
+  attendees,
+  isHost,
+  onRsvp,
+  pending,
+  full,
+}: {
+  event: EventCard;
+  attendees: Attendee[];
+  isHost: boolean;
+  onRsvp: (going: boolean) => void;
+  pending: boolean;
+  full: boolean;
+}) {
+  const toast = useToast();
+  const [cancelling, startCancelling] = useTransition();
+  const cancelled = event.status === "cancelled";
+
   return (
     <div className="flex flex-col gap-7">
       <section className="flex flex-col gap-4">
         <h2 className="font-sans text-base font-semibold text-ink-700">
           EVENT DETAILS
         </h2>
-        <div className="flex flex-col">
+        <div className="flex flex-col" suppressHydrationWarning>
           <DetailRow icon={<UserIcon />} label="Organizer">
-            <Value>{EVENT.organizer}</Value>
+            <Value>{isHost ? "You" : (event.hostName ?? "—")}</Value>
           </DetailRow>
           <DetailRow icon={<TimerIcon />} label="Time">
-            <Value>{EVENT.time}</Value>
+            <Value>{eventTimeLabel(event.startsAt)}</Value>
           </DetailRow>
           <DetailRow icon={<CalendarIcon />} label="Date">
-            <Value>{EVENT.date}</Value>
+            <Value>{eventDateLabel(event.startsAt)}</Value>
           </DetailRow>
           <DetailRow icon={<PinIcon />} label="Where">
-            <span className="flex items-center justify-between gap-2">
-              <Value>{EVENT.where}</Value>
-              <span className="font-sans text-sm text-ink-200">
-                {EVENT.distance}
-              </span>
-            </span>
+            <Value>{event.venueName}</Value>
           </DetailRow>
-          <DetailRow
-            icon={<FileIcon />}
-            label="What is the event about, who is it for?"
-          >
-            <Value>{EVENT.about}</Value>
+          <DetailRow icon={<FileIcon />} label="What is the event about, who is it for?">
+            <Value>{event.description ?? `A ${getChapter(event.chapterSlug)?.name ?? ""} gathering.`}</Value>
           </DetailRow>
         </div>
+
+        {!cancelled && (
+          <div className="flex flex-wrap gap-2">
+            {event.going ? (
+              !isHost && (
+                <Button variant="secondary" size="sm" onClick={() => onRsvp(false)} loading={pending}>
+                  I can&rsquo;t make it
+                </Button>
+              )
+            ) : (
+              <Button size="sm" onClick={() => onRsvp(true)} loading={pending} disabled={full}>
+                {full ? "Full" : "I'll Grouv"}
+              </Button>
+            )}
+            {isHost && (
+              <Button
+                variant="tertiary"
+                size="sm"
+                loading={cancelling}
+                onClick={() =>
+                  startCancelling(async () => {
+                    const result = await cancelEvent(event.id);
+                    toast(result.error ? { title: result.error, tone: "danger" } : { title: "Event cancelled", tone: "danger" });
+                  })
+                }
+              >
+                Cancel event
+              </Button>
+            )}
+          </div>
+        )}
       </section>
 
       <span className="h-px w-full bg-ink-50" />
@@ -300,38 +242,32 @@ function EventDetails() {
             <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-lg bg-ivory-500">
               <span
                 className="block h-full rounded-lg bg-primary-500"
-                style={{
-                  width: `${(EVENT.going / EVENT.capacity) * 100}%`,
-                }}
+                style={{ width: `${Math.min(100, (event.goingCount / event.capacity) * 100)}%` }}
               />
             </span>
             <span className="shrink-0 font-sans text-xs font-medium text-ink-400">
-              {EVENT.going}/{EVENT.capacity} Grouving
+              {event.goingCount}/{event.capacity} Grouving
             </span>
           </div>
           <p className="font-sans text-xs text-ink-300">
-            Only people in your Circle are visible here
+            {isHost ? "As the host, you can see everyone going" : "Only people in your Circle are visible here"}
           </p>
         </div>
 
-        <ul className="flex flex-col">
-          {ATTENDEES.map((person) => (
-            <li key={person.name} className="flex items-center gap-3 px-1 py-2">
-              <span className="relative size-8 shrink-0 overflow-hidden rounded-full">
-                <Image
-                  src={person.avatar}
-                  alt=""
-                  fill
-                  sizes="32px"
-                  className="object-cover"
-                />
-              </span>
-              <span className="font-sans text-sm font-medium text-ink-400">
-                {person.name}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {attendees.length === 0 ? (
+          <p className="font-sans text-sm text-ink-300">No one from your circle is going yet.</p>
+        ) : (
+          <ul className="flex flex-col">
+            {attendees.map((person) => (
+              <li key={person.userId} className="flex items-center gap-3 px-1 py-2">
+                <Avatar src={person.avatarUrl} name={person.name} sizes="32px" className="size-8" />
+                <span className="font-sans text-sm font-medium text-ink-400">
+                  {person.name}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );
@@ -362,23 +298,9 @@ function DetailRow({
 
 function Value({ children }: { children: React.ReactNode }) {
   return (
-    <span className="font-sans text-sm font-semibold text-ink-500">
+    <span className="font-sans text-sm font-semibold whitespace-pre-line text-ink-500">
       {children}
     </span>
-  );
-}
-
-function PlanetIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <circle cx="10" cy="10" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M3.2 13.5c4.5 2.2 10.6 1.4 13.6-1.6"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }
 
@@ -386,27 +308,8 @@ function InfoIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
       <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.4" />
-      <path
-        d="M10 9v4.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
+      <path d="M10 9v4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
       <circle cx="10" cy="6.5" r="0.9" fill="currentColor" />
-    </svg>
-  );
-}
-
-function SendIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M3 10h11m0 0-4.5-4.5M14 10l-4.5 4.5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }
@@ -415,12 +318,7 @@ function UserIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
       <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M4.5 16a5.5 5.5 0 0 1 11 0"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <path d="M4.5 16a5.5 5.5 0 0 1 11 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -429,13 +327,7 @@ function TimerIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
       <circle cx="10" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M10 8v3l2 1.5M8 2.5h4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M10 8v3l2 1.5M8 2.5h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -443,21 +335,8 @@ function TimerIcon() {
 function CalendarIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
-      <rect
-        x="3"
-        y="4.5"
-        width="14"
-        height="13"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M3 8.5h14M7 2.5v3M13 2.5v3"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <rect x="3" y="4.5" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M3 8.5h14M7 2.5v3M13 2.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -485,12 +364,7 @@ function FileIcon() {
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
-      <path
-        d="M11.5 2.5v4h4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
+      <path d="M11.5 2.5v4h4" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }

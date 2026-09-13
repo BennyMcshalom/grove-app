@@ -2,59 +2,70 @@ import Image from "next/image";
 import Link from "next/link";
 import { TopBar } from "@/components/app/TopBar";
 import { RightRail } from "@/components/app/RightRail";
+import { getShellViewer } from "@/lib/auth/viewer";
 import { getChapter } from "@/lib/chapters";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Archive — Figma frame 296:11158.
  *
  * Closed chapters as 190px cards: chapter icon and name, the span and its
- * duration, the phases you moved through as chips, the people who were there,
- * and a "Read Log" action. Copy is Figma's (frame 368:10539).
+ * duration, the phases you moved through as chips, and a "Read Log" action.
+ * Copy is Figma's (frame 368:10539).
  */
-const CLOSED = [
-  {
-    slug: "career",
-    name: "Career",
-    span: "March 2024 - November 2024",
-    duration: "8 Months",
-    phases: ["Side Hustle", "Career pivot in progress", "Starting over"],
-  },
-  {
-    slug: "relationships",
-    name: "Relationship",
-    span: "March 2024 - November 2024",
-    duration: "8 Months",
-    phases: ["Growing together", "Learning to love differently"],
-  },
-];
+export default async function ArchivePage() {
+  const viewer = await getShellViewer();
+  const supabase = await createClient();
 
-const MEMBERS = [
-  "/images/people/m1.png",
-  "/images/people/m2.png",
-  "/images/people/m3.png",
-  "/images/people/m4.png",
-];
+  const { data: closed } = await supabase
+    .from("user_chapters")
+    .select("id, chapter_slug, opened_at, closed_at, user_chapter_phases(phase, started_at)")
+    .eq("user_id", viewer.id)
+    .eq("status", "closed")
+    .order("closed_at", { ascending: false });
 
-export default function ArchivePage() {
+  const chapters = (closed ?? []).map((row) => ({
+    id: row.id,
+    meta: getChapter(row.chapter_slug),
+    span: formatSpan(row.opened_at, row.closed_at ?? row.opened_at),
+    duration: formatDuration(row.opened_at, row.closed_at ?? row.opened_at),
+    // The phases in the order they were lived, each once.
+    phases: [
+      ...new Set(
+        [...row.user_chapter_phases]
+          .sort((a, b) => a.started_at.localeCompare(b.started_at))
+          .map((p) => p.phase),
+      ),
+    ],
+  }));
+
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar title="Archive" />
 
         <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
+          {chapters.length === 0 ? (
+            <div className="mx-auto flex w-full max-w-[724px] flex-col items-center gap-2 py-16 text-center">
+              <h1 className="font-display text-xl font-semibold text-ink-500">
+                Nothing archived yet
+              </h1>
+              <p className="font-sans text-sm text-ink-300">
+                When you close a chapter, it lands here with its reflection.
+              </p>
+            </div>
+          ) : (
           <ul className="mx-auto flex w-full max-w-[724px] flex-col gap-4 pb-10">
-            {CLOSED.map((chapter) => {
-              const meta = getChapter(chapter.slug);
-              return (
+            {chapters.map((chapter) => (
                 <li
-                  key={chapter.slug}
+                  key={chapter.id}
                   className="flex flex-col gap-4 rounded-lg bg-white p-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]"
                 >
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
-                      {meta && (
+                      {chapter.meta && (
                         <Image
-                          src={meta.icon}
+                          src={chapter.meta.icon}
                           alt=""
                           width={56}
                           height={56}
@@ -63,7 +74,7 @@ export default function ArchivePage() {
                       )}
                       <div className="flex flex-col">
                         <span className="font-sans text-lg font-semibold text-ink-800">
-                          {chapter.name}
+                          {chapter.meta?.name ?? "Chapter"}
                         </span>
                         <span className="flex items-center gap-2">
                           <span className="font-sans text-xs text-ink-400">
@@ -87,45 +98,43 @@ export default function ArchivePage() {
                         </span>
                       ))}
                     </div>
-
-                    <div className="flex items-center gap-1">
-                      <span className="flex">
-                        {MEMBERS.map((src, i) => (
-                          <span
-                            key={src}
-                            className="relative size-6 overflow-hidden rounded-full border-2 border-white"
-                            style={{ marginLeft: i === 0 ? 0 : -6 }}
-                          >
-                            <Image
-                              src={src}
-                              alt=""
-                              fill
-                              sizes="24px"
-                              className="object-cover"
-                            />
-                          </span>
-                        ))}
-                      </span>
-                    </div>
                   </div>
 
                   <Link
-                    href={`/archive/${chapter.slug}`}
+                    href={`/archive/${chapter.id}`}
                     className="flex w-full items-center gap-2 rounded-full px-3 py-1.5 font-ui text-xs text-primary-600 transition-colors hover:bg-primary-50"
                   >
                     Read Log
                     <ArrowIcon />
                   </Link>
                 </li>
-              );
-            })}
+            ))}
           </ul>
+          )}
         </div>
       </div>
 
       <RightRail />
     </div>
   );
+}
+
+const monthYear = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+
+/** "March 2024 - November 2024". */
+function formatSpan(from: string, to: string) {
+  return `${monthYear.format(new Date(from))} - ${monthYear.format(new Date(to))}`;
+}
+
+/** "8 Months", or days for a chapter shorter than a month. */
+function formatDuration(from: string, to: string) {
+  const start = new Date(from);
+  const end = new Date(to);
+  const months =
+    (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth();
+  if (months >= 1) return `${months} ${months === 1 ? "Month" : "Months"}`;
+  const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86_400_000));
+  return `${days} ${days === 1 ? "Day" : "Days"}`;
 }
 
 function ArrowIcon() {

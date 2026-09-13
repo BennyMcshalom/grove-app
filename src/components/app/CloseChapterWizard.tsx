@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
 import type { Chapter } from "@/lib/chapters";
 
@@ -35,6 +36,13 @@ const QUESTIONS = [
   },
 ];
 
+export interface ChapterClosingAnswers {
+  taught: string;
+  advice: string;
+  carryingForward: string;
+  reflections: string[];
+}
+
 export function CloseChapterWizard({
   chapter,
   onClose,
@@ -42,12 +50,24 @@ export function CloseChapterWizard({
 }: {
   chapter: Chapter;
   onClose: () => void;
-  onFinish: () => void;
+  /** Saves the answers; resolves with an error to show on the last step. */
+  onFinish: (answers: ChapterClosingAnswers) => Promise<{ error?: string }>;
 }) {
   // 0 = intro, 1-3 = questions, 4 = reflection.
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState(["", "", ""]);
   const [reflections, setReflections] = useState([""]);
+  const [error, setError] = useState<string>();
+  const [closing, startClosing] = useTransition();
+
+  const finish = () => {
+    setError(undefined);
+    startClosing(async () => {
+      const [taught, advice, carryingForward] = answers;
+      const result = await onFinish({ taught, advice, carryingForward, reflections });
+      if (result.error) setError(result.error);
+    });
+  };
 
   const question = QUESTIONS[step - 1];
 
@@ -189,7 +209,8 @@ export function CloseChapterWizard({
                 </div>
 
                 <div className="flex flex-col gap-2 border-t border-ink-50 pt-6">
-                  <Button size="sm" fullWidth onClick={onFinish}>
+                  <FormError message={error} />
+                  <Button size="sm" fullWidth loading={closing} onClick={finish}>
                     Close this Chapter
                   </Button>
                   <Button

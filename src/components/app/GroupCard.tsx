@@ -1,10 +1,13 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
 import Link from "next/link";
+import { useState, useTransition } from "react";
+import { Avatar } from "@/components/app/Avatar";
+import { useToast } from "@/components/app/ToastProvider";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight } from "@/components/ui/ArrowRight";
+import { joinGroup } from "@/app/(app)/groups/actions";
+import type { Group } from "@/lib/groups";
 
 /**
  * Chapter group card — Figma component 178:5933 (instances 205:7820…7823).
@@ -12,27 +15,9 @@ import { ArrowRight } from "@/components/ui/ArrowRight";
  * Glyph, title, phase badge, the member stack with its blurb and the group's
  * description, with "Admin" and "Read More" stacked down the right edge. The
  * "Show Button" property gates the Admin action, which the screen's Admin Mode
- * toggle drives.
+ * toggle drives. Before you're in, the right edge carries "Join" — which joins
+ * an open group or sends a request to one an admin reviews.
  */
-export interface Group {
-  id: string;
-  title: string;
-  badge: string;
-  blurb: string;
-  description: string;
-  icon: string;
-  /** The text avatar closing the member stack (205:7820 → "SL"/"AU"/"CA"). */
-  initials: string;
-}
-
-/** Avatar Group 94:3288 — four photos then the "SL" text avatar. */
-const MEMBERS = [
-  "/images/people/m1.png",
-  "/images/people/m2.png",
-  "/images/people/m3.png",
-  "/images/people/m5.png",
-];
-
 export function GroupCard({
   group,
   adminMode = false,
@@ -40,12 +25,18 @@ export function GroupCard({
   group: Group;
   adminMode?: boolean;
 }) {
-  // Figma draws the list twice: "Join" before you are in a group (575:17359),
-  // "Admin" + "Read More" once you are (205:7424).
-  const [joined, setJoined] = useState(false);
+  const toast = useToast();
+  const [requested, setRequested] = useState(group.requestPending);
+  const [pending, startTransition] = useTransition();
+  const member = group.myRole !== null;
+  const extra = group.memberCount - group.memberAvatars.length;
+
   return (
     <article className="flex gap-2 rounded-lg bg-white p-4">
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600">
+      <span
+        className="grid size-8 shrink-0 place-items-center rounded-full text-primary-600"
+        style={{ backgroundColor: group.color }}
+      >
         <span
           className="size-4 bg-current"
           style={{
@@ -63,48 +54,58 @@ export function GroupCard({
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <h2 className="font-sans text-sm font-semibold text-ink-600">
-          {group.title}
+          <Link href={`/groups/${group.slug}`} className="hover:underline">
+            {group.title}
+          </Link>
         </h2>
 
-        <span className="w-fit rounded-full bg-ivory-500 p-2 font-sans text-xs font-semibold text-ink-300">
-          {group.badge}
-        </span>
+        {group.label && (
+          <span className="w-fit rounded-full bg-ivory-500 p-2 font-sans text-xs font-semibold text-ink-300">
+            {group.label}
+          </span>
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <span className="flex">
-            {MEMBERS.map((src, i) => (
+            {group.memberAvatars.map((src, i) => (
               <span
-                key={src}
-                className="relative size-8 overflow-hidden rounded-full border-2 border-white"
+                key={`${src}-${i}`}
+                className="rounded-full border-2 border-white"
                 style={{ marginLeft: i === 0 ? 0 : -8 }}
               >
-                <Image src={src} alt="" fill sizes="32px" className="object-cover" />
+                <Avatar src={src} name="" sizes="32px" className="size-7" />
               </span>
             ))}
-            <span
-              className="grid size-8 place-items-center rounded-full border-2 border-white bg-primary-50 font-sans text-sm font-extrabold text-primary-600"
-              style={{ marginLeft: -8 }}
-            >
-              {group.initials}
-            </span>
+            {(extra > 0 || group.memberAvatars.length === 0) && (
+              <span
+                className="grid size-8 place-items-center rounded-full border-2 border-white bg-primary-50 font-sans text-xs font-extrabold text-primary-600"
+                style={{ marginLeft: group.memberAvatars.length ? -8 : 0 }}
+              >
+                {group.memberAvatars.length ? `+${extra}` : group.memberCount}
+              </span>
+            )}
           </span>
-          <span className="font-sans text-xs text-ink-400">{group.blurb}</span>
+          <span className="font-sans text-xs text-ink-400">
+            {group.memberCount === 1 ? "1 member" : `${group.memberCount} members`}
+          </span>
         </div>
 
         {/* Figma sets the description in italics on every card instance. */}
-        <p className="font-sans text-xs text-ink-400 italic">
-          {group.description}
-        </p>
+        {group.description && (
+          <p className="line-clamp-3 font-sans text-xs text-ink-400 italic">
+            {group.description}
+          </p>
+        )}
       </div>
 
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
-        {joined ? (
+        {member ? (
           <>
-            {adminMode ? (
+            {adminMode && group.myRole === "admin" ? (
               <Button
                 variant="secondary"
                 size="sm"
-                href={`/groups/${group.id}?admin=1`}
+                href={`/groups/${group.slug}`}
                 className="bg-ivory-500 px-3 py-2.5 text-sm text-ink-600 hover:bg-ivory-600"
               >
                 Admin
@@ -113,18 +114,40 @@ export function GroupCard({
               <span />
             )}
             <Link
-              href={`/groups/${group.id}`}
+              href={`/groups/${group.slug}`}
               className="flex items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm text-primary-600 transition-colors hover:bg-primary-50"
             >
               Read More
               <ArrowRight className="size-4" />
             </Link>
           </>
+        ) : requested ? (
+          <Link
+            href={`/groups/${group.slug}`}
+            className="rounded-full px-3 py-2.5 font-ui text-sm text-ink-300 hover:bg-ivory-100"
+          >
+            Requested
+          </Link>
         ) : (
           <button
             type="button"
-            onClick={() => setJoined(true)}
-            className="flex items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm text-primary-600 transition-colors hover:bg-primary-50"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                const result = await joinGroup(group.id);
+                if (result.error) {
+                  toast({ title: result.error, tone: "danger" });
+                  return;
+                }
+                if (result.status === "requested") {
+                  setRequested(true);
+                  toast({ title: "Request sent", description: "An admin will review it." });
+                } else {
+                  toast({ title: `You joined ${group.title}` });
+                }
+              })
+            }
+            className="flex items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm text-primary-600 transition-colors hover:bg-primary-50 disabled:opacity-60"
           >
             Join
             <ArrowRight className="size-4" />

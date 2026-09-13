@@ -1,9 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { Avatar } from "@/components/app/Avatar";
+import { useViewer } from "@/components/app/ViewerProvider";
+import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
-import type { Post } from "@/components/app/PostCard";
+import { deletePost, reportPost, updatePost } from "@/lib/post-actions";
+import { getChapter } from "@/lib/chapters";
+import { PROGRESS, REPORT_REASONS, type Post, type PostProgress, type ReportReason } from "@/lib/posts";
 import { cn } from "@/lib/cn";
 
 /**
@@ -13,17 +18,6 @@ import { cn } from "@/lib/cn";
  * All three are the same 660px white card; copy, chips and button labels are
  * Figma's.
  */
-const PROGRESS = [
-  "Just started",
-  "In progress",
-  "In the thick of it",
-  "Almost done",
-  "Wrapping up",
-  "Starting over",
-];
-
-const REASONS = ["Spam", "Harrassment", "Inappropriate", "Other"];
-
 function Shell({
   label,
   onClose,
@@ -68,19 +62,24 @@ function Shell({
   );
 }
 
-/** Edit — Figma 115:6758. */
+/** Edit — Figma 115:6758. A Just Grouv post only has its caption to edit. */
 export function EditPostModal({
   post,
   onClose,
-  onSave,
+  onSaved,
 }: {
   post: Post;
   onClose: () => void;
-  onSave: () => void;
+  onSaved: (patch: Pick<Post, "title" | "progress" | "body">) => void;
 }) {
+  const viewer = useViewer();
   const [doing, setDoing] = useState(post.title ?? "");
-  const [honest, setHonest] = useState(post.body);
-  const [stage, setStage] = useState<string | null>(post.badge ?? null);
+  const [honest, setHonest] = useState(post.body ?? "");
+  const [stage, setStage] = useState<PostProgress | null>(post.progress);
+  const [error, setError] = useState<string>();
+  const [saving, startSaving] = useTransition();
+  const isRoot = post.kind === "root";
+  const [cover] = post.media;
 
   return (
     <Shell
@@ -89,35 +88,32 @@ export function EditPostModal({
       header={
         <div className="flex items-center gap-6">
           <span className="relative size-12 shrink-0">
-            <Image
-              src="/images/avatar-oreoluwa.png"
-              alt=""
-              fill
+            <Avatar
+              src={viewer.avatarUrl}
+              name={viewer.firstName}
               sizes="48px"
-              className="rounded-full border-[1.5px] border-white object-cover"
+              className="size-12 border-[1.5px] border-white"
             />
             <span className="absolute right-0 bottom-0 size-3 rounded-full border border-white bg-[#04802E]" />
           </span>
           <div className="flex flex-col gap-3">
             <span className="font-sans text-base font-bold text-[#101928]">
-              Oreoluwa
+              {viewer.firstName}
             </span>
             <span className="flex w-fit items-center gap-2 rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm font-semibold text-primary-600">
-              Career
+              {getChapter(post.chapterSlug)?.name ?? "Chapter"}
             </span>
           </div>
         </div>
       }
     >
-      {post.media && (
-        <div className="relative h-[220px] w-full overflow-hidden rounded-lg sm:h-[332px]">
-          <Image
-            src={post.media.src}
-            alt=""
-            fill
-            sizes="600px"
-            className="object-cover"
-          />
+      {cover && (
+        <div className="relative h-[220px] w-full overflow-hidden rounded-lg bg-ivory-200 sm:h-[332px]">
+          {cover.kind === "photo" ? (
+            <Image src={cover.src} alt="" fill unoptimized className="object-cover" />
+          ) : (
+            <video src={cover.src} controls playsInline className="absolute inset-0 size-full object-cover" />
+          )}
         </div>
       )}
 
@@ -125,62 +121,84 @@ export function EditPostModal({
         className="flex flex-col gap-6"
         onSubmit={(e) => {
           e.preventDefault();
-          onSave();
+          setError(undefined);
+          startSaving(async () => {
+            const patch = {
+              title: isRoot ? doing.trim() || null : null,
+              progress: isRoot ? stage : null,
+              body: honest.trim() || null,
+            };
+            const result = await updatePost(post.id, {
+              title: patch.title ?? "",
+              progress: patch.progress,
+              body: patch.body ?? "",
+            });
+            if (result.error) setError(result.error);
+            else onSaved(patch);
+          });
         }}
       >
+        {isRoot && (
+          <>
+            <label className="flex flex-col gap-1.5">
+              <span className="font-sans text-sm font-medium text-ink-500">
+                WHAT ARE YOU DOING RIGHT NOW?
+              </span>
+              <textarea
+                value={doing}
+                onChange={(e) => setDoing(e.target.value)}
+                rows={3}
+                maxLength={500}
+                className={FIELD}
+              />
+            </label>
+
+            <fieldset className="flex flex-col gap-4">
+              <legend className="font-sans text-sm font-medium text-ink-500">
+                WHERE ARE YOU IN IT? &middot; OPTIONAL
+              </legend>
+              <div className="flex flex-wrap gap-4">
+                {PROGRESS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={stage === option.value}
+                    onClick={() => setStage(stage === option.value ? null : option.value)}
+                    className={cn(
+                      "rounded-full px-4 py-2 font-sans text-sm font-semibold transition-colors",
+                      stage === option.value
+                        ? "bg-primary-500 text-white"
+                        : "bg-primary-50 text-primary-600 hover:bg-primary-100",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </>
+        )}
+
         <label className="flex flex-col gap-1.5">
           <span className="font-sans text-sm font-medium text-ink-500">
-            WHAT ARE YOU DOING RIGHT NOW?
-          </span>
-          <textarea
-            value={doing}
-            onChange={(e) => setDoing(e.target.value)}
-            rows={3}
-            className={FIELD}
-          />
-        </label>
-
-        <fieldset className="flex flex-col gap-4">
-          <legend className="font-sans text-sm font-medium text-ink-500">
-            WHERE ARE YOU IN IT? &middot; OPTIONAL
-          </legend>
-          <div className="flex flex-wrap gap-4">
-            {PROGRESS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={stage === option}
-                onClick={() => setStage(stage === option ? null : option)}
-                className={cn(
-                  "rounded-full px-4 py-2 font-sans text-sm font-semibold transition-colors",
-                  stage === option
-                    ? "bg-primary-500 text-white"
-                    : "bg-primary-50 text-primary-600 hover:bg-primary-100",
-                )}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="font-sans text-sm font-medium text-ink-500">
-            ONE HONEST THING ABOUT WHERE YOU ARE
+            {isRoot ? "ONE HONEST THING ABOUT WHERE YOU ARE" : "CAPTION"}
           </span>
           <textarea
             value={honest}
             onChange={(e) => setHonest(e.target.value)}
             rows={4}
+            maxLength={4000}
             className={FIELD}
           />
         </label>
+
+        <FormError message={error} />
 
         <div className="flex items-center justify-end gap-8 border-t border-ink-50 pt-6">
           <Button variant="secondary" size="sm" type="button" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" type="submit">
+          <Button size="sm" type="submit" loading={saving}>
             Save changes
           </Button>
         </div>
@@ -191,13 +209,18 @@ export function EditPostModal({
 
 /** Report this — Figma 115:7248. */
 export function ReportPostModal({
+  postId,
   onClose,
-  onSubmit,
+  onReported,
 }: {
+  postId: string;
   onClose: () => void;
-  onSubmit: () => void;
+  onReported: () => void;
 }) {
-  const [reason, setReason] = useState<string | null>(null);
+  const [reason, setReason] = useState<ReportReason | null>(null);
+  const [details, setDetails] = useState("");
+  const [error, setError] = useState<string>();
+  const [sending, startSending] = useTransition();
 
   return (
     <Shell label="Report this" onClose={onClose}>
@@ -205,7 +228,13 @@ export function ReportPostModal({
         className="flex flex-col gap-8"
         onSubmit={(e) => {
           e.preventDefault();
-          onSubmit();
+          if (!reason) return;
+          setError(undefined);
+          startSending(async () => {
+            const result = await reportPost(postId, reason, details);
+            if (result.error) setError(result.error);
+            else onReported();
+          });
         }}
       >
         <div className="flex flex-col gap-6">
@@ -214,20 +243,20 @@ export function ReportPostModal({
               WHAT&rsquo;S WRONG WITH IT?
             </legend>
             <div className="flex flex-wrap items-center gap-4">
-              {REASONS.map((option) => (
+              {REPORT_REASONS.map((option) => (
                 <button
-                  key={option}
+                  key={option.value}
                   type="button"
-                  aria-pressed={reason === option}
-                  onClick={() => setReason(option)}
+                  aria-pressed={reason === option.value}
+                  onClick={() => setReason(option.value)}
                   className={cn(
                     "rounded-full px-4 py-2 font-sans text-base font-medium transition-colors",
-                    reason === option
+                    reason === option.value
                       ? "bg-primary-500 text-white"
                       : "bg-primary-50 text-primary-600 hover:bg-primary-100",
                   )}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </div>
@@ -237,12 +266,19 @@ export function ReportPostModal({
             <span className="font-sans text-sm font-medium text-ink-500">
               ANYTHING ELSE WE SHOULD KNOW? (OPTIONAL)
             </span>
-            <textarea rows={4} className={cn(FIELD, "h-[131px]")} />
+            <textarea
+              rows={4}
+              maxLength={2000}
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              className={cn(FIELD, "h-[131px]")}
+            />
           </label>
         </div>
 
-        <div className="border-t border-ink-50 pt-6">
-          <Button size="sm" fullWidth type="submit" disabled={!reason}>
+        <div className="flex flex-col gap-3 border-t border-ink-50 pt-6">
+          <FormError message={error} />
+          <Button size="sm" fullWidth type="submit" disabled={!reason} loading={sending}>
             Submit Report
           </Button>
         </div>
@@ -253,12 +289,17 @@ export function ReportPostModal({
 
 /** "Are you sure you want to delete this post?" — Figma alert 115:7207. */
 export function DeletePostModal({
+  postId,
   onClose,
-  onDelete,
+  onDeleted,
 }: {
+  postId: string;
   onClose: () => void;
-  onDelete: () => void;
+  onDeleted: () => void;
 }) {
+  const [error, setError] = useState<string>();
+  const [deleting, startDeleting] = useTransition();
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4"
@@ -277,16 +318,24 @@ export function DeletePostModal({
             Are you sure you want to delete this post?
           </p>
           <p className="font-sans text-sm text-ink-400">
-            This action can&rsquo;t be undone. Your post and its comments will
-            be permanently removed.
+            {error ??
+              "This action can’t be undone. Your post and its comments will be permanently removed."}
           </p>
           <div className="flex gap-4 pt-1">
             <button
               type="button"
-              onClick={onDelete}
-              className="rounded-full bg-destructive-60 px-4 py-2 font-ui text-sm font-medium text-white transition-opacity hover:opacity-90"
+              disabled={deleting}
+              onClick={() => {
+                setError(undefined);
+                startDeleting(async () => {
+                  const result = await deletePost(postId);
+                  if (result.error) setError(result.error);
+                  else onDeleted();
+                });
+              }}
+              className="rounded-full bg-destructive-60 px-4 py-2 font-ui text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
             >
-              Delete
+              {deleting ? "Deleting…" : "Delete"}
             </button>
             <button
               type="button"

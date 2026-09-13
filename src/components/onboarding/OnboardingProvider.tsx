@@ -54,6 +54,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
+      // Storage only exists in the browser, so this has to run after mount;
+      // reading it during render would make server and client markup differ.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setState({ ...EMPTY, ...JSON.parse(raw) });
     } catch {
       // Private mode or blocked storage — carry on with an empty flow.
@@ -75,7 +78,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         setState((prev) => {
           const chosen = prev.chapters.includes(slug);
           if (chosen) {
-            const { [slug]: _removed, ...restSpaces } = prev.spaces;
+            const restSpaces = { ...prev.spaces };
+            delete restSpaces[slug];
             return {
               ...prev,
               chapters: prev.chapters.filter((s) => s !== slug),

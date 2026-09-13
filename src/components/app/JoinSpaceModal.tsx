@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { FormError } from "@/components/auth/FormError";
 import { ArrowRight } from "@/components/ui/ArrowRight";
 import { Button } from "@/components/ui/Button";
 import type { Chapter } from "@/lib/chapters";
@@ -25,9 +26,12 @@ export function JoinSpaceModal({
 }: {
   chapter: Chapter;
   onClose: () => void;
-  onJoin: (options: string[]) => void;
+  /** Resolves with an error to show in the sheet; the caller closes it on success. */
+  onJoin: (options: string[]) => Promise<{ error?: string }>;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
+  const [error, setError] = useState<string>();
+  const [pending, startTransition] = useTransition();
 
   const choose = (option: string) =>
     setSelected((prev) => (prev.includes(option) ? [] : [option]));
@@ -124,13 +128,21 @@ export function JoinSpaceModal({
           })}
         </ul>
 
-        <div className="border-t border-ink-50 pt-5">
+        <div className="flex flex-col gap-3 border-t border-ink-50 pt-5">
+          <FormError message={error} />
           <Button
             size="sm"
             fullWidth
             disabled={selected.length === 0}
+            loading={pending}
             iconRight={<ArrowRight className="size-5" />}
-            onClick={() => onJoin(selected)}
+            onClick={() => {
+              setError(undefined);
+              startTransition(async () => {
+                const result = await onJoin(selected);
+                if (result.error) setError(result.error);
+              });
+            }}
           >
             That&rsquo;s where i am
           </Button>

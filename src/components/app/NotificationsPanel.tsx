@@ -1,25 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
+import { Avatar } from "@/components/app/Avatar";
+import { useToast } from "@/components/app/ToastProvider";
+import { useUnread } from "@/components/app/Unread";
 import { Button } from "@/components/ui/Button";
+import {
+  clearNotifications,
+  loadNotifications,
+  markNotificationsRead,
+} from "@/lib/notification-actions";
+import { cn } from "@/lib/cn";
+import type { InboxItem } from "@/lib/notifications";
+import { timeAgo } from "@/lib/time";
 
 /**
  * Notifications — Figma frames 135:28124 (desktop) and 628:35736 (phone).
  *
  * A full-height 40/32 padded panel: heading, a list of ivory-200 rows, and
  * "Clear Notifications" pinned bottom. The phone frame leads with a back arrow
- * instead of a trailing close button.
+ * instead of a trailing close button. Opening the panel marks everything read.
  */
-const ITEMS = Array.from({ length: 5 }, (_, i) => ({
-  id: i,
-  title: "We found someone you might connect with",
-  body: "You and Maya share 3 spaces.",
-  time: "2 min ago",
-}));
-
 export function NotificationsPanel({ onClose }: { onClose: () => void }) {
-  // Clearing reaches Figma's empty frame (628:35887).
-  const [items, setItems] = useState(ITEMS);
+  const toast = useToast();
+  const { clear } = useUnread();
+  const [items, setItems] = useState<InboxItem[] | null>(null);
+  const [clearing, startClearing] = useTransition();
+
+  useEffect(() => {
+    let cancelled = false;
+    loadNotifications().then((result) => {
+      if (cancelled) return;
+      setItems(result);
+      if (result.some((item) => !item.read)) void markNotificationsRead();
+    });
+    clear();
+    return () => {
+      cancelled = true;
+    };
+  }, [clear]);
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-black/20">
@@ -55,7 +75,9 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
             </button>
           </header>
 
-          {items.length === 0 ? (
+          {items === null ? (
+            <p className="py-10 text-center font-sans text-sm text-ink-300">Loading…</p>
+          ) : items.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-lg bg-white px-6 py-14 text-center">
               <BellArt />
               <p className="font-display text-2xl font-semibold text-ink-800">
@@ -68,31 +90,56 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
           ) : (
           <ul className="flex flex-col gap-4">
             {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex gap-4 rounded-lg bg-ivory-200 p-4"
-              >
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-50 text-primary-600">
-                  <UsersIcon className="size-6" />
-                </span>
-                <div className="flex min-w-0 flex-col">
-                  <p className="font-sans text-sm font-semibold text-ink-800">
-                    {item.title}
-                  </p>
-                  <p className="font-sans text-sm text-ink-300">{item.body}</p>
-                  <p className="font-sans text-xs text-ink-200">{item.time}</p>
-                </div>
+              <li key={item.id}>
+                <Link
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex gap-4 rounded-lg p-4 transition-colors hover:bg-ivory-300",
+                    item.read ? "bg-ivory-200" : "bg-primary-50",
+                  )}
+                >
+                  {item.actorName ? (
+                    <Avatar src={item.actorAvatar} name={item.actorName} className="size-10" />
+                  ) : (
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-50 text-primary-600">
+                      <UsersIcon className="size-6" />
+                    </span>
+                  )}
+                  <div className="flex min-w-0 flex-col">
+                    <p className="font-sans text-sm font-semibold text-ink-800">
+                      {item.title}
+                    </p>
+                    {item.body && <p className="font-sans text-sm text-ink-300">{item.body}</p>}
+                    <p className="font-sans text-xs text-ink-200" suppressHydrationWarning>
+                      {timeAgo(item.createdAt)}
+                    </p>
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>
           )}
         </div>
 
-        <div className="pt-8">
-          <Button size="sm" fullWidth onClick={() => setItems([])}>
-            Clear Notifications
-          </Button>
-        </div>
+        {items !== null && items.length > 0 && (
+          <div className="pt-8">
+            <Button
+              size="sm"
+              fullWidth
+              loading={clearing}
+              onClick={() =>
+                startClearing(async () => {
+                  const result = await clearNotifications();
+                  if (result.error) toast({ title: result.error, tone: "danger" });
+                  else setItems([]);
+                })
+              }
+            >
+              Clear Notifications
+            </Button>
+          </div>
+        )}
       </aside>
     </div>
   );

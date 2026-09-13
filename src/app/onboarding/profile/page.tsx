@@ -1,15 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
+import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight } from "@/components/ui/ArrowRight";
+import { completeOnboarding } from "@/app/onboarding/actions";
 
 /** Onboarding 2 — "This is what makes your profile" (Figma 52:1612). */
 export default function ProfilePage() {
-  const router = useRouter();
-  const { profile, setProfileField } = useOnboarding();
+  const { chapters, spaces, profile, setProfileField } = useOnboarding();
+  const [error, setError] = useState<string>();
+  const [saving, startSaving] = useTransition();
+  const [skipping, setSkipping] = useState(false);
 
   // Figma draws these as 160px-tall input fields — long-form answers, so they
   // are textareas rather than single-line inputs.
@@ -33,13 +37,27 @@ export default function ProfilePage() {
     },
   ] as const;
 
+  // The last step saves everything the flow collected. Success redirects to
+  // /onboarding/ready; only failures come back.
+  const finish = (withAnswers: boolean) => {
+    setError(undefined);
+    setSkipping(!withAnswers);
+    startSaving(async () => {
+      const result = await completeOnboarding({
+        chapters: chapters.map((slug) => ({ slug, phase: spaces[slug]?.[0] ?? "" })),
+        profile: withAnswers ? profile : { mind: "", workingThrough: "", lookingFor: "" },
+      });
+      if (result?.error) setError(result.error);
+    });
+  };
+
   return (
     <OnboardingShell step={3} totalSteps={3}>
       <form
         className="mx-auto flex min-h-0 w-full max-w-[663px] flex-1 flex-col justify-center gap-4 lg:gap-6"
         onSubmit={(e) => {
           e.preventDefault();
-          router.push("/onboarding/ready");
+          finish(true);
         }}
       >
         <header className="flex shrink-0 flex-col gap-2 text-center">
@@ -51,6 +69,8 @@ export default function ProfilePage() {
             what you&rsquo;re comfortable sharing.
           </p>
         </header>
+
+        <FormError message={error} />
 
         {/* Only the prompts scroll. */}
         <div className="flex min-h-0 flex-col gap-4 scroll-slim overflow-y-auto pr-1">
@@ -66,6 +86,7 @@ export default function ProfilePage() {
                 id={field}
                 name={field}
                 rows={3}
+                maxLength={1000}
                 placeholder={placeholder}
                 value={profile[field]}
                 onChange={(e) => setProfileField(field, e.target.value)}
@@ -81,6 +102,8 @@ export default function ProfilePage() {
             size="md"
             className="w-[228px]"
             iconRight={<ArrowRight />}
+            loading={saving && !skipping}
+            disabled={saving}
           >
             Continue
           </Button>
@@ -88,7 +111,9 @@ export default function ProfilePage() {
             type="button"
             variant="tertiary"
             size="md"
-            onClick={() => router.push("/onboarding/ready")}
+            loading={saving && skipping}
+            disabled={saving}
+            onClick={() => finish(false)}
           >
             Skip for now
           </Button>

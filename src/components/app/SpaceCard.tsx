@@ -3,18 +3,12 @@
 import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/app/Avatar";
 import { CloseChapterWizard } from "@/components/app/CloseChapterWizard";
 import { JoinSpaceModal } from "@/components/app/JoinSpaceModal";
 import { useToast } from "@/components/app/ToastProvider";
+import { closeChapter, joinSpace } from "@/app/(app)/spaces/actions";
 import type { Chapter } from "@/lib/chapters";
-
-/** The four overlapping members shown on an open chapter card. */
-const MEMBERS = [
-  "/images/people/m1.png",
-  "/images/people/m2.png",
-  "/images/people/m3.png",
-  "/images/people/m4.png",
-];
 
 /**
  * Open chapter card — Figma component 169:2314.
@@ -23,13 +17,18 @@ const MEMBERS = [
  * member count, an "In progress" dot badge, then Open feed / Close chapter.
  */
 export function OpenSpaceCard({
+  userChapterId,
   chapter,
   status,
-  members = 4,
+  members,
+  avatars,
 }: {
+  userChapterId: string;
   chapter: Chapter;
   status: string;
-  members?: number;
+  members: number;
+  /** Up to four member photos. */
+  avatars: string[];
 }) {
   const [confirming, setConfirming] = useState(false);
   const [closed, setClosed] = useState(false);
@@ -49,17 +48,19 @@ export function OpenSpaceCard({
         </div>
 
         <div className="flex items-center gap-1">
-          <span className="flex">
-            {MEMBERS.map((src, i) => (
-              <span
-                key={src}
-                className="relative size-6 overflow-hidden rounded-full border-2 border-white"
-                style={{ marginLeft: i === 0 ? 0 : -6 }}
-              >
-                <Image src={src} alt="" fill sizes="24px" className="object-cover" />
-              </span>
-            ))}
-          </span>
+          {avatars.length > 0 && (
+            <span className="flex">
+              {avatars.map((src, i) => (
+                <span
+                  key={src}
+                  className="rounded-full border-2 border-white"
+                  style={{ marginLeft: i === 0 ? 0 : -6 }}
+                >
+                  <Avatar src={src} name="" sizes="24px" className="size-5" />
+                </span>
+              ))}
+            </span>
+          )}
           <span className="font-sans text-xs text-ink-400">
             {members} in this space
           </span>
@@ -100,10 +101,13 @@ export function OpenSpaceCard({
           <CloseChapterWizard
             chapter={chapter}
             onClose={() => setConfirming(false)}
-            onFinish={() => {
+            onFinish={async (answers) => {
+              const result = await closeChapter({ userChapterId, ...answers });
+              if (result.error) return result;
               setConfirming(false);
               setClosed(true);
               toast({ title: "Chapter closed and added to life archive" });
+              return {};
             }}
           />
         )}
@@ -119,7 +123,6 @@ export function OpenSpaceCard({
 export function DirectorySpaceCard({ chapter }: { chapter: Chapter }) {
   // "Join" opens the chapter's "where are you?" sheet (223:14200).
   const [joining, setJoining] = useState(false);
-  const [joined, setJoined] = useState<string[] | null>(null);
   const toast = useToast();
 
   return (
@@ -138,30 +141,27 @@ export function DirectorySpaceCard({ chapter }: { chapter: Chapter }) {
         </div>
       </div>
 
-      {joined ? (
-        <p className="px-3 py-1.5 text-center font-sans text-xs text-ink-300">
-          {joined.length} added to your spaces
-        </p>
-      ) : (
-        <Button
-          variant="secondary"
-          size="sm"
-          fullWidth
-          className="px-3 py-1.5 text-xs"
-          onClick={() => setJoining(true)}
-        >
-          Join
-        </Button>
-      )}
+      <Button
+        variant="secondary"
+        size="sm"
+        fullWidth
+        className="px-3 py-1.5 text-xs"
+        onClick={() => setJoining(true)}
+      >
+        Join
+      </Button>
 
       {joining && (
         <JoinSpaceModal
           chapter={chapter}
           onClose={() => setJoining(false)}
-          onJoin={(options) => {
-            setJoined(options);
+          onJoin={async ([phase]) => {
+            const result = await joinSpace(chapter.slug, phase);
+            if (result.error) return result;
+            // The page refreshes and this chapter moves up to "Your open chapters".
             setJoining(false);
             toast({ title: "New space added" });
+            return {};
           }}
         />
       )}

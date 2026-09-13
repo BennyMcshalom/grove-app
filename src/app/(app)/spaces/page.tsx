@@ -4,25 +4,40 @@ import {
   OpenSpaceCard,
   DirectorySpaceCard,
 } from "@/components/app/SpaceCard";
-import { CHAPTERS } from "@/lib/chapters";
+import { getShellViewer } from "@/lib/auth/viewer";
+import { CHAPTERS, getChapter } from "@/lib/chapters";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * My Spaces — Figma frame 122:8022.
  *
  * Two sections in the 724px column: the chapters you have open, and a
- * directory of the ones you could open next. Figma shows Career, Health and
- * Spiritual as open and the remaining five in the directory, so both lists
- * derive from the same chapter table rather than being hardcoded twice.
+ * directory of the ones you could open next.
  */
-const OPEN = ["career", "health", "spiritual"];
+export default async function SpacesPage() {
+  const viewer = await getShellViewer();
+  const openSlugs = viewer.chapters.map((c) => c.slug);
 
-/** Figma labels every open card "Building a habit". */
-const STATUS = "Building a habit";
+  const supabase = await createClient();
+  const { data: summaries } = openSlugs.length
+    ? await supabase.rpc("space_summaries", { p_slugs: openSlugs })
+    : { data: [] };
 
-export default function SpacesPage() {
-  // Figma lists them Career, Health, Spiritual, so follow OPEN, not the table.
-  const open = OPEN.map((slug) => CHAPTERS.find((c) => c.slug === slug)!);
-  const directory = CHAPTERS.filter((c) => !OPEN.includes(c.slug));
+  const open = viewer.chapters.flatMap((held) => {
+    const chapter = getChapter(held.slug);
+    if (!chapter) return [];
+    const summary = summaries?.find((s) => s.chapter_slug === held.slug);
+    return [
+      {
+        userChapterId: held.id,
+        chapter,
+        status: held.phase,
+        members: summary?.member_count ?? 1,
+        avatars: summary?.member_avatars ?? [],
+      },
+    ];
+  });
+  const directory = CHAPTERS.filter((c) => !openSlugs.includes(c.slug));
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -35,33 +50,38 @@ export default function SpacesPage() {
               <h1 className="font-display text-2xl font-semibold text-ink-500">
                 Your open chapters
               </h1>
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-                {open.map((chapter) => (
-                  <OpenSpaceCard
-                    key={chapter.slug}
-                    chapter={chapter}
-                    status={STATUS}
-                  />
-                ))}
-              </div>
-            </section>
-
-            <section className="flex flex-col gap-6">
-              <header className="flex flex-col gap-1">
-                <h2 className="font-display text-2xl font-semibold text-ink-500">
-                  Spaces Directory
-                </h2>
-                <p className="font-sans text-base text-ink-200">
-                  Chapters you could open next.
+              {open.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+                  {open.map((space) => (
+                    <OpenSpaceCard key={space.userChapterId} {...space} />
+                  ))}
+                </div>
+              ) : (
+                <p className="font-sans text-base text-ink-300">
+                  You&rsquo;re not holding any chapters right now. Open one from
+                  the directory below.
                 </p>
-              </header>
-
-              <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-                {directory.map((chapter) => (
-                  <DirectorySpaceCard key={chapter.slug} chapter={chapter} />
-                ))}
-              </div>
+              )}
             </section>
+
+            {directory.length > 0 && (
+              <section className="flex flex-col gap-6">
+                <header className="flex flex-col gap-1">
+                  <h2 className="font-display text-2xl font-semibold text-ink-500">
+                    Spaces Directory
+                  </h2>
+                  <p className="font-sans text-base text-ink-200">
+                    Chapters you could open next.
+                  </p>
+                </header>
+
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+                  {directory.map((chapter) => (
+                    <DirectorySpaceCard key={chapter.slug} chapter={chapter} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </div>

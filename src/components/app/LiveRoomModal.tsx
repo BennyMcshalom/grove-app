@@ -1,63 +1,61 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Avatar } from "@/components/app/Avatar";
+import { useToast } from "@/components/app/ToastProvider";
+import { leaveLiveRoom, loadRoomPeople, setWave } from "@/app/(app)/events/actions";
+import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import type { RoomPerson } from "@/lib/events";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * live — Figma frame 458:13190 (a Meet & Greet room you have joined).
  *
  * The room name with its live count, the "You're here and visible" banner with
  * Leave, then HERE RIGHT NOW: everyone in the room, you marked "You" and the
- * rest wavable.
+ * rest wavable. People and waves update live.
  */
-const PEOPLE = [
-  {
-    name: "Jalen Crestwood",
-    avatar: "/images/people/jalen.png",
-    glow: "rgba(251, 148, 31, 0.45)",
-    ring: "#F0B231",
-    self: true,
-    waved: false,
-  },
-  {
-    name: "Mira Langston",
-    avatar: "/images/people/m2.png",
-    glow: "rgba(108, 2, 238, 0.3)",
-    ring: "#B27CFD",
-    self: false,
-    waved: true,
-  },
-  {
-    name: "Evan Thorne",
-    avatar: "/images/people/m4.png",
-    glow: "rgba(251, 148, 31, 0.45)",
-    ring: "#F0B231",
-    self: false,
-    waved: false,
-  },
-  {
-    name: "Lena Voss",
-    avatar: "/images/people/lena.png",
-    glow: "rgba(251, 148, 31, 0.45)",
-    ring: "#F0B231",
-    self: false,
-    waved: false,
-  },
-];
-
 export function LiveRoomModal({
+  roomId,
   title,
-  here,
   onClose,
 }: {
+  roomId: string;
   title: string;
-  here: number;
   onClose: () => void;
 }) {
-  const [waved, setWaved] = useState<Record<string, boolean>>(
-    Object.fromEntries(PEOPLE.map((p) => [p.name, p.waved])),
-  );
+  const toast = useToast();
+  const [people, setPeople] = useState<RoomPerson[] | null>(null);
+
+  const reload = useCallback(() => {
+    loadRoomPeople(roomId).then(setPeople);
+  }, [roomId]);
+
+  useEffect(() => {
+    reload();
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`live-room:${roomId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "live_room_presence", filter: `room_id=eq.${roomId}` }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "waves", filter: `room_id=eq.${roomId}` }, reload)
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [roomId, reload]);
+
+  const toggleWave = async (person: RoomPerson) => {
+    const next = !person.iWaved;
+    setPeople((prev) => prev?.map((p) => (p.userId === person.userId ? { ...p, iWaved: next } : p)) ?? null);
+    const result = await setWave(roomId, person.userId, next);
+    if (result.error) {
+      setPeople((prev) => prev?.map((p) => (p.userId === person.userId ? { ...p, iWaved: !next } : p)) ?? null);
+      toast({ title: result.error, tone: "danger" });
+    }
+  };
+
+  const here = people?.length ?? 0;
 
   return (
     <div
@@ -110,7 +108,11 @@ export function LiveRoomModal({
           </p>
           <button
             type="button"
-            onClick={onClose}
+            onClick={async () => {
+              await leaveLiveRoom(roomId);
+              toast({ title: `You left ${title}` });
+              onClose();
+            }}
             className="w-[72px] shrink-0 rounded-full bg-ivory-100 px-3 py-2.5 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-ivory-200"
           >
             Leave
@@ -121,80 +123,72 @@ export function LiveRoomModal({
           HERE RIGHT NOW
         </h3>
 
-        <ul className="flex flex-col gap-4">
-          {PEOPLE.map((person) => (
-            <li
-              key={person.name}
-              className="flex flex-wrap items-center justify-between gap-4 p-2"
-            >
-              <div className="flex items-center gap-6">
-                <span className="relative size-12 shrink-0">
-                  <span
-                    className="absolute inset-0 rounded-full"
-                    style={{
-                      backgroundColor: person.ring,
-                      boxShadow: `0px 2px 9px 9px ${person.glow}`,
-                    }}
-                  />
-                  <Image
-                    src={person.avatar}
-                    alt=""
-                    fill
-                    sizes="48px"
-                    className="rounded-full object-cover"
-                  />
-                  <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-white bg-success-60" />
-                </span>
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="font-sans text-base font-medium text-ink-700">
-                    {person.name}
-                  </span>
-                  <span className="flex w-fit items-center gap-2 rounded-full bg-ivory-200 px-3 py-1">
-                    <span
-                      className="size-5 bg-primary-600"
-                      style={{
-                        maskImage: "url(/icons/events/palette.svg)",
-                        WebkitMaskImage: "url(/icons/events/palette.svg)",
-                        maskSize: "contain",
-                        WebkitMaskSize: "contain",
-                        maskRepeat: "no-repeat",
-                        WebkitMaskRepeat: "no-repeat",
-                        maskPosition: "center",
-                        WebkitMaskPosition: "center",
-                      }}
-                    />
-                  </span>
-                </div>
-              </div>
-
-              {person.self ? (
-                <span className="shrink-0 rounded-full bg-ink-50 px-3 py-2.5 font-ui text-sm font-medium text-ink-500">
-                  You
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setWaved((prev) => ({
-                      ...prev,
-                      [person.name]: !prev[person.name],
-                    }))
-                  }
-                  aria-pressed={waved[person.name]}
-                  className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm font-medium transition-colors",
-                    waved[person.name]
-                      ? "bg-primary-500 text-ink-50 hover:bg-primary-400"
-                      : "bg-primary-50 text-primary-600 hover:bg-primary-100",
-                  )}
+        {people === null ? (
+          <p className="font-sans text-sm text-ink-300">Finding who&rsquo;s here…</p>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {people.map((person) => {
+              const icon = person.chapterSlug ? getChapter(person.chapterSlug)?.icon : undefined;
+              return (
+                <li
+                  key={person.userId}
+                  className="flex flex-wrap items-center justify-between gap-4 p-2"
                 >
-                  <HandIcon />
-                  {waved[person.name] ? "Waved" : "Wave"}
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+                  <div className="flex items-center gap-6">
+                    <span className="relative size-12 shrink-0">
+                      <span
+                        className="absolute inset-0 rounded-full bg-[#F0B231]"
+                        style={{ boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" }}
+                      />
+                      <Avatar src={person.avatarUrl} name={person.name} sizes="48px" className="relative size-12" />
+                      <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-white bg-success-60" />
+                    </span>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="font-sans text-base font-medium text-ink-700">
+                        {person.name}
+                      </span>
+                      {person.phase && (
+                        <span className="flex w-fit items-center gap-2 rounded-full bg-ivory-200 px-3 py-1">
+                          {icon && (
+                            <span
+                              className="size-4 rounded-full bg-contain bg-center bg-no-repeat"
+                              style={{ backgroundImage: `url(${icon})` }}
+                            />
+                          )}
+                          <span className="font-sans text-xs text-ink-400">{person.phase}</span>
+                        </span>
+                      )}
+                      {person.wavedAtMe && !person.isMe && (
+                        <span className="font-sans text-xs text-primary-600">Waved at you</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {person.isMe ? (
+                    <span className="shrink-0 rounded-full bg-ink-50 px-3 py-2.5 font-ui text-sm font-medium text-ink-500">
+                      You
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleWave(person)}
+                      aria-pressed={person.iWaved}
+                      className={cn(
+                        "flex shrink-0 items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm font-medium transition-colors",
+                        person.iWaved
+                          ? "bg-primary-500 text-ink-50 hover:bg-primary-400"
+                          : "bg-primary-50 text-primary-600 hover:bg-primary-100",
+                      )}
+                    >
+                      <HandIcon />
+                      {person.iWaved ? "Waved" : "Wave"}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );
@@ -203,21 +197,8 @@ export function LiveRoomModal({
 function LaptopIcon() {
   return (
     <svg viewBox="0 0 32 32" fill="none" className="size-8" aria-hidden="true">
-      <rect
-        x="6"
-        y="8"
-        width="20"
-        height="13"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M3 24.5h26"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <rect x="6" y="8" width="20" height="13" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M3 24.5h26" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -239,12 +220,7 @@ function HandIcon() {
 function CloseIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" className="size-5" aria-hidden="true">
-      <path
-        d="m3.5 3.5 9 9m0-9-9 9"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
+      <path d="m3.5 3.5 9 9m0-9-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }

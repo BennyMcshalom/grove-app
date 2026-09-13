@@ -4,6 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { NotificationsPanel } from "@/components/app/NotificationsPanel";
+import { useUnread } from "@/components/app/Unread";
+import { useViewer } from "@/components/app/ViewerProvider";
+import { getChapter } from "@/lib/chapters";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 
@@ -11,12 +14,12 @@ import { cn } from "@/lib/cn";
  * Feed top bar — Figma frame 69:4637.
  *
  * Chapter tabs with a 2px bottom border (primary-600 when active), a search
- * field and a bell carrying an unread count.
+ * field and a bell carrying an unread count. The tabs are "All" plus the
+ * chapters the viewer holds (Figma draws All, Career, Health, Spiritual,
+ * Adventure — its sample user's four).
  */
-const TABS = ["All", "Career", "Health", "Spiritual", "Adventure"];
-
 export function TopBar({
-  unread = 2,
+  unread: unreadOverride,
   title,
   icon,
   back,
@@ -48,9 +51,19 @@ export function TopBar({
    * The feed filters on the chapter tabs; every other screen passes a title
    * instead, so the tabs never render and this stays unused.
    */
-  onTabChange?: (tab: string) => void;
+  onTabChange?: (chapterSlug: string | null) => void;
 }) {
-  const [active, setActive] = useState("All");
+  const viewer = useViewer();
+  const live = useUnread();
+  const unread = unreadOverride ?? live.unread;
+  const [active, setActive] = useState<string | null>(null);
+  const chapterTabs = [
+    { label: "All", value: null },
+    ...viewer.chapters.flatMap((held) => {
+      const chapter = getChapter(held.slug);
+      return chapter ? [{ label: chapter.name, value: held.slug }] : [];
+    }),
+  ];
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const router = useRouter();
@@ -63,15 +76,15 @@ export function TopBar({
       className="-mx-5 min-w-0 max-w-full overflow-x-auto px-5 lg:mx-0 lg:px-0"
     >
       <ul className="flex w-max">
-        {TABS.map((tab) => {
-          const isActive = tab === active;
+        {chapterTabs.map((tab) => {
+          const isActive = tab.value === active;
           return (
-            <li key={tab}>
+            <li key={tab.label}>
               <button
                 type="button"
                 onClick={() => {
-                  setActive(tab);
-                  onTabChange?.(tab);
+                  setActive(tab.value);
+                  onTabChange?.(tab.value);
                 }}
                 aria-current={isActive ? "true" : undefined}
                 className={cn(
@@ -81,7 +94,7 @@ export function TopBar({
                     : "border-ivory-600 text-ink-400 hover:text-ink-500",
                 )}
               >
-                {tab}
+                {tab.label}
               </button>
             </li>
           );

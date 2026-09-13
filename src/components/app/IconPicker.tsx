@@ -1,6 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/cn";
+import { PICKER_ICONS } from "@/lib/icons";
+
+export { PICKER_ICONS };
 
 /**
  * PICK AN ICON — the 57px glyph grid Figma reuses in Create an Event
@@ -9,23 +12,6 @@ import { cn } from "@/lib/cn";
  * The fifteen Phosphor glyphs are exported from the file; they ship without a
  * fill, so each is masked to take its button's own colour.
  */
-export const PICKER_ICONS = [
-  "fire",
-  "plant",
-  "suitcase",
-  "planet",
-  "target",
-  "cursor-click",
-  "palette",
-  "yin-yang",
-  "hand-peace",
-  "flower-lotus",
-  "atom",
-  "sparkle",
-  "baby",
-  "barricade",
-  "hourglass",
-];
 
 export function IconPicker({
   value,

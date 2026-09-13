@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useViewer } from "@/components/app/ViewerProvider";
 
 /**
  * The phone "More" sheet — Figma frame 601:31816.
@@ -18,6 +19,9 @@ const ITEMS = [
 ];
 
 export function MobileMenuSheet({ onClose }: { onClose: () => void }) {
+  const { subscriptionStatus } = useViewer();
+  const showTrial = subscriptionStatus !== "trialing" && subscriptionStatus !== "active";
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end bg-ink-900/40 lg:hidden"
@@ -80,6 +84,7 @@ export function MobileMenuSheet({ onClose }: { onClose: () => void }) {
           ))}
         </ul>
 
+        {showTrial && (
         <div className="border-t border-ink-50 pt-6">
           <Link
             href="/settings"
@@ -97,6 +102,7 @@ export function MobileMenuSheet({ onClose }: { onClose: () => void }) {
             </span>
           </Link>
         </div>
+        )}
       </div>
     </div>
   );

@@ -66,7 +66,7 @@ export function PinInput({
     <div
       role="group"
       aria-label={label}
-      className="flex items-center gap-3"
+      className="flex w-full items-center gap-2 sm:gap-3"
     >
       {Array.from({ length }).map((_, index) => (
         <input
@@ -82,7 +82,8 @@ export function PinInput({
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           className={cn(
-            "size-12 rounded-xl border border-[#E5E7EB] bg-white text-center sm:size-14 lg:size-16 xl:size-20",
+            // Slots share the row so six fit a phone; Figma's 80px is the cap.
+            "aspect-square min-w-0 flex-1 max-w-20 rounded-xl border border-[#E5E7EB] bg-white text-center",
             "font-display text-xl font-semibold text-ink-700 sm:text-2xl xl:text-3xl",
             "transition-[border-color,box-shadow] duration-150",
             "focus:border-primary-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)] focus:outline-none",

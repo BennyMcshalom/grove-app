@@ -1,34 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import { IconPicker, PICKER_ICONS } from "@/components/app/IconPicker";
-import { Button } from "@/components/ui/Button";
+import Link from "next/link";
+import { useState, useTransition } from "react";
+import { IconPicker } from "@/components/app/IconPicker";
 import { useToast } from "@/components/app/ToastProvider";
+import { useViewer } from "@/components/app/ViewerProvider";
+import { FormError } from "@/components/auth/FormError";
+import { Button } from "@/components/ui/Button";
+import { createGroup } from "@/app/(app)/groups/actions";
+import { CHAPTERS } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import { GROUP_COLORS } from "@/lib/groups";
+import { PICKER_ICONS, type PickerIcon } from "@/lib/icons";
 
 /**
  * Start a group — Figma frame 211:11620.
  *
  * A 660px white card: title + close, the strapline, PICK AN ICON and PICK A
  * COLOR, then Chapter Name / Label / what it's for, and "Create group" above a
- * top rule. Labels, placeholders and swatches are Figma's.
+ * top rule. Labels, placeholders and swatches are Figma's. The "Space" select
+ * isn't in the frame; it's what lets a group be suggested to people in that
+ * chapter.
  */
-const COLORS = [
-  "#FAF8CA",
-  "#E9FEF8",
-  "#CFF7FA",
-  "#D6E1FC",
-  "#BDE3EE",
-  "#FED1FA",
-  "#FED1DD",
-  "#FEF1E9",
-];
-
 export function CreateGroupModal({ onClose }: { onClose: () => void }) {
-  const [icon, setIcon] = useState(PICKER_ICONS[0]);
-  const [color, setColor] = useState(COLORS[0]);
-  const [created, setCreated] = useState(false);
+  const viewer = useViewer();
   const toast = useToast();
+  const [icon, setIcon] = useState<string>(PICKER_ICONS[0]);
+  const [color, setColor] = useState<string>(GROUP_COLORS[0]);
+  const [title, setTitle] = useState("");
+  const [label, setLabel] = useState("");
+  const [description, setDescription] = useState("");
+  const [chapterSlug, setChapterSlug] = useState(viewer.chapters[0]?.slug ?? "");
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
+  const [error, setError] = useState<string>();
+  const [saving, startSaving] = useTransition();
 
   return (
     <div
@@ -56,23 +61,45 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
           </button>
         </header>
 
-        {/* Figma's strapline (211:11679) is cut off mid-word in the file; kept
-            verbatim rather than completed here. */}
+        {/* Figma's strapline (211:11679) is cut off mid-word; completed here. */}
         <p className="font-sans text-base text-ink-800">
-          Open a room for a life-phase you don&rsquo;t h
+          Open a room for a life-phase you don&rsquo;t have to go through alone.
         </p>
 
-        {created ? (
-          <p className="rounded-xl border border-primary-200 bg-primary-50 p-4 font-sans text-base text-ink-400">
-            Your group is open. It will show under Chapter Groups.
-          </p>
+        {createdSlug ? (
+          <div className="flex flex-col gap-4">
+            <p className="rounded-xl border border-primary-200 bg-primary-50 p-4 font-sans text-base text-ink-400">
+              Your group is open. It will show under Chapter Groups.
+            </p>
+            <Link
+              href={`/groups/${createdSlug}`}
+              className="font-sans text-sm font-medium text-primary-600 hover:underline"
+            >
+              Go to your group
+            </Link>
+          </div>
         ) : (
           <form
             className="flex flex-col gap-6"
             onSubmit={(e) => {
               e.preventDefault();
-              setCreated(true);
-              toast({ title: "New group started" });
+              setError(undefined);
+              startSaving(async () => {
+                const result = await createGroup({
+                  title,
+                  label,
+                  description,
+                  icon: icon as PickerIcon,
+                  color: color as (typeof GROUP_COLORS)[number],
+                  chapterSlug: chapterSlug || null,
+                });
+                if (result.error || !result.slug) {
+                  setError(result.error);
+                  return;
+                }
+                setCreatedSlug(result.slug);
+                toast({ title: "New group started" });
+              });
             }}
           >
             <IconPicker value={icon} onChange={setIcon} />
@@ -82,7 +109,7 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
                 PICK A COLOR
               </legend>
               <div className="flex flex-wrap gap-5">
-                {COLORS.map((swatch) => (
+                {GROUP_COLORS.map((swatch) => (
                   <button
                     key={swatch}
                     type="button"
@@ -102,25 +129,54 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
 
             <Labelled label="Chapter Name ">
               <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={80}
+                required
                 placeholder="e.g Grieving a parent"
                 className={FIELD}
               />
             </Labelled>
 
             <Labelled label="Label">
-              <input placeholder="e.g The first year" className={FIELD} />
+              <input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                maxLength={60}
+                placeholder="e.g The first year"
+                className={FIELD}
+              />
+            </Labelled>
+
+            <Labelled label="Space">
+              <select
+                value={chapterSlug}
+                onChange={(e) => setChapterSlug(e.target.value)}
+                className={cn(FIELD, "appearance-none")}
+              >
+                <option value="">Any space</option>
+                {CHAPTERS.map((chapter) => (
+                  <option key={chapter.slug} value={chapter.slug}>
+                    {chapter.name}
+                  </option>
+                ))}
+              </select>
             </Labelled>
 
             <Labelled label="What’s this Chapter for?">
               <textarea
                 rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={1000}
                 placeholder="Who should find this room, and why?"
                 className={cn(FIELD, "block h-[129px] w-full resize-y")}
               />
             </Labelled>
 
-            <div className="border-t border-ink-50 pt-6">
-              <Button type="submit" size="sm" fullWidth>
+            <div className="flex flex-col gap-3 border-t border-ink-50 pt-6">
+              <FormError message={error} />
+              <Button type="submit" size="sm" fullWidth loading={saving} disabled={!title.trim()}>
                 Create group
               </Button>
             </div>

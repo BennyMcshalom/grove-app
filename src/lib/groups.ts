@@ -1,65 +1,57 @@
-import type { Group } from "@/components/app/GroupCard";
+/** Chapter group shapes, built on the server from group_cards(). */
 
-/**
- * Chapter groups — Figma instances 205:7820 … 205:7823.
- *
- * Titles, phase badges, blurbs and glyphs are Figma's, including its
- * lorem-ipsum description placeholder.
- */
-const DESCRIPTION =
-  "“Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut”";
+export interface Group {
+  id: string;
+  slug: string;
+  title: string;
+  /** The badge, e.g. "First 1000 days". */
+  label: string | null;
+  description: string | null;
+  icon: string;
+  color: string;
+  chapterSlug: string | null;
+  joinPolicy: "open" | "approval";
+  memberCount: number;
+  conversationId: string;
+  myRole: "admin" | "member" | null;
+  requestPending: boolean;
+  /** Up to four member photos. */
+  memberAvatars: string[];
+}
 
-export const GROUPS: Group[] = [
-  {
-    id: "first-time-founder",
-    title: "First-time Founder",
-    badge: "First 1000 days",
-    blurb: "Starting fresh somewhere new",
-    description: DESCRIPTION,
-    icon: "suitcase",
-    initials: "SL",
-  },
-  {
-    id: "relocating-solo",
-    title: "Relocating solo",
-    badge: "First 1000 days",
-    blurb: "Starting fresh somewhere new",
-    description: DESCRIPTION,
-    icon: "planet",
-    initials: "SL",
-  },
-  {
-    id: "early-parenthood",
-    title: "Early Parenthood",
-    badge: "First 1000 days",
-    blurb: "Starting fresh somewhere new",
-    description: DESCRIPTION,
-    icon: "baby",
-    initials: "SL",
-  },
-  {
-    id: "exploring-new-horizons",
-    title: "Exploring new horizons",
-    badge: "Taking a gap year",
-    blurb: "Embracing adventure and change",
-    description: DESCRIPTION,
-    icon: "barricade",
-    initials: "AU",
-  },
-  {
-    id: "building-a-home",
-    title: "Building a home",
-    badge: "Settled down",
-    blurb: "Creating roots and community",
-    description: DESCRIPTION,
-    icon: "hourglass",
-    initials: "CA",
-  },
-];
+/** Start a group → PICK A COLOR (Figma 211:11620). */
+export const GROUP_COLORS = [
+  "#FAF8CA",
+  "#E9FEF8",
+  "#CFF7FA",
+  "#D6E1FC",
+  "#BDE3EE",
+  "#FED1FA",
+  "#FED1DD",
+  "#FEF1E9",
+] as const;
 
-/** Figma's group detail frames all draw "First-time Founder" (205:8484). */
-export const FEATURED_GROUP: Group = GROUPS[0];
+export interface Truth {
+  id: string;
+  body: string;
+  feltCount: number;
+  createdAt: string;
+  feltByMe: boolean;
+  mine: boolean;
+}
 
-export function getGroup(id: string): Group {
-  return GROUPS.find((g) => g.id === id) ?? FEATURED_GROUP;
+export interface VideoTruth {
+  id: string;
+  src: string;
+  durationSeconds: number | null;
+  authorName: string;
+  mine: boolean;
+}
+
+export interface JoinRequest {
+  id: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  createdAt: string;
 }

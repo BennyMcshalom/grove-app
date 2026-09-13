@@ -1,33 +1,45 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useViewer } from "@/components/app/ViewerProvider";
 import { cn } from "@/lib/cn";
-import { CHAPTERS } from "@/lib/chapters";
+import { getChapter } from "@/lib/chapters";
 
 /**
  * Post overflow menu — Figma frame 115:6523. 245px, 8px radius, 36px blur
  * shadow, two groups split by a divider; the destructive group is
  * Destructive/60.
+ *
+ * Figma lists all four items on every post. Edit and Delete only make sense
+ * on your own posts and Report only on someone else's, so the menu shows the
+ * ones that apply. "Send to a Bond" shows where the host can open the picker.
  */
-const GROUP_ONE = [
-  { label: "Edit Post", danger: false },
-  { label: "Send to a Bond", danger: false },
-];
-
-const GROUP_TWO = [
-  { label: "Delete Post", danger: true },
-  { label: "Report Post", danger: true },
-];
+export type PostMenuAction = "Edit Post" | "Send to a Bond" | "Delete Post" | "Report Post";
 
 export function PostMenu({
+  mine,
+  canSendToBond = false,
   onClose,
   onSelect,
 }: {
+  mine: boolean;
+  canSendToBond?: boolean;
   onClose: () => void;
   /** Figma pairs each item with a modal or an alert; the card wires them up. */
-  onSelect?: (label: string) => void;
+  onSelect?: (action: PostMenuAction) => void;
 }) {
   const ref = useDismiss(onClose);
+
+  const groupOne = [
+    mine && { label: "Edit Post" as const, danger: false },
+    canSendToBond && { label: "Send to a Bond" as const, danger: false },
+  ].filter(Boolean) as { label: PostMenuAction; danger: boolean }[];
+
+  const groupTwo = [
+    mine
+      ? { label: "Delete Post" as const, danger: true }
+      : { label: "Report Post" as const, danger: true },
+  ];
 
   return (
     <div
@@ -35,9 +47,13 @@ export function PostMenu({
       role="menu"
       className="absolute top-full right-0 z-20 mt-1 flex w-[245px] flex-col items-center gap-2.5 rounded-lg bg-white py-4 shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)]"
     >
-      <MenuGroup items={GROUP_ONE} onSelect={onSelect} />
-      <hr className="w-[225px] border-ink-50" />
-      <MenuGroup items={GROUP_TWO} onSelect={onSelect} />
+      {groupOne.length > 0 && (
+        <>
+          <MenuGroup items={groupOne} onSelect={onSelect} />
+          <hr className="w-[225px] border-ink-50" />
+        </>
+      )}
+      <MenuGroup items={groupTwo} onSelect={onSelect} />
     </div>
   );
 }
@@ -46,8 +62,8 @@ function MenuGroup({
   items,
   onSelect,
 }: {
-  items: { label: string; danger: boolean }[];
-  onSelect?: (label: string) => void;
+  items: { label: PostMenuAction; danger: boolean }[];
+  onSelect?: (action: PostMenuAction) => void;
 }) {
   return (
     <div className="flex w-full flex-col">
@@ -71,7 +87,8 @@ function MenuGroup({
 
 /**
  * "Posting to" chapter picker — Figma frame 110:3828. Same 245px shell with a
- * POSTING TO label, a tinted chapter dot per row and a check on the current one.
+ * POSTING TO label, a tinted chapter dot per row and a check on the current
+ * one. Lists the chapters the viewer holds, which are the ones they can post to.
  */
 export function PostingToMenu({
   value,
@@ -83,10 +100,11 @@ export function PostingToMenu({
   onClose: () => void;
 }) {
   const ref = useDismiss(onClose);
-  // Figma lists four of the eight chapters in this menu.
-  const shown = CHAPTERS.filter((c) =>
-    ["career", "adventure", "health", "spiritual"].includes(c.slug),
-  );
+  const viewer = useViewer();
+  const shown = viewer.chapters.flatMap((held) => {
+    const chapter = getChapter(held.slug);
+    return chapter ? [chapter] : [];
+  });
 
   return (
     <div

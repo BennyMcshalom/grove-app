@@ -1,71 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { useState } from "react";
-import { ChapterReflection } from "@/components/app/ChapterReflection";
+import { ChapterReflection, type Reflection } from "@/components/app/ChapterReflection";
+import { FeedList } from "@/components/app/FeedList";
 import { LogMemories } from "@/components/app/LogPrompt";
-import { PostCard, type Post } from "@/components/app/PostCard";
 import { Button } from "@/components/ui/Button";
-import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import type { LogEntry } from "@/lib/log";
+import type { FeedPage, FeedQuery } from "@/lib/posts";
 
 /**
  * Career Archive — Figma frames 382:11745 (Posts) and 433:16789 (Logs).
  *
  * A title bar carrying "Read Reflection", then Posts / Logs tabs over a
- * 1096px column. Figma draws the Career one; the chapter comes from the slug
- * so the other closed chapters reuse it.
+ * 1096px column: the posts and log moments from while the chapter was open.
  */
 const TABS = ["Posts", "Logs"];
 
-/** The four Post instances Figma leaves on their default content. */
-const POSTS: Post[] = Array.from({ length: 4 }, (_, i) => ({
-  id: String(i),
-  author: "Helena Brown",
-  avatar: "/images/feed/avatar-helena.png",
-  badge: "In progress",
-  time: "5 mins ago",
-  title: "I think I’m ready for a career change.",
-  body: "I’ve been in the same role for almost three years, and lately I’ve been feeling like I’ve outgrown it. I’m excited about what could come next, but honestly, I’m also scared of starting over.",
-  roots: 22,
-  comments: 8,
-}));
-
-function BackIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
-      <path
-        d="M19 12H5m0 0 6-6m-6 6 6 6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
-      <path
-        d="M1.5 10S4.5 4.5 10 4.5 18.5 10 18.5 10 15.5 15.5 10 15.5 1.5 10 1.5 10Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
-  );
-}
-
-export default function ChapterArchivePage() {
-  const params = useParams<{ chapter: string }>();
+export function ChapterArchiveView({
+  name,
+  posts,
+  postsQuery,
+  logs,
+  reflection,
+}: {
+  name: string;
+  posts: FeedPage;
+  postsQuery: Omit<FeedQuery, "cursor">;
+  logs: LogEntry[];
+  reflection: Reflection;
+}) {
   const [tab, setTab] = useState(TABS[0]);
   const [reflecting, setReflecting] = useState(false);
-
-  const name = getChapter(params.chapter)?.name ?? "Chapter";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -123,13 +90,17 @@ export default function ChapterArchivePage() {
           </div>
 
           {tab === TABS[0] ? (
-            <div className="flex flex-col gap-6">
-              {POSTS.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
+            <FeedList
+              query={postsQuery}
+              initial={posts}
+              empty={
+                <p className="py-10 text-center font-sans text-sm text-ink-300">
+                  You didn&rsquo;t post in this chapter.
+                </p>
+              }
+            />
           ) : (
-            <LogMemories header={false} surface="white" />
+            <LogMemories entries={logs} header={false} surface="white" />
           )}
         </div>
       </div>
@@ -137,9 +108,38 @@ export default function ChapterArchivePage() {
       {reflecting && (
         <ChapterReflection
           chapter={name}
+          reflection={reflection}
           onClose={() => setReflecting(false)}
         />
       )}
     </div>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
+      <path
+        d="M19 12H5m0 0 6-6m-6 6 6 6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="size-4" aria-hidden="true">
+      <path
+        d="M1.5 10S4.5 4.5 10 4.5 18.5 10 18.5 10 15.5 15.5 10 15.5 1.5 10 1.5 10Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
   );
 }

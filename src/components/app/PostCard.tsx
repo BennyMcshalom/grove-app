@@ -2,13 +2,18 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { PostMenu } from "@/components/app/PostMenu";
+import { Avatar } from "@/components/app/Avatar";
+import { PostComments } from "@/components/app/PostComments";
+import { PostMenu, type PostMenuAction } from "@/components/app/PostMenu";
 import {
   DeletePostModal,
   EditPostModal,
   ReportPostModal,
 } from "@/components/app/PostModals";
+import { SendToBondModal } from "@/components/app/SendToBondModal";
 import { useToast } from "@/components/app/ToastProvider";
+import { setRooted } from "@/lib/post-actions";
+import { progressLabel, type Post } from "@/lib/posts";
 import { cn } from "@/lib/cn";
 
 /**
@@ -17,56 +22,57 @@ import { cn } from "@/lib/cn";
  * Variants in Figma are "Post", "Post with video", "Comment with photo" and
  * "Grouv"; here the media is a prop since the chrome is identical across them.
  */
-export interface Post {
-  id: string;
-  /** The chapter this post sits in — what the feed's tabs filter on. */
-  chapter?: string;
-  author: string;
-  avatar: string;
-  badge?: string;
-  time: string;
-  title?: string;
-  body: string;
-  media?: { src: string; kind: "photo" | "video" };
-  roots: number;
-  comments: number;
-}
-
-export function PostCard({ post }: { post: Post }) {
+export function PostCard({ post: initial }: { post: Post }) {
+  const [post, setPost] = useState(initial);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [rooted, setRooted] = useState(false);
+  const [rooted, setRootedState] = useState(initial.rooted);
+  const [roots, setRoots] = useState(initial.roots);
+  const [comments, setComments] = useState(initial.comments);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shared, setShared] = useState(false);
   // Figma pairs each menu item with a modal and a confirming alert.
-  const [dialog, setDialog] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<PostMenuAction | null>(null);
   const [deleted, setDeleted] = useState(false);
   const toast = useToast();
 
   if (deleted) return null;
 
+  const badge = progressLabel(post.progress);
+  const [cover, ...more] = post.media;
+
+  const toggleRoot = async () => {
+    const next = !rooted;
+    // Optimistic, then put it back if the server says no.
+    setRootedState(next);
+    setRoots((n) => n + (next ? 1 : -1));
+    if (next) toast({ title: "Post rooted. Your Circle will see this post." });
+
+    const result = await setRooted(post.id, next);
+    if (result.error) {
+      setRootedState(!next);
+      setRoots((n) => n + (next ? -1 : 1));
+      toast({ title: result.error, tone: "danger" });
+    }
+  };
+
   return (
-    <article className="flex gap-4 rounded-2xl bg-white p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
-      <span className="relative size-10 shrink-0 overflow-hidden rounded-full">
-        <Image
-          src={post.avatar}
-          alt=""
-          fill
-          sizes="40px"
-          className="object-cover"
-        />
-      </span>
+    <article
+      id={`post-${post.id}`}
+      className="flex gap-4 rounded-2xl bg-white p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]"
+    >
+      <Avatar src={post.avatar} name={post.author} className="size-10" />
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <header className="flex items-start justify-between gap-2">
-          <div className="flex flex-col justify-center">
-            <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-col justify-center">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-sans text-lg font-semibold text-ink-700">
                 {post.author}
               </span>
-              {post.badge && (
+              {badge && (
                 <span className="flex items-center gap-1 rounded-full bg-primary-50 px-2 py-1 font-sans text-xs font-semibold text-primary-500">
                   <BriefcaseIcon className="size-3" />
-                  {post.badge}
+                  {badge}
                 </span>
               )}
             </div>
@@ -88,43 +94,54 @@ export function PostCard({ post }: { post: Post }) {
             </button>
             {menuOpen && (
               <PostMenu
+                mine={post.mine}
+                canSendToBond
                 onClose={() => setMenuOpen(false)}
-                onSelect={(label) => {
+                onSelect={(action) => {
                   setMenuOpen(false);
-                  if (label === "Send to a Bond") {
-                    toast({ title: "Post Grouved. Your Circle will see this post." });
-                    return;
-                  }
-                  setDialog(label);
+                  setDialog(action);
                 }}
               />
             )}
           </div>
         </header>
 
-        <div className="flex flex-col gap-1 py-2">
-          {post.title && (
-            <h2 className="font-sans text-xl font-semibold text-ink-700">
-              {post.title}
-            </h2>
-          )}
-          <p className="font-sans text-base text-ink-400">{post.body}</p>
-        </div>
+        {(post.title || post.body) && (
+          <div className="flex flex-col gap-1 py-2">
+            {post.title && (
+              <h2 className="font-sans text-xl font-semibold text-ink-700">
+                {post.title}
+              </h2>
+            )}
+            {post.body && (
+              <p className="font-sans text-base whitespace-pre-line text-ink-400">{post.body}</p>
+            )}
+          </div>
+        )}
 
-        {post.media && (
-          <div className="relative aspect-[589/332] w-full overflow-hidden rounded-2xl">
-            <Image
-              src={post.media.src}
-              alt=""
-              fill
-              sizes="(min-width: 1024px) 589px, 100vw"
-              className="object-cover"
-            />
-            {post.media.kind === "video" && (
-              <span className="absolute inset-0 grid place-items-center">
-                <span className="grid size-14 place-items-center rounded-full bg-black/50 text-white backdrop-blur-sm">
-                  <PlayIcon className="size-6" />
-                </span>
+        {cover && (
+          <div className="relative aspect-[589/332] w-full overflow-hidden rounded-2xl bg-ivory-200">
+            {cover.kind === "photo" ? (
+              // Signed Storage links expire, so they skip the image optimiser.
+              <Image
+                src={cover.src}
+                alt=""
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            ) : (
+              <video
+                src={cover.src}
+                controls
+                playsInline
+                preload="metadata"
+                className="absolute inset-0 size-full object-cover"
+              />
+            )}
+            {more.length > 0 && (
+              <span className="absolute top-3 right-3 rounded-full bg-black/60 px-2.5 py-1 font-sans text-xs font-semibold text-white">
+                +{more.length}
               </span>
             )}
           </div>
@@ -138,31 +155,23 @@ export function PostCard({ post }: { post: Post }) {
             label={
               <>
                 <span className="hidden sm:inline">Root </span>
-                {post.roots + (rooted ? 1 : 0)}
+                {roots}
               </>
             }
             tone="root"
             active={rooted}
-            onClick={() => {
-              setRooted((v) => {
-                if (!v) {
-                  toast({
-                    title: "Post rooted. Your Circle will see this post.",
-                  });
-                }
-                return !v;
-              });
-            }}
+            onClick={toggleRoot}
           />
           <Action
             icon={<ChatIcon className="size-6" />}
             label={
               <>
                 <span className="hidden sm:inline">Comment </span>
-                {post.comments}
+                {comments}
               </>
             }
             tone="muted"
+            active={commentsOpen}
             onClick={() => setCommentsOpen((v) => !v)}
           />
           <Action
@@ -170,9 +179,8 @@ export function PostCard({ post }: { post: Post }) {
             label={shared ? "Copied" : "Share"}
             tone="outline"
             onClick={() => {
-              // No backend yet; copying the permalink is the honest local action.
               navigator.clipboard?.writeText(
-                `${window.location.origin}/home#post-${post.id}`,
+                `${window.location.origin}/posts/${post.id}`,
               );
               setShared(true);
               setTimeout(() => setShared(false), 2000);
@@ -180,20 +188,39 @@ export function PostCard({ post }: { post: Post }) {
           />
         </footer>
 
+        {commentsOpen && (
+          <PostComments
+            postId={post.id}
+            onCountChange={(delta) => setComments((n) => Math.max(0, n + delta))}
+          />
+        )}
+
         {dialog === "Edit Post" && (
           <EditPostModal
             post={post}
             onClose={() => setDialog(null)}
-            onSave={() => {
+            onSaved={(patch) => {
+              setPost({ ...post, ...patch });
               setDialog(null);
               toast({ title: "Post updated" });
             }}
           />
         )}
+        {dialog === "Send to a Bond" && (
+          <SendToBondModal
+            postId={post.id}
+            onClose={() => setDialog(null)}
+            onSent={(name) => {
+              setDialog(null);
+              toast({ title: `Sent to ${name}` });
+            }}
+          />
+        )}
         {dialog === "Report Post" && (
           <ReportPostModal
+            postId={post.id}
             onClose={() => setDialog(null)}
-            onSubmit={() => {
+            onReported={() => {
               setDialog(null);
               toast({ title: "Report submitted" });
             }}
@@ -201,19 +228,14 @@ export function PostCard({ post }: { post: Post }) {
         )}
         {dialog === "Delete Post" && (
           <DeletePostModal
+            postId={post.id}
             onClose={() => setDialog(null)}
-            onDelete={() => {
+            onDeleted={() => {
               setDialog(null);
               setDeleted(true);
               toast({ title: "Post deleted", tone: "danger" });
             }}
           />
-        )}
-
-        {commentsOpen && (
-          <p className="rounded-lg bg-ivory-200 px-4 py-3 font-sans text-sm text-ink-400">
-            Comments aren&rsquo;t wired to a backend yet.
-          </p>
         )}
       </div>
     </article>
@@ -316,14 +338,6 @@ function DotsIcon({ className }: { className?: string }) {
       <circle cx="6" cy="12" r="1.8" />
       <circle cx="12" cy="12" r="1.8" />
       <circle cx="18" cy="12" r="1.8" />
-    </svg>
-  );
-}
-
-function PlayIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M8 5.5v13l11-6.5-11-6.5Z" />
     </svg>
   );
 }

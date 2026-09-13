@@ -1,60 +1,38 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Avatar } from "@/components/app/Avatar";
 import { TopBar } from "@/components/app/TopBar";
-import {
-  ProximityCard,
-  type NearbyPerson,
-} from "@/components/app/ProximityCard";
+import { ProximityCard } from "@/components/app/ProximityCard";
 import { useToast } from "@/components/app/ToastProvider";
 import { Button } from "@/components/ui/Button";
+import { findNearby, shareProximity, stopProximity, type NearbyMatch } from "@/app/(app)/nearby/actions";
+import { connectWith } from "@/lib/bond-actions";
 
 /**
  * Nearby — Figma frames 357:7651 (off) and 476:15061 (proximity on).
  *
  * Off: the pulse graphic and the opt-in. On: the same pulse with the people
  * around you pinned across it (component 479:15290), each opening the
- * proximity card (481:15568). Copy is Figma's, including "Turn 0ff Proximity".
- */
-
-/**
- * Pin coordinates from frame 476:15061, on its 511 x 461 stage, each with the
- * aura Figma gives that person. The three auras read as life stages; every
- * pin is component 479:15290 with its ring recoloured.
+ * proximity card (481:15568). Pins sit closer to the centre the nearer the
+ * person is; their direction is deliberately arbitrary, since only rounded
+ * distance ever leaves the database. Copy is Figma's, including "Turn 0ff
+ * Proximity".
  */
 const STAGE_W = 511;
 const STAGE_H = 461;
+const RADIUS_KM = 5;
+const HEARTBEAT_MS = 60_000;
+const LOOK_AROUND_MS = 20_000;
 
-const AURA = {
-  amber: "#F0B231",
-  lime: "#5EF01B",
-  cyan: "#02D6EE",
-} as const;
-
-const PINS: [number, number, keyof typeof AURA][] = [
-  [136, 387, "amber"],
-  [188, 123, "lime"],
-  [368, 347.5, "amber"],
-  [119, 216, "amber"],
-  [345, 229, "cyan"],
-  [232, 221, "amber"],
-  [152, 317, "lime"],
-  [303, 326, "lime"],
-  [298, 135, "amber"],
-  [287, 53, "amber"],
-  [92, 133, "amber"],
-  [72, 267, "cyan"],
-  [245, 403, "amber"],
-  [459, 237, "amber"],
-  [364, 419, "amber"],
-  [64, 400, "amber"],
-  [0, 216, "amber"],
-  [71, 57, "cyan"],
-  [218, 1, "lime"],
-  [374, 38, "lime"],
-  [364, 119.5, "cyan"],
-];
+/** Figma's three pin auras (amber, lime, cyan) plus two for the other auras. */
+const AURA_COLOR: Record<NearbyMatch["aura"], string> = {
+  in_transition: "#F0B231",
+  reflective: "#5EF01B",
+  deep_focus: "#02D6EE",
+  open_to_connect: "#B27CFD",
+  active_nearby: "#F57E16",
+};
 
 /** The pin's two glows are its own colour, so they're mixed from the hex. */
 function glow(hex: string, alpha: number) {
@@ -62,33 +40,105 @@ function glow(hex: string, alpha: number) {
   return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
-const FACES = [
-  "/images/people/m1.png",
-  "/images/people/m2.png",
-  "/images/people/m3.png",
-  "/images/people/m5.png",
-  "/images/people/nina.png",
-  "/images/people/dominion.png",
-  "/images/people/jalen.png",
-  "/images/people/john.png",
-  "/images/people/lena.png",
-];
-
-/** Figma draws the card on Jalen Crestwood (481:15600). */
-const PERSON: NearbyPerson = {
-  name: "Jalen Crestwood",
-  avatar: "/images/people/jalen.png",
-  distance: "1.4KM away",
-  chapter: "Career",
-  status: "Mid-project",
-  message:
-    "“Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore”",
-};
+/** A stable angle per person, so pins don't jump between refreshes. */
+function angleFor(userId: string) {
+  let hash = 0;
+  for (const char of userId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return (hash % 360) * (Math.PI / 180);
+}
 
 export default function NearbyPage() {
-  const [on, setOn] = useState(false);
-  const [selected, setSelected] = useState<NearbyPerson | null>(null);
   const toast = useToast();
+  const [on, setOn] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [people, setPeople] = useState<NearbyMatch[]>([]);
+  const [selected, setSelected] = useState<NearbyMatch | null>(null);
+  const position = useRef<{ lat: number; lng: number } | null>(null);
+  const watchId = useRef<number | null>(null);
+
+  const turnOff = useCallback(() => {
+    if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
+    watchId.current = null;
+    position.current = null;
+    setOn(false);
+    setPeople([]);
+    void stopProximity();
+  }, []);
+
+  const lookAround = useCallback(async () => {
+    const result = await findNearby(RADIUS_KM);
+    if (!result.error) setPeople(result.people);
+  }, []);
+
+  const turnOn = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "This browser can't share your location", tone: "danger" });
+      return;
+    }
+    setStarting(true);
+    watchId.current = navigator.geolocation.watchPosition(
+      async ({ coords }) => {
+        const first = position.current === null;
+        position.current = { lat: coords.latitude, lng: coords.longitude };
+        if (!first) return;
+        const result = await shareProximity(coords.latitude, coords.longitude);
+        setStarting(false);
+        if (result.error) {
+          toast({ title: result.error, tone: "danger" });
+          turnOff();
+          return;
+        }
+        setOn(true);
+        void lookAround();
+      },
+      () => {
+        setStarting(false);
+        toast({ title: "Location permission was declined", tone: "danger" });
+        turnOff();
+      },
+      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 15_000 },
+    );
+  };
+
+  // While on: keep the session alive and keep looking.
+  useEffect(() => {
+    if (!on) return;
+    const heartbeat = setInterval(() => {
+      const fix = position.current;
+      // A hidden tab has "left the page"; don't quietly switch back on.
+      if (fix && document.visibilityState === "visible") void shareProximity(fix.lat, fix.lng);
+    }, HEARTBEAT_MS);
+    const look = setInterval(() => void lookAround(), LOOK_AROUND_MS);
+    return () => {
+      clearInterval(heartbeat);
+      clearInterval(look);
+    };
+  }, [on, lookAround]);
+
+  // "Turns off the moment you leave this page."
+  useEffect(() => {
+    if (!on) return;
+    const leave = () => navigator.sendBeacon("/api/proximity/off");
+    const onVisibility = () => {
+      const fix = position.current;
+      if (document.visibilityState === "hidden") leave();
+      else if (fix) void shareProximity(fix.lat, fix.lng).then(() => lookAround());
+    };
+    window.addEventListener("pagehide", leave);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", leave);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [on, lookAround]);
+
+  // Leaving the route inside the app.
+  useEffect(() => () => {
+    if (watchId.current !== null) {
+      navigator.geolocation.clearWatch(watchId.current);
+      void stopProximity();
+    }
+  }, []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -99,7 +149,7 @@ export default function NearbyPage() {
           <div className="flex w-full max-w-[556px] flex-col items-stretch gap-10 lg:gap-12">
             <div className="flex flex-col items-center gap-4">
               {on ? (
-                <PulseWithPins onSelect={() => setSelected(PERSON)} />
+                <PulseWithPins people={people} onSelect={setSelected} />
               ) : (
                 <Pulse />
               )}
@@ -110,7 +160,9 @@ export default function NearbyPage() {
                 </h1>
                 <p className="font-sans text-sm text-ink-300 lg:text-base">
                   {on
-                    ? "You're open. People nearby in the same life stage can see you too. No events, no plans, just real connections happening right now."
+                    ? people.length > 0
+                      ? "You're open. People nearby in the same life stage can see you too. No events, no plans, just real connections happening right now."
+                      : "You're open. No one in your chapters is nearby right now — we'll keep looking while this page is open."
                     : "See who’s in your chapter, right here, right now. No background tracking, ever."}
                 </p>
               </div>
@@ -120,7 +172,7 @@ export default function NearbyPage() {
               {on ? (
                 <button
                   type="button"
-                  onClick={() => setOn(false)}
+                  onClick={turnOff}
                   className="flex h-10 w-[278px] items-center justify-center gap-3 rounded-full border border-primary-600 px-6 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
                 >
                   <LiveDot />
@@ -132,7 +184,8 @@ export default function NearbyPage() {
                   size="sm"
                   className="h-10 w-[278px]"
                   iconLeft={<MapPinIcon />}
-                  onClick={() => setOn(true)}
+                  loading={starting}
+                  onClick={turnOn}
                 >
                   Turn on Proximity
                 </Button>
@@ -151,11 +204,19 @@ export default function NearbyPage() {
         <ProximityCard
           person={selected}
           onClose={() => setSelected(null)}
-          onConnect={() => {
+          onConnect={async () => {
+            const result = await connectWith(selected.userId);
             setSelected(null);
-            toast({
-              title: "Connect request sent. We'll let you know when they accept.",
-            });
+            toast(
+              result.error
+                ? { title: result.error, tone: "danger" }
+                : {
+                    title:
+                      result.status === "accepted"
+                        ? "You're connected"
+                        : "Connect request sent. We'll let you know when they accept.",
+                  },
+            );
           }}
         />
       )}
@@ -179,8 +240,17 @@ function Pulse() {
   );
 }
 
-/** Frame 476:15080 — the same rings with the 21 people pinned across them. */
-function PulseWithPins({ onSelect }: { onSelect: () => void }) {
+/** Frame 476:15080 — the same rings with the people nearby pinned across them. */
+function PulseWithPins({
+  people,
+  onSelect,
+}: {
+  people: NearbyMatch[];
+  onSelect: (person: NearbyMatch) => void;
+}) {
+  const cx = 255;
+  const cy = 230;
+
   return (
     <div
       className="relative w-full"
@@ -197,44 +267,43 @@ function PulseWithPins({ onSelect }: { onSelect: () => void }) {
         <circle opacity="0.5" cx="255" cy="230" r="55" fill="#727362" />
       </svg>
 
-      {PINS.map(([x, y, aura], i) => (
-        <button
-          key={`${x}-${y}`}
-          type="button"
-          onClick={onSelect}
-          className="absolute flex flex-col items-center gap-1 transition-transform hover:scale-110"
-          style={{
-            left: `${(x / STAGE_W) * 100}%`,
-            top: `${(y / STAGE_H) * 100}%`,
-            width: `${(52 / STAGE_W) * 100}%`,
-          }}
-        >
-          {/* 40px disc in the aura colour, 32px portrait centred on it. */}
-          <span
-            className="grid aspect-square w-[76.9%] place-items-center rounded-full"
+      {people.map((person) => {
+        // Nearest people just outside the core ring, farthest at the edge.
+        const r = 70 + Math.min(person.distanceKm / RADIUS_KM, 1) * 140;
+        const angle = angleFor(person.userId);
+        const x = cx + Math.cos(angle) * r - 26;
+        const y = cy + Math.sin(angle) * r - 26;
+        const color = AURA_COLOR[person.aura];
+        return (
+          <button
+            key={person.userId}
+            type="button"
+            onClick={() => onSelect(person)}
+            className="absolute flex flex-col items-center gap-1 transition-transform hover:scale-110"
             style={{
-              backgroundColor: AURA[aura],
-              boxShadow: `0px 2px 9px 5px ${glow(AURA[aura], 0.2)}`,
+              left: `${(x / STAGE_W) * 100}%`,
+              top: `${(y / STAGE_H) * 100}%`,
+              width: `${(52 / STAGE_W) * 100}%`,
             }}
           >
+            {/* 40px disc in the aura colour, 32px portrait centred on it. */}
             <span
-              className="relative size-4/5 overflow-hidden rounded-full"
-              style={{ boxShadow: `0px 4px 5px 15px ${glow(AURA[aura], 0.45)}` }}
+              className="grid aspect-square w-[76.9%] place-items-center rounded-full"
+              style={{ backgroundColor: color, boxShadow: `0px 2px 9px 5px ${glow(color, 0.2)}` }}
             >
-              <Image
-                src={FACES[i % FACES.length]}
-                alt=""
-                fill
-                sizes="32px"
-                className="object-cover"
-              />
+              <span
+                className="relative size-4/5 overflow-hidden rounded-full"
+                style={{ boxShadow: `0px 4px 5px 15px ${glow(color, 0.45)}` }}
+              >
+                <Avatar src={person.avatarUrl} name={person.name} sizes="32px" className="size-full" />
+              </span>
             </span>
-          </span>
-          <span className="whitespace-nowrap font-sans text-[11px] leading-tight text-ink-500">
-            Oreoluwa
-          </span>
-        </button>
-      ))}
+            <span className="whitespace-nowrap font-sans text-[11px] leading-tight text-ink-500">
+              {person.name}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

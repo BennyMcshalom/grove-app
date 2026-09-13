@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useState } from "react";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
+import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { GoogleButton, OrDivider } from "@/components/ui/GoogleButton";
 import { ArrowRight } from "@/components/ui/ArrowRight";
+import { signUp } from "@/lib/auth/actions";
 
 /** Sign Up — Figma 11:16808 (desktop) / 585:19657 (mobile). */
 export default function SignUpPage() {
-  const router = useRouter();
+  const [state, formAction, pending] = useActionState(signUp, undefined);
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
 
@@ -26,13 +27,7 @@ export default function SignUpPage() {
 
   return (
     <AuthSplitLayout>
-      <form
-        className="flex flex-col gap-5 lg:gap-6"
-        onSubmit={(e) => {
-          e.preventDefault();
-          router.push("/verify");
-        }}
-      >
+      <form action={formAction} className="flex flex-col gap-5 lg:gap-6">
         <header className="flex flex-col gap-2">
           <h1 className="font-display text-2xl leading-[1.04] font-semibold sm:text-3xl lg:text-4xl xl:text-5xl text-[#1F2937] ">
             Begin your chapter
@@ -48,6 +43,8 @@ export default function SignUpPage() {
           </p>
         </header>
 
+        <FormError message={state?.error} />
+
         <div className="flex flex-col gap-4 lg:gap-5">
           <div className="flex flex-col gap-4">
             <Input
@@ -56,6 +53,8 @@ export default function SignUpPage() {
               autoComplete="given-name"
               placeholder="What do we call you?"
               hint="This is how your circle will know you"
+              defaultValue={state?.values?.firstName}
+              error={state?.fieldErrors?.firstName}
               required
             />
 
@@ -65,6 +64,8 @@ export default function SignUpPage() {
               type="email"
               autoComplete="email"
               placeholder="johndoe@email.com"
+              defaultValue={state?.values?.email}
+              error={state?.fieldErrors?.email}
               required
             />
 
@@ -78,6 +79,7 @@ export default function SignUpPage() {
                 iconRight={<HelpIcon />}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                error={state?.fieldErrors?.password}
                 required
               />
               <ul className="flex flex-col gap-3">
@@ -95,6 +97,7 @@ export default function SignUpPage() {
           </div>
 
           <Checkbox
+            name="terms"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
             label={
@@ -117,6 +120,7 @@ export default function SignUpPage() {
             size="md"
             fullWidth
             iconRight={<ArrowRight />}
+            loading={pending}
             disabled={!agreed || !passwordValid}
           >
             Begin your chapter

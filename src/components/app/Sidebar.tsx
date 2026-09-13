@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
+import { Avatar } from "@/components/app/Avatar";
 import { useSidebar } from "@/components/app/SidebarProvider";
+import { useViewer } from "@/components/app/ViewerProvider";
 import { cn } from "@/lib/cn";
 import {
   HomeIcon,
@@ -227,39 +228,45 @@ function MenuItem({
 
 /** Figma 60:2550 — avatar with online dot, name and current chapter. */
 function CurrentUser({ collapsed = false }: { collapsed?: boolean }) {
+  const viewer = useViewer();
+  // Figma shows the phase of the chapter held longest ("Building a business (early)").
+  const status = viewer.chapters[0]?.phase;
+
   return (
-    <div
+    <Link
+      href="/settings"
       className={cn(
-        "flex items-center gap-3 py-2",
+        "flex items-center gap-3 py-2 transition-colors hover:bg-ivory-100",
         collapsed ? "justify-center px-3" : "px-4",
       )}
     >
       <span className="relative size-10 shrink-0">
-        <Image
-          src="/images/avatar-oreoluwa.png"
-          alt=""
-          fill
-          sizes="40px"
-          className="rounded-full border-[1.5px] border-white object-cover"
+        <Avatar
+          src={viewer.avatarUrl}
+          name={viewer.firstName}
+          className="size-10 border-[1.5px] border-white"
         />
         <span className="absolute right-0 bottom-0 size-2.5 rounded-full border border-white bg-[#04802E]" />
       </span>
       {!collapsed && (
         <span className="flex min-w-0 flex-col">
-          <span className="font-sans text-base font-bold text-[#101928]">
-            Oreoluwa
+          <span className="truncate font-sans text-base font-bold text-[#101928]">
+            {viewer.firstName}
           </span>
-          <span className="truncate font-sans text-sm text-ink-300">
-            Building a business (early)
-          </span>
+          {status && (
+            <span className="truncate font-sans text-sm text-ink-300">{status}</span>
+          )}
         </span>
       )}
-    </div>
+    </Link>
   );
 }
 
-/** Figma 65:1729 — the primary-500 trial promo. */
+/** Figma 65:1729 — the primary-500 trial promo, until a trial or plan starts. */
 function TrialCard() {
+  const { subscriptionStatus } = useViewer();
+  if (subscriptionStatus === "trialing" || subscriptionStatus === "active") return null;
+
   return (
     <Link
       href="/settings"

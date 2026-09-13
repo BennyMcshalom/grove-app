@@ -1,25 +1,33 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   ChapterGroupCard,
   GROUP_GRADIENT,
 } from "@/components/app/ChapterGroupCard";
+import { loadSuggestedGroups } from "@/app/(app)/groups/actions";
+import type { Group } from "@/lib/groups";
 
 /**
  * SUGGESTED FOR YOUR CHAPTER — Figma frame 575:17911 (the My Group right rail).
  *
- * A 396px column of gradient cards: the first takes the warm orange wash, the
- * rest the pink one. Titles and blurbs are Figma's.
+ * A 396px column of gradient cards for groups in your chapters you haven't
+ * joined: the first takes the warm orange wash, the rest the pink one.
  */
-const SUGGESTED = [
-  { title: "Relocating solo", blurb: "Starting fresh somewhere new" },
-  { title: "First tech Job", blurb: "Starting with no blueprint" },
-  { title: "First tech Job", blurb: "Starting with no blueprint" },
-  { title: "First tech Job", blurb: "Starting with no blueprint" },
-  { title: "First tech Job", blurb: "Starting with no blueprint" },
-  { title: "First tech Job", blurb: "Starting with no blueprint" },
-];
-
 export function SuggestedRail() {
+  const [groups, setGroups] = useState<Group[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadSuggestedGroups(6).then((result) => {
+      if (!cancelled) setGroups(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-white px-8 py-6 xl:block">
       <div className="flex flex-col gap-5">
@@ -35,17 +43,28 @@ export function SuggestedRail() {
           </Link>
         </header>
 
-        <ul className="flex flex-col gap-4">
-          {SUGGESTED.map((item, i) => (
-            <li key={`${item.title}-${i}`}>
-              <ChapterGroupCard
-                title={item.title}
-                blurb={item.blurb}
-                gradient={i === 0 ? GROUP_GRADIENT.orange : GROUP_GRADIENT.pink}
-              />
-            </li>
-          ))}
-        </ul>
+        {groups === null ? (
+          <p className="font-sans text-sm text-ink-200">Loading…</p>
+        ) : groups.length === 0 ? (
+          <p className="font-sans text-sm text-ink-300">
+            Groups in your chapters show up here as people start them.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {groups.map((group, i) => (
+              <li key={group.id}>
+                <ChapterGroupCard
+                  title={group.title}
+                  blurb={group.label}
+                  href={`/groups/${group.slug}`}
+                  avatars={group.memberAvatars}
+                  memberCount={group.memberCount}
+                  gradient={i === 0 ? GROUP_GRADIENT.orange : GROUP_GRADIENT.pink}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </aside>
   );
