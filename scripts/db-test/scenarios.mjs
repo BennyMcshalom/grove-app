@@ -564,6 +564,93 @@ await step("search", async () => {
   check("post search respects visibility", !posts.some((r) => r.kind === "post" && r.id === anonPost), posts);
 });
 
+await step("rate limits", async () => {
+  let blockedAt = null;
+  for (let i = 0; i < 25 && blockedAt === null; i++) {
+    try {
+      await q(A, `insert into public.posts (chapter_slug, body, is_anonymous) values ('health', $1, true)`, [`burst ${i}`]);
+    } catch (e) {
+      if (e.message.includes("breather")) blockedAt = i;
+      else throw e;
+    }
+  }
+  check("anonymous posting is limited per hour", blockedAt !== null && blockedAt <= 20, blockedAt);
+  const [{ n }] = await su(`select count(*)::int n from public.posts where author_id is null and body like 'burst %'`);
+  check("posts under the limit went through", n === blockedAt, n);
+  await su(`delete from public.posts where body like 'burst %'`);
+});
+
+await step("moderation", async () => {
+  const [{ id: flagged }] = await q(
+    A,
+    `insert into public.posts (chapter_slug, body) values ('health', 'Moderate me') returning id`,
+  );
+  await q(B, `insert into public.reports (target_type, target_id, reason, details) values ('post', $1, 'spam', 'selling things')`, [flagged]);
+  await q(C, `insert into public.reports (target_type, target_id, reason) values ('post', $1, 'inappropriate')`, [flagged]);
+  const [{ id: message }] = await su(`select id from public.messages where conversation_id = $1 and body = 'hey'`, [dm]);
+  await q(A, `insert into public.reports (target_type, target_id, reason) values ('message', $1, 'harassment')`, [message]);
+
+  await fails("non-staff can't read the queue", B, `select * from public.moderation_queue()`, [], "Staff only");
+  const staffRows = await q(B, `select * from public.staff`);
+  check("non-staff see no staff rows", staffRows.length === 0, staffRows);
+
+  await su(`insert into public.staff (user_id) values ($1)`, [D]);
+  const [{ am_i_staff }] = await q(D, `select public.am_i_staff()`);
+  check("staff know they're staff", am_i_staff === true);
+  const queue = await q(D, `select * from public.moderation_queue()`);
+  const post = queue.find((r) => r.target_id === flagged);
+  check(
+    "queue groups reports on a target",
+    post?.report_count === 2 && post.preview === "Moderate me" && post.target_author_name === "Ada" && post.details.length === 1,
+    post,
+  );
+
+  const [{ moderate_target: removed }] = await q(D, `select public.moderate_target('post', $1, 'remove', 'spam')`, [flagged]);
+  check("removing resolves every report", removed === 2, removed);
+  const gone = await su(`select 1 from public.posts where id = $1`, [flagged]);
+  check("removed post is deleted", gone.length === 0);
+  const statuses = await su(`select distinct status, reviewed_by from public.reports where target_id = $1`, [flagged]);
+  check("reports marked actioned by the reviewer", statuses.length === 1 && statuses[0].status === "actioned" && statuses[0].reviewed_by === D, statuses);
+
+  await q(D, `select public.moderate_target('message', $1, 'remove')`, [message]);
+  const [msg] = await su(`select body, deleted_at from public.messages where id = $1`, [message]);
+  check("removed message is blanked", msg.body === "" && msg.deleted_at !== null, msg);
+  await fails("profiles can't be removed", D, `select public.moderate_target('profile', $1, 'remove')`, [A], "can't be removed");
+  await su(`delete from public.staff where user_id = $1`, [D]);
+});
+
+await step("notification emails", async () => {
+  await fails("clients can't claim emails", A, `select * from public.claim_notification_emails()`, [], "permission denied");
+  await su(`insert into public.notifications (user_id, kind, actor_id) values ($1, 'connection_request', $2)`, [A, B]);
+  await su(`insert into public.notifications (user_id, kind, actor_id) values ($1, 'post_rooted', $2)`, [A, B]);
+  await su(`update public.notification_preferences set email_updates = false where user_id = $1`, [C]);
+  await su(`insert into public.notifications (user_id, kind, actor_id) values ($1, 'bond_invitation', $2)`, [C, B]);
+
+  const claimed = await su(`select * from public.claim_notification_emails(200)`);
+  const request = claimed.find((r) => r.kind === "connection_request" && r.recipient_email === "ada@x.com");
+  check("claims emailable notifications with the address", request?.actor_name === "Bo", claimed);
+  check("skips kinds that don't email", !claimed.some((r) => r.kind === "post_rooted"), claimed);
+  check("respects email_updates off", !claimed.some((r) => r.recipient_email === "cy@x.com"), claimed);
+  const again = await su(`select * from public.claim_notification_emails(200)`);
+  check("never claims twice", again.length === 0, again);
+});
+
+await step("connection suggestions", async () => {
+  await su(`select private.send_connection_suggestions()`);
+  const first = await su(`select user_id, actor_id, entity_id from public.notifications where kind = 'connection_suggested'`);
+  check("suggestions point at the person", first.every((s) => s.entity_id === s.actor_id), first);
+  const connected = await su(`select user_low, user_high from public.connections`);
+  check(
+    "never suggests someone already connected",
+    first.every((s) => !connected.some((c) => [c.user_low, c.user_high].includes(s.user_id) && [c.user_low, c.user_high].includes(s.actor_id))),
+    { first, connected },
+  );
+  check("at most one suggestion each", new Set(first.map((s) => s.user_id)).size === first.length, first);
+  await su(`select private.send_connection_suggestions()`);
+  const [{ n }] = await su(`select count(*)::int n from public.notifications where kind = 'connection_suggested'`);
+  check("suggestions wait a week", n === first.length, n);
+});
+
 await step("delete account", async () => {
   await su(`delete from auth.users where id = $1`, [A]);
   const posts = await su(`select count(*)::int n from public.posts`);
