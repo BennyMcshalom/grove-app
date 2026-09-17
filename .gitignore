@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Figma reference renders pulled for visual diffing, not app assets
 .figma-ref/
+
+# Chrome crash logs
+debug.log
