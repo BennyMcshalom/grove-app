@@ -1,19 +1,20 @@
 # Grouv
 
 Next.js 16 app on **Railway**, with **Supabase** for Postgres, Auth, Storage
-and Realtime. **Resend** sends email, **Stripe** handles billing, **LiveKit**
+and Realtime. **Resend** sends email, **RevenueCat** handles billing, **LiveKit**
 carries voice and video calls, and **OpenStreetMap** geocodes places.
 
 ```
 Browser ──► Next.js on Railway ──► Supabase (Postgres + RLS, Auth, Storage, Realtime)
    │           │  Server Actions / Route Handlers
    │           ├─► Resend (app email)      Supabase Auth ──► Resend SMTP (sign-up codes)
-   │           ├─► Stripe (Checkout, billing portal) ◄── webhook
+   │           ├─► RevenueCat (reads the plan) ◄── webhook
    │           └─► Nominatim (geocoding)
+   ├─► RevenueCat Web Billing (checkout, over the page)
    └─► LiveKit (call audio/video, with a token from the app) ──► webhook
 ```
 
-Stripe, LiveKit and Resend are optional while developing. Without their keys
+RevenueCat, LiveKit and Resend are optional while developing. Without their keys
 the Subscribe, call and email features stay hidden or skip quietly.
 
 ## Local development
@@ -87,7 +88,7 @@ The template has to use `{{ .Token }}`. That's what turns the email into the
 | `…1300_bonds_reads` | `bonds_overview()` (bonds + circle with their chat), `pending_requests()`, `people_you_may_know()` |
 | `20260913…0100_log_groups_events_reads` | Log prompts and `circle_logs()`, `group_cards()` / `group_truths()`, `event_cards()`, Meet & Greet (`start_live_room()`, `live_room_cards()`, `live_room_people()`, presence heartbeat), `my_notifications()`, `question_replies()`, `search_everything()`, scheduled jobs |
 | `20260913…0200_trust_and_delivery` | Rate limits on writes, `staff` with `moderation_queue()` / `moderate_target()`, the notification email queue (`claim_notification_emails()`), weekly connection suggestions |
-| `20260913…0300_billing_calls_places` | Stripe columns on `subscriptions` with `sync_stripe_subscription()`, `calls` with `start_call()` / `answer_call()` / `end_call()`, private `user_regions` with `set_my_region()`, distance-aware `feed_posts()` and `event_cards()` |
+| `20260913…0300_billing_calls_places` | RevenueCat columns on `subscriptions` with `sync_billing()`, `calls` with `start_call()` / `answer_call()` / `end_call()`, private `user_regions` with `set_my_region()`, distance-aware `feed_posts()` and `event_cards()` |
 
 Every table has row-level security. Content that can be anonymous (posts,
 space questions, truths) keeps its real author in `private.content_owners`,
@@ -121,7 +122,7 @@ The migrations schedule five `pg_cron` jobs inside the database:
 - `grouv-expire-calls` runs every minute. A call nobody answered for 45 seconds
   becomes missed, and one left open for 6 hours is ended.
 - `grouv-expire-trials` runs hourly. An in-app trial that ran out without a
-  Stripe plan becomes expired.
+  paid plan becomes expired.
 
 `pg_cron` ships with Supabase. If `db push` reports it missing, enable it under
 Database → Extensions and push again.
@@ -198,47 +199,50 @@ curl -X POST https://<railway-domain>/api/cron/notification-emails \
   -H "Authorization: Bearer $CRON_SECRET"
 ```
 
-On Railway, add a second service from the same repo. Give it a Cron Schedule of
-`*/10 * * * *` and a start command that runs that curl. Any external scheduler
-works too. A notification still unsent after a day is dropped, not sent late.
+On Railway, that's the cron service described under [Railway](#railway). Any
+external scheduler works too. A notification still unsent after a day is dropped, not sent late.
 
-## Stripe
+## RevenueCat (billing)
 
-The plan is one recurring price. People can still start the free 14-day trial
-without a card. Subscribing during the trial keeps its remaining days before
-the first charge.
+RevenueCat holds the plan. The web app sells it through RevenueCat **Web
+Billing**, which charges through a Stripe account connected to RevenueCat. The
+RevenueCat customer id is the Supabase user id, so a future iOS or Android app
+can sell the same entitlement and the plan follows the person. People can
+still start the free 14-day in-app trial without a card.
 
-1. In Stripe, create a product (for example "Grouv Full access") with a
-   recurring price. Put the price ID in `STRIPE_PRICE_ID` and the secret key in
-   `STRIPE_SECRET_KEY`.
-2. Under **Settings → Billing → Customer portal**, save the portal settings at
-   least once. Let customers update their payment method, see invoices and
-   cancel. "Manage billing" fails until the portal is saved.
-3. Under **Developers → Webhooks**, add the endpoint
-   `https://<railway-domain>/api/stripe/webhook` with these events:
-   - `checkout.session.completed`
-   - `customer.subscription.created`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `customer.subscription.paused`
-   - `customer.subscription.resumed`
+1. Create a RevenueCat project. Under **Apps**, add a **Web Billing** app and
+   connect your Stripe account to it.
+2. Under **Product catalog**:
+   - Create a product, for example a monthly "Grouv Full access".
+   - Create the entitlement `full_access` (or set `REVENUECAT_ENTITLEMENT_ID`
+     to yours) and attach the product to it.
+   - Make an offering marked **Current**, with a Monthly package holding the
+     product. Settings sells that package, or the offering's first package if
+     there's no monthly one.
+3. Under **Project settings → API keys**:
+   - Copy the Web Billing public key (`rcb_…`) into
+     `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY`.
+   - Create a secret key with API version **V1** (`sk_…`) and put it in
+     `REVENUECAT_SECRET_API_KEY`.
+4. Under **Integrations → Webhooks**:
+   - Add `https://<railway-domain>/api/revenuecat/webhook`.
+   - Set its Authorization header to a long random string, and put the same
+     string in `REVENUECAT_WEBHOOK_AUTH`.
+   - If you switch on signing, put the signing secret in
+     `REVENUECAT_WEBHOOK_SIGNING_SECRET`.
 
-   Copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+A webhook event only triggers a re-read of that customer from RevenueCat, so
+retries and out-of-order events can't leave a stale status. Settings also
+re-reads the plan as soon as checkout closes. "Manage billing" opens
+RevenueCat's link for wherever the plan was bought. Anyone with a plan that
+will renew has to cancel it before they can delete their account.
 
-To test locally, use the Stripe CLI:
+To test purchases, use the Web Billing **sandbox** key and set
+`REVENUECAT_ALLOW_SANDBOX=true`. Without that flag, sandbox purchases are
+ignored. Never set it in production.
 
-```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
-```
-
-It prints a `whsec_…` secret to use while it runs.
-
-The webhook always re-reads the subscription from Stripe before saving it, so
-events arriving out of order can't leave a stale status. Deleting an account
-cancels its subscription first.
-
-The app doesn't lock any feature behind the plan yet. `subscriptions.status`
-(`trialing` or `active`) is the thing to check when that's decided.
+The app doesn't lock any feature behind the plan yet. When that's decided,
+check `subscriptions.status` for `trialing` or `active`.
 
 ## LiveKit (calls)
 
@@ -281,11 +285,30 @@ is compatible, and its free tier allows 5,000 lookups a day.
 
 ## Railway
 
-1. New project → Deploy from GitHub repo. `railway.json` sets the build and
-   start commands and a health check on `/api/health`. Railpack picks Node 22
-   from `engines`.
-2. Add every variable from `.env.example` to the service, including a long
-   random `CRON_SECRET`. `NEXT_PUBLIC_*`
-   values are baked in at build time, so redeploy after changing them.
-3. Generate a domain. Then set `NEXT_PUBLIC_SITE_URL` to it and add
-   `https://<domain>/auth/callback` to Supabase's redirect URLs.
+This app lives on the `backend` branch. The repo's `main` branch holds a
+different app with its own history, so point every Railway service at
+`backend`.
+
+### Web service
+
+1. New project → **Deploy from GitHub repo** → `BennyMcshalom/grove-app`. If
+   the repo isn't listed, give Railway's GitHub app access to it first.
+2. Under the service's **Settings → Source**, set **Branch** to `backend`.
+   `railway.json` sets the build and start commands and a health check on
+   `/api/health`. Railpack picks Node 22 from `engines`.
+3. Add every variable from `.env.example` under **Variables**, including a
+   long random `CRON_SECRET`. `NEXT_PUBLIC_*` values are baked in at build
+   time, so redeploy after changing them.
+4. Under **Settings → Networking**, generate a domain. Then:
+   - Set `NEXT_PUBLIC_SITE_URL` to it.
+   - Add `https://<domain>/auth/callback` to Supabase's redirect URLs.
+   - Point the RevenueCat and LiveKit webhooks at it.
+
+### Cron service (notification emails)
+
+1. In the same project, add another service from the same repo and branch.
+2. Under **Settings → Config-as-code**, set the path to `/railway.cron.json`.
+   It runs `scripts/cron/notification-emails.mjs` every 10 minutes.
+3. Give it two variables that reference the web service:
+   - `NEXT_PUBLIC_SITE_URL=${{<web service>.NEXT_PUBLIC_SITE_URL}}`
+   - `CRON_SECRET=${{<web service>.CRON_SECRET}}`

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { TopBar } from "@/components/app/TopBar";
 import { Avatar } from "@/components/app/Avatar";
 import { useToast } from "@/components/app/ToastProvider";
@@ -13,13 +13,14 @@ import { Input } from "@/components/ui/Input";
 import {
   changePassword,
   deleteAccount,
-  openBillingPortal,
-  startCheckout,
+  billingManagementUrl,
+  refreshBilling,
   startTrial,
   updatePreferences,
 } from "@/app/(app)/settings/actions";
 import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/cn";
+import { isCancelled, planPackage, priceLabel, purchasesFor } from "@/lib/revenuecat-client";
 import { AURAS, LOG_VISIBILITY, auraLabel, type LogVisibility } from "@/lib/profile";
 
 /**
@@ -44,15 +45,15 @@ export interface SettingsPreferences {
 }
 
 export interface SettingsBilling {
-  /** Stripe keys and price are configured. */
+  /** RevenueCat keys and entitlement are configured. */
   enabled: boolean;
-  priceLabel: string | null;
+  /** Pre-fills RevenueCat's checkout. */
+  email: string | null;
   trialUsed: boolean;
-  hasStripePlan: boolean;
+  /** Where their RevenueCat plan was bought; null if they've never had one. */
+  store: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
-  /** Back from Checkout; the webhook may not have landed yet. */
-  justSubscribed: boolean;
 }
 
 export function SettingsView({
@@ -355,44 +356,99 @@ const longDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "long" });
 
 /**
- * Figma only draws "Start trial". Subscribing and managing billing hand over to
- * Stripe Checkout and Stripe's customer portal.
+ * Figma only draws "Start trial". Subscribing opens RevenueCat's checkout over
+ * the page; "Manage billing" goes to wherever the plan was bought (RevenueCat's
+ * portal for web purchases, or the App Store / Google Play).
  */
 function SubscriptionRow({ billing }: { billing: SettingsBilling }) {
-  const { subscriptionStatus, trialEndsAt } = useViewer();
+  const { id: viewerId, subscriptionStatus, trialEndsAt } = useViewer();
   const toast = useToast();
   const [pending, startPending] = useTransition();
+  const [price, setPrice] = useState<string | null>(null);
 
-  const run = (action: () => Promise<{ error?: string }>, success?: string) =>
+  // The price comes from RevenueCat's current offering.
+  useEffect(() => {
+    if (!billing.enabled) return;
+    let live = true;
+    purchasesFor(viewerId)
+      .then(planPackage)
+      .then((pkg) => {
+        if (live && pkg) setPrice(priceLabel(pkg));
+      })
+      .catch((error: unknown) => console.warn("[billing] couldn't load the plan price", error));
+    return () => {
+      live = false;
+    };
+  }, [billing.enabled, viewerId]);
+
+  const subscribeNow = () =>
     startPending(async () => {
-      const result = await action();
-      if (result.error) toast({ title: result.error, tone: "danger" });
-      else if (success) toast({ title: success, tone: "confirm" });
+      try {
+        const purchases = await purchasesFor(viewerId);
+        const pkg = await planPackage(purchases);
+        if (!pkg) {
+          toast({ title: "The plan isn't available right now. Try again later.", tone: "danger" });
+          return;
+        }
+        await purchases.purchase({ rcPackage: pkg, customerEmail: billing.email ?? undefined });
+      } catch (error) {
+        if (await isCancelled(error)) return;
+        console.error("[billing] purchase failed", error);
+        toast({ title: "The payment didn't go through. Try again.", tone: "danger" });
+        return;
+      }
+      const result = await refreshBilling();
+      toast(
+        result.error
+          ? { title: result.error, tone: "danger" }
+          : { title: "You're subscribed. Thank you!", tone: "confirm" },
+      );
     });
 
+  const manageNow = () =>
+    startPending(async () => {
+      const result = await billingManagementUrl();
+      if (result.error || !result.url) {
+        toast({ title: result.error ?? "We couldn't open billing. Try again.", tone: "danger" });
+        return;
+      }
+      window.location.assign(result.url);
+    });
+
+  const startTrialNow = () =>
+    startPending(async () => {
+      const result = await startTrial();
+      toast(
+        result.error
+          ? { title: result.error, tone: "danger" }
+          : { title: "Your 14-day trial has started", tone: "confirm" },
+      );
+    });
+
+  const hasPlan = billing.store !== null;
+  const priceNote = price ? ` ${price}.` : "";
   const subscribe = billing.enabled && (
-    <Button size="sm" loading={pending} onClick={() => run(startCheckout)}>
+    <Button size="sm" loading={pending} onClick={subscribeNow}>
       Subscribe
     </Button>
   );
-  const manage = billing.enabled && billing.hasStripePlan && (
-    <Button variant="secondary" size="sm" loading={pending} onClick={() => run(openBillingPortal)}>
+  const manage = billing.enabled && hasPlan && (
+    <Button variant="secondary" size="sm" loading={pending} onClick={manageNow}>
       Manage billing
     </Button>
   );
-  const price = billing.priceLabel ? ` ${billing.priceLabel}.` : "";
 
   if (subscriptionStatus === "trialing" && trialEndsAt) {
-    return billing.hasStripePlan ? (
+    return hasPlan ? (
       <Row
         title="Free trial"
-        body={`Full access until ${longDate(trialEndsAt)}, then your plan starts.${price}`}
+        body={`Full access until ${longDate(trialEndsAt)}, then your plan starts.${priceNote}`}
         trailing={manage}
       />
     ) : (
       <Row
         title="Free trial"
-        body={`Full access until ${longDate(trialEndsAt)}.${billing.enabled ? " Subscribe to keep it after that." : ""}`}
+        body={`Full access until ${longDate(trialEndsAt)}.${billing.enabled ? ` Subscribe to keep it after that.${priceNote}` : ""}`}
         trailing={subscribe}
       />
     );
@@ -409,8 +465,9 @@ function SubscriptionRow({ billing }: { billing: SettingsBilling }) {
         title="Payment needed"
         body="Update your payment details to keep full access."
         trailing={
-          billing.enabled && (
-            <Button size="sm" loading={pending} onClick={() => run(openBillingPortal)}>
+          billing.enabled &&
+          hasPlan && (
+            <Button size="sm" loading={pending} onClick={manageNow}>
               Update payment
             </Button>
           )
@@ -418,19 +475,23 @@ function SubscriptionRow({ billing }: { billing: SettingsBilling }) {
       />
     );
   }
-  if (billing.justSubscribed) {
-    return <Row title="Setting up your plan" body="Payment received. Your plan will show here in a moment." />;
-  }
 
   if (!billing.trialUsed && subscriptionStatus === "none") {
     return (
       <Row
         title="No active plan"
-        body="Start a free trial to unlock everything."
+        body={`Start a free trial to unlock everything.${billing.enabled ? ` Or subscribe now.${priceNote}` : ""}`}
         trailing={
-          <Button size="sm" loading={pending} onClick={() => run(startTrial, "Your 14-day trial has started")}>
-            Start trial
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {subscribe && (
+              <Button variant="secondary" size="sm" loading={pending} onClick={subscribeNow}>
+                Subscribe
+              </Button>
+            )}
+            <Button size="sm" loading={pending} onClick={startTrialNow}>
+              Start trial
+            </Button>
+          </div>
         }
       />
     );
@@ -439,7 +500,7 @@ function SubscriptionRow({ billing }: { billing: SettingsBilling }) {
   return (
     <Row
       title={subscriptionStatus === "canceled" ? "Plan ended" : "Your trial has ended"}
-      body={billing.enabled ? `Subscribe to get full access back.${price}` : "Subscriptions open soon."}
+      body={billing.enabled ? `Subscribe to get full access back.${priceNote}` : "Subscriptions open soon."}
       trailing={
         (manage || subscribe) && (
           <div className="flex flex-wrap justify-end gap-2">

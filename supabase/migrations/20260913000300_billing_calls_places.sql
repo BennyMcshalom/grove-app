@@ -1,14 +1,20 @@
--- Billing (Stripe), voice and video calls in bond chats (LiveKit), and places:
--- coarse home regions, event coordinates and distance-aware reads.
+-- Billing (RevenueCat), voice and video calls in bond chats (LiveKit), and
+-- places: coarse home regions, event coordinates and distance-aware reads.
 
 -- ---------------------------------------------------------------------------
 -- Billing
 -- ---------------------------------------------------------------------------
 
+-- RevenueCat is the source of truth for paid plans (web today; the App Store
+-- and Google Play later, under the same app user id = auth user id). These
+-- columns are its latest answer, copied in by the webhook.
 alter table public.subscriptions
-  add column stripe_customer_id text unique,
-  add column stripe_subscription_id text unique,
-  add column cancel_at_period_end boolean not null default false;
+  -- Where the plan was bought ('rc_billing', 'stripe', 'app_store',
+  -- 'play_store', 'promotional'…). Null until they've had a RevenueCat plan.
+  add column billing_store text,
+  add column cancel_at_period_end boolean not null default false,
+  add column management_url text,
+  add column billing_synced_at timestamptz;
 
 -- The in-app trial is for people who've never had a plan.
 create or replace function public.start_trial()
@@ -39,28 +45,18 @@ begin
 end;
 $$;
 
--- Stripe webhook (server only): remember the customer made at checkout.
-create or replace function public.link_stripe_customer(p_user_id uuid, p_customer_id text)
-returns void
-language sql
-security definer
-set search_path = ''
-as $$
-  update public.subscriptions
-  set stripe_customer_id = p_customer_id
-  where user_id = p_user_id;
-$$;
-
--- Stripe webhook (server only): copy Stripe's view of a subscription. A late
--- event about an old subscription never overwrites a newer live one.
-create or replace function public.sync_stripe_subscription(
+-- RevenueCat webhook (server only). The server re-reads the customer from
+-- RevenueCat before calling this, so the values are always its current state.
+-- A null status means RevenueCat has no plan for them: a plan they had ends,
+-- and an in-app trial is left alone.
+create or replace function public.sync_billing(
   p_user_id uuid,
-  p_customer_id text,
-  p_subscription_id text,
   p_status text,
+  p_store text,
   p_current_period_end timestamptz,
   p_trial_end timestamptz,
-  p_cancel_at_period_end boolean
+  p_cancel_at_period_end boolean,
+  p_management_url text
 )
 returns void
 language plpgsql
@@ -68,42 +64,43 @@ security definer
 set search_path = ''
 as $$
 begin
-  update public.subscriptions s
-  set stripe_customer_id = coalesce(p_customer_id, s.stripe_customer_id),
-      stripe_subscription_id = p_subscription_id,
-      status = case p_status
-        when 'trialing' then 'trialing'
-        when 'active' then 'active'
-        when 'past_due' then 'past_due'
-        when 'unpaid' then 'past_due'
-        when 'canceled' then 'canceled'
-        when 'incomplete_expired' then 'expired'
-        when 'paused' then 'expired'
-        -- 'incomplete': the first payment hasn't gone through yet.
-        else s.status::text
-      end::public.subscription_status,
+  if p_status is not null and p_status not in ('trialing', 'active', 'past_due', 'canceled', 'expired') then
+    raise exception 'Unknown billing status %', p_status using errcode = 'check_violation';
+  end if;
+
+  if p_status is null then
+    update public.subscriptions
+    set status = case
+          when billing_store is not null and status in ('trialing', 'active', 'past_due') then 'canceled'
+          else status
+        end::public.subscription_status,
+        cancel_at_period_end = case when billing_store is not null then false else cancel_at_period_end end,
+        management_url = case when billing_store is not null then null else management_url end,
+        billing_synced_at = now()
+    where user_id = p_user_id;
+    return;
+  end if;
+
+  update public.subscriptions
+  set status = p_status::public.subscription_status,
       plan = 'full',
+      billing_store = coalesce(p_store, billing_store, 'unknown'),
       current_period_end = p_current_period_end,
-      trial_ends_at = coalesce(p_trial_end, s.trial_ends_at),
-      cancel_at_period_end = coalesce(p_cancel_at_period_end, false)
-  where s.user_id = p_user_id
-    and (
-      s.stripe_subscription_id is null
-      or s.stripe_subscription_id = p_subscription_id
-      or s.status in ('none', 'canceled', 'expired')
-      or p_status in ('active', 'trialing', 'past_due')
-    );
+      trial_started_at = case when p_status = 'trialing' then coalesce(trial_started_at, now()) else trial_started_at end,
+      trial_ends_at = case when p_status = 'trialing' then coalesce(p_trial_end, trial_ends_at) else trial_ends_at end,
+      cancel_at_period_end = coalesce(p_cancel_at_period_end, false),
+      management_url = p_management_url,
+      billing_synced_at = now()
+  where user_id = p_user_id;
 end;
 $$;
 
-revoke execute on function public.link_stripe_customer(uuid, text) from public, anon, authenticated;
-grant execute on function public.link_stripe_customer(uuid, text) to service_role;
-revoke execute on function public.sync_stripe_subscription(uuid, text, text, text, timestamptz, timestamptz, boolean)
+revoke execute on function public.sync_billing(uuid, text, text, timestamptz, timestamptz, boolean, text)
   from public, anon, authenticated;
-grant execute on function public.sync_stripe_subscription(uuid, text, text, text, timestamptz, timestamptz, boolean)
+grant execute on function public.sync_billing(uuid, text, text, timestamptz, timestamptz, boolean, text)
   to service_role;
 
--- In-app trials that ran out without a Stripe plan.
+-- In-app trials that ran out without a paid plan.
 create or replace function private.expire_trials()
 returns void
 language sql
@@ -113,7 +110,7 @@ as $$
   update public.subscriptions
   set status = 'expired'
   where status = 'trialing'
-    and stripe_subscription_id is null
+    and billing_store is null
     and trial_ends_at < now();
 $$;
 

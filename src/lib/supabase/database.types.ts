@@ -275,8 +275,9 @@ export type Database = {
         trial_started_at: string | null;
         trial_ends_at: string | null;
         current_period_end: string | null;
-        stripe_customer_id: string | null;
-        stripe_subscription_id: string | null;
+        billing_store: string | null;
+        management_url: string | null;
+        billing_synced_at: string | null;
         cancel_at_period_end: boolean;
         updated_at: string;
       }>;
@@ -964,19 +965,15 @@ export type Database = {
           chapter_slug: string | null;
         }[];
       };
-      link_stripe_customer: {
-        Args: { p_user_id: string; p_customer_id: string };
-        Returns: undefined;
-      };
-      sync_stripe_subscription: {
+      sync_billing: {
         Args: {
           p_user_id: string;
-          p_customer_id: string | null;
-          p_subscription_id: string;
-          p_status: string;
+          p_status: "trialing" | "active" | "past_due" | "canceled" | "expired" | null;
+          p_store: string | null;
           p_current_period_end: string | null;
           p_trial_end: string | null;
           p_cancel_at_period_end: boolean;
+          p_management_url: string | null;
         };
         Returns: undefined;
       };

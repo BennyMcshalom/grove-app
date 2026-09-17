@@ -3,7 +3,7 @@ import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 /** Pages a signed-out visitor may open. Everything else needs a session. */
 const PUBLIC_PATHS = new Set(["/", "/terms", "/privacy", "/verify", "/sign-in", "/sign-up"]);
-const PUBLIC_PREFIXES = ["/auth/", "/api/health", "/api/cron/", "/api/stripe/webhook", "/api/livekit/webhook"];
+const PUBLIC_PREFIXES = ["/auth/", "/api/health", "/api/cron/", "/api/revenuecat/webhook", "/api/livekit/webhook"];
 
 /** Signed-in users skip these and go straight into the app. */
 const AUTH_PAGES = new Set(["/sign-in", "/sign-up"]);

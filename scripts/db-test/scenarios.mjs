@@ -652,22 +652,67 @@ await step("connection suggestions", async () => {
 });
 
 await step("billing", async () => {
-  await fails("clients can't sync Stripe", A, `select public.sync_stripe_subscription($1, 'cus_1', 'sub_1', 'active', now(), null, false)`, [A], "permission denied");
-  await su(`update public.subscriptions set status = 'none', trial_started_at = null, stripe_subscription_id = null where user_id = $1`, [D]);
-  await su(`select public.link_stripe_customer($1, 'cus_d')`, [D]);
-  await su(`select public.sync_stripe_subscription($1, null, 'sub_new', 'active', now() + interval '30 days', null, false)`, [D]);
+  const sync = (user, status, store, cancel = false) =>
+    su(
+      `select public.sync_billing($1, $2, $3, now() + interval '30 days', null, $4, 'https://pay.rev.cat/manage')`,
+      [user, status, store, cancel],
+    );
+
+  await fails(
+    "clients can't sync billing",
+    A,
+    `select public.sync_billing($1, 'active', 'rc_billing', now(), null, false, null)`,
+    [A],
+    "permission denied",
+  );
+
+  // D has never had a trial or a plan.
+  await su(`update public.subscriptions set status = 'none', trial_started_at = null, billing_store = null where user_id = $1`, [D]);
+  await sync(D, null, null);
   let [sub] = await su(`select * from public.subscriptions where user_id = $1`, [D]);
-  check("webhook activates the plan", sub.status === "active" && sub.stripe_customer_id === "cus_d" && sub.stripe_subscription_id === "sub_new", sub);
+  check("no RevenueCat plan leaves a new account alone", sub.status === "none" && sub.billing_store === null, sub);
+
+  await sync(D, "active", "rc_billing");
+  [sub] = await su(`select * from public.subscriptions where user_id = $1`, [D]);
+  check(
+    "webhook activates the plan",
+    sub.status === "active" && sub.billing_store === "rc_billing" && sub.management_url && sub.billing_synced_at,
+    sub,
+  );
   await fails("no app trial on a paid plan", D, `select public.start_trial()`, [], "already been used");
 
-  await su(`select public.sync_stripe_subscription($1, 'cus_d', 'sub_old', 'canceled', now(), null, false)`, [D]);
-  [sub] = await su(`select status, stripe_subscription_id from public.subscriptions where user_id = $1`, [D]);
-  check("a late event about an old plan is ignored", sub.status === "active" && sub.stripe_subscription_id === "sub_new", sub);
-  await su(`select public.sync_stripe_subscription($1, 'cus_d', 'sub_new', 'unpaid', now(), null, true)`, [D]);
+  await sync(D, "active", "rc_billing", true);
   [sub] = await su(`select status, cancel_at_period_end from public.subscriptions where user_id = $1`, [D]);
-  check("unpaid maps to past_due", sub.status === "past_due" && sub.cancel_at_period_end === true, sub);
+  check("cancelling keeps access until the period ends", sub.status === "active" && sub.cancel_at_period_end === true, sub);
 
-  await su(`update public.subscriptions set status = 'trialing', stripe_subscription_id = null, trial_ends_at = now() - interval '1 minute' where user_id = $1`, [B]);
+  await sync(D, null, null);
+  [sub] = await su(`select status, management_url from public.subscriptions where user_id = $1`, [D]);
+  check("a plan RevenueCat no longer has ends", sub.status === "canceled" && sub.management_url === null, sub);
+
+  let rejected = false;
+  try {
+    await su(`select public.sync_billing($1, 'unpaid', 'rc_billing', null, null, false, null)`, [D]);
+  } catch (e) {
+    rejected = e.message.includes("Unknown billing status");
+  }
+  check("unknown statuses are rejected", rejected);
+
+  // B is on the in-app trial; RevenueCat knowing nothing about them mustn't end it.
+  await su(
+    `update public.subscriptions set status = 'trialing', billing_store = null, trial_started_at = now(), trial_ends_at = now() + interval '3 days' where user_id = $1`,
+    [B],
+  );
+  await sync(B, null, null);
+  [sub] = await su(`select status from public.subscriptions where user_id = $1`, [B]);
+  check("an in-app trial survives an empty RevenueCat sync", sub.status === "trialing", sub);
+
+  await sync(B, "trialing", "rc_billing");
+  await su(`update public.subscriptions set trial_ends_at = now() - interval '1 minute' where user_id = $1`, [B]);
+  await su(`select private.expire_trials()`);
+  [sub] = await su(`select status from public.subscriptions where user_id = $1`, [B]);
+  check("RevenueCat trials aren't expired by the app", sub.status === "trialing", sub);
+
+  await su(`update public.subscriptions set billing_store = null where user_id = $1`, [B]);
   await su(`select private.expire_trials()`);
   [sub] = await su(`select status from public.subscriptions where user_id = $1`, [B]);
   check("finished app trials expire", sub.status === "expired", sub);

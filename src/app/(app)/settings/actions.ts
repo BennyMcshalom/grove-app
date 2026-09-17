@@ -8,8 +8,7 @@ import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { getChapter } from "@/lib/chapters";
 import { AURAS, LOG_VISIBILITY, type Aura, type LogVisibility } from "@/lib/profile";
 import { geocode } from "@/lib/geocode";
-import { siteUrl } from "@/lib/site-url";
-import { billingEnabled, stripe } from "@/lib/stripe";
+import { billingEnabled, billingState, deleteSubscriber, fetchSubscriber, syncBilling } from "@/lib/revenuecat";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { supabaseUrl } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -214,85 +213,39 @@ export async function startTrial(): Promise<ActionResult> {
 }
 
 /**
- * Subscription → "Subscribe". Sends the viewer to Stripe Checkout. Someone
- * still inside their free trial keeps the days they have left before the first
- * charge.
+ * After RevenueCat's checkout closes: pull the viewer's plan straight away
+ * rather than wait for the webhook, so Settings shows it on return.
  */
-export async function startCheckout(): Promise<ActionResult> {
+export async function refreshBilling(): Promise<ActionResult & { status?: string | null }> {
   const viewer = await requireOnboardedViewer();
-  const priceId = process.env.STRIPE_PRICE_ID;
-  if (!billingEnabled() || !priceId) return { error: "Subscriptions aren't open yet." };
+  if (!billingEnabled()) return { error: "Subscriptions aren't open yet." };
 
-  const supabase = await createClient();
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("status, trial_ends_at, stripe_customer_id")
-    .eq("user_id", viewer.userId)
-    .single();
-
-  if (subscription?.status === "active" || subscription?.status === "past_due") {
-    return { error: "You already have a plan. Manage it from Billing." };
-  }
-
-  const origin = await siteUrl();
-  // Stripe needs a trial to run at least two more days.
-  const trialEnd = subscription?.trial_ends_at ? Date.parse(subscription.trial_ends_at) : 0;
-  const keepTrial = subscription?.status === "trialing" && trialEnd - Date.now() > 2 * 86_400_000;
-
-  let url: string | null;
   try {
-    const session = await stripe().checkout.sessions.create({
-      mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      client_reference_id: viewer.userId,
-      ...(subscription?.stripe_customer_id
-        ? { customer: subscription.stripe_customer_id }
-        : { customer_email: viewer.email ?? undefined }),
-      metadata: { user_id: viewer.userId },
-      subscription_data: {
-        metadata: { user_id: viewer.userId },
-        ...(keepTrial && { trial_end: Math.floor(trialEnd / 1000) }),
-      },
-      allow_promotion_codes: true,
-      success_url: `${origin}/settings?billing=success`,
-      cancel_url: `${origin}/settings`,
-    });
-    url = session.url;
+    const state = await syncBilling(viewer.userId);
+    refresh();
+    return { status: state.status };
   } catch (error) {
-    console.error("[billing] checkout failed", error);
-    return { error: "We couldn't open checkout. Try again." };
+    console.error("[billing] refresh failed", error);
+    return { error: "Your payment went through, but your plan is taking a moment to show. Check back shortly." };
   }
-
-  if (!url) return { error: "We couldn't open checkout. Try again." };
-  redirect(url);
 }
 
-/** Subscription → "Manage billing": Stripe's portal for cards, invoices and cancelling. */
-export async function openBillingPortal(): Promise<ActionResult> {
+/**
+ * Subscription → "Manage billing". RevenueCat's link for wherever the plan was
+ * bought: its own portal for web purchases, or the App Store / Google Play.
+ */
+export async function billingManagementUrl(): Promise<ActionResult & { url?: string }> {
   const viewer = await requireOnboardedViewer();
   if (!billingEnabled()) return { error: "Billing isn't set up yet." };
 
-  const supabase = await createClient();
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("stripe_customer_id")
-    .eq("user_id", viewer.userId)
-    .single();
-  if (!subscription?.stripe_customer_id) return { error: "You don't have a plan to manage yet." };
-
-  let url: string;
   try {
-    const session = await stripe().billingPortal.sessions.create({
-      customer: subscription.stripe_customer_id,
-      return_url: `${await siteUrl()}/settings`,
-    });
-    url = session.url;
+    const { managementUrl } = billingState(await fetchSubscriber(viewer.userId));
+    if (!managementUrl) return { error: "You don't have a plan to manage yet." };
+    return { url: managementUrl };
   } catch (error) {
-    console.error("[billing] portal failed", error);
+    console.error("[billing] management URL failed", error);
     return { error: "We couldn't open billing. Try again." };
   }
-
-  redirect(url);
 }
 
 /** Account → "Change password". Also sets a first password for Google users. */
@@ -328,23 +281,20 @@ export async function deleteAccount(confirmation: string): Promise<ActionResult>
 
   const admin = createAdminClient();
 
-  // Stop billing before the account (and its subscription row) disappears.
+  // A plan that will renew keeps charging after the account is gone, and App
+  // Store / Google Play plans can only be cancelled by the person themselves,
+  // so they cancel first.
   const { data: subscription } = await admin
     .from("subscriptions")
-    .select("stripe_subscription_id, status")
+    .select("billing_store, status, cancel_at_period_end")
     .eq("user_id", viewer.userId)
     .single();
   if (
-    subscription?.stripe_subscription_id &&
+    subscription?.billing_store &&
     ["trialing", "active", "past_due"].includes(subscription.status) &&
-    billingEnabled()
+    !subscription.cancel_at_period_end
   ) {
-    try {
-      await stripe().subscriptions.cancel(subscription.stripe_subscription_id);
-    } catch (error) {
-      console.error("[settings] cancelling the Stripe subscription failed", error);
-      return { error: "We couldn't cancel your subscription, so your account wasn't deleted. Try again." };
-    }
+    return { error: "Cancel your plan under Subscription → Manage billing first, then delete your account." };
   }
 
   for (const bucket of ["avatars", "media"] as const) {
@@ -358,6 +308,14 @@ export async function deleteAccount(confirmation: string): Promise<ActionResult>
   if (error) {
     console.error("[settings] deleteAccount failed", error);
     return { error: "We couldn't delete your account. Try again, or contact us." };
+  }
+
+  if (subscription?.billing_store && billingEnabled()) {
+    try {
+      await deleteSubscriber(viewer.userId);
+    } catch (error) {
+      console.warn("[settings] removing the RevenueCat customer failed", error);
+    }
   }
 
   // The session belongs to a user that no longer exists; clear its cookies.

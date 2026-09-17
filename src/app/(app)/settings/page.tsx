@@ -1,34 +1,34 @@
 import { SettingsView } from "@/components/app/settings/SettingsView";
-import { getShellViewer } from "@/lib/auth/viewer";
-import { billingEnabled, planPriceLabel } from "@/lib/stripe";
+import { getShellViewer, getViewer } from "@/lib/auth/viewer";
+import { billingEnabled } from "@/lib/revenuecat";
 import { createClient } from "@/lib/supabase/server";
 
 /** Settings — Figma frame 390:13507. Data here; layout in SettingsView. */
-export default async function SettingsPage({ searchParams }: PageProps<"/settings">) {
-  const { billing: billingResult } = await searchParams;
+export default async function SettingsPage() {
   const viewer = await getShellViewer();
+  const session = await getViewer();
   const supabase = await createClient();
 
-  const [{ data: prompts }, { data: preferences }, { data: profile }, { data: isStaff }, { data: subscription }, priceLabel] = await Promise.all([
-    supabase
-      .from("profile_prompts")
-      .select("honest_tension, sitting_with, open_to")
-      .eq("user_id", viewer.id)
-      .maybeSingle(),
-    supabase
-      .from("notification_preferences")
-      .select("chapter_prompt, wave_received, email_updates")
-      .eq("user_id", viewer.id)
-      .single(),
-    supabase.from("profiles").select("theme, log_visibility").eq("id", viewer.id).single(),
-    supabase.rpc("am_i_staff"),
-    supabase
-      .from("subscriptions")
-      .select("trial_started_at, current_period_end, cancel_at_period_end, stripe_subscription_id")
-      .eq("user_id", viewer.id)
-      .single(),
-    planPriceLabel(),
-  ]);
+  const [{ data: prompts }, { data: preferences }, { data: profile }, { data: isStaff }, { data: subscription }] =
+    await Promise.all([
+      supabase
+        .from("profile_prompts")
+        .select("honest_tension, sitting_with, open_to")
+        .eq("user_id", viewer.id)
+        .maybeSingle(),
+      supabase
+        .from("notification_preferences")
+        .select("chapter_prompt, wave_received, email_updates")
+        .eq("user_id", viewer.id)
+        .single(),
+      supabase.from("profiles").select("theme, log_visibility").eq("id", viewer.id).single(),
+      supabase.rpc("am_i_staff"),
+      supabase
+        .from("subscriptions")
+        .select("trial_started_at, current_period_end, cancel_at_period_end, billing_store")
+        .eq("user_id", viewer.id)
+        .single(),
+    ]);
 
   return (
     <SettingsView
@@ -47,12 +47,11 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
       isStaff={isStaff === true}
       billing={{
         enabled: billingEnabled(),
-        priceLabel,
+        email: session?.email ?? null,
         trialUsed: Boolean(subscription?.trial_started_at),
-        hasStripePlan: Boolean(subscription?.stripe_subscription_id),
+        store: subscription?.billing_store ?? null,
         currentPeriodEnd: subscription?.current_period_end ?? null,
         cancelAtPeriodEnd: subscription?.cancel_at_period_end ?? false,
-        justSubscribed: billingResult === "success",
       }}
     />
   );
