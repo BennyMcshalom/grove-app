@@ -241,6 +241,11 @@ To test purchases, use the Web Billing **sandbox** key and set
 `REVENUECAT_ALLOW_SANDBOX=true`. Without that flag, sandbox purchases are
 ignored. Never set it in production.
 
+The deployed app is on the sandbox key with `REVENUECAT_ALLOW_SANDBOX=true`
+right now, so test purchases grant real access. Before real customers arrive,
+swap in the production Web Billing key and set the flag back to `false`. The
+server logs a warning on every boot while the flag is on.
+
 The app doesn't lock any feature behind the plan yet. When that's decided,
 check `subscriptions.status` for `trialing` or `active`.
 

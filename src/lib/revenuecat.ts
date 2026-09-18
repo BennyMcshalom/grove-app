@@ -16,6 +16,13 @@ export function billingEnabled() {
 
 const API = "https://api.revenuecat.com/v1";
 
+/** Sandbox purchases grant real access, so say so loudly on every boot. */
+if (process.env.REVENUECAT_ALLOW_SANDBOX === "true") {
+  console.warn(
+    "[billing] REVENUECAT_ALLOW_SANDBOX is true — test purchases count as real plans. Set it to false before launch.",
+  );
+}
+
 interface RevenueCatEntitlement {
   expires_date: string | null;
   grace_period_expires_date: string | null;
