@@ -5,6 +5,15 @@ import { PostCard } from "@/components/app/PostCard";
 import { loadPosts } from "@/lib/post-actions";
 import type { FeedCursor, FeedPage, FeedQuery, Post } from "@/lib/posts";
 
+/** The nearest ancestor that scrolls, or null for the window. */
+function scrollParent(node: HTMLElement): HTMLElement | null {
+  for (let el = node.parentElement; el; el = el.parentElement) {
+    const { overflowY } = getComputedStyle(el);
+    if (overflowY === "auto" || overflowY === "scroll") return el;
+  }
+  return null;
+}
+
 /**
  * A feed of posts that loads more as the end scrolls into view.
  *
@@ -70,7 +79,10 @@ export function FeedList({
       (entries) => {
         if (entries[0]?.isIntersecting) void loadMore();
       },
-      { rootMargin: "600px 0px" },
+      // The feed scrolls inside its own column, not the window, so measure
+      // against that column — otherwise "600px away" is measured from the
+      // wrong box and pages load that nobody has scrolled near.
+      { root: scrollParent(el), rootMargin: "600px 0px" },
     );
     observer.observe(el);
     return () => observer.disconnect();

@@ -90,7 +90,9 @@ export function PostComments({
                     </button>
                   )}
                 </div>
-                <p className="font-sans text-sm whitespace-pre-line text-ink-500">{comment.body}</p>
+                <p className="font-sans text-sm break-words whitespace-pre-line text-ink-500">
+                  {comment.body}
+                </p>
               </div>
             </li>
           ))}
@@ -105,7 +107,9 @@ export function PostComments({
         }}
       >
         <Avatar src={viewer.avatarUrl} name={viewer.firstName} sizes="32px" className="size-8" />
-        <label className="flex-1">
+        {/* min-w-0: a textarea's default width is ~20em, and without this the
+            flex row refuses to shrink below it and overflows the card. */}
+        <label className="min-w-0 flex-1">
           <span className="sr-only">Add a comment</span>
           <textarea
             value={draft}

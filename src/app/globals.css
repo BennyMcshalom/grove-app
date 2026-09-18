@@ -117,6 +117,10 @@
   scrollbar-width: thin;
   scrollbar-color: var(--color-ivory-600) transparent;
 
+  /* Reaching the end of one of these regions must not start scrolling the
+     page behind it — the shell is meant to stay put. */
+  overscroll-behavior: contain;
+
   &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
