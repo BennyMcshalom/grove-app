@@ -240,7 +240,7 @@ host = "smtp.resend.com"
 port = 465
 user = "resend"
 pass = "env(RESEND_API_KEY)"
-admin_email = "noreply@grouv.com"
+admin_email = "noreply@grouv.app"
 sender_name = "Grouv"
 
 # The sign-up code. Uses {{ .Token }} so the email carries a 6-digit code, not a link.
