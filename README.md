@@ -349,3 +349,60 @@ changes, update all of these:
 - `site_url` and `additional_redirect_urls` in `supabase/config.toml`, then
   `npx supabase config push`.
 - The RevenueCat and LiveKit webhook URLs.
+
+## Before launch
+
+What's deliberately unfinished, and what has to change before real people use
+this. Roughly in the order it will bite.
+
+### Billing is in sandbox
+
+The deployed app uses RevenueCat's **sandbox** Web Billing key with
+`REVENUECAT_ALLOW_SANDBOX=true`, so a test purchase grants real access. The
+server logs a warning on every boot while that flag is on.
+
+- [ ] Put the **production** Web Billing key in `NEXT_PUBLIC_REVENUECAT_WEB_API_KEY`
+      (needs Stripe connected and live in RevenueCat), then redeploy — it's a
+      `NEXT_PUBLIC_*` value, so it's baked in at build time.
+- [ ] Set `REVENUECAT_ALLOW_SANDBOX=false`.
+- [ ] `REVENUECAT_SECRET_API_KEY` must be a **V1** secret key (`sk_…`). A V2 key
+      answers 403 and a webhook signing secret answers 401.
+
+### Nothing is behind the plan
+
+`subscriptions.status` is written correctly (`trialing`, `active`, `past_due`,
+`canceled`, `expired`) and nothing reads it. Decide what full access unlocks,
+then gate those features on it.
+
+### Deploys are manual
+
+Railway deploys from this machine with `railway up`. Auto-deploy on push needs
+Railway's GitHub App granted access to the repo — see [Railway](#railway).
+
+### Google sign-in is off
+
+`auth.external.google` is disabled in `supabase/config.toml` because the OAuth
+client doesn't exist yet. The sign-in screens still show the button. Create the
+client (see [Google sign-in](#3-google-sign-in)), fill in
+`SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `_SECRET`, set `enabled = true`,
+and `npx supabase config push`.
+
+### Moderation has no staff
+
+Reports pile up in `public.reports` and `/moderation` is only linked for staff.
+Nobody is staff yet — add yourself with the SQL under
+[Moderation](#moderation).
+
+### Email
+
+- [ ] Check the sending domain in `EMAIL_FROM` is verified in Resend, or every
+      app email silently fails.
+- [ ] Supabase Auth's SMTP uses the same Resend key. Sign-up codes stop
+      arriving if that key is rotated in one place only.
+
+### Domains
+
+The app is on a generated `*.up.railway.app` domain. Moving to a real domain
+means updating `NEXT_PUBLIC_SITE_URL`, `supabase/config.toml`, and the
+RevenueCat and LiveKit webhook URLs — the list is under
+[After the domain changes](#after-the-domain-changes).
