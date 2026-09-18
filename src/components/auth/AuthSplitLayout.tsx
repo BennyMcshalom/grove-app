@@ -15,7 +15,7 @@ import { AuthOrbit } from "@/components/auth/AuthOrbit";
  */
 export function AuthSplitLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="flex h-dvh w-full overflow-hidden bg-ivory-100">
+    <main className="flex h-viewport w-full overflow-hidden bg-ivory-100">
       {/* 580/1440 of the artboard width. */}
       <div className="hidden h-full w-[40.28%] shrink-0 items-center justify-center overflow-hidden bg-primary-600 p-[1.8%] lg:flex">
         <AuthOrbit />

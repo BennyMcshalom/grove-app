@@ -12,7 +12,7 @@ import { ArrowRight } from "@/components/ui/ArrowRight";
  */
 export default function SplashPage() {
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden bg-primary-600">
+    <main className="relative flex h-viewport flex-col overflow-hidden bg-primary-600">
       <div className="shrink-0 px-6 pt-8 sm:px-10 lg:px-30 lg:pt-16">
         <Logo priority tone="onDark" className="h-12 lg:h-20" />
       </div>

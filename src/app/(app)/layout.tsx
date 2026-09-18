@@ -11,7 +11,7 @@ import { getShellViewer } from "@/lib/auth/viewer";
  *
  * Desktop: a 272px sidebar beside the main column, collapsible to a 76px
  * rail (SidebarProvider) so three-column screens like Bonds get the width. Mobile: no sidebar, a
- * bottom nav bar instead (Figma 601:30105). The shell is `h-dvh` so only the
+ * bottom nav bar instead (Figma 601:30105). The shell is `h-viewport` so only the
  * inner columns scroll.
  *
  * Signed-out visitors go to sign-in and new users finish onboarding first.
@@ -29,7 +29,7 @@ export default async function AppLayout({
       <ToastProvider>
         <CallProvider>
         <SidebarProvider>
-          <div className="flex h-dvh overflow-hidden bg-ivory-100">
+          <div className="flex h-viewport overflow-hidden bg-ivory-100">
             <Sidebar className="hidden lg:flex" />
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

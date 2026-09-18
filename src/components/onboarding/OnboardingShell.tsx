@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
  * Onboarding chrome — Figma component 52:1502: a back button on the left and
  * progress dots on the right.
  *
- * The page itself never scrolls (`h-dvh` + `overflow-hidden`). Figma marks
+ * The page itself never scrolls (`h-viewport` + `overflow-hidden`). Figma marks
  * only the option list as scrollable — layout_D5T24D and layout_CIL4QJ both
  * carry `overflowScroll: y` on a fixed-height frame — so the header and the
  * action button stay put while just that list moves.
@@ -35,7 +35,7 @@ export function OnboardingShell({
   const router = useRouter();
 
   return (
-    <main className="flex h-dvh flex-col overflow-hidden bg-ivory-100">
+    <main className="flex h-viewport flex-col overflow-hidden bg-ivory-100">
       {!chromeless && (
       <header className="flex shrink-0 items-center justify-between px-4 py-2 sm:px-6 lg:px-16 lg:py-4">
         <button

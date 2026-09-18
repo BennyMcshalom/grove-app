@@ -113,6 +113,26 @@
 
 /* Scrolling panels sit inside cards and lists, where the platform scrollbar is
    wide enough to read as part of the design. This keeps it out of the way. */
+/**
+ * Full viewport height, for the shells that pin themselves to the window so
+ * only their inner columns scroll. `dvh` is dropped by browsers older than
+ * Chrome 108 / Safari 15.4, and a shell that loses its height collapses to
+ * `auto`: every `h-full` inside it stops constraining, and the whole page
+ * grows and scrolls instead. The `vh` line is the fallback those browsers use.
+ */
+@utility h-viewport {
+  height: 100vh;
+}
+
+/* Kept as a feature query, not two `height` lines: the build's minifier drops
+   a plain `vh` line it believes no target browser needs. Unlayered, so it
+   wins over the utility above wherever `dvh` does work. */
+@supports (height: 100dvh) {
+  .h-viewport {
+    height: 100dvh;
+  }
+}
+
 @utility scroll-slim {
   scrollbar-width: thin;
   scrollbar-color: var(--color-ivory-600) transparent;
