@@ -326,19 +326,18 @@ one. Secrets are stored literally here: don't escape a `$` as `\$` the way
 This app lives on the `backend` branch. The repo's `main` branch holds a
 different app with its own history, so never deploy `main`.
 
-Deploys currently come from this machine:
+Both services are connected to the repo and deploy on every push to
+`backend`. To deploy uncommitted work from this machine instead:
 
 ```bash
 railway up --service web
 railway up --service cron
 ```
 
-For deploys on push, Railway's GitHub App needs access to
-`BennyMcshalom/grove-app` — install it at
-<https://github.com/apps/railway/installations/new> and grant that repo. Then,
-under the service's **Settings → Source**, connect the repo and set the branch
-to `backend`. Until that grant exists, Railway answers "no one in the project
-has access to it".
+If Railway ever answers "no one in the project has access to it", the Railway
+**account** has lost its GitHub link — connect it again under Account Settings
+(installing the GitHub App at <https://github.com/apps/railway-app> is a
+separate step, and both are needed).
 
 ### After the domain changes
 
@@ -373,11 +372,6 @@ server logs a warning on every boot while that flag is on.
 `subscriptions.status` is written correctly (`trialing`, `active`, `past_due`,
 `canceled`, `expired`) and nothing reads it. Decide what full access unlocks,
 then gate those features on it.
-
-### Deploys are manual
-
-Railway deploys from this machine with `railway up`. Auto-deploy on push needs
-Railway's GitHub App granted access to the repo — see [Railway](#railway).
 
 ### Google sign-in is off
 
