@@ -199,7 +199,7 @@ curl -X POST https://<railway-domain>/api/cron/notification-emails \
   -H "Authorization: Bearer $CRON_SECRET"
 ```
 
-On Railway, that's the cron service described under [Railway](#railway). Any
+On Railway, that's the `cron` service described under [Railway](#railway). Any
 external scheduler works too. A notification still unsent after a day is dropped, not sent late.
 
 ## RevenueCat (billing)
@@ -285,30 +285,62 @@ is compatible, and its free tier allows 5,000 lookups a day.
 
 ## Railway
 
+The project is **Grouv**, with two services in the `production` environment:
+`web` (the app) and `cron` (notification emails). The app is at
+<https://web-production-a8471.up.railway.app>.
+
+Railway no longer reads `railway.json` — config-as-code is deprecated in
+favour of `.railway/railway.ts`, which can't describe these two services
+without also taking over every variable. Both services are therefore
+configured in Railway itself, under **Settings → Build / Deploy**:
+
+| Setting | `web` | `cron` |
+| --- | --- | --- |
+| Build command | `npm run build` | `echo no build needed` |
+| Start command | `npm run start` | `node scripts/cron/notification-emails.mjs` |
+| Health check | `/api/health`, 120s | — |
+| Cron schedule | — | `*/10 * * * *` |
+| Restart policy | On failure, 5 retries | Never |
+
+Railpack picks Node 22 from `engines`.
+
+### Variables
+
+`web` holds every name in `.env.example`. `cron` needs only two, and takes
+them from `web`:
+
+- `NEXT_PUBLIC_SITE_URL=${{web.NEXT_PUBLIC_SITE_URL}}`
+- `CRON_SECRET=${{web.CRON_SECRET}}`
+
+`NEXT_PUBLIC_*` values are baked in at build time, so redeploy after changing
+one. Secrets are stored literally here: don't escape a `$` as `\$` the way
+`.env` files need.
+
+### Deploying
+
 This app lives on the `backend` branch. The repo's `main` branch holds a
-different app with its own history, so point every Railway service at
-`backend`.
+different app with its own history, so never deploy `main`.
 
-### Web service
+Deploys currently come from this machine:
 
-1. New project → **Deploy from GitHub repo** → `BennyMcshalom/grove-app`. If
-   the repo isn't listed, give Railway's GitHub app access to it first.
-2. Under the service's **Settings → Source**, set **Branch** to `backend`.
-   `railway.json` sets the build and start commands and a health check on
-   `/api/health`. Railpack picks Node 22 from `engines`.
-3. Add every variable from `.env.example` under **Variables**, including a
-   long random `CRON_SECRET`. `NEXT_PUBLIC_*` values are baked in at build
-   time, so redeploy after changing them.
-4. Under **Settings → Networking**, generate a domain. Then:
-   - Set `NEXT_PUBLIC_SITE_URL` to it.
-   - Add `https://<domain>/auth/callback` to Supabase's redirect URLs.
-   - Point the RevenueCat and LiveKit webhooks at it.
+```bash
+railway up --service web
+railway up --service cron
+```
 
-### Cron service (notification emails)
+For deploys on push, Railway's GitHub App needs access to
+`BennyMcshalom/grove-app` — install it at
+<https://github.com/apps/railway/installations/new> and grant that repo. Then,
+under the service's **Settings → Source**, connect the repo and set the branch
+to `backend`. Until that grant exists, Railway answers "no one in the project
+has access to it".
 
-1. In the same project, add another service from the same repo and branch.
-2. Under **Settings → Config-as-code**, set the path to `/railway.cron.json`.
-   It runs `scripts/cron/notification-emails.mjs` every 10 minutes.
-3. Give it two variables that reference the web service:
-   - `NEXT_PUBLIC_SITE_URL=${{<web service>.NEXT_PUBLIC_SITE_URL}}`
-   - `CRON_SECRET=${{<web service>.CRON_SECRET}}`
+### After the domain changes
+
+Under **Settings → Networking**, a generated domain already exists. If it
+changes, update all of these:
+
+- `NEXT_PUBLIC_SITE_URL` on the `web` service.
+- `site_url` and `additional_redirect_urls` in `supabase/config.toml`, then
+  `npx supabase config push`.
+- The RevenueCat and LiveKit webhook URLs.
