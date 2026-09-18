@@ -134,6 +134,13 @@
 }
 
 @utility scroll-slim {
+  /* A scroll region must also be a containing block. `overflow` only clips an
+     absolutely positioned descendant when the scroller is what positions it —
+     otherwise the element is laid out against the page and escapes. That is
+     how one `sr-only` label (absolute, 1px) deep in a long feed stretched the
+     document past the shell and made the whole page scroll. */
+  position: relative;
+
   scrollbar-width: thin;
   scrollbar-color: var(--color-ivory-600) transparent;
 
