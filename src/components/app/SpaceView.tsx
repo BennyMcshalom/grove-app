@@ -111,7 +111,7 @@ export function SpaceView({
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex shrink-0 items-center gap-2 bg-white px-6 py-6 lg:px-8">
+        <header className="flex shrink-0 items-center gap-2 bg-surface px-6 py-6 lg:px-8">
           <Image
             src={chapter.icon}
             alt=""
@@ -135,7 +135,7 @@ export function SpaceView({
                       {faces.map((m, i) => (
                         <span
                           key={m.userId}
-                          className="rounded-full border-2 border-white"
+                          className="rounded-full border-2 border-surface"
                           style={{ marginLeft: i === 0 ? 0 : -6 }}
                         >
                           <Avatar src={m.avatarUrl} name={m.name} sizes="24px" className="size-5" />
@@ -188,7 +188,7 @@ export function SpaceView({
 
             {tab === "Open" && (
               <div className="flex flex-col gap-6">
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-surface p-5">
                   <div className="flex flex-col gap-1">
                     <span className="font-sans text-base font-semibold text-ink-600">
                       {acrossRegions && hasRegion ? "Showing every region" : "Search across regions"}
@@ -257,7 +257,7 @@ export function SpaceView({
                   {members.map((member) => (
                     <li
                       key={member.userId}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-5"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface p-5"
                     >
                       <span className="flex min-w-0 flex-wrap items-center gap-2">
                         <Avatar src={member.avatarUrl} name={member.name} className="size-10" />
@@ -310,7 +310,7 @@ function OpenPost({
   const connection = member?.connection ?? "none";
 
   return (
-    <article className="flex flex-col gap-3 rounded-2xl bg-white p-5">
+    <article className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="flex min-w-0 flex-wrap items-center gap-2">
           <Avatar src={post.avatar} name={post.author} className="size-10" />
@@ -359,7 +359,7 @@ function AnonymousTab({
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-4">
         <h2 className="font-sans text-base text-ink-400">YOUR ASK</h2>
-        <div className="flex flex-col gap-3 rounded-2xl bg-white p-5">
+        <div className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
           <textarea
             value={ask}
             onChange={(e) => setAsk(e.target.value)}
@@ -398,7 +398,7 @@ function AnonymousTab({
       </section>
 
       {questions.map((question) => (
-        <div key={question.id} className="flex flex-col gap-4 rounded-2xl bg-white p-5">
+        <div key={question.id} className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
           <p className="rounded-lg bg-ivory-100 px-4 py-3 font-sans text-base text-ink-500">
             &ldquo;{question.body}&rdquo;
           </p>

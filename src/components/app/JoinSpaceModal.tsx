@@ -46,7 +46,7 @@ export function JoinSpaceModal({
         aria-modal="true"
         aria-label={`Join ${chapter.name}`}
         onClick={(e) => e.stopPropagation()}
-        className="my-auto flex w-full max-w-[560px] flex-col gap-6 rounded-2xl bg-white p-5 sm:p-6"
+        className="my-auto flex w-full max-w-[560px] flex-col gap-6 rounded-2xl bg-surface p-5 sm:p-6"
       >
         <header className="flex items-center justify-between gap-4">
           <span className="flex items-center gap-2">
@@ -91,10 +91,10 @@ export function JoinSpaceModal({
                     "flex w-full items-center justify-between gap-4 rounded-2xl border p-3.5 text-left transition-colors sm:p-4",
                     on
                       ? "border-primary-500 bg-primary-50"
-                      : "border-ink-50 bg-white hover:bg-ivory-100",
+                      : "border-ink-50 bg-surface hover:bg-ivory-100",
                   )}
                 >
-                  <span className="font-sans text-sm font-medium text-[#1F2937] sm:text-base">
+                  <span className="font-sans text-sm font-medium text-ink-700 sm:text-base">
                     {option}
                   </span>
                   <span

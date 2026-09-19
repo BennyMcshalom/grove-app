@@ -25,7 +25,7 @@ export default function ChaptersPage() {
       <div className="min-h-0 flex-1 snap-y snap-proximity scroll-slim overflow-y-auto">
         <div className="mx-auto flex min-h-full w-full max-w-[1216px] flex-col justify-center gap-3 py-1 lg:gap-5">
           <header className="flex shrink-0 flex-col gap-2 text-center">
-            <h1 className="mx-auto max-w-[784px] font-display text-lg leading-[1.04] font-semibold text-[#1F2937] sm:text-xl lg:text-2xl xl:text-3xl [@media(max-height:680px)]:text-base">
+            <h1 className="mx-auto max-w-[784px] font-display text-lg leading-[1.04] font-semibold text-ink-700 sm:text-xl lg:text-2xl xl:text-3xl [@media(max-height:680px)]:text-base">
               Which chapters of life are you in?
             </h1>
             <p className="font-sans text-xs text-ink-300 lg:text-sm">
@@ -51,7 +51,7 @@ export default function ChaptersPage() {
                     disabled={disabled}
                     aria-pressed={selected}
                     className={cn(
-                      "flex h-full w-full flex-col items-center gap-1.5 rounded-2xl bg-white px-3 py-4 lg:gap-2 lg:px-4 lg:py-5",
+                      "flex h-full w-full flex-col items-center gap-1.5 rounded-2xl bg-surface px-3 py-4 lg:gap-2 lg:px-4 lg:py-5",
                       // Width breakpoints can't see a short window, so compact on
                       // height too — otherwise a 560px-tall viewport clips a row.
                       "[@media(max-height:680px)]:gap-1 [@media(max-height:680px)]:py-2.5 [@media(max-height:680px)]:lg:py-3",
@@ -73,7 +73,7 @@ export default function ChaptersPage() {
                       className="size-8 shrink-0 lg:size-10 [@media(max-height:680px)]:size-7 [@media(max-height:680px)]:lg:size-8"
                     />
                     <span className="flex flex-col gap-0.5">
-                      <span className="font-display text-sm font-bold text-[#1F2937] lg:text-base">
+                      <span className="font-display text-sm font-bold text-ink-700 lg:text-base">
                         {chapter.name}
                       </span>
                       <span className="font-sans text-[11px] leading-snug text-ink-300 lg:text-xs">

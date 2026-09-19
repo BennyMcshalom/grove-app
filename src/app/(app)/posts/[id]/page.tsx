@@ -24,7 +24,7 @@ export default async function PostPage({ params }: PageProps<"/posts/[id]">) {
           {post ? (
             <PostCard post={post} />
           ) : (
-            <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-6 py-12 text-center">
+            <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface px-6 py-12 text-center">
               <p className="font-sans text-base text-ink-500">This post isn&rsquo;t available.</p>
               <p className="font-sans text-sm text-ink-300">
                 It may have been deleted, or it&rsquo;s in a space you don&rsquo;t hold.

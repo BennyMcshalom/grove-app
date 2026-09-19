@@ -69,7 +69,7 @@ export function CreateEventModal({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="Create an Event"
         onClick={(e) => e.stopPropagation()}
-        className="my-auto flex w-full max-w-[600px] flex-col gap-6 rounded-2xl bg-white p-6 sm:p-8"
+        className="my-auto flex w-full max-w-[600px] flex-col gap-6 rounded-2xl bg-surface p-6 sm:p-8"
       >
         <header className="flex items-center justify-between gap-4">
           <h2 className="font-display text-2xl font-semibold text-ink-800">

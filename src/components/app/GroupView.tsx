@@ -59,7 +59,7 @@ export function GroupView({
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Frame 205:8480 — the glyph beside the group name. */}
-        <header className="flex shrink-0 items-center gap-2 bg-white px-6 py-6 lg:px-8">
+        <header className="flex shrink-0 items-center gap-2 bg-surface px-6 py-6 lg:px-8">
           {/* The phone frame (631:14497) leads with a back arrow. */}
           <Link
             href="/groups"
@@ -102,7 +102,7 @@ export function GroupView({
                     {group.memberAvatars.map((src, i) => (
                       <span
                         key={`${src}-${i}`}
-                        className="rounded-full border-2 border-white"
+                        className="rounded-full border-2 border-surface"
                         style={{ marginLeft: i === 0 ? 0 : -6 }}
                       >
                         <Avatar src={src} name="" sizes="24px" className="size-5" />
@@ -147,11 +147,11 @@ export function GroupView({
                 </>
               ) : member ? null : requested ? (
                 /* Frame 222:13844 — the sent confirmation. */
-                <section className="flex flex-col items-center gap-2 rounded-2xl bg-white px-6 py-8 text-center">
+                <section className="flex flex-col items-center gap-2 rounded-2xl bg-surface px-6 py-8 text-center">
                   <span className="grid size-10 place-items-center rounded-full bg-primary-50 text-primary-600">
                     <CheckIcon />
                   </span>
-                  <h2 className="font-display text-2xl font-semibold text-[#101928]">
+                  <h2 className="font-display text-2xl font-semibold text-ink-700">
                     Request sent
                   </h2>
                   <p className="font-sans text-base text-ink-400">
@@ -171,9 +171,9 @@ export function GroupView({
                   </button>
                 </section>
               ) : (
-                <section className="flex flex-col gap-6 rounded-2xl bg-white px-6 py-6 lg:px-8">
+                <section className="flex flex-col gap-6 rounded-2xl bg-surface px-6 py-6 lg:px-8">
                   <div className="flex flex-col items-center gap-2 text-center">
-                    <h2 className="font-display text-2xl font-semibold text-[#101928]">
+                    <h2 className="font-display text-2xl font-semibold text-ink-700">
                       {group.joinPolicy === "open" ? "Join this chapter" : "Request to join this chapter"}
                     </h2>
                     <p className="font-sans text-base text-ink-400">
@@ -197,7 +197,7 @@ export function GroupView({
                           else toast({ title: `You joined ${group.title}` });
                         })
                       }
-                      className="w-full rounded-full bg-primary-500 px-6 py-2.5 font-ui text-sm text-ink-50 transition-colors hover:bg-primary-400 disabled:opacity-60"
+                      className="w-full rounded-full bg-primary-500 px-6 py-2.5 font-ui text-sm text-white transition-colors hover:bg-primary-400 disabled:opacity-60"
                     >
                       {group.joinPolicy === "open" ? "Join group" : "Send join request"}
                     </button>
@@ -227,7 +227,7 @@ export function GroupView({
             </div>
 
             {!member ? (
-              <p className="rounded-2xl bg-white px-6 py-8 text-center font-sans text-sm text-ink-300">
+              <p className="rounded-2xl bg-surface px-6 py-8 text-center font-sans text-sm text-ink-300">
                 Members can read the {tab === "Conversation" ? "conversation" : tab === "Truth Board" ? "Truth Board" : "video truths"}.
               </p>
             ) : tab === "Conversation" ? (
@@ -242,7 +242,7 @@ export function GroupView({
 
         {member && tab === "Conversation" && (
           /* Frame 222:13512 — the comment bar. */
-          <div className="shrink-0 border-t border-ink-50 bg-white px-4 py-5 lg:px-8">
+          <div className="shrink-0 border-t border-ink-50 bg-surface px-4 py-5 lg:px-8">
             <RoomComposer placeholder="Add a comment......" onSend={chat.send} sending={chat.sending} />
           </div>
         )}
@@ -303,7 +303,7 @@ function JoinRequests({ requests }: { requests: JoinRequest[] }) {
   const [handled, setHandled] = useState<Record<string, string>>({});
 
   return (
-    <section className="flex flex-col gap-3 rounded-2xl bg-white p-5">
+    <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
       <h2 className="font-sans text-base text-ink-400">JOIN REQUESTS</h2>
       <ul className="flex flex-col gap-3">
         {requests.map((request) => (
@@ -378,7 +378,7 @@ function TruthBoard({ groupId, truths: initial }: { groupId: string; truths: Tru
 
       {/* Frame 48097631 — the anonymous prompt. */}
       <form
-        className="flex flex-col gap-4 rounded-2xl bg-white p-5"
+        className="flex flex-col gap-4 rounded-2xl bg-surface p-5"
         onSubmit={(e) => {
           e.preventDefault();
           const body = draft.trim();
@@ -421,7 +421,7 @@ function TruthBoard({ groupId, truths: initial }: { groupId: string; truths: Tru
       ) : (
         <ul className="flex flex-col gap-4">
           {truths.map((truth) => (
-            <li key={truth.id} className="flex flex-col gap-4 rounded-2xl bg-white p-5">
+            <li key={truth.id} className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
               <p className="font-sans text-base whitespace-pre-line text-ink-500">{truth.body}</p>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="flex items-center gap-2 font-sans text-xs text-ink-300">
@@ -493,7 +493,7 @@ function VideoTruths({ groupId, videos: initial }: { groupId: string; videos: Vi
     <div className="flex flex-col gap-4">
       <h2 className="font-sans text-base text-ink-400">VIDEO TRUTHS</h2>
 
-      <div className="flex flex-col gap-4 rounded-2xl bg-white p-5">
+      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
         <p className="font-sans text-base text-ink-500">
           I don&rsquo;t know who needs to hear this, but...... said out loud
         </p>

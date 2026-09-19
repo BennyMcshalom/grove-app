@@ -53,7 +53,7 @@ export function ChapterReflection({
         aria-modal="true"
         aria-label={`${chapter} Reflection`}
         onClick={(e) => e.stopPropagation()}
-        className="my-auto flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-white p-6 sm:p-8"
+        className="my-auto flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-surface p-6 sm:p-8"
       >
         <header className="flex items-center justify-between gap-4">
           <h2 className="font-display text-2xl font-semibold text-ink-800">
@@ -82,7 +82,7 @@ export function ChapterReflection({
           <div className="flex flex-wrap items-center gap-3">
             {tallies.map((tally, i) => (
               <span key={tally} className="flex items-center gap-3">
-                {i > 0 && <span className="size-1.5 rounded-full bg-[#D9D9D9]" />}
+                {i > 0 && <span className="size-1.5 rounded-full bg-ivory-600" />}
                 <span className="font-sans text-sm text-ink-400">{tally}</span>
               </span>
             ))}

@@ -86,7 +86,7 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
   const badge = BADGES.find((b) => b.id === entered);
 
   return (
-    <section className="flex flex-col items-center gap-10 rounded-2xl bg-white px-5 py-10 lg:flex-row lg:items-center lg:gap-[78px] lg:px-20">
+    <section className="flex flex-col items-center gap-10 rounded-2xl bg-surface px-5 py-10 lg:flex-row lg:items-center lg:gap-[78px] lg:px-20">
       <div className="flex w-full max-w-[390px] shrink-0 flex-col gap-6">
         <div
           className="relative w-full"
@@ -180,7 +180,7 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
               </span>
             )}
             <span className="flex items-center gap-1 rounded-full bg-ivory-500 px-2 py-1 font-sans text-xs font-medium text-ink-400">
-              <span className={cn("size-1.5 rounded-full", aura?.dot === "bg-white" ? "bg-primary-600" : aura?.dot)} />
+              <span className={cn("size-1.5 rounded-full", aura?.dot === "bg-surface" ? "bg-primary-600" : aura?.dot)} />
               {auraLabel(viewer.aura)}
             </span>
           </div>

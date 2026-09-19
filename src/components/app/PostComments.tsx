@@ -123,7 +123,7 @@ export function PostComments({
             rows={1}
             maxLength={2000}
             placeholder="Add a comment"
-            className="w-full resize-none rounded-lg bg-white px-3.5 py-2.5 font-sans text-sm text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-300 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
+            className="w-full resize-none rounded-lg bg-surface px-3.5 py-2.5 font-sans text-sm text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-300 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
           />
         </label>
         <button

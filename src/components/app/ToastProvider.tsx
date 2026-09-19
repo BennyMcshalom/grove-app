@@ -52,7 +52,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               onClose={() =>
                 setToasts((prev) => prev.filter((t) => t.id !== toast.id))
               }
-              className="pointer-events-auto w-full bg-white shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)] sm:w-[394px]"
+              className="pointer-events-auto w-full bg-surface shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)] sm:w-[394px]"
             />
           ))}
         </div>

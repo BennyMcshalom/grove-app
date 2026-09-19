@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { PresenceProvider } from "@/components/app/Presence";
 import { UnreadProvider } from "@/components/app/Unread";
 import type { Aura } from "@/lib/profile";
+import { applyTheme } from "@/lib/theme";
 
 /**
  * The signed-in user as the app shell needs them: loaded once per request in
@@ -23,6 +24,8 @@ export interface ShellViewer {
   unreadNotifications: number;
   /** Set while a Deep Focus session is running. */
   focusEndsAt: string | null;
+  /** The saved appearance. `applyTheme` puts it on <html>. */
+  theme: "light" | "dark";
   /** LiveKit is configured, so bond chats can place calls. */
   callsEnabled: boolean;
 }
@@ -42,6 +45,12 @@ export function ViewerProvider({
   viewer: ShellViewer;
   children: React.ReactNode;
 }) {
+  // The cookie may be stale, or missing on a device they've just signed in
+  // on; the profile decides.
+  useEffect(() => {
+    applyTheme(viewer.theme);
+  }, [viewer.theme]);
+
   return (
     <ViewerContext.Provider value={viewer}>
       <PresenceProvider userId={viewer.id}>

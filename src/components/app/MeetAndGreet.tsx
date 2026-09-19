@@ -38,7 +38,7 @@ export function MeetAndGreet({ rooms, onHost }: { rooms: LiveRoom[]; onHost?: ()
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-6 rounded-2xl bg-white p-5">
+      <section className="flex flex-col gap-6 rounded-2xl bg-surface p-5">
         <p className="font-sans text-xs tracking-wide text-ink-300 uppercase">
           Start a Meet &amp; Greet
         </p>
@@ -87,7 +87,7 @@ export function MeetAndGreet({ rooms, onHost }: { rooms: LiveRoom[]; onHost?: ()
             className="flex flex-col gap-2 rounded-lg p-4 text-left"
             style={{
               backgroundImage:
-                "linear-gradient(135deg, rgba(250,231,237,1) 0%, rgba(240,221,221,1) 100%)",
+                "var(--wash-pink)",
             }}
           >
             <div className="flex w-full items-center justify-between gap-2">
@@ -116,7 +116,7 @@ export function MeetAndGreet({ rooms, onHost }: { rooms: LiveRoom[]; onHost?: ()
             aria-label="Search rooms"
             aria-expanded={search !== null}
             onClick={() => setSearch((v) => (v === null ? "" : null))}
-            className="grid size-10 place-items-center rounded-full bg-white text-ink-400 transition-colors hover:bg-ivory-200"
+            className="grid size-10 place-items-center rounded-full bg-surface text-ink-400 transition-colors hover:bg-ivory-200"
           >
             <SearchIcon />
           </button>
@@ -132,12 +132,12 @@ export function MeetAndGreet({ rooms, onHost }: { rooms: LiveRoom[]; onHost?: ()
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search rooms"
-          className="w-full rounded-full border border-ink-100 bg-white px-5 py-3 font-sans text-sm text-ink-500 outline-none placeholder:text-ink-200 focus:border-primary-200"
+          className="w-full rounded-full border border-ink-100 bg-surface px-5 py-3 font-sans text-sm text-ink-500 outline-none placeholder:text-ink-200 focus:border-primary-200"
         />
       )}
 
       {visible.length === 0 ? (
-        <p className="rounded-lg bg-white px-4 py-8 text-center font-sans text-sm text-ink-300">
+        <p className="rounded-lg bg-surface px-4 py-8 text-center font-sans text-sm text-ink-300">
           No one has turned on a Meet &amp; Greet yet. Start one above.
         </p>
       ) : (
@@ -148,7 +148,7 @@ export function MeetAndGreet({ rooms, onHost }: { rooms: LiveRoom[]; onHost?: ()
                 type="button"
                 disabled={pending}
                 onClick={() => enter(room)}
-                className="flex w-full gap-2 rounded-lg bg-white p-4 text-left transition-colors hover:bg-ivory-50"
+                className="flex w-full gap-2 rounded-lg bg-surface p-4 text-left transition-colors hover:bg-ivory-50"
               >
                 <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600">
                   <LaptopIcon />

@@ -107,7 +107,7 @@ export function TopBar({
     <>
     {/* Frame 621:32061 — the phone header carries the logo and three glyphs;
         the sidebar that holds them on desktop is hidden at this width. */}
-    <header className="flex shrink-0 flex-col gap-3 bg-white px-5 pt-3 lg:hidden">
+    <header className="flex shrink-0 flex-col gap-3 bg-surface px-5 pt-3 lg:hidden">
       <div className="flex items-center justify-between gap-4">
         <Link href="/home" aria-label="Grouv home">
           <Logo className="h-6" />
@@ -117,7 +117,7 @@ export function TopBar({
             type="button"
             aria-label={`Notifications, ${unread} unread`}
             onClick={() => setNotificationsOpen(true)}
-            className="relative text-[#1D2939]"
+            className="relative text-ink-700"
           >
             <BellIcon className="size-8" />
             {unread > 0 && (
@@ -126,13 +126,13 @@ export function TopBar({
               </span>
             )}
           </button>
-          <Link href="/search" aria-label="Search" className="text-[#1D2939]">
+          <Link href="/search" aria-label="Search" className="text-ink-700">
             <SearchIcon className="size-7" />
           </Link>
           <Link
             href="/settings"
             aria-label="Appearance"
-            className="text-[#1D2939]"
+            className="text-ink-700"
           >
             <MoonIcon className="size-7" />
           </Link>
@@ -156,7 +156,7 @@ export function TopBar({
     </header>
 
     {!phoneOnly && (
-    <header className="hidden shrink-0 flex-wrap items-end justify-between gap-4 bg-white px-6 pt-8 lg:flex lg:pr-12 lg:pt-13">
+    <header className="hidden shrink-0 flex-wrap items-end justify-between gap-4 bg-surface px-6 pt-8 lg:flex lg:pr-12 lg:pt-13">
       {title ? (
         <div className="flex items-center gap-4 pb-2">
           {icon}
@@ -193,7 +193,7 @@ export function TopBar({
           type="button"
           aria-label={`Notifications, ${unread} unread`}
           onClick={() => setNotificationsOpen(true)}
-          className="relative rounded-full p-1 text-[#1D2939] transition-colors hover:bg-ivory-200"
+          className="relative rounded-full p-1 text-ink-700 transition-colors hover:bg-ivory-200"
         >
           <BellIcon className="size-8" />
           {unread > 0 && (

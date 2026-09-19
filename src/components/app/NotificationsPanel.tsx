@@ -51,7 +51,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
         className="flex-1 cursor-default"
       />
 
-      <aside className="flex h-full w-full max-w-[584px] flex-col justify-between scroll-slim overflow-y-auto bg-white px-5 py-6 lg:px-8 lg:py-10">
+      <aside className="flex h-full w-full max-w-[584px] flex-col justify-between scroll-slim overflow-y-auto bg-surface px-5 py-6 lg:px-8 lg:py-10">
         <div className="flex flex-col gap-6">
           <header className="flex items-center gap-4 lg:justify-between">
             <button
@@ -78,7 +78,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
           {items === null ? (
             <p className="py-10 text-center font-sans text-sm text-ink-300">Loading…</p>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-lg bg-white px-6 py-14 text-center">
+            <div className="flex flex-col items-center gap-3 rounded-lg bg-surface px-6 py-14 text-center">
               <BellArt />
               <p className="font-display text-2xl font-semibold text-ink-800">
                 No Notifications

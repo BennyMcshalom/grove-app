@@ -8,7 +8,7 @@ export const AURAS = [
   { value: "reflective", label: "Reflective", dot: "bg-success-50" },
   { value: "open_to_connect", label: "Open to connect", dot: "bg-destructive-50" },
   { value: "deep_focus", label: "Deep Focus", dot: "bg-warning-40" },
-  { value: "in_transition", label: "In transition", dot: "bg-white" },
+  { value: "in_transition", label: "In transition", dot: "bg-surface" },
   { value: "active_nearby", label: "Active nearby", dot: "bg-primary-600" },
 ] as const;
 

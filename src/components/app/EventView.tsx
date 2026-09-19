@@ -102,7 +102,7 @@ export function EventView({
 
           <section
             className={cn(
-              "mx-auto w-full max-w-[724px] flex-col items-center gap-4 rounded-2xl bg-white p-6",
+              "mx-auto w-full max-w-[724px] flex-col items-center gap-4 rounded-2xl bg-surface p-6",
               tab === "Conversation" ? "flex" : "hidden xl:flex",
             )}
           >
@@ -138,7 +138,7 @@ export function EventView({
         {event.going && !cancelled && (
           <div
             className={cn(
-              "shrink-0 border-t border-ink-50 bg-white px-4 py-5 lg:px-8",
+              "shrink-0 border-t border-ink-50 bg-surface px-4 py-5 lg:px-8",
               tab === "Conversation" ? "block" : "hidden xl:block",
             )}
           >
@@ -148,7 +148,7 @@ export function EventView({
       </div>
 
       {/* Sidebar 452:11307 — 396px, scrolls on its own. */}
-      <aside className="hidden w-[396px] shrink-0 flex-col gap-7 scroll-slim overflow-y-auto bg-white px-8 pt-6 pb-10 xl:flex">
+      <aside className="hidden w-[396px] shrink-0 flex-col gap-7 scroll-slim overflow-y-auto bg-surface px-8 pt-6 pb-10 xl:flex">
         {details}
       </aside>
     </div>

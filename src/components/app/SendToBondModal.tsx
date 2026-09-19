@@ -41,10 +41,10 @@ export function SendToBondModal({
         aria-modal="true"
         aria-label="Send to a Bond"
         onClick={(e) => e.stopPropagation()}
-        className="my-auto flex w-full max-w-[480px] flex-col gap-5 rounded-2xl bg-white p-6"
+        className="my-auto flex w-full max-w-[480px] flex-col gap-5 rounded-2xl bg-surface p-6"
       >
         <header className="flex items-center justify-between gap-4">
-          <h2 className="font-display text-xl font-semibold text-[#101928]">Send to a Bond</h2>
+          <h2 className="font-display text-xl font-semibold text-ink-700">Send to a Bond</h2>
           <button
             type="button"
             onClick={onClose}

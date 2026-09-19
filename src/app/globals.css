@@ -73,6 +73,12 @@
   --color-destructive-80: #9f1239;
   --color-destructive-90: #881337;
 
+  /* The colour of a card, sheet or menu — anything raised off the page. It is
+     white in the light theme and a lifted grey in the dark one, so use it
+     instead of `white` for surfaces. Plain `white` stays white in both, for
+     text and marks that sit on an accent colour. */
+  --color-surface: #ffffff;
+
   /* Type. Outfit = display, Figtree = body, Lato = buttons/labels. */
   --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
@@ -99,10 +105,84 @@
     font-family: var(--font-sans);
   }
 
-  /* The design has no dark mode; keep form controls in the light palette
-     so browsers don't auto-invert inputs on dark-set devices. */
+  /**
+   * The decorative washes behind profile banners and chapter cards. They carry
+   * text, so they can't stay hard-coded peach: components read these instead.
+   */
   :root {
     color-scheme: light;
+
+    --wash-banner: linear-gradient(0deg, #ffdfcf 0%, #ffece4 87%);
+    --wash-warm: linear-gradient(-7deg, rgba(254, 230, 215, 1) 0%, rgba(254, 251, 249, 1) 100%);
+    --wash-pink: linear-gradient(135deg, rgba(250, 231, 237, 1) 0%, rgba(240, 221, 221, 1) 100%);
+  }
+
+  /**
+   * Dark theme.
+   *
+   * Figma draws no dark palette, so this one is derived: the ink scale (text)
+   * and the ivory scale (backgrounds) swap ends, while the orange stays put —
+   * it is the brand, and it reads well on dark. Every utility in the app
+   * compiles to `var(--color-…)`, so redefining the tokens here re-themes the
+   * whole app without touching a component.
+   *
+   * Two rules when writing components: surfaces use `surface`, not `white`,
+   * and anything sitting on an accent colour (button labels, the toggle knob)
+   * uses `white`, which stays white here.
+   */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --wash-banner: linear-gradient(0deg, #3a2415 0%, #241b19 87%);
+    --wash-warm: linear-gradient(-7deg, #2e221c 0%, #211f26 100%);
+    --wash-pink: linear-gradient(135deg, #2d2027 0%, #262023 100%);
+
+    --color-surface: #201f25;
+
+    /* Backgrounds, darkest (the page) to lightest (borders, scrollbars). */
+    --color-ivory-50: #1b1a1f;
+    --color-ivory-100: #171619;
+    --color-ivory-200: #26252c;
+    --color-ivory-300: #2b2a32;
+    --color-ivory-400: #2f2e37;
+    --color-ivory-500: #35343e;
+    --color-ivory-600: #423f4d;
+    --color-ivory-700: #6c6a78;
+    --color-ivory-800: #8f8d9a;
+    --color-ivory-900: #b3b1bd;
+
+    /* Text and lines. ink-500..700 carry body copy and headings, so they are
+       the light end here; ink-0..100 become the quiet lines they draw. */
+    --color-ink-0: #131218;
+    --color-ink-50: #2c2b33;
+    --color-ink-100: #3a3943;
+    --color-ink-200: #6f6d7a;
+    --color-ink-300: #9d9bab;
+    --color-ink-400: #c2c0cc;
+    --color-ink-500: #e9e8ee;
+    --color-ink-600: #eeedf2;
+    --color-ink-700: #f4f3f7;
+    --color-ink-800: #f8f7fa;
+    --color-ink-900: #fdfdfe;
+
+    /* The palest tints are used as fills behind coloured text, so they darken
+       rather than lighten. The mid tones are left alone. */
+    --color-primary-50: #3a2415;
+    --color-primary-100: #4d2e19;
+
+    /* 700-900 are only ever text (nothing is painted with them), so they flip
+       to the light end to stay readable on a dark card. 600 doubles as the
+       toggle's fill, so it only warms up enough to clear 4.5:1. */
+    --color-primary-600: #ef7a2a;
+    --color-primary-700: #f79f68;
+    --color-primary-800: #f9bd98;
+    --color-primary-900: #fbd3b9;
+    --color-success-5: #10261a;
+    --color-success-10: #16361f;
+    --color-warning-5: #2b2110;
+    --color-warning-10: #3a2c13;
+    --color-destructive-5: #2e1620;
+    --color-destructive-10: #3d1b28;
   }
 }
 
@@ -111,8 +191,6 @@
   outline-offset: 2px;
 }
 
-/* Scrolling panels sit inside cards and lists, where the platform scrollbar is
-   wide enough to read as part of the design. This keeps it out of the way. */
 /**
  * Full viewport height, for the shells that pin themselves to the window so
  * only their inner columns scroll. `dvh` is dropped by browsers older than
@@ -133,6 +211,8 @@
   }
 }
 
+/* Scrolling panels sit inside cards and lists, where the platform scrollbar is
+   wide enough to read as part of the design. This keeps it out of the way. */
 @utility scroll-slim {
   /* A scroll region must also be a containing block. `overflow` only clips an
      absolutely positioned descendant when the scroller is what positions it —

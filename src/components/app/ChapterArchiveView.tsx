@@ -38,7 +38,7 @@ export function ChapterArchiveView({
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Frame 382:11746 — title left, "Read Reflection" right. The phone
           frame (638:28331) adds a back arrow and drops the button's fill. */}
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-4 bg-white px-5 py-6 lg:px-8">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-4 bg-surface px-5 py-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/archive"

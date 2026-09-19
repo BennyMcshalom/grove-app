@@ -77,7 +77,7 @@ export default function SpacePage() {
             />
             {/* text-balance keeps the wrap even on narrow phones, where the
                 longest chapter names cannot fit on one line at any size. */}
-            <h1 className="text-balance font-display text-lg leading-[1.15] font-semibold text-[#1F2937] sm:text-xl lg:text-2xl xl:text-3xl">
+            <h1 className="text-balance font-display text-lg leading-[1.15] font-semibold text-ink-700 sm:text-xl lg:text-2xl xl:text-3xl">
               {chapter.name}, where are you?
             </h1>
           </div>
@@ -99,7 +99,7 @@ export default function SpacePage() {
                   onClick={() => choose(option)}
                   aria-checked={isOn}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 rounded-2xl border bg-white p-3.5 text-left lg:p-4",
+                    "flex w-full items-center justify-between gap-3 rounded-2xl border bg-surface p-3.5 text-left lg:p-4",
                     "transition-colors duration-150",
                     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600",
                     isOn
@@ -107,7 +107,7 @@ export default function SpacePage() {
                       : "border-ink-50 hover:border-ivory-600",
                   )}
                 >
-                  <span className="font-sans text-sm font-medium text-[#1F2937] lg:text-base xl:text-lg">
+                  <span className="font-sans text-sm font-medium text-ink-700 lg:text-base xl:text-lg">
                     {option}
                   </span>
                   <span

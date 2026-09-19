@@ -89,7 +89,7 @@ export function LogPrompt({
   const noBond = scope === "bond" && bonds.length === 0;
 
   return (
-    <section className="flex w-full flex-col items-center gap-6 overflow-hidden rounded-3xl bg-white pt-6 shadow-[0px_0px_16px_0px_rgba(0,0,0,0.1)]">
+    <section className="flex w-full flex-col items-center gap-6 overflow-hidden rounded-3xl bg-surface pt-6 shadow-[0px_0px_16px_0px_rgba(0,0,0,0.1)]">
       <div className="flex items-center gap-2 px-4">
         <span className="flex items-center gap-1">
           <BriefcaseIcon className="size-4 text-primary-500" />
@@ -97,7 +97,7 @@ export function LogPrompt({
             {chapterName.toUpperCase()}
           </span>
         </span>
-        <span className="size-2 rounded-full bg-[#D9D9D9]" />
+        <span className="size-2 rounded-full bg-ivory-600" />
         <span className="font-sans text-sm text-ink-800">TODAY</span>
       </div>
 
@@ -207,10 +207,10 @@ export function LogPrompt({
       )}
 
       <div className="flex w-full flex-col bg-primary-600 p-4">
-        <span className="font-sans text-base font-medium text-ink-0">
+        <span className="font-sans text-base font-medium text-white">
           New Entry
         </span>
-        <span className="font-sans text-xs text-ink-50">
+        <span className="font-sans text-xs text-white">
           The story of your life
         </span>
       </div>
@@ -289,7 +289,7 @@ export function LogMemories({
         className={cn(
           "relative w-full overflow-hidden rounded-2xl",
           surface === "white"
-            ? "bg-white"
+            ? "bg-surface"
             : "h-[280px] lg:h-[354px]",
         )}
         style={
@@ -316,7 +316,7 @@ export function LogMemories({
             return (
               <figure
                 key={entry.id}
-                className="absolute overflow-hidden rounded-[20px] border border-ink-100 bg-white shadow-md"
+                className="absolute overflow-hidden rounded-[20px] border border-ink-100 bg-surface shadow-md"
                 style={{
                   left: slot.left,
                   top: slot.top,
@@ -373,7 +373,7 @@ function NavArrow({
       type="button"
       onClick={onClick}
       aria-label={side === "left" ? "Previous memory" : "Next memory"}
-      className="absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-white/40 text-ink-700 backdrop-blur-[20px]"
+      className="absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-surface/40 text-ink-700 backdrop-blur-[20px]"
       style={{
         [side]: "32px",
         backgroundImage:

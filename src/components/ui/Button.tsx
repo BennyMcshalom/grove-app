@@ -15,12 +15,12 @@ type Size = "sm" | "md" | "lg";
 const VARIANT: Record<Variant, string> = {
   // primary-500 base, primary-400 hover, primary-600 pressed
   primary:
-    "bg-primary-500 text-ink-0 hover:bg-primary-400 active:bg-primary-600 disabled:bg-ink-50 disabled:text-ink-200",
+    "bg-primary-500 text-white hover:bg-primary-400 active:bg-primary-600 disabled:bg-ink-50 disabled:text-ink-200",
   secondary:
     "bg-primary-50 text-primary-800 hover:bg-primary-100 active:bg-primary-200 disabled:bg-ink-50 disabled:text-ink-200",
   tertiary:
     "bg-transparent text-primary-800 hover:bg-primary-50 active:bg-primary-100 disabled:text-ink-200",
-  icon: "bg-primary-500 text-ink-0 hover:bg-primary-400 active:bg-primary-600 disabled:bg-ink-50 disabled:text-ink-200",
+  icon: "bg-primary-500 text-white hover:bg-primary-400 active:bg-primary-600 disabled:bg-ink-50 disabled:text-ink-200",
 };
 
 // Figma paddings: Small 10/12, Medium 12/16, Large 14/20. Gap is 8 throughout.

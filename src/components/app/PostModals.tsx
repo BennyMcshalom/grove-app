@@ -39,11 +39,11 @@ function Shell({
         aria-modal="true"
         aria-label={label}
         onClick={(e) => e.stopPropagation()}
-        className="my-auto flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-white p-6 sm:p-8"
+        className="my-auto flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-surface p-6 sm:p-8"
       >
         <header className="flex items-center justify-between gap-4">
           {header ?? (
-            <h2 className="font-display text-2xl font-semibold text-[#101928]">
+            <h2 className="font-display text-2xl font-semibold text-ink-700">
               {label}
             </h2>
           )}
@@ -92,12 +92,12 @@ export function EditPostModal({
               src={viewer.avatarUrl}
               name={viewer.firstName}
               sizes="48px"
-              className="size-12 border-[1.5px] border-white"
+              className="size-12 border-[1.5px] border-surface"
             />
-            <span className="absolute right-0 bottom-0 size-3 rounded-full border border-white bg-[#04802E]" />
+            <span className="absolute right-0 bottom-0 size-3 rounded-full border border-surface bg-[#04802E]" />
           </span>
           <div className="flex flex-col gap-3">
-            <span className="font-sans text-base font-bold text-[#101928]">
+            <span className="font-sans text-base font-bold text-ink-700">
               {viewer.firstName}
             </span>
             <span className="flex w-fit items-center gap-2 rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm font-semibold text-primary-600">
@@ -342,7 +342,7 @@ export function DeletePostModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full px-4 py-2 font-ui text-sm font-medium text-ink-400 transition-colors hover:bg-white"
+              className="rounded-full px-4 py-2 font-ui text-sm font-medium text-ink-400 transition-colors hover:bg-surface"
             >
               Cancel
             </button>

@@ -81,7 +81,7 @@ export function CloseChapterWizard({
         aria-modal="true"
         aria-label={`Close ${chapter.name}`}
         onClick={(e) => e.stopPropagation()}
-        className="my-auto flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-white p-6 sm:p-8"
+        className="my-auto flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-surface p-6 sm:p-8"
       >
         {step === 0 ? (
           <>
@@ -97,7 +97,7 @@ export function CloseChapterWizard({
                 className="size-10"
               />
               <div className="flex flex-col items-center gap-2 text-center">
-                <h2 className="font-display text-2xl font-semibold text-[#101928]">
+                <h2 className="font-display text-2xl font-semibold text-ink-700">
                   Before you close this chapter.
                 </h2>
                 <p className="font-sans text-sm text-ink-400">
@@ -136,7 +136,7 @@ export function CloseChapterWizard({
                   <p className="font-sans text-sm text-ink-200">
                     {question.step}
                   </p>
-                  <h3 className="font-display text-2xl font-semibold text-[#1F2937]">
+                  <h3 className="font-display text-2xl font-semibold text-ink-700">
                     {question.question}
                   </h3>
                 </div>
@@ -176,7 +176,7 @@ export function CloseChapterWizard({
                   <p className="font-sans text-sm text-ink-200">
                     Anything else?
                   </p>
-                  <h3 className="font-display text-2xl font-semibold text-[#1F2937]">
+                  <h3 className="font-display text-2xl font-semibold text-ink-700">
                     Anything else you want to record?
                   </h3>
                 </div>

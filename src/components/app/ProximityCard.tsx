@@ -34,7 +34,7 @@ export function ProximityCard({
         aria-modal="true"
         aria-label={person.name}
         onClick={(e) => e.stopPropagation()}
-        className="flex w-full max-w-[383px] flex-col items-end gap-6 rounded-2xl bg-white p-4"
+        className="flex w-full max-w-[383px] flex-col items-end gap-6 rounded-2xl bg-surface p-4"
       >
         <button
           type="button"
@@ -56,7 +56,7 @@ export function ProximityCard({
                   }}
                 />
                 <Avatar src={person.avatarUrl} name={person.name} sizes="48px" className="relative size-12" />
-                <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-white bg-success-60" />
+                <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
               </span>
 
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">

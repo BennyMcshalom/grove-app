@@ -67,14 +67,14 @@ export function YourGrouvView({
             {tab === TABS[0] ? (
               <FeedList query={{ scope: "mine" }} initial={posts} empty={<EmptyFeed />} />
             ) : logs.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 rounded-3xl bg-white px-4 py-10 text-center">
+              <div className="flex flex-col items-center gap-3 rounded-3xl bg-surface px-4 py-10 text-center">
                 <p className="font-sans text-sm text-ink-300">You haven&rsquo;t logged a moment yet.</p>
                 <Button size="sm" href="/log">
                   Open Grouv Log
                 </Button>
               </div>
             ) : (
-              <div className="rounded-3xl bg-white px-4 py-3">
+              <div className="rounded-3xl bg-surface px-4 py-3">
                 <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                   {logs.map((log) => (
                     <li
@@ -95,7 +95,7 @@ export function YourGrouvView({
                         <span
                           className={cn(
                             "flex items-center gap-2 font-sans text-[10px] font-medium",
-                            log.photoUrl ? "text-ink-50" : "text-ink-300",
+                            log.photoUrl ? "text-white" : "text-ink-300",
                           )}
                         >
                           Day {log.dayNumber}

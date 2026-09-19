@@ -143,7 +143,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
 
   if (viewer.chapters.length === 0) {
     return (
-      <article className="flex flex-col items-start gap-3 rounded-2xl bg-white p-6 lg:p-8">
+      <article className="flex flex-col items-start gap-3 rounded-2xl bg-surface p-6 lg:p-8">
         <p className="font-sans text-base text-ink-500">
           Posts live inside a chapter. Open one to start rooting thoughts.
         </p>
@@ -184,7 +184,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const submitDisabled = uploading || attachments.some((a) => a.status === "failed");
 
   return (
-    <article className="flex flex-col gap-6 rounded-2xl bg-white p-6 lg:p-8">
+    <article className="flex flex-col gap-6 rounded-2xl bg-surface p-6 lg:p-8">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <span className="relative size-12 shrink-0">
@@ -192,13 +192,13 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
               src={viewer.avatarUrl}
               name={viewer.firstName}
               sizes="48px"
-              className="size-12 border-[1.5px] border-white"
+              className="size-12 border-[1.5px] border-surface"
             />
-            <span className="absolute right-0 bottom-0 size-3 rounded-full border border-white bg-[#04802E]" />
+            <span className="absolute right-0 bottom-0 size-3 rounded-full border border-surface bg-[#04802E]" />
           </span>
 
           <div className="flex flex-col gap-3">
-            <span className="font-sans text-base font-bold text-[#101928]">
+            <span className="font-sans text-base font-bold text-ink-700">
               {viewer.firstName}
             </span>
             {/* Figma 110:3828 — this chip opens the "POSTING TO" chapter menu. */}

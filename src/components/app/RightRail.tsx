@@ -76,7 +76,7 @@ export function RightRail({
   const loading = rail === null && variant === "feed";
 
   return (
-    <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-white shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] xl:block">
+    <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] xl:block">
       <div className="flex w-full flex-col gap-7 px-8 pt-6 pb-10">
         <Section
           title={variant === "space" ? "In this space" : "Your circle"}
@@ -185,7 +185,7 @@ export function RightRail({
             >
               {rail.suggestions.map((p, i) => (
                 <li key={p.userId} className="flex flex-col gap-4">
-                  {i > 0 && <hr className="border-[#E8EDF1]" />}
+                  {i > 0 && <hr className="border-ink-50" />}
                   <div className="flex items-center justify-between gap-4">
                     <span className="flex min-w-0 items-center gap-4">
                       {/* Avatar 5 (94:3417) — 40px on a 5px white ring. */}
@@ -289,7 +289,7 @@ function BondAvatar({ userId, src, name }: { userId: string; src: string | null;
       <span className="pointer-events-none absolute inset-0 rounded-full ring-[6px] ring-white ring-inset" />
       {/* _AvatarIndicator 94:2873 — Success/50 at 36,36. */}
       {online && (
-        <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-white bg-success-50" />
+        <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-50" />
       )}
     </span>
   );
@@ -341,5 +341,5 @@ function StatusBadge({
 }
 
 function Divider() {
-  return <hr className="border-[#E8EDF1]" />;
+  return <hr className="border-ink-50" />;
 }

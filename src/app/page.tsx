@@ -24,10 +24,10 @@ export default function SplashPage() {
         <div className="flex w-full max-w-[603px] flex-col items-center gap-6 lg:gap-8 xl:gap-12">
           {/* Figma 31:653 — 16px gap between headline and body. */}
           <div className="flex flex-col items-center gap-3 text-center lg:gap-4">
-            <h1 className="font-display text-3xl leading-[1.1111] font-bold tracking-[-0.02em] text-ink-0 sm:text-4xl lg:text-5xl xl:text-[4.5rem]">
+            <h1 className="font-display text-3xl leading-[1.1111] font-bold tracking-[-0.02em] text-white sm:text-4xl lg:text-5xl xl:text-[4.5rem]">
               Depth, on purpose.
             </h1>
-            <p className="font-sans text-sm leading-[1.5] text-ink-50 sm:text-base lg:text-lg xl:text-xl">
+            <p className="font-sans text-sm leading-[1.5] text-white sm:text-base lg:text-lg xl:text-xl">
               It&rsquo;s a small circle of people in the same chapter as you. No
               audience. No performance. Just depth.
             </p>

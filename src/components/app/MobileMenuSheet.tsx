@@ -32,7 +32,7 @@ export function MobileMenuSheet({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="More"
         onClick={(e) => e.stopPropagation()}
-        className="flex w-full flex-col gap-6 rounded-t-2xl bg-white px-4 pt-8 pb-14"
+        className="flex w-full flex-col gap-6 rounded-t-2xl bg-surface px-4 pt-8 pb-14"
       >
         <div className="flex justify-end">
           <button
@@ -96,7 +96,7 @@ export function MobileMenuSheet({ onClose }: { onClose: () => void }) {
               <span className="font-sans text-sm font-semibold">
                 {subscriptionStatus === "none" ? "Start 14-day trial" : "Get full access"}
               </span>
-              <span className="font-sans text-xs text-ink-50">
+              <span className="font-sans text-xs text-white">
                 {subscriptionStatus === "none" ? "Full access, free" : "Subscribe in Settings"}
               </span>
             </span>

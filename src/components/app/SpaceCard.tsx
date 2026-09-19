@@ -35,7 +35,7 @@ export function OpenSpaceCard({
   const toast = useToast();
 
   return (
-    <article className="flex flex-col justify-between gap-4 rounded-lg bg-white p-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+    <article className="flex flex-col justify-between gap-4 rounded-lg bg-surface p-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <ChapterIcon chapter={chapter} />
@@ -53,7 +53,7 @@ export function OpenSpaceCard({
               {avatars.map((src, i) => (
                 <span
                   key={src}
-                  className="rounded-full border-2 border-white"
+                  className="rounded-full border-2 border-surface"
                   style={{ marginLeft: i === 0 ? 0 : -6 }}
                 >
                   <Avatar src={src} name="" sizes="24px" className="size-5" />
@@ -126,7 +126,7 @@ export function DirectorySpaceCard({ chapter }: { chapter: Chapter }) {
   const toast = useToast();
 
   return (
-    <article className="flex h-[142px] flex-col justify-between rounded-lg bg-white p-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+    <article className="flex h-[142px] flex-col justify-between rounded-lg bg-surface p-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <ChapterIcon chapter={chapter} />

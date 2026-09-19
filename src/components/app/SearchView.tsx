@@ -72,7 +72,7 @@ export function SearchView({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-ivory-100">
       {/* Frame 628:35194 — the phone gets a back/title bar. */}
-      <header className="flex shrink-0 items-center gap-4 bg-white px-5 py-4 lg:hidden">
+      <header className="flex shrink-0 items-center gap-4 bg-surface px-5 py-4 lg:hidden">
         <Link href="/home" aria-label="Back" className="text-ink-800">
           <BackIcon />
         </Link>
@@ -164,7 +164,7 @@ function ResultRow({ result, held }: { result: SearchResult; held: boolean }) {
             : "/spaces";
 
   return (
-    <Link href={href} className="flex items-center gap-4 rounded-2xl bg-white p-4 transition-colors hover:bg-ivory-50">
+    <Link href={href} className="flex items-center gap-4 rounded-2xl bg-surface p-4 transition-colors hover:bg-ivory-50">
       {result.kind === "person" ? (
         <Avatar src={result.image} name={result.title} className="size-10" />
       ) : result.kind === "space" && result.image ? (

@@ -120,7 +120,7 @@ export function LogView({
                     className={cn(
                       "rounded-full px-4 py-1.5 font-sans text-sm font-medium transition-colors",
                       s.value === scope
-                        ? "bg-white text-ink-700 shadow-sm"
+                        ? "bg-surface text-ink-700 shadow-sm"
                         : "text-ink-400 hover:text-ink-600",
                     )}
                   >
@@ -151,7 +151,7 @@ export function LogView({
               </header>
 
               {circle.length === 0 ? (
-                <p className="rounded-3xl bg-white px-4 py-6 text-center font-sans text-sm text-ink-300">
+                <p className="rounded-3xl bg-surface px-4 py-6 text-center font-sans text-sm text-ink-300">
                   {scope === "solo"
                     ? "When people in your circle log moments they share with you, they show up here."
                     : "Moments your bonds share with you show up here."}
@@ -161,7 +161,7 @@ export function LogView({
                   {circle.map((member) => (
                     <article
                       key={member.userId}
-                      className="flex flex-col gap-2 rounded-3xl bg-white px-4 py-3"
+                      className="flex flex-col gap-2 rounded-3xl bg-surface px-4 py-3"
                     >
                       <div className="flex items-center gap-6 p-2">
                         <Avatar src={member.avatarUrl} name={member.name} sizes="48px" className="size-12" />

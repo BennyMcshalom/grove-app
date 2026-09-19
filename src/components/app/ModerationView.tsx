@@ -86,7 +86,7 @@ function QueueCard({ item }: { item: QueueItem }) {
     });
 
   return (
-    <section className="flex w-full flex-col gap-3 rounded-lg bg-white px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+    <section className="flex w-full flex-col gap-3 rounded-lg bg-surface px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       <div className="flex flex-wrap items-center gap-2 font-sans text-sm">
         <span className="rounded-full bg-primary-50 px-2.5 py-0.5 font-medium text-primary-800">
           {TARGET_LABEL[item.targetType]}

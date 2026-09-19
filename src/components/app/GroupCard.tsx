@@ -32,7 +32,7 @@ export function GroupCard({
   const extra = group.memberCount - group.memberAvatars.length;
 
   return (
-    <article className="flex gap-2 rounded-lg bg-white p-4">
+    <article className="flex gap-2 rounded-lg bg-surface p-4">
       <span
         className="grid size-8 shrink-0 place-items-center rounded-full text-primary-600"
         style={{ backgroundColor: group.color }}
@@ -70,7 +70,7 @@ export function GroupCard({
             {group.memberAvatars.map((src, i) => (
               <span
                 key={`${src}-${i}`}
-                className="rounded-full border-2 border-white"
+                className="rounded-full border-2 border-surface"
                 style={{ marginLeft: i === 0 ? 0 : -8 }}
               >
                 <Avatar src={src} name="" sizes="32px" className="size-7" />
@@ -78,7 +78,7 @@ export function GroupCard({
             ))}
             {(extra > 0 || group.memberAvatars.length === 0) && (
               <span
-                className="grid size-8 place-items-center rounded-full border-2 border-white bg-primary-50 font-sans text-xs font-extrabold text-primary-600"
+                className="grid size-8 place-items-center rounded-full border-2 border-surface bg-primary-50 font-sans text-xs font-extrabold text-primary-600"
                 style={{ marginLeft: group.memberAvatars.length ? -8 : 0 }}
               >
                 {group.memberAvatars.length ? `+${extra}` : group.memberCount}

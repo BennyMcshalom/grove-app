@@ -9,11 +9,11 @@ import { eventDateLabel, type EventCard, type LiveRoom } from "@/lib/events";
  * Events replaces the feed rail with GROUV'D EVENTS (the ones you said yes to)
  * and YOUR LIVE MEET (the Meet & Greet room you are in).
  */
-const WASH = "linear-gradient(-7deg, rgba(254,230,215,1) 0%, rgba(254,251,249,1) 100%)";
+const WASH = "var(--wash-warm)";
 
 export function EventsRail({ events, room }: { events: EventCard[]; room: LiveRoom | null }) {
   return (
-    <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-white px-8 py-6 xl:block">
+    <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-surface px-8 py-6 xl:block">
       <div className="flex flex-col gap-7">
         <section className="flex flex-col gap-4">
           <h2 className="font-sans text-base font-medium text-ink-600">
@@ -37,7 +37,7 @@ export function EventsRail({ events, room }: { events: EventCard[]; room: LiveRo
                       {event.title}
                     </Link>
                     <span className="flex items-center gap-2">
-                      <span className="flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 font-sans text-[10px] font-medium text-ink-400">
+                      <span className="flex items-center gap-1 rounded-full bg-surface/70 px-2 py-0.5 font-sans text-[10px] font-medium text-ink-400">
                         <BagIcon />
                         {getChapter(event.chapterSlug)?.name}
                       </span>
@@ -56,7 +56,7 @@ export function EventsRail({ events, room }: { events: EventCard[]; room: LiveRo
                         {event.attendeeAvatars.slice(0, 4).map((src, i) => (
                           <span
                             key={`${src}-${i}`}
-                            className="rounded-full border-2 border-white"
+                            className="rounded-full border-2 border-surface"
                             style={{ marginLeft: i === 0 ? 0 : -6 }}
                           >
                             <Avatar src={src} name="" sizes="24px" className="size-5" />

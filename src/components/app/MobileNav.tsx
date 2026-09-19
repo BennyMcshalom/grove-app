@@ -32,7 +32,7 @@ export function MobileNav() {
 
   return (
     <>
-    <nav className="shrink-0 border-t border-ink-50 bg-white px-5 py-4 lg:hidden">
+    <nav className="shrink-0 border-t border-ink-50 bg-surface px-5 py-4 lg:hidden">
       <ul className="flex items-center justify-between">
         {ITEMS.map(({ href, label, Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);

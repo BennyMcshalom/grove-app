@@ -45,7 +45,7 @@ export function PostMenu({
     <div
       ref={ref}
       role="menu"
-      className="absolute top-full right-0 z-20 mt-1 flex w-[245px] flex-col items-center gap-2.5 rounded-lg bg-white py-4 shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)]"
+      className="absolute top-full right-0 z-20 mt-1 flex w-[245px] flex-col items-center gap-2.5 rounded-lg bg-surface py-4 shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)]"
     >
       {groupOne.length > 0 && (
         <>
@@ -110,7 +110,7 @@ export function PostingToMenu({
     <div
       ref={ref}
       role="menu"
-      className="absolute top-full left-0 z-20 mt-1 flex w-[245px] flex-col rounded-lg bg-white py-2 shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)]"
+      className="absolute top-full left-0 z-20 mt-1 flex w-[245px] flex-col rounded-lg bg-surface py-2 shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)]"
     >
       <p className="px-5 py-2 font-sans text-xs font-medium tracking-wide text-ink-300 uppercase">
         Posting to

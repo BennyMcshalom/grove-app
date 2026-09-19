@@ -71,10 +71,10 @@ export function PersonView({ person }: { person: Person }) {
 
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[724px] flex-col gap-6 pb-10">
-          <section className="w-full overflow-hidden rounded-lg bg-white shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
-            <div className="h-20" style={{ backgroundImage: "linear-gradient(0deg, #FFDFCF 0%, #FFECE4 87%)" }} />
+          <section className="w-full overflow-hidden rounded-lg bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+            <div className="h-20" style={{ backgroundImage: "var(--wash-banner)" }} />
             <div className="flex flex-col gap-4 px-5 pb-6 sm:px-8">
-              <span className="-mt-10 block size-20 rounded-full border-4 border-white">
+              <span className="-mt-10 block size-20 rounded-full border-4 border-surface">
                 <Avatar src={person.avatarUrl} name={person.name} sizes="80px" className="size-full" />
               </span>
               <div className="flex flex-col gap-2">
@@ -88,7 +88,7 @@ export function PersonView({ person }: { person: Person }) {
                 </div>
                 <div className="flex flex-wrap items-center gap-3 font-sans text-sm text-ink-400">
                   <span className="flex items-center gap-1.5">
-                    <span className={cn("size-2 rounded-full", aura?.dot === "bg-white" ? "bg-primary-600" : aura?.dot)} />
+                    <span className={cn("size-2 rounded-full", aura?.dot === "bg-surface" ? "bg-primary-600" : aura?.dot)} />
                     {auraLabel(person.aura)}
                   </span>
                   {person.locationLabel && <span>· {person.locationLabel}</span>}
@@ -124,7 +124,7 @@ export function PersonView({ person }: { person: Person }) {
           </section>
 
           {person.chapters.length > 0 && (
-            <section className="flex flex-col gap-3.5 rounded-lg bg-white px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+            <section className="flex flex-col gap-3.5 rounded-lg bg-surface px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
               <h2 className="font-sans text-sm text-ink-200 uppercase">Holding</h2>
               <ul className="flex flex-col gap-3">
                 {person.chapters.map((chapter) => (
@@ -147,7 +147,7 @@ export function PersonView({ person }: { person: Person }) {
           )}
 
           {prompts.length > 0 && (
-            <section className="flex flex-col gap-4 rounded-lg bg-white px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+            <section className="flex flex-col gap-4 rounded-lg bg-surface px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
               <h2 className="font-sans text-sm text-ink-200 uppercase">Between bonds</h2>
               {prompts.map((prompt) => (
                 <div key={prompt.label} className="flex flex-col gap-1.5">

@@ -83,7 +83,7 @@ export function EventsView({ events, rooms }: { events: EventCard[]; rooms: Live
                   aria-label="Search events"
                   aria-expanded={searchOpen}
                   onClick={() => setSearchOpen((v) => !v)}
-                  className="grid size-10 place-items-center rounded-full bg-white text-ink-400 transition-colors hover:bg-ivory-200"
+                  className="grid size-10 place-items-center rounded-full bg-surface text-ink-400 transition-colors hover:bg-ivory-200"
                 >
                   <SearchIcon />
                 </button>
@@ -99,7 +99,7 @@ export function EventsView({ events, rooms }: { events: EventCard[]; rooms: Live
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search events"
-                className="w-full rounded-full border border-ink-100 bg-white px-5 py-3 font-sans text-sm text-ink-500 outline-none placeholder:text-ink-200 focus:border-primary-200"
+                className="w-full rounded-full border border-ink-100 bg-surface px-5 py-3 font-sans text-sm text-ink-500 outline-none placeholder:text-ink-200 focus:border-primary-200"
               />
             )}
 
@@ -138,7 +138,7 @@ function EventRow({ event }: { event: EventCard }) {
   const full = !going && event.goingCount >= event.capacity;
 
   return (
-    <div className="relative flex gap-2 rounded-lg bg-white p-4">
+    <div className="relative flex gap-2 rounded-lg bg-surface p-4">
       <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600">
         <Glyph icon={event.icon} />
       </span>
@@ -166,7 +166,7 @@ function EventRow({ event }: { event: EventCard }) {
               {event.attendeeAvatars.map((src, i) => (
                 <span
                   key={`${src}-${i}`}
-                  className="rounded-full border-2 border-white"
+                  className="rounded-full border-2 border-surface"
                   style={{ marginLeft: i === 0 ? 0 : -8 }}
                 >
                   <Avatar src={src} name="" sizes="24px" className="size-5" />

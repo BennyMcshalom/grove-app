@@ -34,7 +34,7 @@ export function Checkbox({
             "flex size-4 shrink-0 items-center justify-center rounded-md border",
             checked
               ? "border-success-60 bg-success-60 text-white"
-              : "border-[#CBD5E1] bg-white",
+              : "border-ink-100 bg-surface",
           )}
           aria-hidden="true"
         >
@@ -59,7 +59,7 @@ export function Checkbox({
         type="checkbox"
         checked={checked}
         className={cn(
-          "size-4 shrink-0 appearance-none rounded-md border border-[#CBD5E1] bg-white",
+          "size-4 shrink-0 appearance-none rounded-md border border-ink-100 bg-surface",
           "checked:border-primary-500 checked:bg-primary-500",
           "relative cursor-pointer",
           "checked:after:absolute checked:after:inset-0 checked:after:flex",

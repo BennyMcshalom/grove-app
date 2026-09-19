@@ -62,7 +62,7 @@ export function BondsView({
       {/* Figma 452:10233 — this section titles the bar rather than showing tabs. */}
       <header
         className={cn(
-          "shrink-0 items-center justify-between bg-white px-5 py-6 md:flex md:px-8",
+          "shrink-0 items-center justify-between bg-surface px-5 py-6 md:flex md:px-8",
           chatOpen ? "hidden" : "flex",
         )}
       >
@@ -102,7 +102,7 @@ export function BondsView({
                 ))}
               </ul>
               {shownPending && (
-                <div className="flex flex-col gap-3 rounded-lg bg-white p-3">
+                <div className="flex flex-col gap-3 rounded-lg bg-surface p-3">
                   <PendingCard key={shownPending.requestId} request={shownPending} />
                 </div>
               )}
@@ -128,7 +128,7 @@ export function BondsView({
               {allSuggestions ? (
                 <ul className="flex flex-col gap-3">
                   {suggestions.map((person) => (
-                    <li key={person.userId} className="flex flex-col gap-3 rounded-lg bg-white p-3">
+                    <li key={person.userId} className="flex flex-col gap-3 rounded-lg bg-surface p-3">
                       <SuggestionCard person={person} />
                     </li>
                   ))}
@@ -138,7 +138,7 @@ export function BondsView({
                   className="flex flex-col gap-2 rounded-lg p-4"
                   style={{
                     backgroundImage:
-                      "linear-gradient(-7deg, rgba(254,230,215,1) 0%, rgba(254,251,249,1) 100%)",
+                      "var(--wash-warm)",
                   }}
                 >
                   <span className="font-sans text-sm font-semibold text-ink-700">
@@ -149,7 +149,7 @@ export function BondsView({
                       {[firstSuggestion.avatarUrl, ...firstSuggestion.mutualAvatars].slice(0, 5).map((src, i) => (
                         <span
                           key={`${src}-${i}`}
-                          className="rounded-full border-2 border-white"
+                          className="rounded-full border-2 border-surface"
                           style={{ marginLeft: i === 0 ? 0 : -8 }}
                         >
                           <Avatar
@@ -172,7 +172,7 @@ export function BondsView({
             </section>
           )}
 
-          <section className="flex flex-col gap-3 bg-white pt-4">
+          <section className="flex flex-col gap-3 bg-surface pt-4">
             <h2 className="px-4 font-sans text-base font-medium text-ink-600">
               YOUR BOND
             </h2>
@@ -195,7 +195,7 @@ export function BondsView({
             )}
           </section>
 
-          <section className="flex flex-col bg-white pt-4">
+          <section className="flex flex-col bg-surface pt-4">
             <h2 className="px-4 py-3 font-sans text-base font-medium text-ink-600">
               YOUR CIRCLE
             </h2>
@@ -272,7 +272,7 @@ function BondRow({
       aria-current={active ? "true" : undefined}
       className={cn(
         "flex w-full flex-col gap-2 border-b border-ink-50 px-4 py-3 text-left transition-colors",
-        active ? "bg-primary-50" : "bg-white hover:bg-ivory-100",
+        active ? "bg-primary-50" : "bg-surface hover:bg-ivory-100",
       )}
     >
       <span className="flex items-center gap-3">
@@ -317,7 +317,7 @@ function CircleRow({
       aria-current={active ? "true" : undefined}
       className={cn(
         "flex w-full items-center gap-3 border-b border-ink-50 px-4 py-3 text-left transition-colors",
-        active ? "bg-primary-50" : "bg-white hover:bg-ivory-100",
+        active ? "bg-primary-50" : "bg-surface hover:bg-ivory-100",
       )}
     >
       <span className="flex min-w-0 flex-1 items-center gap-3">

@@ -20,6 +20,7 @@ import {
 } from "@/app/(app)/settings/actions";
 import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/cn";
+import { applyTheme } from "@/lib/theme";
 import { isCancelled, planPackage, priceLabel, purchasesFor } from "@/lib/revenuecat-client";
 import { AURAS, LOG_VISIBILITY, auraLabel, type LogVisibility } from "@/lib/profile";
 
@@ -71,13 +72,16 @@ export function SettingsView({
   const [prefs, setPrefs] = useState(preferences);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  // Optimistic: flip it now, put it back if the save fails.
+  // Optimistic: flip it now, put it back if the save fails. Appearance also
+  // repaints the page straight away, rather than waiting for the round trip.
   const savePreference = async (patch: Partial<SettingsPreferences>) => {
     const previous = prefs;
     setPrefs({ ...prefs, ...patch });
+    if (patch.theme) applyTheme(patch.theme);
     const result = await updatePreferences(patch);
     if (result.error) {
       setPrefs(previous);
+      if (patch.theme) applyTheme(previous.theme);
       toast({ title: result.error, tone: "danger" });
     }
   };
@@ -280,14 +284,14 @@ export function SettingsView({
  */
 function ProfileBanner() {
   return (
-    <section className="relative w-full overflow-hidden rounded-lg bg-white shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+    <section className="relative w-full overflow-hidden rounded-lg bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       {/* On a phone this band wraps the identity block; on desktop it is the
           bare strip the avatar overlaps. */}
       <div
         className="px-5 py-4 lg:h-[107px] lg:px-0 lg:py-0"
         style={{
           backgroundImage:
-            "linear-gradient(0deg, #FFDFCF 0%, #FFECE4 87%)",
+            "var(--wash-banner)",
         }}
       >
         <div className="flex items-center gap-4 lg:hidden">
@@ -320,7 +324,7 @@ function ProfileIdentity() {
   return (
     <>
       <span
-        className="relative size-16 shrink-0 rounded-full border-4 border-white"
+        className="relative size-16 shrink-0 rounded-full border-4 border-surface"
         style={{ boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" }}
       >
         <Avatar
@@ -329,7 +333,7 @@ function ProfileIdentity() {
           sizes="64px"
           className="size-full"
         />
-        <span className="absolute right-0 bottom-0 size-4 rounded-full border-[1.5px] border-white bg-success-60" />
+        <span className="absolute right-0 bottom-0 size-4 rounded-full border-[1.5px] border-surface bg-success-60" />
       </span>
       <div className="flex min-w-0 flex-col gap-3">
         <span className="font-sans text-base font-semibold text-ink-800">
@@ -337,7 +341,7 @@ function ProfileIdentity() {
         </span>
         <div className="flex flex-wrap gap-4">
           {viewer.chapters[0] && <Chip>{viewer.chapters[0].phase}</Chip>}
-          <Chip dot={aura?.dot === "bg-white" ? "bg-primary-600" : aura?.dot}>
+          <Chip dot={aura?.dot === "bg-surface" ? "bg-primary-600" : aura?.dot}>
             {auraLabel(viewer.aura)}
           </Chip>
         </div>
@@ -549,7 +553,7 @@ function DangerZone() {
             });
           }}
           disabled={confirm !== "DELETE" || deleting}
-          className="shrink-0 rounded-full bg-destructive-60 px-5 py-2.5 font-ui text-sm font-medium text-ink-50 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="shrink-0 rounded-full bg-destructive-60 px-5 py-2.5 font-ui text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {deleting ? "Deleting…" : "Delete"}
         </button>
@@ -597,7 +601,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
             onClose();
           });
         }}
-        className="my-auto flex w-full max-w-[480px] flex-col gap-5 rounded-2xl bg-white p-6"
+        className="my-auto flex w-full max-w-[480px] flex-col gap-5 rounded-2xl bg-surface p-6"
       >
         <h2 className="font-display text-xl font-semibold text-ink-800">Change password</h2>
         <FormError message={error} />
@@ -640,7 +644,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <section className="flex w-full flex-col gap-3.5 rounded-lg bg-white px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+    <section className="flex w-full flex-col gap-3.5 rounded-lg bg-surface px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       {children}
     </section>
   );

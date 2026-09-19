@@ -35,7 +35,7 @@ export function BondsRail({
               {pending.map((request) => (
                 <li
                   key={request.requestId}
-                  className="flex flex-col gap-3 rounded-lg bg-white p-3"
+                  className="flex flex-col gap-3 rounded-lg bg-surface p-3"
                 >
                   <PendingCard request={request} />
                 </li>
@@ -59,7 +59,7 @@ export function BondsRail({
               {suggestions.map((person) => (
                 <li
                   key={person.userId}
-                  className="flex flex-col gap-3 rounded-lg bg-white p-3"
+                  className="flex flex-col gap-3 rounded-lg bg-surface p-3"
                 >
                   <SuggestionCard person={person} />
                 </li>
@@ -112,7 +112,7 @@ export function PendingCard({ request }: { request: PendingRequest }) {
             type="button"
             disabled={busy}
             onClick={() => respond(true)}
-            className="flex-1 rounded-full bg-primary-500 px-3 py-2 font-ui text-sm font-medium text-ink-0 transition-colors hover:bg-primary-400 disabled:opacity-60"
+            className="flex-1 rounded-full bg-primary-500 px-3 py-2 font-ui text-sm font-medium text-white transition-colors hover:bg-primary-400 disabled:opacity-60"
           >
             Accept
           </button>

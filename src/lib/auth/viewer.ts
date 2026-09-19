@@ -19,7 +19,7 @@ export const getViewer = cache(async () => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, first_name, avatar_url, aura, location_label, onboarded_at")
+    .select("id, first_name, avatar_url, aura, location_label, onboarded_at, theme")
     .eq("id", claims.sub)
     .single();
 
@@ -89,6 +89,7 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
     trialEndsAt: subscription.data?.trial_ends_at ?? null,
     unreadNotifications: unread.count ?? 0,
     focusEndsAt: focus.data?.ends_at ?? null,
+    theme: viewer.profile.theme,
     callsEnabled: callsEnabled(),
   };
 });

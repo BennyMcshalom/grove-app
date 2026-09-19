@@ -38,7 +38,7 @@ export default function ReadyPage() {
         </ul>
 
         <header className="flex flex-col gap-2 text-center">
-          <h1 className="font-display text-xl leading-[1.04] font-semibold text-[#1F2937] sm:text-2xl lg:text-3xl">
+          <h1 className="font-display text-xl leading-[1.04] font-semibold text-ink-700 sm:text-2xl lg:text-3xl">
             Your Grouv is ready.
           </h1>
           <p className="font-sans text-xs text-ink-300 lg:text-sm">

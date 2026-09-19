@@ -42,7 +42,7 @@ export function OnboardingShell({
           type="button"
           onClick={onBack ?? (() => router.back())}
           aria-label="Go back"
-          className="flex items-center gap-2 rounded-xl p-2 text-[#1F2937] transition-colors hover:bg-ivory-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+          className="flex items-center gap-2 rounded-xl p-2 text-ink-700 transition-colors hover:bg-ivory-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
         >
           <CaretLeft />
         </button>

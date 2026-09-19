@@ -41,7 +41,7 @@ export function ViewLogModal({
         aria-modal="true"
         aria-label={`${log.name}’s Log`}
         onClick={(e) => e.stopPropagation()}
-        className="my-auto flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-white p-6 sm:p-8"
+        className="my-auto flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-surface p-6 sm:p-8"
       >
         <header className="flex items-center justify-between gap-4 border-b border-ink-50 pb-4">
           <div className="flex items-center gap-6 p-2">
@@ -52,7 +52,7 @@ export function ViewLogModal({
               />
               <Avatar src={log.avatarUrl} name={log.name} sizes="48px" className="relative size-12" />
               {online && (
-                <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-white bg-success-60" />
+                <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
               )}
             </span>
 
@@ -93,7 +93,7 @@ export function ViewLogModal({
           <div className="relative flex items-center justify-center rounded-lg bg-ivory-100 px-4 py-12">
             {entries.length > 1 && <Scrubber side="left" onClick={() => step(-1)} />}
 
-            <figure className="flex w-full max-w-[368px] flex-col gap-3 rounded-lg bg-white p-2 pb-4 shadow-[0px_4px_16px_0px_rgba(0,0,0,0.1)]">
+            <figure className="flex w-full max-w-[368px] flex-col gap-3 rounded-lg bg-surface p-2 pb-4 shadow-[0px_4px_16px_0px_rgba(0,0,0,0.1)]">
               {entry.photoUrl && (
                 <div className="relative h-[252px] w-full overflow-hidden rounded-lg bg-ivory-200">
                   <Image src={entry.photoUrl} alt="" fill unoptimized className="object-cover" />
@@ -140,7 +140,7 @@ function Scrubber({
       type="button"
       onClick={onClick}
       aria-label={side === "left" ? "Previous entry" : "Next entry"}
-      className="absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-white/40 text-white backdrop-blur-[20px]"
+      className="absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-surface/40 text-white backdrop-blur-[20px]"
       style={{
         [side]: "24px",
         backgroundImage:

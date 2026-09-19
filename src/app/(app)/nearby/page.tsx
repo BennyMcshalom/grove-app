@@ -145,7 +145,7 @@ export default function NearbyPage() {
       <TopBar title="Nearby" back="/home" />
 
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto p-4 lg:p-8">
-        <div className="flex min-h-full items-center justify-center rounded-3xl bg-white p-6">
+        <div className="flex min-h-full items-center justify-center rounded-3xl bg-surface p-6">
           <div className="flex w-full max-w-[556px] flex-col items-stretch gap-10 lg:gap-12">
             <div className="flex flex-col items-center gap-4">
               {on ? (

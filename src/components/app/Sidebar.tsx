@@ -58,7 +58,7 @@ export function Sidebar({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "relative flex h-full shrink-0 flex-col gap-5 scroll-slim overflow-y-auto overflow-x-hidden bg-white py-10 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] transition-[width] duration-200",
+        "relative flex h-full shrink-0 flex-col gap-5 scroll-slim overflow-y-auto overflow-x-hidden bg-surface py-10 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] transition-[width] duration-200",
         collapsed ? "w-[76px]" : "w-[272px]",
         className,
       )}
@@ -85,7 +85,7 @@ export function Sidebar({ className }: { className?: string }) {
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         aria-expanded={!collapsed}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className="absolute top-2.5 right-2 grid size-7 place-items-center rounded-full border border-ink-50 bg-white text-ink-400 shadow-sm transition-colors hover:bg-ivory-200 hover:text-ink-600"
+        className="absolute top-2.5 right-2 grid size-7 place-items-center rounded-full border border-ink-50 bg-surface text-ink-400 shadow-sm transition-colors hover:bg-ivory-200 hover:text-ink-600"
       >
         <svg
           viewBox="0 0 16 16"
@@ -244,13 +244,13 @@ function CurrentUser({ collapsed = false }: { collapsed?: boolean }) {
         <Avatar
           src={viewer.avatarUrl}
           name={viewer.firstName}
-          className="size-10 border-[1.5px] border-white"
+          className="size-10 border-[1.5px] border-surface"
         />
-        <span className="absolute right-0 bottom-0 size-2.5 rounded-full border border-white bg-[#04802E]" />
+        <span className="absolute right-0 bottom-0 size-2.5 rounded-full border border-surface bg-[#04802E]" />
       </span>
       {!collapsed && (
         <span className="flex min-w-0 flex-col">
-          <span className="truncate font-sans text-base font-bold text-[#101928]">
+          <span className="truncate font-sans text-base font-bold text-ink-700">
             {viewer.firstName}
           </span>
           {status && (
@@ -281,10 +281,10 @@ function TrialCard() {
         />
       </svg>
       <span className="flex flex-col">
-        <span className="font-sans text-sm font-semibold text-ink-0">
+        <span className="font-sans text-sm font-semibold text-white">
           {subscriptionStatus === "none" ? "Start 14-day trial" : "Get full access"}
         </span>
-        <span className="font-sans text-xs text-ink-50">
+        <span className="font-sans text-xs text-white">
           {subscriptionStatus === "none" ? "Full access, free" : "Subscribe in Settings"}
         </span>
       </span>

@@ -84,14 +84,14 @@ export function DeepFocusView({ activeUntil }: { activeUntil: string | null }) {
                       onClick={() => setChosen(isOn ? null : option.value)}
                       aria-pressed={isOn}
                       className={cn(
-                        "flex w-full items-center justify-between gap-3 rounded-2xl border bg-white p-3.5 text-left transition-colors lg:p-4",
+                        "flex w-full items-center justify-between gap-3 rounded-2xl border bg-surface p-3.5 text-left transition-colors lg:p-4",
                         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600",
                         isOn
                           ? "border-primary-500 bg-primary-50"
                           : "border-ink-50 hover:border-ivory-600",
                       )}
                     >
-                      <span className="font-sans text-sm font-medium text-[#1F2937] lg:text-base">
+                      <span className="font-sans text-sm font-medium text-ink-700 lg:text-base">
                         {option.label}
                       </span>
                       <span

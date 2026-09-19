@@ -25,7 +25,7 @@ export function SignInForm({
     <AuthSplitLayout>
       <form action={formAction} className="flex flex-col gap-5 lg:gap-6">
         <header className="flex flex-col gap-2">
-          <h1 className="font-display text-2xl leading-[1.04] font-semibold sm:text-3xl lg:text-4xl xl:text-5xl text-[#1F2937] ">
+          <h1 className="font-display text-2xl leading-[1.04] font-semibold sm:text-3xl lg:text-4xl xl:text-5xl text-ink-700 ">
             Welcome back
           </h1>
           <p className="font-sans text-sm text-ink-300 lg:text-base">

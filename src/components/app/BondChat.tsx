@@ -310,7 +310,7 @@ export function BondChat({
             e.preventDefault();
             send();
           }}
-          className="flex items-center gap-4 rounded-full border border-ink-50 bg-white p-3 shadow-[0px_2px_4px_-2px_rgba(23,23,23,0.06),0px_4px_8px_-2px_rgba(23,23,23,0.1)]"
+          className="flex items-center gap-4 rounded-full border border-ink-50 bg-surface p-3 shadow-[0px_2px_4px_-2px_rgba(23,23,23,0.06),0px_4px_8px_-2px_rgba(23,23,23,0.1)]"
         >
           <label
             className={cn(
@@ -413,7 +413,7 @@ function Bubble({
           <div
             className={cn(
               "flex flex-col gap-1 rounded-2xl p-3",
-              mine ? "bg-primary-600 text-ink-0" : "border border-ink-50 bg-white text-ink-700",
+              mine ? "bg-primary-600 text-white" : "border border-ink-50 bg-surface text-ink-700",
             )}
           >
             <span className={cn("font-sans text-xs font-semibold", mine ? "text-primary-50" : "text-ink-300")}>
@@ -442,7 +442,7 @@ function Bubble({
           <div
             className={cn(
               "flex flex-col gap-2 rounded-2xl p-3",
-              mine ? "bg-primary-600 text-ink-0" : "border border-ink-50 bg-white text-ink-700",
+              mine ? "bg-primary-600 text-white" : "border border-ink-50 bg-surface text-ink-700",
             )}
           >
             <audio controls preload="none" src={message.mediaUrl} className="h-10 w-60 max-w-full" />
@@ -456,7 +456,7 @@ function Bubble({
             </div>
           </div>
         ) : (message.kind === "video" || message.kind === "image") && message.mediaUrl ? (
-          <div className="flex flex-col gap-1 rounded-2xl border border-ink-50 bg-white p-1">
+          <div className="flex flex-col gap-1 rounded-2xl border border-ink-50 bg-surface p-1">
             <div className="relative overflow-hidden rounded-xl">
               {message.kind === "video" ? (
                 <video controls playsInline preload="metadata" src={message.mediaUrl} className="max-h-80 w-full bg-ink-900" />
@@ -474,8 +474,8 @@ function Bubble({
             className={cn(
               "flex items-end gap-2.5 rounded-2xl p-3",
               mine
-                ? "bg-primary-600 text-ink-0"
-                : "border border-ink-50 bg-white text-ink-700",
+                ? "bg-primary-600 text-white"
+                : "border border-ink-50 bg-surface text-ink-700",
             )}
           >
             <p className="font-sans text-sm font-medium whitespace-pre-line">
@@ -550,7 +550,7 @@ export function GlowAvatar({
     >
       <Avatar src={src} name={name} sizes={`${size}px`} className="size-full" />
       {online && (
-        <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-white bg-success-60" />
+        <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
       )}
     </span>
   );
@@ -581,7 +581,7 @@ function IconButton({
       aria-disabled={unavailable || undefined}
       className={cn(
         "grid place-items-center rounded-full transition-colors",
-        ringed ? "size-10 border border-ink-100 bg-white" : "size-8",
+        ringed ? "size-10 border border-ink-100 bg-surface" : "size-8",
         unavailable
           ? "cursor-not-allowed opacity-40"
           : "hover:bg-ivory-200",

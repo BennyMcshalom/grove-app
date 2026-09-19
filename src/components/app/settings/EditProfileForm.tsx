@@ -264,7 +264,7 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
                       <span
                         className={cn(
                           "size-1.5 rounded-full",
-                          on ? "bg-white" : a.dot,
+                          on ? "bg-surface" : a.dot,
                         )}
                       />
                       {a.label}
@@ -344,7 +344,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-4 rounded-lg bg-white px-6 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
+    <section className="flex flex-col gap-4 rounded-lg bg-surface px-6 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       <h2 className="font-sans text-base text-ink-200 uppercase">{label}</h2>
       {children}
     </section>

@@ -10,8 +10,8 @@ import { Avatar } from "@/components/app/Avatar";
  */
 export const GROUP_GRADIENT = {
   orange:
-    "linear-gradient(-7deg, rgba(254,230,215,1) 0%, rgba(254,251,249,1) 100%)",
-  pink: "linear-gradient(135deg, rgba(250,231,237,1) 0%, rgba(240,221,221,1) 100%)",
+    "var(--wash-warm)",
+  pink: "var(--wash-pink)",
 };
 
 export function ChapterGroupCard({
@@ -46,7 +46,7 @@ export function ChapterGroupCard({
           {avatars.map((src, i) => (
             <span
               key={`${src}-${i}`}
-              className="rounded-full border-2 border-white"
+              className="rounded-full border-2 border-surface"
               style={{ marginLeft: i === 0 ? 0 : -8 }}
             >
               <Avatar src={src} name="" sizes="32px" className="size-7" />
@@ -54,7 +54,7 @@ export function ChapterGroupCard({
           ))}
           {(extra > 0 || avatars.length === 0) && (
             <span
-              className="grid size-8 shrink-0 place-items-center rounded-full border-2 border-white bg-primary-50 font-ui text-xs font-extrabold text-primary-600"
+              className="grid size-8 shrink-0 place-items-center rounded-full border-2 border-surface bg-primary-50 font-ui text-xs font-extrabold text-primary-600"
               style={{ marginLeft: avatars.length ? -8 : 0 }}
             >
               {avatars.length === 0 ? memberCount : `+${extra}`}

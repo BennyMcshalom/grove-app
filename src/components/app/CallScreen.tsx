@@ -240,7 +240,7 @@ function ControlButton({
       aria-pressed={!active}
       className={cn(
         "grid size-14 place-items-center rounded-full transition-colors",
-        active ? "bg-white/15 hover:bg-white/25" : "bg-white text-[#1c1917]",
+        active ? "bg-surface/15 hover:bg-surface/25" : "bg-surface text-ink-700",
       )}
     >
       {children}

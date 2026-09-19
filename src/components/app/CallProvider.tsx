@@ -220,7 +220,7 @@ function IncomingCall({ call, onAccept, onDecline }: { call: Call; onAccept: () 
       <div
         role="alertdialog"
         aria-label={`${call.peer.name} is calling`}
-        className="flex w-full max-w-md items-center gap-4 rounded-2xl bg-white p-4 shadow-[0px_12px_32px_0px_rgba(23,23,23,0.18)]"
+        className="flex w-full max-w-md items-center gap-4 rounded-2xl bg-surface p-4 shadow-[0px_12px_32px_0px_rgba(23,23,23,0.18)]"
       >
         <Avatar src={call.peer.avatarUrl} name={call.peer.name} sizes="48px" className="size-12" />
         <div className="flex min-w-0 flex-1 flex-col">

@@ -58,7 +58,7 @@ export function PostCard({ post: initial }: { post: Post }) {
   return (
     <article
       id={`post-${post.id}`}
-      className="flex gap-4 rounded-2xl bg-white p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]"
+      className="flex gap-4 rounded-2xl bg-surface p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]"
     >
       <Avatar src={post.avatar} name={post.author} className="size-10" />
 
