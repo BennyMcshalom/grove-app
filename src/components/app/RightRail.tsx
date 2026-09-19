@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { ChapterGroupCard, GROUP_GRADIENT } from "@/components/app/ChapterGroupCard";
@@ -243,7 +244,7 @@ function Section({
 }
 
 function Placeholder() {
-  return <p className="font-sans text-sm text-ink-200">Loading…</p>;
+  return <PersonRowsSkeleton count={3} />;
 }
 
 function Empty({ children }: { children: React.ReactNode }) {

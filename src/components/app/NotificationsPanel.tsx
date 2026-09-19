@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { useEffect, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { useToast } from "@/components/app/ToastProvider";
@@ -76,7 +77,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
           </header>
 
           {items === null ? (
-            <p className="py-10 text-center font-sans text-sm text-ink-300">Loading…</p>
+            <PersonRowsSkeleton count={5} label="Loading notifications" className="p-4" />
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-lg bg-surface px-6 py-14 text-center">
               <BellArt />

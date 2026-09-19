@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FeedSkeleton, PostCardSkeleton } from "@/components/ui/Skeleton";
 import { PostCard } from "@/components/app/PostCard";
 import { loadPosts } from "@/lib/post-actions";
 import type { FeedCursor, FeedPage, FeedQuery, Post } from "@/lib/posts";
@@ -89,7 +90,7 @@ export function FeedList({
   }, [cursor, loadMore]);
 
   if (posts === null) {
-    return <p className="py-10 text-center font-sans text-sm text-ink-300">Loading posts…</p>;
+    return <FeedSkeleton />;
   }
 
   if (posts.length === 0) {
@@ -105,7 +106,7 @@ export function FeedList({
       {posts.map((post) => renderPost(post))}
       {cursor && <div ref={sentinel} aria-hidden="true" className="h-px" />}
       {showLoadingMore && (
-        <p className="text-center font-sans text-sm text-ink-300">Loading more…</p>
+        <PostCardSkeleton />
       )}
       {error && <p className="text-center font-sans text-sm text-destructive-60">{error}</p>}
     </div>

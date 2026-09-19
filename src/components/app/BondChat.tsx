@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { MessagesSkeleton } from "@/components/ui/Skeleton";
 import { Photo, Video } from "@/components/ui/Media";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
@@ -272,7 +273,7 @@ export function BondChat({
 
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-4 scroll-slim overflow-y-auto p-5">
         {messages === null ? (
-          <p className="m-auto font-sans text-sm text-ink-300">Loading messages…</p>
+          <MessagesSkeleton />
         ) : messages.length === 0 ? (
           <p className="m-auto text-center font-sans text-sm text-ink-300">
             Say hello to {person.name}.

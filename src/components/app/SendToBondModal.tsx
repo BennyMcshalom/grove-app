@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { Avatar } from "@/components/app/Avatar";
 import { listShareTargets, sendPostToBond } from "@/lib/bond-actions";
 
@@ -60,7 +61,7 @@ export function SendToBondModal({
         {error && <p className="font-sans text-sm text-destructive-60">{error}</p>}
 
         {targets === null ? (
-          <p className="font-sans text-sm text-ink-300">Loading your bonds…</p>
+          <PersonRowsSkeleton count={3} label="Loading your bonds" />
         ) : targets.length === 0 ? (
           <p className="font-sans text-sm text-ink-300">
             You don&rsquo;t have any bonds yet. Invite someone from a space&rsquo;s Ask Members tab.

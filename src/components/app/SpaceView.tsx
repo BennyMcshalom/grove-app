@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
@@ -502,7 +503,7 @@ function QuestionReplies({ question }: { question: SpaceQuestion }) {
         {open && (
           <ul className="flex flex-col gap-2">
             {replies === null ? (
-              <li className="font-sans text-sm text-ink-300">Loading replies…</li>
+              <li><PersonRowsSkeleton count={2} label="Loading replies" /></li>
             ) : (
               replies.map((reply) => <ReplyRow key={reply.id} reply={reply} />)
             )}

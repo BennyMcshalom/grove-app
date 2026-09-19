@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { useEffect, useState } from "react";
 import {
   ChapterGroupCard,
@@ -44,7 +45,7 @@ export function SuggestedRail() {
         </header>
 
         {groups === null ? (
-          <p className="font-sans text-sm text-ink-200">Loading…</p>
+          <PersonRowsSkeleton count={3} label="Loading suggestions" />
         ) : groups.length === 0 ? (
           <p className="font-sans text-sm text-ink-300">
             Groups in your chapters show up here as people start them.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { Avatar } from "@/components/app/Avatar";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
@@ -66,7 +67,7 @@ export function PostComments({
   return (
     <section aria-label="Comments" className="flex flex-col gap-4 rounded-2xl bg-ivory-100 p-4">
       {comments === null ? (
-        <p className="font-sans text-sm text-ink-300">Loading comments…</p>
+        <PersonRowsSkeleton count={2} label="Loading comments" />
       ) : loadError ? (
         <p className="font-sans text-sm text-destructive-60">{loadError}</p>
       ) : comments.length === 0 ? (

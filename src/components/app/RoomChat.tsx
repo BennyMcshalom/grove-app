@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { MessagesSkeleton } from "@/components/ui/Skeleton";
 import { Avatar } from "@/components/app/Avatar";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
@@ -89,7 +90,7 @@ export function RoomMessageList({
   empty: string;
 }) {
   if (messages === null) {
-    return <p className="py-6 text-center font-sans text-sm text-ink-300">Loading conversation…</p>;
+    return <MessagesSkeleton count={3} />;
   }
 
   const visible = messages.filter((m) => m.kind !== "system");

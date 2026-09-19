@@ -186,6 +186,39 @@
   }
 }
 
+/* The sweep across a loading placeholder. It is a moving highlight rather
+   than a pulse, so a column of them doesn't blink in unison. */
+@utility shimmer {
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in oklab, var(--color-surface) 70%, transparent) 50%,
+      transparent 100%
+    );
+    animation: shimmer 1.6s infinite;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
+  }
+}
+
 @utility focus-ring {
   outline: 2px solid var(--color-primary-600);
   outline-offset: 2px;
