@@ -53,7 +53,13 @@ export interface Post {
   title: string | null;
   body: string | null;
   /** Signed URLs, in the order they were attached. */
-  media: { src: string; kind: "photo" | "video" }[];
+  media: {
+    src: string;
+    kind: "photo" | "video";
+    /** Seconds; set when a clip was trimmed in the composer. */
+    trimStart?: number | null;
+    trimEnd?: number | null;
+  }[];
   roots: number;
   comments: number;
   rooted: boolean;

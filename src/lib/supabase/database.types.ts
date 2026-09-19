@@ -379,6 +379,9 @@ export type Database = {
           width: number | null;
           height: number | null;
           duration_seconds: number | null;
+          /** Seconds; a clip plays from trim_start to trim_end. */
+          trim_start: number | null;
+          trim_end: number | null;
           created_at: string;
         };
         Insert: {
@@ -389,6 +392,8 @@ export type Database = {
           width?: number | null;
           height?: number | null;
           duration_seconds?: number | null;
+          trim_start?: number | null;
+          trim_end?: number | null;
         };
         Update: never;
         Relationships: [];
@@ -775,7 +780,7 @@ export type Database = {
           author_phase: string | null;
           is_mine: boolean;
           rooted: boolean;
-          media: { kind: MediaKind; path: string }[];
+          media: { kind: MediaKind; path: string; trim_start: number | null; trim_end: number | null }[];
         }[];
       };
       space_members: {

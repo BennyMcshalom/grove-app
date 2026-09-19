@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { ImageCropper } from "@/components/app/media/ImageCropper";
 import { TopBar } from "@/components/app/TopBar";
 import { Avatar } from "@/components/app/Avatar";
 import { useToast } from "@/components/app/ToastProvider";
@@ -47,12 +48,14 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
   const [error, setError] = useState<string>();
   const [nameError, setNameError] = useState<string>();
   const [uploading, setUploading] = useState(false);
+  const [cropping, setCropping] = useState<{ name: string; previewUrl: string } | null>(null);
   const [locating, setLocating] = useState(false);
   const [saving, startSaving] = useTransition();
 
   // Uploads straight to Storage (RLS keeps it to the viewer's own folder); the
   // profile only points at the new photo once "Save Changes" succeeds.
-  const uploadAvatar = async (file: File) => {
+  /** Picking a photo opens the cropper; the framed part is what uploads. */
+  const chooseAvatar = (file: File) => {
     if (!AVATAR_TYPES.includes(file.type)) {
       toast({ title: "Use a PNG, JPG or WebP photo", tone: "danger" });
       return;
@@ -61,10 +64,13 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
       toast({ title: "Choose a photo under 5MB", tone: "danger" });
       return;
     }
+    setCropping({ name: file.name, previewUrl: URL.createObjectURL(file) });
+  };
 
+  const uploadAvatar = async (file: Blob) => {
     setUploading(true);
     const supabase = createClient();
-    const extension = file.type.split("/")[1].replace("jpeg", "jpg");
+    const extension = (file.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
     const path = `${viewer.id}/${crypto.randomUUID()}.${extension}`;
     const { error: uploadError } = await supabase.storage
       .from("avatars")
@@ -201,7 +207,7 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
                     disabled={uploading}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) void uploadAvatar(file);
+                      if (file) chooseAvatar(file);
                       e.target.value = "";
                     }}
                   />
@@ -329,6 +335,21 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
           </div>
         </form>
       </div>
+
+      {cropping && (
+        <ImageCropper
+          file={cropping}
+          onCancel={() => {
+            URL.revokeObjectURL(cropping.previewUrl);
+            setCropping(null);
+          }}
+          onApply={(blob) => {
+            URL.revokeObjectURL(cropping.previewUrl);
+            setCropping(null);
+            void uploadAvatar(blob);
+          }}
+        />
+      )}
     </div>
   );
 }

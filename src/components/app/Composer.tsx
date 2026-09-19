@@ -12,6 +12,8 @@ import { createPost } from "@/lib/post-actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
 import { MEDIA_LIMITS, PROGRESS, type PostProgress } from "@/lib/posts";
+import { MediaTiles } from "@/components/app/media/MediaTiles";
+import type { MediaDraft } from "@/lib/media-draft";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -26,13 +28,7 @@ import { createClient } from "@/lib/supabase/client";
  */
 const MODES = ["Root a thought", "Just Grouv"] as const;
 
-interface Attachment {
-  id: string;
-  name: string;
-  kind: "photo" | "video";
-  status: "uploading" | "done" | "failed";
-  path?: string;
-}
+
 
 export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const viewer = useViewer();
@@ -46,7 +42,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const [doing, setDoing] = useState("");
   const [honest, setHonest] = useState("");
   const [caption, setCaption] = useState("");
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachments, setAttachments] = useState<MediaDraft[]>([]);
   const [error, setError] = useState<string>();
   const [posting, startPosting] = useTransition();
 
@@ -88,32 +84,73 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
       return false;
     });
 
-    const supabase = createClient();
     for (const file of accepted) {
       const id = crypto.randomUUID();
-      const extension = (file.name.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5)
-        || (kind === "photo" ? "jpg" : "mp4");
-      const path = `${viewer.id}/${id}.${extension}`;
-
-      setAttachments((prev) => [...prev, { id, name: file.name, kind, status: "uploading" }]);
-      supabase.storage
-        .from("media")
-        .upload(path, file, { contentType: file.type })
-        .then(({ error: uploadError }) => {
-          setAttachments((prev) =>
-            prev.map((a) =>
-              a.id === id
-                ? uploadError
-                  ? { ...a, status: "failed" }
-                  : { ...a, status: "done", path }
-                : a,
-            ),
-          );
-        });
+      setAttachments((prev) => [
+        ...prev,
+        { id, name: file.name, kind, status: "uploading", previewUrl: URL.createObjectURL(file) },
+      ]);
+      void upload(id, file, kind);
     }
   };
 
-  const detach = (attachment: Attachment) => {
+  /** Puts one file in the bucket and marks the draft done, or failed. */
+  const upload = async (id: string, file: Blob, kind: "photo" | "video", name?: string) => {
+    // The type is the truth: a cropped picture comes back as a JPEG whatever
+    // the file was called when it was picked.
+    const fromType = /^(?:image|video)\/([a-z0-9.+-]+)$/.exec(file.type)?.[1]?.replace("jpeg", "jpg");
+    const extension =
+      fromType?.replace(/[^a-z0-9]/g, "").slice(0, 5) ||
+      ((name ?? "").split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) ||
+      (kind === "photo" ? "jpg" : "mp4");
+    const path = `${viewer.id}/${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await createClient()
+      .storage.from("media")
+      .upload(path, file, { contentType: file.type || undefined });
+    setAttachments((prev) =>
+      prev.map((a) => (a.id === id ? (uploadError ? { ...a, status: "failed" } : { ...a, status: "done", path }) : a)),
+    );
+    return uploadError ? null : path;
+  };
+
+  /** A cropped picture replaces the one already in the bucket. */
+  const applyCrop = (draft: MediaDraft, blob: Blob) => {
+    const previous = draft.path;
+    URL.revokeObjectURL(draft.previewUrl);
+    setAttachments((prev) =>
+      prev.map((a) =>
+        a.id === draft.id
+          ? { ...a, status: "uploading", path: undefined, previewUrl: URL.createObjectURL(blob) }
+          : a,
+      ),
+    );
+    void upload(draft.id, blob, "photo", draft.name).then(() => {
+      if (previous) void createClient().storage.from("media").remove([previous]);
+    });
+  };
+
+  /** Trimming only records the range; the file is already uploaded. */
+  const applyTrim = (draft: MediaDraft, range: { start: number; end: number; duration: number }) => {
+    setAttachments((prev) =>
+      prev.map((a) =>
+        a.id === draft.id ? { ...a, trimStart: range.start, trimEnd: range.end, duration: range.duration } : a,
+      ),
+    );
+  };
+
+  const move = (draft: MediaDraft, direction: -1 | 1) => {
+    setAttachments((prev) => {
+      const index = prev.findIndex((a) => a.id === draft.id);
+      const next = index + direction;
+      if (index < 0 || next < 0 || next >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[index], copy[next]] = [copy[next], copy[index]];
+      return copy;
+    });
+  };
+
+  const detach = (attachment: MediaDraft) => {
+    URL.revokeObjectURL(attachment.previewUrl);
     setAttachments((prev) => prev.filter((a) => a.id !== attachment.id));
     if (attachment.path) void createClient().storage.from("media").remove([attachment.path]);
   };
@@ -129,7 +166,9 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         progress: isRoot ? stage : null,
         body: isRoot ? honest : caption,
         anonymous,
-        media: attachments.flatMap((a) => (a.path ? [{ path: a.path, kind: a.kind }] : [])),
+        media: attachments.flatMap((a) =>
+          a.path ? [{ path: a.path, kind: a.kind, trimStart: a.trimStart, trimEnd: a.trimEnd }] : [],
+        ),
       });
       if (result.error) {
         setError(result.error);
@@ -154,31 +193,14 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     );
   }
 
-  const attachmentRow = attachments.length > 0 && (
-    <ul className="flex flex-wrap gap-2">
-      {attachments.map((a) => (
-        <li
-          key={a.id}
-          className={cn(
-            "flex max-w-full items-center gap-2 rounded-full px-3 py-1 font-sans text-xs",
-            a.status === "failed" ? "bg-destructive-5 text-destructive-60" : "bg-ivory-400 text-ink-500",
-          )}
-        >
-          <span className="truncate">
-            {a.status === "uploading" ? "Uploading " : a.status === "failed" ? "Failed: " : ""}
-            {a.name}
-          </span>
-          <button
-            type="button"
-            onClick={() => detach(a)}
-            aria-label={`Remove ${a.name}`}
-            className="shrink-0"
-          >
-            <CloseIcon className="size-3" />
-          </button>
-        </li>
-      ))}
-    </ul>
+  const attachmentRow = (
+    <MediaTiles
+      drafts={attachments}
+      onRemove={detach}
+      onMove={move}
+      onCrop={applyCrop}
+      onTrim={applyTrim}
+    />
   );
 
   const submitDisabled = uploading || attachments.some((a) => a.status === "failed");

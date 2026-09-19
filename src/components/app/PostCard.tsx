@@ -1,6 +1,7 @@
 "use client";
 
 import { Photo, Video } from "@/components/ui/Media";
+import { withTrim } from "@/lib/media-draft";
 import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { PostComments } from "@/components/app/PostComments";
@@ -132,7 +133,7 @@ export function PostCard({ post: initial }: { post: Post }) {
               />
             ) : (
               <Video
-                src={cover.src}
+                src={withTrim(cover.src, cover.trimStart, cover.trimEnd)}
                 controls
                 playsInline
                 preload="metadata"

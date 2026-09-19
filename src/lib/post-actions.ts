@@ -46,7 +46,15 @@ const CreatePostSchema = z.object({
   body: z.string().trim().max(4000),
   anonymous: z.boolean(),
   media: z
-    .array(z.object({ path: z.string().min(1), kind: z.enum(["photo", "video"]) }))
+    .array(
+      z.object({
+        path: z.string().min(1),
+        kind: z.enum(["photo", "video"]),
+        // Where a clip starts and ends, in seconds. Nothing is re-encoded.
+        trimStart: z.number().min(0).nullish(),
+        trimEnd: z.number().min(0).nullish(),
+      }),
+    )
     .max(MEDIA_LIMITS.maxFiles),
 });
 
@@ -94,7 +102,14 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
 
   if (media.length > 0) {
     const { error: mediaError } = await supabase.from("post_media").insert(
-      media.map((m, position) => ({ post_id: post.id, kind: m.kind, storage_path: m.path, position })),
+      media.map((m, position) => ({
+        post_id: post.id,
+        kind: m.kind,
+        storage_path: m.path,
+        position,
+        trim_start: m.kind === "video" ? (m.trimStart ?? null) : null,
+        trim_end: m.kind === "video" ? (m.trimEnd ?? null) : null,
+      })),
     );
     if (mediaError) {
       console.error("[posts] attaching media failed", mediaError);

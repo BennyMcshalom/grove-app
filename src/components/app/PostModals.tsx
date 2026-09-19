@@ -1,6 +1,7 @@
 "use client";
 
-import { Photo } from "@/components/ui/Media";
+import { Photo, Video } from "@/components/ui/Media";
+import { withTrim } from "@/lib/media-draft";
 import { useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { useViewer } from "@/components/app/ViewerProvider";
@@ -112,7 +113,12 @@ export function EditPostModal({
           {cover.kind === "photo" ? (
             <Photo src={cover.src} alt="" fill unoptimized className="object-cover" />
           ) : (
-            <video src={cover.src} controls playsInline className="absolute inset-0 size-full object-cover" />
+            <Video
+              src={withTrim(cover.src, cover.trimStart, cover.trimEnd)}
+              controls
+              playsInline
+              className="absolute inset-0 size-full object-cover"
+            />
           )}
         </div>
       )}
