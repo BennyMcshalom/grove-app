@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { Logo } from "@/components/ui/Logo";
 import { Avatar } from "@/components/app/Avatar";
 import { useSidebar } from "@/components/app/SidebarProvider";
+import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
+import { updatePreferences } from "@/app/(app)/settings/actions";
+import { applyTheme } from "@/lib/theme";
 import { cn } from "@/lib/cn";
 import {
   HomeIcon,
@@ -54,6 +58,23 @@ const SECONDARY = [
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebar();
+  const { theme: savedTheme } = useViewer();
+  const toast = useToast();
+  const [theme, setTheme] = useState(savedTheme);
+  const dark = theme === "dark";
+
+  // Repaint first, then save; put it back if the save fails.
+  const toggleTheme = async () => {
+    const next = dark ? "light" : "dark";
+    setTheme(next);
+    applyTheme(next);
+    const result = await updatePreferences({ theme: next });
+    if (result.error) {
+      setTheme(theme);
+      applyTheme(theme);
+      toast({ title: result.error, tone: "danger" });
+    }
+  };
 
   return (
     <aside
@@ -126,9 +147,12 @@ export function Sidebar({ className }: { className?: string }) {
           {!collapsed && <TrialCard />}
           <ul className={cn("flex flex-col", collapsed ? "px-0" : "px-2")}>
             <li>
-              {/* The theme switch itself lives in Settings > Appearance. */}
-              <Link
-                href="/settings"
+              <button
+                type="button"
+                role="switch"
+                aria-checked={dark}
+                aria-label="Dark mode"
+                onClick={toggleTheme}
                 title={collapsed ? "Dark mode" : undefined}
                 className={cn(
                   "flex w-full items-center gap-3 rounded py-3 font-sans text-sm text-ink-600 transition-colors hover:bg-ivory-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600",
@@ -151,9 +175,20 @@ export function Sidebar({ className }: { className?: string }) {
                 {collapsed ? (
                   <span className="sr-only">Dark mode</span>
                 ) : (
-                  "Dark mode"
+                  <>
+                    <span className="flex-1 text-left">Dark mode</span>
+                    {/* The same switch as Settings > Appearance, at rail size. */}
+                    <span
+                      className={cn(
+                        "flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors",
+                        dark ? "justify-end bg-primary-600" : "justify-start bg-ink-50",
+                      )}
+                    >
+                      <span className="size-4 rounded-full bg-white shadow-sm" />
+                    </span>
+                  </>
                 )}
-              </Link>
+              </button>
             </li>
             {SECONDARY.map((item) => (
               <MenuItem
