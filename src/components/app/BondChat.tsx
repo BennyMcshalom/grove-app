@@ -19,8 +19,8 @@ import {
 import { bondDuration, messagePreview, type BondPerson, type ChatMessage } from "@/lib/bonds";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
-import { createClient } from "@/lib/supabase/client";
 import { mediaDuration, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
+import { useRealtimeChannel } from "@/lib/supabase/use-channel";
 
 /**
  * Chat pane — Figma frame 452:10373.
@@ -96,10 +96,11 @@ export function BondChat({
   }, [conversationId, toast]);
 
   // Live: their new messages, and their read marker for "Read" receipts.
-  useEffect(() => {
-    if (!conversationId) return;
-    const supabase = createClient();
-    const channel = supabase
+  useRealtimeChannel(
+    (supabase) =>
+      !conversationId
+        ? null
+        : supabase
       .channel(`chat:${conversationId}`)
       .on(
         "postgres_changes",
@@ -131,12 +132,9 @@ export function BondChat({
           if (row.user_id !== viewer.id) setOtherReadAt(row.last_read_at);
         },
       )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [conversationId, viewer.id]);
+      .subscribe(),
+    [conversationId, viewer.id],
+  );
 
   // Keep the newest message in view.
   useEffect(() => {

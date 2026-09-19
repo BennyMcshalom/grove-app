@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { useRealtimeChannel } from "@/lib/supabase/use-channel";
 
 /**
  * The bell's unread count: starts from the server's number and goes up as new
@@ -23,20 +23,18 @@ export function UnreadProvider({
 }) {
   const [unread, setUnread] = useState(initial);
 
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        () => setUnread((n) => n + 1),
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [userId]);
+  useRealtimeChannel(
+    (supabase) =>
+      supabase
+        .channel(`notifications:${userId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+          () => setUnread((n) => n + 1),
+        )
+        .subscribe(),
+    [userId],
+  );
 
   const clear = useCallback(() => setUnread(0), []);
   const value = useMemo(() => ({ unread, clear }), [unread, clear]);

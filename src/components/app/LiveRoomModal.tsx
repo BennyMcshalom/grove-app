@@ -7,7 +7,7 @@ import { leaveLiveRoom, loadRoomPeople, setWave } from "@/app/(app)/events/actio
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
 import type { RoomPerson } from "@/lib/events";
-import { createClient } from "@/lib/supabase/client";
+import { useRealtimeChannel } from "@/lib/supabase/use-channel";
 
 /**
  * live — Figma frame 458:13190 (a Meet & Greet room you have joined).
@@ -32,18 +32,17 @@ export function LiveRoomModal({
     loadRoomPeople(roomId).then(setPeople);
   }, [roomId]);
 
-  useEffect(() => {
-    reload();
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`live-room:${roomId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "live_room_presence", filter: `room_id=eq.${roomId}` }, reload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "waves", filter: `room_id=eq.${roomId}` }, reload)
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [roomId, reload]);
+  useEffect(reload, [reload]);
+
+  useRealtimeChannel(
+    (supabase) =>
+      supabase
+        .channel(`live-room:${roomId}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "live_room_presence", filter: `room_id=eq.${roomId}` }, reload)
+        .on("postgres_changes", { event: "*", schema: "public", table: "waves", filter: `room_id=eq.${roomId}` }, reload)
+        .subscribe(),
+    [roomId, reload],
+  );
 
   const toggleWave = async (person: RoomPerson) => {
     const next = !person.iWaved;

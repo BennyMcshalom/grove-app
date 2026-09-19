@@ -1,5 +1,6 @@
 "use client";
 
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import dynamic from "next/dynamic";
 import { createContext, useCallback, useContext, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
@@ -7,7 +8,8 @@ import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { answerCall, hangUp, placeCall } from "@/lib/call-actions";
 import { isLive, RING_TIMEOUT_MS, type Call, type CallConnection, type CallKind, type CallPeer, type CallStatus } from "@/lib/calls";
-import { createClient } from "@/lib/supabase/client";
+import { useRingTone } from "@/lib/ring-tone";
+import { createClient, realtimeClient } from "@/lib/supabase/client";
 
 // livekit-client is large; load it only when a call actually starts.
 const CallScreen = dynamic(() => import("@/components/app/CallScreen").then((m) => m.CallScreen), { ssr: false });
@@ -96,24 +98,37 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
   });
 
+  // RLS limits these to the viewer's own conversations, so the socket has to
+  // be carrying the viewer's token before the channel joins — see
+  // `realtimeClient`. An anonymous subscription is accepted and then never
+  // delivers a ring.
   useEffect(() => {
     if (!enabled) return;
-    const supabase = createClient();
-    // RLS limits these to the viewer's own conversations.
-    const channel = supabase
-      .channel(`calls:${viewer.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "calls" }, (payload) => {
-        const row = payload.new as Partial<CallRow>;
-        if (row?.id) void onRow(row as CallRow, payload.eventType === "INSERT");
-      })
-      .subscribe();
+    let channel: RealtimeChannel | null = null;
+    let cancelled = false;
+
+    void realtimeClient().then((supabase) => {
+      if (cancelled) return;
+      channel = supabase
+        .channel(`calls:${viewer.id}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "calls" }, (payload) => {
+          const row = payload.new as Partial<CallRow>;
+          if (row?.id) void onRow(row as CallRow, payload.eventType === "INSERT");
+        })
+        .subscribe();
+    });
+
     return () => {
-      void supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) void createClient().removeChannel(channel);
     };
   }, [enabled, viewer.id]);
 
-  // Give up on an unanswered outgoing call.
+  // Give up on an unanswered outgoing call — and ring back until then, so
+  // the caller can hear that it is ringing at the other end.
   const outgoingRingingId = call && call.status === "ringing" && call.callerId === viewer.id ? call.id : null;
+  useRingTone(outgoingRingingId !== null, "outgoing");
+
   useEffect(() => {
     if (!outgoingRingingId) return;
     const timer = setTimeout(() => {
@@ -198,37 +213,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
 /** The ringing card, top of the screen, with a soft two-tone ring. */
 function IncomingCall({ call, onAccept, onDecline }: { call: Call; onAccept: () => void; onDecline: () => void }) {
-  useEffect(() => {
-    let context: AudioContext | null = null;
-    let timer: ReturnType<typeof setInterval> | undefined;
-    try {
-      context = new AudioContext();
-      const ring = () => {
-        if (!context) return;
-        [0, 0.25].forEach((offset, i) => {
-          const oscillator = context!.createOscillator();
-          const gain = context!.createGain();
-          oscillator.frequency.value = i === 0 ? 660 : 880;
-          gain.gain.setValueAtTime(0.0001, context!.currentTime + offset);
-          gain.gain.exponentialRampToValueAtTime(0.08, context!.currentTime + offset + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, context!.currentTime + offset + 0.22);
-          oscillator.connect(gain).connect(context!.destination);
-          oscillator.start(context!.currentTime + offset);
-          oscillator.stop(context!.currentTime + offset + 0.24);
-        });
-      };
-      // Browsers may keep audio muted until the page has been interacted with.
-      void context.resume().catch(() => {});
-      ring();
-      timer = setInterval(ring, 2000);
-    } catch {
-      // No audio; the card still shows.
-    }
-    return () => {
-      clearInterval(timer);
-      void context?.close().catch(() => {});
-    };
-  }, []);
+  useRingTone(true, "incoming");
 
   return (
     <div className="fixed inset-x-0 top-4 z-[60] flex justify-center px-4">

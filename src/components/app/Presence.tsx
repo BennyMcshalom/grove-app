@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createContext, useContext, useState } from "react";
+import { useRealtimeChannel } from "@/lib/supabase/use-channel";
 
 /**
  * Who's online — the green dots on avatars.
@@ -21,26 +21,24 @@ export function PresenceProvider({
 }) {
   const [online, setOnline] = useState<ReadonlySet<string>>(() => new Set());
 
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase.channel("presence:grouv", {
-      config: { presence: { key: userId } },
-    });
-
-    channel
-      .on("presence", { event: "sync" }, () => {
-        setOnline(new Set(Object.keys(channel.presenceState())));
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ online_at: new Date().toISOString() });
-        }
+  useRealtimeChannel(
+    (supabase) => {
+      const channel = supabase.channel("presence:grouv", {
+        config: { presence: { key: userId } },
       });
 
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [userId]);
+      return channel
+        .on("presence", { event: "sync" }, () => {
+          setOnline(new Set(Object.keys(channel.presenceState())));
+        })
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            await channel.track({ online_at: new Date().toISOString() });
+          }
+        });
+    },
+    [userId],
+  );
 
   return <PresenceContext.Provider value={online}>{children}</PresenceContext.Provider>;
 }

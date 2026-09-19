@@ -4,13 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
+import { useRealtimeChannel } from "@/lib/supabase/use-channel";
 import {
   loadRoomMessage,
   loadRoomMessages,
   sendRoomMessage,
   type RoomMessage,
 } from "@/lib/room-actions";
-import { createClient } from "@/lib/supabase/client";
 
 /**
  * A group or event conversation: loads once, then follows new messages over
@@ -29,8 +29,16 @@ export function useRoomMessages(conversationId: string, enabled: boolean) {
       if (!cancelled) setMessages(rows);
     });
 
-    const supabase = createClient();
-    const channel = supabase
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationId, enabled]);
+
+  useRealtimeChannel(
+    (supabase) =>
+      !enabled
+        ? null
+        : supabase
       .channel(`room:${conversationId}`)
       .on(
         "postgres_changes",
@@ -44,13 +52,9 @@ export function useRoomMessages(conversationId: string, enabled: boolean) {
           }
         },
       )
-      .subscribe();
-
-    return () => {
-      cancelled = true;
-      void supabase.removeChannel(channel);
-    };
-  }, [conversationId, enabled, viewer.id]);
+      .subscribe(),
+    [conversationId, enabled, viewer.id],
+  );
 
   const send = useCallback(
     async (body: string) => {
