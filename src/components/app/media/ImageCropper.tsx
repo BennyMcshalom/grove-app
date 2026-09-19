@@ -1,22 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/cn";
+import { MediaEditorShell, ToolButton, ToolChips } from "@/components/app/media/MediaEditorShell";
 
-const ASPECTS = [
+const ASPECTS: { label: string; value: number | null }[] = [
   { label: "Original", value: null },
-  { label: "Square", value: 1 },
-  { label: "Portrait", value: 4 / 5 },
-  { label: "Wide", value: 16 / 9 },
-] as const;
+  { label: "1:1", value: 1 },
+  { label: "4:5", value: 4 / 5 },
+  { label: "16:9", value: 16 / 9 },
+  { label: "9:16", value: 9 / 16 },
+];
 
 /**
- * Crop, zoom and rotate a picture before it is posted.
+ * Crop, zoom and rotate a picture.
  *
- * The frame stays still and the picture moves inside it: drag to reposition,
- * the slider zooms, and rotation turns in quarters. Applying redraws just the
- * visible part onto a canvas, so what is uploaded is exactly what was framed.
+ * The frame holds still and the picture moves under it — the gesture every
+ * phone camera roll uses — with a rule-of-thirds grid and corner brackets
+ * while you're framing, so it's clear what will be kept. Applying redraws
+ * only what the frame shows onto a canvas, so the upload is the crop.
  */
 export function ImageCropper({
   file,
@@ -32,9 +33,25 @@ export function ImageCropper({
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [framing, setFraming] = useState(false);
   const [saving, setSaving] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef<{ x: number; y: number } | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stage, setStage] = useState({ width: 0, height: 0 });
+  const drag = useRef<{ x: number; y: number } | null>(null);
+  const pinch = useRef<{ distance: number; zoom: number } | null>(null);
+  const points = useRef(new Map<number, { x: number; y: number }>());
+
+  // The stage is whatever room the shell leaves between its bars.
+  useEffect(() => {
+    const element = stageRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setStage({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const element = new window.Image();
@@ -42,7 +59,7 @@ export function ImageCropper({
     element.src = file.previewUrl;
   }, [file.previewUrl]);
 
-  /** Changing the frame re-centres the picture inside it. */
+  /** Any change to the frame re-centres the picture in it. */
   const reframe = (change: () => void) => {
     change();
     setOffset({ x: 0, y: 0 });
@@ -54,15 +71,40 @@ export function ImageCropper({
   const frameAspect = aspect ?? naturalWidth / naturalHeight;
 
   const onPointerDown = (event: React.PointerEvent) => {
-    dragging.current = { x: event.clientX - offset.x, y: event.clientY - offset.y };
+    points.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     event.currentTarget.setPointerCapture(event.pointerId);
+    setFraming(true);
+    if (points.current.size === 2) {
+      const [a, b] = [...points.current.values()];
+      pinch.current = { distance: Math.hypot(a.x - b.x, a.y - b.y), zoom };
+      drag.current = null;
+      return;
+    }
+    drag.current = { x: event.clientX - offset.x, y: event.clientY - offset.y };
   };
+
   const onPointerMove = (event: React.PointerEvent) => {
-    if (!dragging.current) return;
-    setOffset({ x: event.clientX - dragging.current.x, y: event.clientY - dragging.current.y });
+    if (!points.current.has(event.pointerId)) return;
+    points.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (pinch.current && points.current.size === 2) {
+      const [a, b] = [...points.current.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      setZoom(clamp(pinch.current.zoom * (distance / pinch.current.distance)));
+      return;
+    }
+    if (drag.current) {
+      setOffset({ x: event.clientX - drag.current.x, y: event.clientY - drag.current.y });
+    }
   };
-  const onPointerUp = () => {
-    dragging.current = null;
+
+  const onPointerUp = (event: React.PointerEvent) => {
+    points.current.delete(event.pointerId);
+    if (points.current.size < 2) pinch.current = null;
+    if (points.current.size === 0) {
+      drag.current = null;
+      setFraming(false);
+    }
   };
 
   const apply = () => {
@@ -71,19 +113,17 @@ export function ImageCropper({
     setSaving(true);
 
     // What the frame shows, in frame pixels…
-    const frameBox = frame.getBoundingClientRect();
-    const cover = Math.max(frameBox.width / naturalWidth, frameBox.height / naturalHeight) * zoom;
-    const drawnWidth = naturalWidth * cover;
-    const drawnHeight = naturalHeight * cover;
-    const left = (frameBox.width - drawnWidth) / 2 + offset.x;
-    const top = (frameBox.height - drawnHeight) / 2 + offset.y;
+    const box = frame.getBoundingClientRect();
+    const cover = Math.max(box.width / naturalWidth, box.height / naturalHeight) * zoom;
+    const left = (box.width - naturalWidth * cover) / 2 + offset.x;
+    const top = (box.height - naturalHeight * cover) / 2 + offset.y;
 
     // …mapped back onto the original picture.
     const scale = 1 / cover;
     const sourceX = -left * scale;
     const sourceY = -top * scale;
-    const sourceWidth = frameBox.width * scale;
-    const sourceHeight = frameBox.height * scale;
+    const sourceWidth = box.width * scale;
+    const sourceHeight = box.height * scale;
 
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(sourceWidth);
@@ -96,19 +136,18 @@ export function ImageCropper({
     context.imageSmoothingQuality = "high";
     context.translate(canvas.width / 2, canvas.height / 2);
     context.rotate((rotation * Math.PI) / 180);
-    // After rotating, the source rectangle is measured in the turned frame.
-    const halfW = (turned ? canvas.height : canvas.width) / 2;
-    const halfH = (turned ? canvas.width : canvas.height) / 2;
+    const halfWidth = (turned ? canvas.height : canvas.width) / 2;
+    const halfHeight = (turned ? canvas.width : canvas.height) / 2;
     context.drawImage(
       image,
       turned ? sourceY : sourceX,
       turned ? sourceX : sourceY,
       turned ? sourceHeight : sourceWidth,
       turned ? sourceWidth : sourceHeight,
-      -halfW,
-      -halfH,
-      halfW * 2,
-      halfH * 2,
+      -halfWidth,
+      -halfHeight,
+      halfWidth * 2,
+      halfHeight * 2,
     );
 
     canvas.toBlob(
@@ -121,85 +160,136 @@ export function ImageCropper({
     );
   };
 
+  // Fit the frame inside the stage, whichever way round it is.
+  const frameHeight = Math.max(0, Math.min(stage.height, stage.width / frameAspect));
+  const frameWidth = frameHeight * frameAspect;
+
+  const untouched = zoom === 1 && rotation === 0 && aspect === null && offset.x === 0 && offset.y === 0;
+
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink-900/60 p-4" onClick={onCancel}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Edit ${file.name}`}
-        onClick={(event) => event.stopPropagation()}
-        className="flex max-h-full w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-2xl bg-surface p-5"
-      >
-        <h2 className="font-display text-lg font-semibold text-ink-700">Edit photo</h2>
-
-        <div
-          ref={frameRef}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          style={{ aspectRatio: String(frameAspect) }}
-          className="relative w-full cursor-grab touch-none overflow-hidden rounded-xl bg-ivory-300 active:cursor-grabbing"
-        >
-          {image && (
-            /* eslint-disable-next-line @next/next/no-img-element -- a local object URL, drawn to canvas on apply */
-            <img
-              src={file.previewUrl}
-              alt=""
-              draggable={false}
-              style={{
-                transform: `translate(${offset.x}px, ${offset.y}px) rotate(${rotation}deg) scale(${zoom})`,
-              }}
-              className="absolute inset-0 size-full object-cover select-none"
+    <MediaEditorShell
+      title="Edit photo"
+      onCancel={onCancel}
+      onDone={apply}
+      doneDisabled={!image}
+      busy={saving}
+      toolbar={
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <ZoomIcon className="size-4 shrink-0 text-white/50" />
+            <input
+              type="range"
+              aria-label="Zoom"
+              min={1}
+              max={4}
+              step={0.01}
+              value={zoom}
+              onChange={(event) => setZoom(Number(event.target.value))}
+              className="h-1 flex-1 accent-primary-500"
             />
-          )}
-        </div>
+            <ZoomIcon className="size-6 shrink-0 text-white/50" />
+          </div>
 
-        <div className="flex flex-wrap gap-2">
-          {ASPECTS.map((option) => (
-            <button
-              key={option.label}
-              type="button"
-              onClick={() => reframe(() => setAspect(option.value))}
-              className={cn(
-                "rounded-full px-3 py-1.5 font-sans text-sm transition-colors",
-                aspect === option.value ? "bg-primary-500 text-white" : "bg-ivory-200 text-ink-500 hover:bg-ivory-300",
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => reframe(() => setRotation((r) => (r + 90) % 360))}
-            className="ml-auto rounded-full bg-ivory-200 px-3 py-1.5 font-sans text-sm text-ink-500 transition-colors hover:bg-ivory-300"
-          >
-            Rotate
-          </button>
+          <div className="flex items-center gap-2">
+            <ToolChips options={ASPECTS} value={aspect} onChange={(next) => reframe(() => setAspect(next))} label="Aspect ratio" />
+            <div className="ml-auto flex shrink-0 gap-2">
+              <ToolButton label="Rotate" onClick={() => reframe(() => setRotation((r) => (r + 90) % 360))}>
+                <RotateIcon className="size-5" />
+              </ToolButton>
+              <ToolButton
+                label="Reset"
+                onClick={() =>
+                  reframe(() => {
+                    setAspect(null);
+                    setZoom(1);
+                    setRotation(0);
+                  })
+                }
+              >
+                <ResetIcon className="size-5" />
+              </ToolButton>
+            </div>
+          </div>
         </div>
-
-        <label className="flex items-center gap-3">
-          <span className="font-sans text-sm text-ink-400">Zoom</span>
-          <input
-            type="range"
-            min={1}
-            max={3}
-            step={0.01}
-            value={zoom}
-            onChange={(event) => setZoom(Number(event.target.value))}
-            className="h-1 flex-1 accent-primary-500"
+      }
+    >
+      <div ref={stageRef} className="grid size-full place-items-center py-2">
+      <div
+        ref={frameRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onWheel={(event) => setZoom((z) => clamp(z - event.deltaY * 0.002))}
+        style={{ width: frameWidth || undefined, height: frameHeight || undefined }}
+        className="relative cursor-grab touch-none overflow-hidden rounded-xl bg-black/40 active:cursor-grabbing"
+      >
+        {image && (
+          /* eslint-disable-next-line @next/next/no-img-element -- a local object URL, drawn to canvas on apply */
+          <img
+            src={file.previewUrl}
+            alt=""
+            draggable={false}
+            style={{ transform: `translate(${offset.x}px, ${offset.y}px) rotate(${rotation}deg) scale(${zoom})` }}
+            className="absolute inset-0 size-full object-cover select-none"
           />
-        </label>
+        )}
 
-        <div className="flex justify-end gap-2">
-          <Button variant="tertiary" size="sm" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button size="sm" loading={saving} disabled={!image} onClick={apply}>
-            Apply
-          </Button>
+        {/* Rule of thirds, while the picture is being moved. */}
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 transition-opacity duration-200 ${framing ? "opacity-100" : "opacity-0"}`}
+        >
+          <div className="absolute inset-y-0 left-1/3 w-px bg-white/40" />
+          <div className="absolute inset-y-0 left-2/3 w-px bg-white/40" />
+          <div className="absolute inset-x-0 top-1/3 h-px bg-white/40" />
+          <div className="absolute inset-x-0 top-2/3 h-px bg-white/40" />
         </div>
+
+        {/* Corner brackets: the frame is fixed, so these mark it rather than resize it. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <span className="absolute top-2 left-2 size-6 rounded-tl-md border-t-2 border-l-2 border-white/80" />
+          <span className="absolute top-2 right-2 size-6 rounded-tr-md border-t-2 border-r-2 border-white/80" />
+          <span className="absolute bottom-2 left-2 size-6 rounded-bl-md border-b-2 border-l-2 border-white/80" />
+          <span className="absolute right-2 bottom-2 size-6 rounded-br-md border-r-2 border-b-2 border-white/80" />
+        </div>
+
+        {untouched && (
+          <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center font-sans text-xs text-white/60">
+            Drag to reposition · pinch or scroll to zoom
+          </p>
+        )}
       </div>
-    </div>
+      </div>
+    </MediaEditorShell>
+  );
+}
+
+const clamp = (zoom: number) => Math.min(4, Math.max(1, zoom));
+
+function ZoomIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M4 18 9 11l4 5 3-3 4 5H4Z" fill="currentColor" />
+      <circle cx="8" cy="7" r="2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function RotateIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M4 9a8 8 0 1 1 1.6 6.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M4 4v5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ResetIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M5 5h14v14H5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M9 12h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
