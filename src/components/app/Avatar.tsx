@@ -1,9 +1,14 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { cn } from "@/lib/cn";
 
 /**
  * A round profile photo that fills its box (size it with `className`), or the
- * first letter of the name when the person hasn't added one.
+ * first letter of the name — both when the person hasn't added a photo and
+ * when the one they added no longer loads. A person's initial reads better
+ * here than the Grouv mark, which is what broken content images fall back to.
  */
 export function Avatar({
   src,
@@ -17,10 +22,12 @@ export function Avatar({
   sizes?: string;
   className?: string;
 }) {
-  if (src) {
+  const [failed, setFailed] = useState(false);
+
+  if (src && !failed) {
     return (
       <span className={cn("relative block shrink-0 overflow-hidden rounded-full", className)}>
-        <Image src={src} alt="" fill sizes={sizes} className="object-cover" />
+        <Image src={src} alt="" fill sizes={sizes} className="object-cover" onError={() => setFailed(true)} />
       </span>
     );
   }

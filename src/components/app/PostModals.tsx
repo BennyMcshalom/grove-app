@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Media";
 import { useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { useViewer } from "@/components/app/ViewerProvider";
@@ -110,7 +110,7 @@ export function EditPostModal({
       {cover && (
         <div className="relative h-[220px] w-full overflow-hidden rounded-lg bg-ivory-200 sm:h-[332px]">
           {cover.kind === "photo" ? (
-            <Image src={cover.src} alt="" fill unoptimized className="object-cover" />
+            <Photo src={cover.src} alt="" fill unoptimized className="object-cover" />
           ) : (
             <video src={cover.src} controls playsInline className="absolute inset-0 size-full object-cover" />
           )}

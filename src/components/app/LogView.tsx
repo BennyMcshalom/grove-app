@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Media";
 import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { LogMemories, LogPrompt } from "@/components/app/LogPrompt";
@@ -182,7 +182,7 @@ export function LogView({
                             className="relative aspect-[3/4] overflow-hidden rounded-[20px] border border-ink-100 bg-ivory-100"
                           >
                             {entry.photoUrl ? (
-                              <Image src={entry.photoUrl} alt="" fill unoptimized className="object-cover" />
+                              <Photo src={entry.photoUrl} alt="" fill unoptimized className="object-cover" />
                             ) : (
                               <p className="absolute inset-0 overflow-hidden p-3 font-sans text-xs leading-snug text-ink-600">
                                 {entry.body}

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo, Video } from "@/components/ui/Media";
 import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { PostComments } from "@/components/app/PostComments";
@@ -123,7 +123,7 @@ export function PostCard({ post: initial }: { post: Post }) {
           <div className="relative aspect-[589/332] w-full overflow-hidden rounded-2xl bg-ivory-200">
             {cover.kind === "photo" ? (
               // Signed Storage links expire, so they skip the image optimiser.
-              <Image
+              <Photo
                 src={cover.src}
                 alt=""
                 fill
@@ -131,7 +131,7 @@ export function PostCard({ post: initial }: { post: Post }) {
                 className="object-cover"
               />
             ) : (
-              <video
+              <Video
                 src={cover.src}
                 controls
                 playsInline

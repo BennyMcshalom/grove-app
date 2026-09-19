@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Photo, Video } from "@/components/ui/Media";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { useIsOnline } from "@/components/app/Presence";
@@ -459,10 +460,9 @@ function Bubble({
           <div className="flex flex-col gap-1 rounded-2xl border border-ink-50 bg-surface p-1">
             <div className="relative overflow-hidden rounded-xl">
               {message.kind === "video" ? (
-                <video controls playsInline preload="metadata" src={message.mediaUrl} className="max-h-80 w-full bg-ink-900" />
+                <Video controls playsInline preload="metadata" src={message.mediaUrl} className="max-h-80 w-full bg-ink-900" />
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element -- signed links expire; skip the optimiser
-                <img src={message.mediaUrl} alt="" className="max-h-80 w-full object-cover" />
+                <Photo src={message.mediaUrl} alt="" width={640} height={480} unoptimized className="max-h-80 w-full object-cover" />
               )}
             </div>
             <span className="px-2 pb-1 text-right font-sans text-xs font-medium text-ink-500">

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Media";
 import { useState } from "react";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { FeedList } from "@/components/app/FeedList";
@@ -82,7 +82,7 @@ export function YourGrouvView({
                       className="relative aspect-[254/219] overflow-hidden rounded-[20px] border border-ink-100 bg-ivory-100"
                     >
                       {log.photoUrl && (
-                        <Image src={log.photoUrl} alt="" fill unoptimized className="object-cover" />
+                        <Photo src={log.photoUrl} alt="" fill unoptimized className="object-cover" />
                       )}
                       <span
                         className={cn(

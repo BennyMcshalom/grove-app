@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Photo } from "@/components/ui/Media";
 import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { useIsOnline } from "@/components/app/Presence";
@@ -96,7 +96,7 @@ export function ViewLogModal({
             <figure className="flex w-full max-w-[368px] flex-col gap-3 rounded-lg bg-surface p-2 pb-4 shadow-[0px_4px_16px_0px_rgba(0,0,0,0.1)]">
               {entry.photoUrl && (
                 <div className="relative h-[252px] w-full overflow-hidden rounded-lg bg-ivory-200">
-                  <Image src={entry.photoUrl} alt="" fill unoptimized className="object-cover" />
+                  <Photo src={entry.photoUrl} alt="" fill unoptimized className="object-cover" />
                 </div>
               )}
               <figcaption className="flex flex-col px-2">
