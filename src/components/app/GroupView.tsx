@@ -6,6 +6,7 @@ import { Avatar } from "@/components/app/Avatar";
 import { RoomComposer, RoomMessageList, useRoomMessages } from "@/components/app/RoomChat";
 import { SuggestedRail } from "@/components/app/SuggestedRail";
 import { useToast } from "@/components/app/ToastProvider";
+import { VideoViewer } from "@/components/app/VideoViewer";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { formatSeconds } from "@/components/app/VoiceRecorder";
 import {
@@ -468,6 +469,7 @@ function VideoTruths({ groupId, videos: initial }: { groupId: string; videos: Vi
   const toast = useToast();
   const [videos, setVideos] = useState(initial);
   const [uploading, setUploading] = useState(false);
+  const [expanded, setExpanded] = useState<VideoTruth | null>(null);
 
   const upload = async (file: File) => {
     if (!file.type.startsWith("video/")) return toast({ title: "Choose a video file", tone: "danger" });
@@ -532,13 +534,27 @@ function VideoTruths({ groupId, videos: initial }: { groupId: string; videos: Vi
         <ul className="grid gap-4 sm:grid-cols-3">
           {videos.map((video) => (
             <li key={video.id} className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-ink-900">
+              {/* Full screen would stretch a portrait clip; Expand opens it
+                  larger in its own shape instead. */}
               <video
                 src={video.src}
                 controls
                 playsInline
                 preload="metadata"
+                controlsList="nofullscreen"
+                disablePictureInPicture
                 className="absolute inset-0 size-full object-cover"
               />
+              <button
+                type="button"
+                onClick={() => setExpanded(video)}
+                aria-label="Expand video"
+                className="absolute right-3 bottom-14 grid size-8 place-items-center rounded-full bg-ink-900/60 text-white transition-colors hover:bg-ink-900/80"
+              >
+                <svg viewBox="0 0 16 16" fill="none" className="size-4" aria-hidden="true">
+                  <path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
               {video.durationSeconds !== null && (
                 <span className="pointer-events-none absolute top-3 right-3 rounded-full bg-ink-900/60 px-3 py-1 font-sans text-xs text-white">
                   {formatSeconds(video.durationSeconds).replace(/^0/, "")}
@@ -555,7 +571,7 @@ function VideoTruths({ groupId, videos: initial }: { groupId: string; videos: Vi
                     if (result.error) toast({ title: result.error, tone: "danger" });
                     else setVideos((prev) => prev.filter((v) => v.id !== video.id));
                   }}
-                  className="absolute right-3 bottom-14 rounded-full bg-ink-900/60 px-3 py-1 font-sans text-xs text-white"
+                  className="absolute right-14 bottom-14 rounded-full bg-ink-900/60 px-3 py-1 font-sans text-xs text-white"
                 >
                   Remove
                 </button>
@@ -563,6 +579,14 @@ function VideoTruths({ groupId, videos: initial }: { groupId: string; videos: Vi
             </li>
           ))}
         </ul>
+      )}
+
+      {expanded && (
+        <VideoViewer
+          src={expanded.src}
+          label={`${expanded.mine ? "Your" : `${expanded.authorName}'s`} video truth`}
+          onClose={() => setExpanded(null)}
+        />
       )}
     </div>
   );

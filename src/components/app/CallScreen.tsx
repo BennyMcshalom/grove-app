@@ -1,6 +1,15 @@
 "use client";
 
-import { Room, RoomEvent, Track, type LocalTrackPublication, type RemoteTrack } from "livekit-client";
+import {
+  ExternalE2EEKeyProvider,
+  isE2EESupported,
+  Room,
+  RoomEvent,
+  Track,
+  type Participant,
+  type RemoteTrack,
+} from "livekit-client";
+import { createCallKeyPair, deriveCallKey, E2EE_ATTRIBUTE, type CallKeyPair } from "@/lib/call-e2ee";
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { HangUpIcon } from "@/components/app/CallProvider";
@@ -35,6 +44,8 @@ export function CallScreen({
   const [phase, setPhase] = useState<"connecting" | "waiting" | "live" | "reconnecting">("connecting");
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(call.kind === "video");
+  const micWanted = useRef(true);
+  const cameraWanted = useRef(call.kind === "video");
   const [remoteVideo, setRemoteVideo] = useState(false);
   const [seconds, setSeconds] = useState(0);
 
@@ -45,9 +56,43 @@ export function CallScreen({
   });
 
   useEffect(() => {
-    const room = new Room({ adaptiveStream: true, dynacast: true });
+    // Encryption is mandatory: a browser that can't encrypt frames end to
+    // end doesn't get an unencrypted call instead.
+    if (!isE2EESupported()) {
+      handlers.current.onMediaError(
+        "This browser can't make end-to-end encrypted calls. Try a recent Chrome, Edge, Safari or Firefox.",
+      );
+      handlers.current.onEnd();
+      return;
+    }
+
+    const keyProvider = new ExternalE2EEKeyProvider();
+    const worker = new Worker(new URL("livekit-client/e2ee-worker", import.meta.url));
+    const room = new Room({ adaptiveStream: true, dynacast: true, e2ee: { keyProvider, worker } });
     roomRef.current = room;
     let cancelled = false;
+    let keys: CallKeyPair | null = null;
+    let secured = false;
+
+    // Once the other side's public key is here: derive this call's key, turn
+    // encryption on, and only then start sending audio or video.
+    const secure = async (participant: Participant) => {
+      const theirs = participant.attributes[E2EE_ATTRIBUTE];
+      if (!theirs || !keys || participant === room.localParticipant) return;
+      await keyProvider.setKey(await deriveCallKey(keys, theirs, call.id));
+      if (secured || cancelled) return;
+      secured = true;
+      await room.setE2EEEnabled(true);
+      if (micWanted.current) await room.localParticipant.setMicrophoneEnabled(true);
+      if (cameraWanted.current) await room.localParticipant.setCameraEnabled(true);
+    };
+    const secureSafely = (participant: Participant) =>
+      void secure(participant).catch((error) => {
+        if (cancelled) return;
+        console.error("[calls] couldn't secure the call", error);
+        handlers.current.onMediaError("We couldn't secure the call, so it was ended.");
+        handlers.current.onEnd();
+      });
 
     const attachRemote = (track: RemoteTrack) => {
       if (track.kind === Track.Kind.Video && remoteVideoRef.current) {
@@ -55,12 +100,6 @@ export function CallScreen({
         setRemoteVideo(true);
       } else if (track.kind === Track.Kind.Audio && audioRef.current) {
         audioRef.current.appendChild(track.attach());
-      }
-    };
-
-    const showLocal = (publication: LocalTrackPublication) => {
-      if (publication.source === Track.Source.Camera && publication.track && localVideoRef.current) {
-        publication.track.attach(localVideoRef.current);
       }
     };
 
@@ -76,8 +115,12 @@ export function CallScreen({
         });
         if (track.kind === Track.Kind.Video) setRemoteVideo(false);
       })
-      .on(RoomEvent.LocalTrackPublished, showLocal)
-      .on(RoomEvent.ParticipantConnected, syncPhase)
+      .on(RoomEvent.ParticipantConnected, (participant) => {
+        syncPhase();
+        secureSafely(participant);
+      })
+      .on(RoomEvent.ParticipantAttributesChanged, (_changed, participant) => secureSafely(participant))
+      .on(RoomEvent.EncryptionError, (error) => console.warn("[calls] encryption error", error))
       // In a one-to-one call, the other person leaving ends it. LiveKit has
       // already tried to reconnect them by the time this fires.
       .on(RoomEvent.ParticipantDisconnected, () => handlers.current.onEnd())
@@ -99,8 +142,10 @@ export function CallScreen({
         await room.connect(connection.url, connection.token);
         if (cancelled) return;
         syncPhase();
-        await room.localParticipant.setMicrophoneEnabled(true);
-        if (call.kind === "video") await room.localParticipant.setCameraEnabled(true);
+        // A fresh key pair per call; nothing is published until the key is agreed.
+        keys = await createCallKeyPair();
+        await room.localParticipant.setAttributes({ [E2EE_ATTRIBUTE]: keys.publicKey });
+        room.remoteParticipants.forEach((participant) => secureSafely(participant));
       } catch (error) {
         if (cancelled) return;
         console.error("[calls] couldn't join the call", error);
@@ -115,9 +160,36 @@ export function CallScreen({
     return () => {
       cancelled = true;
       roomRef.current = null;
-      void room.disconnect();
+      keys = null;
+      void room.disconnect().finally(() => worker.terminate());
     };
   }, [call.id, call.kind, connection.url, connection.token]);
+
+  // Your own camera, shown whenever it's on — from the moment the call screen
+  // opens, not only once the encrypted stream is being sent. It reads the
+  // camera directly, so it never depends on what LiveKit has published.
+  useEffect(() => {
+    const video = localVideoRef.current;
+    if (!cameraOn || !video) return;
+    let stream: MediaStream | null = null;
+    let stopped = false;
+    navigator.mediaDevices
+      ?.getUserMedia({ video: { facingMode: "user" }, audio: false })
+      .then((s) => {
+        if (stopped) {
+          s.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        stream = s;
+        video.srcObject = s;
+      })
+      .catch(() => handlers.current.onMediaError("Allow camera access to see yourself."));
+    return () => {
+      stopped = true;
+      stream?.getTracks().forEach((t) => t.stop());
+      video.srcObject = null;
+    };
+  }, [cameraOn]);
 
   // Call timer, from when both people are in.
   useEffect(() => {
@@ -127,17 +199,23 @@ export function CallScreen({
     return () => clearInterval(timer);
   }, [phase]);
 
+  // Until the call key is agreed nothing is published; the toggles only
+  // change what gets turned on once it is.
   const toggleMic = async () => {
     const next = !micOn;
     setMicOn(next);
-    await roomRef.current?.localParticipant.setMicrophoneEnabled(next);
+    micWanted.current = next;
+    const room = roomRef.current;
+    if (room?.isE2EEEnabled) await room.localParticipant.setMicrophoneEnabled(next);
   };
 
   const toggleCamera = async () => {
     const next = !cameraOn;
     setCameraOn(next);
+    cameraWanted.current = next;
     try {
-      await roomRef.current?.localParticipant.setCameraEnabled(next);
+      const room = roomRef.current;
+      if (room?.isE2EEEnabled) await room.localParticipant.setCameraEnabled(next);
     } catch {
       setCameraOn(!next);
       onMediaError("Allow camera access to turn your video on.");

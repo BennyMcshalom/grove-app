@@ -4,7 +4,7 @@ import { useState } from "react";
 import { GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
 import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
-import { connectWith, respondToRequest } from "@/lib/bond-actions";
+import { cancelConnectionRequest, connectWith, respondToRequest } from "@/lib/bond-actions";
 import type { PendingRequest, Suggestion } from "@/lib/bonds";
 
 /**
@@ -80,18 +80,17 @@ export function PendingCard({ request }: { request: PendingRequest }) {
 
   const respond = async (accept: boolean) => {
     setBusy(true);
-    const result = await respondToRequest(request.kind, request.requestId, accept);
+    const result = await respondToRequest(request.requestId, accept);
     setBusy(false);
     if (result.error) {
       toast({ title: result.error, tone: "danger" });
       return;
     }
     setHandled(accept ? "Accepted" : "Declined");
-    const what = request.kind === "bond" ? "Bond invitation" : "Connection request";
     toast(
       accept
-        ? { title: `${what} accepted` }
-        : { title: `${what} declined`, tone: "danger" },
+        ? { title: "Connection request accepted" }
+        : { title: "Connection request declined", tone: "danger" },
     );
   };
 
@@ -102,7 +101,7 @@ export function PendingCard({ request }: { request: PendingRequest }) {
         name={request.name}
         avatarUrl={request.avatarUrl}
         chapterSlug={request.chapterSlug}
-        label={request.kind === "bond" ? "Wants to bond" : request.phase}
+        label={request.phase}
       />
       {handled ? (
         <p className="font-sans text-sm text-ink-300">{handled}</p>
@@ -153,8 +152,16 @@ export function SuggestionCard({ person }: { person: Suggestion }) {
       )}
       <button
         type="button"
-        disabled={status !== "idle"}
+        disabled={status === "busy" || status === "connected"}
         onClick={async () => {
+          // "Requested" takes the request back.
+          if (status === "requested") {
+            setStatus("busy");
+            const result = await cancelConnectionRequest(person.userId);
+            setStatus(result.error ? "requested" : "idle");
+            toast(result.error ? { title: result.error, tone: "danger" } : { title: "Request cancelled" });
+            return;
+          }
           setStatus("busy");
           const result = await connectWith(person.userId);
           if (result.error) {
@@ -168,7 +175,7 @@ export function SuggestionCard({ person }: { person: Suggestion }) {
         }}
         className="w-full rounded-full border border-primary-500 px-3 py-2 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50 disabled:border-ink-50 disabled:text-ink-300"
       >
-        {status === "requested" ? "Requested" : status === "connected" ? "Connected" : "Connect"}
+        {status === "requested" ? "Requested · Cancel" : status === "connected" ? "Connected" : "Connect"}
       </button>
     </>
   );
@@ -189,7 +196,7 @@ function Person({
 }) {
   const online = useIsOnline(userId);
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 items-center gap-3">
       <GlowAvatar src={avatarUrl} name={name} online={online} />
       <span className="flex min-w-0 flex-col gap-1">
         <span className="truncate font-sans text-sm font-medium text-ink-700">

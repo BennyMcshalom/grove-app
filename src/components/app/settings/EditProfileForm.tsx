@@ -44,6 +44,10 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
   const [phases, setPhases] = useState(
     Object.fromEntries(viewer.chapters.map((c) => [c.id, c.phase])),
   );
+  // The space that leads under your name. The list keeps its own order.
+  const [primaryId, setPrimaryId] = useState(
+    viewer.chapters.find((c) => c.isPrimary)?.id ?? viewer.chapters[0]?.id ?? null,
+  );
 
   const [error, setError] = useState<string>();
   const [nameError, setNameError] = useState<string>();
@@ -147,6 +151,7 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
           slug: c.slug,
           phase: phases[c.id],
         })),
+        primaryChapterId: primaryId,
       });
       if (result.error || result.fieldErrors) {
         setError(result.error);
@@ -169,7 +174,7 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <TopBar title="Edit Profile" />
+      <TopBar title="Edit Profile" back="/settings" />
 
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <form
@@ -303,8 +308,27 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
                   {viewer.chapters.map((held) => {
                     const chapter = getChapter(held.slug);
                     if (!chapter) return null;
+                    const primary = held.id === primaryId;
                     return (
-                      <Labelled key={held.id} label={chapter.name}>
+                      <Labelled
+                        key={held.id}
+                        label={chapter.name}
+                        trailing={
+                          <button
+                            type="button"
+                            aria-pressed={primary}
+                            onClick={() => setPrimaryId(held.id)}
+                            className={cn(
+                              "rounded-full px-2.5 py-0.5 font-sans text-xs font-medium transition-colors",
+                              primary
+                                ? "bg-primary-500 text-white"
+                                : "bg-ivory-200 text-ink-500 hover:bg-ivory-300",
+                            )}
+                          >
+                            {primary ? "Primary" : "Make primary"}
+                          </button>
+                        }
+                      >
                         <div className="relative">
                           <select
                             value={phases[held.id]}
@@ -376,22 +400,41 @@ function Labelled({
   label,
   hint,
   error = false,
+  trailing,
   children,
 }: {
   label: string;
   hint?: string;
   error?: boolean;
+  /** A control beside the label, e.g. "Make primary". Kept out of the <label>. */
+  trailing?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const hintText = hint && (
+    <span className={cn("font-sans text-sm", error ? "text-destructive-60" : "text-ink-400")}>{hint}</span>
+  );
+
+  if (trailing) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <span className="flex items-center justify-between gap-3">
+          <span className="font-sans text-sm font-medium text-ink-500">{label}</span>
+          {trailing}
+        </span>
+        <label className="flex flex-col">
+          <span className="sr-only">{label}</span>
+          {children}
+        </label>
+        {hintText}
+      </div>
+    );
+  }
+
   return (
     <label className="flex flex-col gap-1.5">
       <span className="font-sans text-sm font-medium text-ink-500">{label}</span>
       {children}
-      {hint && (
-        <span className={cn("font-sans text-sm", error ? "text-destructive-60" : "text-ink-400")}>
-          {hint}
-        </span>
-      )}
+      {hintText}
     </label>
   );
 }

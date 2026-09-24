@@ -19,7 +19,7 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
   const supabase = await createClient();
   const pair = `and(requester_id.eq.${viewer.id},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${viewer.id})`;
 
-  const [{ data: profile }, { data: chapters }, { data: connection }, { data: bond }, { data: prompts }] =
+  const [{ data: profile }, { data: chapters }, { data: connection }, { data: bond }, { data: prompts }, { data: block }] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -31,6 +31,7 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
         .select("chapter_slug, phase")
         .eq("user_id", id)
         .eq("status", "open")
+        .order("is_primary", { ascending: false })
         .order("opened_at"),
       supabase.from("connections").select("id, status, requester_id").or(pair).maybeSingle(),
       supabase
@@ -40,6 +41,8 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
         .eq("status", "active")
         .maybeSingle(),
       supabase.from("profile_prompts").select("honest_tension, sitting_with, open_to").eq("user_id", id).maybeSingle(),
+      // Only blocks the viewer made are readable.
+      supabase.from("blocks").select("blocked_id").eq("blocker_id", viewer.id).eq("blocked_id", id).maybeSingle(),
     ]);
 
   if (!profile?.onboarded_at) notFound();
@@ -67,6 +70,7 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
         chapters: (chapters ?? []).map((c) => ({ slug: c.chapter_slug, phase: c.phase, shared: held.has(c.chapter_slug) })),
         relationship,
         connectionId: connection?.status === "pending" ? connection.id : null,
+        blocked: Boolean(block),
         prompts: prompts
           ? { honestTension: prompts.honest_tension, sittingWith: prompts.sitting_with, openTo: prompts.open_to }
           : null,

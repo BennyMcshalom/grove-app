@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { emailSchema, newPasswordSchema } from "@/lib/auth/schemas";
 import { landingPath } from "@/lib/auth/viewer";
-import { siteUrl } from "@/lib/site-url";
+import { requestOrigin, siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 /** Remembers which address the verify screen is confirming. */
@@ -195,7 +195,8 @@ export async function signInWithGoogle() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${await siteUrl()}/auth/callback` },
+    // Back to the site the user started on: the PKCE verifier cookie is only there.
+    options: { redirectTo: `${await requestOrigin()}/auth/callback` },
   });
 
   if (error || !data.url) redirect("/sign-in?error=google");

@@ -1,5 +1,6 @@
 "use client";
 
+import { NavCount, useUnreadMessages } from "@/components/app/UnreadMessages";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -27,6 +28,7 @@ const ITEMS = [
 
 export function MobileNav() {
   const pathname = usePathname();
+  const messages = useUnreadMessages();
   // "More" opens the sheet (601:31816) rather than navigating.
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -35,6 +37,7 @@ export function MobileNav() {
     <nav className="shrink-0 border-t border-ink-50 bg-surface px-5 py-4 lg:hidden">
       <ul className="flex items-center justify-between">
         {ITEMS.map(({ href, label, Icon }) => {
+          const badge = href === "/bonds" ? messages : 0;
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <li key={href} className="relative">
@@ -51,7 +54,10 @@ export function MobileNav() {
                     : "font-medium text-ink-600",
                 )}
               >
-                <Icon className="size-5" />
+                <span className="relative">
+                  <Icon className="size-5" />
+                  {badge > 0 && <NavCount count={badge} className="absolute -top-2 -right-3" />}
+                </span>
                 {label}
               </Link>
             </li>

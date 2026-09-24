@@ -108,7 +108,29 @@ capacity, notifications and account deletion.
 
 ### Scheduled jobs
 
-The migrations schedule five `pg_cron` jobs inside the database:
+The migrations schedule eleven `pg_cron` jobs inside the database. Six of
+them are the back engine (migration `20260923000200_back_engine.sql`), whose
+state lives in the `private` schema and is never readable by users:
+
+- `grouv-bond-engine` runs Sundays at 02:00 UTC. It adds the week's
+  interaction points to every pair, applies the multipliers (capped at ×2),
+  the reciprocity penalty and the 3%-a-week decay after 30 silent days, then
+  assigns and reshuffles everyone's five Bond slots and ranks. Tunable numbers
+  live in the single row of `private.engine_rules`; point values live in
+  `private.interaction_weights`.
+- `grouv-stage-drift` runs Mondays at 03:00 UTC and acts every other week:
+  one in-app prompt per pair whose stage overlap fell by more than half.
+- `grouv-dormancy` runs Mondays at 03:30 UTC: one in-app nudge per pair
+  silent for 30 days, never repeated.
+- `grouv-introductions` runs Thursdays at 11:00 UTC: at most one "want to
+  introduce them?" suggestion per person, never the same pair twice.
+- `grouv-daily-cards` runs hourly at :45. Whoever's local time is 05:xx gets
+  one Curio card per open space and one Wander card, expiring at noon local.
+- `grouv-reciprocity-health` runs on the 1st of the month. It sets the
+  internal flag matching uses to weigh down people with mostly one-sided
+  connections.
+
+The rest:
 
 - `grouv-cleanup` runs every 5 minutes. It removes Meet & Greet presence from
   tabs that closed without leaving, ends empty rooms, deletes expired proximity

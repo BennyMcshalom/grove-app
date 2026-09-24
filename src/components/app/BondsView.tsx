@@ -1,12 +1,13 @@
 "use client";
 
+import { BondMark } from "@/components/app/BondMark";
 import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { BondChat, GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
 import { BondsRail, PendingCard, SuggestionCard } from "@/components/app/BondsRail";
 import { useIsOnline } from "@/components/app/Presence";
 import { useCollapsedSidebar } from "@/components/app/SidebarProvider";
-import type { BondPerson, PendingRequest, Suggestion } from "@/lib/bonds";
+import { bondDuration, type BondPerson, type PendingRequest, type Suggestion } from "@/lib/bonds";
 import { cn } from "@/lib/cn";
 
 /**
@@ -285,15 +286,10 @@ function BondRow({
         </span>
         {person.unread > 0 && <UnreadBadge count={person.unread} />}
       </span>
-      <span className="flex items-center gap-4">
+      <span className="flex items-center gap-2">
+        <BondMark rank={person.rank} />
         <span className="font-sans text-sm font-medium text-ink-300">
-          Bond Depth
-        </span>
-        <span className="h-1 flex-1 overflow-hidden rounded-full bg-ink-50">
-          <span
-            className="block h-full rounded-full bg-primary-600"
-            style={{ width: `${person.depth}%` }}
-          />
+          Bond · {bondDuration(person.since)}
         </span>
       </span>
     </button>
@@ -320,22 +316,37 @@ function CircleRow({
         active ? "bg-primary-50" : "bg-surface hover:bg-ivory-100",
       )}
     >
-      <span className="flex min-w-0 flex-1 items-center gap-3">
-        <GlowAvatar src={person.avatarUrl} name={person.name} online={online} />
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate font-sans text-base font-medium text-ink-700">
+      <GlowAvatar src={person.avatarUrl} name={person.name} online={online} />
+      {/* Time on the name's line, unread count on the badge's line, so a long
+          stage never runs into either. */}
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex items-baseline justify-between gap-3">
+          <span
+            className={cn(
+              "truncate font-sans text-base text-ink-700",
+              person.unread > 0 ? "font-semibold" : "font-medium",
+            )}
+          >
             {person.name}
           </span>
-          {person.phase && <ChapterBadge chapterSlug={person.chapterSlug} label={person.phase} />}
+          {person.lastMessage && (
+            <span
+              className={cn(
+                "shrink-0 font-sans text-xs font-medium",
+                person.unread > 0 ? "text-primary-600" : "text-ink-300",
+              )}
+              suppressHydrationWarning
+            >
+              {shortTime(person.lastMessage.at)}
+            </span>
+          )}
         </span>
-      </span>
-      <span className="flex shrink-0 flex-col items-end gap-1">
-        {person.lastMessage && (
-          <span className="font-sans text-sm font-medium text-ink-200" suppressHydrationWarning>
-            {shortTime(person.lastMessage.at)}
+        <span className="flex min-w-0 items-center justify-between gap-3">
+          <span className="flex min-w-0">
+            {person.phase && <ChapterBadge chapterSlug={person.chapterSlug} label={person.phase} />}
           </span>
-        )}
-        {person.unread > 0 && <UnreadBadge count={person.unread} />}
+          {person.unread > 0 && <UnreadBadge count={person.unread} />}
+        </span>
       </span>
     </button>
   );

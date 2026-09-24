@@ -11,11 +11,17 @@ export interface InboxItem {
   actorAvatar: string | null;
   createdAt: string;
   read: boolean;
+  /**
+   * A button on the row: "acknowledge" a bond's new chapter, or "dismiss" a
+   * one-time prompt (clearing a dormancy nudge means it never comes back).
+   */
+  action?: { kind: "acknowledge" | "dismiss"; label: string };
 }
 
 export interface NotificationRow {
   id: string;
   kind: string;
+  actor_id: string | null;
   actor_name: string | null;
   actor_avatar: string | null;
   entity_id: string | null;
@@ -45,12 +51,70 @@ export function toInboxItem(row: NotificationRow): InboxItem {
       return { ...base, title: `${who} wants to connect`, body: "Accept to bring them into your circle.", href: "/bonds" };
     case "connection_accepted":
       return { ...base, title: `${who} accepted your request`, body: "They're in your circle now.", href: `/bonds` };
+    // Older rows from before bonds were formed by the engine.
     case "bond_invitation":
-      return { ...base, title: `${who} invited you to bond`, body: "Bonds see the parts of you your circle doesn't.", href: "/bonds" };
     case "bond_accepted":
-      return { ...base, title: `You and ${who} are bonded`, body: "Say hello.", href: "/bonds" };
+    case "bond_formed":
+      return { ...base, title: `Something between you and ${who} has taken root.`, body: "", href: "/bonds" };
+    // In-app only, and quiet: no reason given.
+    case "bond_shifted":
+      return { ...base, title: `Your connection with ${who} has shifted.`, body: "Everything you've shared is still here.", href: "/bonds" };
+    case "bond_chapter_opened": {
+      const chapter = typeof data.chapter_slug === "string" ? getChapter(data.chapter_slug) : undefined;
+      return {
+        ...base,
+        title: `${who} opened a new chapter`,
+        body: chapter ? `They're starting something in ${chapter.name}.` : "They're starting something new.",
+        href: "/bonds",
+        action: { kind: "acknowledge", label: "Acknowledge" },
+      };
+    }
+    case "stage_drift":
+      return {
+        ...base,
+        title: `You and ${who} seem to be in different chapters now.`,
+        body: "Still feels right?",
+        href: row.entity_id ? `/people/${row.entity_id}` : "/bonds",
+        action: { kind: "dismiss", label: "It does" },
+      };
+    case "dormancy_nudge":
+      return {
+        ...base,
+        title: `It's been quiet between you and ${who}.`,
+        body: "Maybe say hello?",
+        href: row.entity_id ? `/people/${row.entity_id}` : "/bonds",
+        action: { kind: "dismiss", label: "Not now" },
+      };
+    case "chapter_closing_suggested": {
+      const chapter = typeof data.chapter_slug === "string" ? getChapter(data.chapter_slug) : undefined;
+      return {
+        ...base,
+        title: chapter ? `${chapter.name} has been shifting a lot` : "This chapter has been shifting a lot",
+        body: "Maybe it's ready to close. The Chapter Closing Ritual is there when you are.",
+        href: chapter ? `/spaces/${chapter.slug}` : "/spaces",
+      };
+    }
+    case "introduction_suggested": {
+      const other = typeof data.other_name === "string" ? data.other_name : "someone";
+      return {
+        ...base,
+        title: `${who} and ${other} are in a similar chapter`,
+        body: "Want to introduce them?",
+        href: row.entity_id ? `/introduce?a=${row.actor_id ?? ""}&b=${row.entity_id}` : "/bonds",
+      };
+    }
+    case "introduction_received": {
+      const note = typeof data.note === "string" && data.note ? `"${data.note}"` : "Take a look and connect if it feels right.";
+      return {
+        ...base,
+        title: `${who} thinks you should meet someone`,
+        body: note,
+        href: row.entity_id ? `/people/${row.entity_id}` : "/bonds",
+      };
+    }
+    // "I see you": a private signal, never a count.
     case "post_rooted":
-      return { ...base, title: `${who} rooted your post`, body: "Your circle will see it too.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
+      return { ...base, title: `${who} sees you`, body: "They saw your post.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
     case "post_commented":
       return { ...base, title: `${who} commented on your post`, body: "See what they said.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
     case "group_join_request":

@@ -6,7 +6,14 @@ import { ReportPostModal } from "@/components/app/PostModals";
 import { TopBar } from "@/components/app/TopBar";
 import { useToast } from "@/components/app/ToastProvider";
 import { Button } from "@/components/ui/Button";
-import { connectWith, respondToRequest } from "@/lib/bond-actions";
+import {
+  blockUser,
+  cancelConnectionRequest,
+  connectWith,
+  removeFromCircle,
+  respondToRequest,
+  unblockUser,
+} from "@/lib/bond-actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
 import { AURAS, auraLabel, type Aura } from "@/lib/profile";
@@ -21,8 +28,39 @@ export interface Person {
   relationship: "bond" | "circle" | "requested" | "asked_you" | "none";
   /** The pending request, when there is one. */
   connectionId: string | null;
+  /** The viewer has blocked them. */
+  blocked: boolean;
   /** Only bonds can read these. */
   prompts: { honestTension: string | null; sittingWith: string | null; openTo: string | null } | null;
+}
+
+/** A one-line "are you sure?" under the actions. */
+export function ConfirmBar({
+  message,
+  action,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  message: string;
+  action: string;
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div role="alert" className="flex flex-col gap-3 rounded-lg bg-ivory-100 p-4">
+      <p className="font-sans text-sm text-ink-600">{message}</p>
+      <div className="flex gap-3">
+        <Button size="sm" onClick={onConfirm} loading={busy}>
+          {action}
+        </Button>
+        <Button variant="tertiary" size="sm" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 const RELATIONSHIP_LABEL: Record<Person["relationship"], string | null> = {
@@ -36,6 +74,8 @@ const RELATIONSHIP_LABEL: Record<Person["relationship"], string | null> = {
 export function PersonView({ person }: { person: Person }) {
   const toast = useToast();
   const [relationship, setRelationship] = useState(person.relationship);
+  const [blocked, setBlocked] = useState(person.blocked);
+  const [confirming, setConfirming] = useState<"remove" | "block" | null>(null);
   const [reporting, setReporting] = useState(false);
   const [pending, startTransition] = useTransition();
   const aura = AURAS.find((a) => a.value === person.aura);
@@ -49,10 +89,37 @@ export function PersonView({ person }: { person: Person }) {
       toast({ title: result.status === "accepted" ? "You're connected" : "Connection request sent", tone: "confirm" });
     });
 
+  const cancelRequest = () =>
+    startTransition(async () => {
+      const result = await cancelConnectionRequest(person.id);
+      if (result.error) return toast({ title: result.error, tone: "danger" });
+      setRelationship("none");
+      toast({ title: "Request cancelled" });
+    });
+
+  const remove = () =>
+    startTransition(async () => {
+      const result = await removeFromCircle(person.id);
+      setConfirming(null);
+      if (result.error) return toast({ title: result.error, tone: "danger" });
+      setRelationship("none");
+      toast({ title: `${person.name} is no longer in your circle` });
+    });
+
+  const block = () =>
+    startTransition(async () => {
+      const result = blocked ? await unblockUser(person.id) : await blockUser(person.id);
+      setConfirming(null);
+      if (result.error) return toast({ title: result.error, tone: "danger" });
+      if (!blocked) setRelationship("none");
+      setBlocked(!blocked);
+      toast({ title: blocked ? `Unblocked ${person.name}` : `Blocked ${person.name}` });
+    });
+
   const respond = (accept: boolean) =>
     startTransition(async () => {
       if (!person.connectionId) return;
-      const result = await respondToRequest("connection", person.connectionId, accept);
+      const result = await respondToRequest(person.connectionId, accept);
       if (result.error) return toast({ title: result.error, tone: "danger" });
       setRelationship(accept ? "circle" : "none");
     });
@@ -96,9 +163,14 @@ export function PersonView({ person }: { person: Person }) {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                {relationship === "none" && (
+                {relationship === "none" && !blocked && (
                   <Button size="sm" onClick={connect} loading={pending}>
                     Connect
+                  </Button>
+                )}
+                {relationship === "requested" && (
+                  <Button variant="secondary" size="sm" onClick={cancelRequest} loading={pending}>
+                    Cancel request
                   </Button>
                 )}
                 {relationship === "asked_you" && (
@@ -116,10 +188,33 @@ export function PersonView({ person }: { person: Person }) {
                     Message
                   </Button>
                 )}
+                {(relationship === "circle" || relationship === "bond") && (
+                  <Button variant="secondary" size="sm" onClick={() => setConfirming("remove")} disabled={pending}>
+                    Remove from circle
+                  </Button>
+                )}
+                <Button variant="tertiary" size="sm" onClick={() => setConfirming("block")} disabled={pending}>
+                  {blocked ? "Unblock" : "Block"}
+                </Button>
                 <Button variant="tertiary" size="sm" onClick={() => setReporting(true)}>
                   Report
                 </Button>
               </div>
+              {confirming && (
+                <ConfirmBar
+                  message={
+                    confirming === "remove"
+                      ? `Remove ${person.name} from your circle? ${relationship === "bond" ? "Your bond ends too. " : ""}Everything you've shared stays.`
+                      : blocked
+                        ? `Unblock ${person.name}? You'll need to connect again to talk.`
+                        : `Block ${person.name}? They won't be able to message, call, connect with or see you nearby.`
+                  }
+                  action={confirming === "remove" ? "Remove" : blocked ? "Unblock" : "Block"}
+                  busy={pending}
+                  onConfirm={confirming === "remove" ? remove : block}
+                  onCancel={() => setConfirming(null)}
+                />
+              )}
             </div>
           </section>
 

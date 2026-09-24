@@ -4,6 +4,9 @@ import Image from "next/image";
 import { MessagesSkeleton } from "@/components/ui/Skeleton";
 import { Photo, Video } from "@/components/ui/Media";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { BondMark } from "@/components/app/BondMark";
+import { ChatMenu } from "@/components/app/ChatMenu";
+import { Linkify } from "@/components/ui/Linkify";
 import { Avatar } from "@/components/app/Avatar";
 import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
@@ -21,7 +24,7 @@ import {
 import { bondDuration, messagePreview, type BondPerson, type ChatMessage } from "@/lib/bonds";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
-import { mediaDuration, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
+import { DOCUMENT_TYPES, formatBytes, isDocument, mediaDuration, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
 import { useRealtimeChannel } from "@/lib/supabase/use-channel";
 
 /**
@@ -168,11 +171,21 @@ export function BondChat({
   const [attaching, setAttaching] = useState(false);
 
   // Attachments upload straight to chat/<conversation>/<me>/, then send.
-  const attach = async (file: Blob, kind: "voice" | "video" | "image", seconds?: number) => {
+  const attach = async (file: Blob, kind: "voice" | "video" | "image" | "file", seconds?: number) => {
     const limit =
-      kind === "image" ? UPLOAD_LIMITS.photoBytes : kind === "video" ? UPLOAD_LIMITS.videoBytes : UPLOAD_LIMITS.audioBytes;
+      kind === "image"
+        ? UPLOAD_LIMITS.photoBytes
+        : kind === "video"
+          ? UPLOAD_LIMITS.videoBytes
+          : kind === "file"
+            ? UPLOAD_LIMITS.documentBytes
+            : UPLOAD_LIMITS.audioBytes;
     if (file.size > limit) {
-      toast({ title: kind === "image" ? "Choose a photo under 10MB" : "That file is too large", tone: "danger" });
+      toast({
+        title:
+          kind === "image" ? "Choose a photo under 10MB" : kind === "file" ? "Documents can be up to 25MB" : "That file is too large",
+        tone: "danger",
+      });
       return;
     }
 
@@ -188,7 +201,7 @@ export function BondChat({
 
     const duration = kind === "video" ? await mediaDuration(file, "video") : (seconds ?? null);
     const uploaded = await uploadFile("chat", `${conversation}/${viewer.id}`, file, {
-      fallbackExtension: kind === "voice" ? "webm" : kind === "video" ? "mp4" : "jpg",
+      fallbackExtension: kind === "voice" ? "webm" : kind === "video" ? "mp4" : kind === "file" ? "bin" : "jpg",
     });
     if ("error" in uploaded) {
       setAttaching(false);
@@ -196,7 +209,13 @@ export function BondChat({
       return;
     }
 
-    const result = await sendMediaMessage(conversation, kind, uploaded.path, duration);
+    const result = await sendMediaMessage(
+      conversation,
+      kind,
+      uploaded.path,
+      duration,
+      kind === "file" ? { name: file instanceof File ? file.name : "Document", size: file.size } : undefined,
+    );
     setAttaching(false);
     if (result.error || !result.message) {
       toast({ title: result.error ?? "That didn't send.", tone: "danger" });
@@ -251,22 +270,22 @@ export function BondChat({
             <IconButton label="Video call" ringed onClick={calls.enabled ? () => void call("video") : undefined}>
               <VideoIcon />
             </IconButton>
-            <IconButton label="More" ringed><DotsIcon /></IconButton>
+            <ChatMenu
+              person={person}
+              conversationId={conversationId}
+              trigger={
+                <span className="grid size-10 place-items-center rounded-full border border-ink-100 bg-surface transition-colors hover:bg-ivory-200">
+                  <DotsIcon />
+                </span>
+              }
+            />
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {person.relationship === "bond" && <BondMark rank={person.rank} />}
           <span className="font-sans text-sm font-medium text-ink-300">
-            {person.relationship === "bond" ? "Bond Depth" : "In your circle"}
-          </span>
-          <span className="h-1 w-full max-w-[320px] overflow-hidden rounded-full bg-ink-50">
-            <span
-              className="block h-full rounded-full bg-primary-600"
-              style={{ width: `${person.depth}%` }}
-            />
-          </span>
-          <span className="shrink-0 font-sans text-sm font-medium text-ink-300">
-            {bondDuration(person.since)}
+            {person.relationship === "bond" ? "Bond" : "In your circle"} · {bondDuration(person.since)}
           </span>
         </div>
       </header>
@@ -321,15 +340,20 @@ export function BondChat({
             )}
           >
             <PlusIcon />
-            <span className="sr-only">Attach a photo or video</span>
+            <span className="sr-only">Attach a photo, video or document</span>
             <input
               type="file"
-              accept="image/*,video/*"
+              accept={["image/*", "video/*", ...Object.keys(DOCUMENT_TYPES), ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"].join(",")}
               className="sr-only"
               disabled={attaching}
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) void attach(file, file.type.startsWith("video/") ? "video" : "image");
+                if (file) {
+                  if (isDocument(file)) void attach(file, "file");
+                  else if (file.type.startsWith("video/")) void attach(file, "video");
+                  else if (file.type.startsWith("image/")) void attach(file, "image");
+                  else toast({ title: "Send photos, videos, PDFs or Office documents", tone: "danger" });
+                }
                 e.target.value = "";
               }}
             />
@@ -433,8 +457,30 @@ function Bubble({
               </>
             ) : (
               <span className="font-sans text-sm opacity-80">
-                This post is in a space you don&rsquo;t hold.
+                This post isn&rsquo;t visible to you any more.
               </span>
+            )}
+            <span className={cn("self-end font-sans text-xs font-medium", mine ? "text-primary-50" : "text-ink-500")}>
+              {time}
+            </span>
+          </div>
+        ) : message.kind === "card" ? (
+          <div
+            className={cn(
+              "flex flex-col gap-1 rounded-2xl p-3",
+              mine ? "bg-primary-600 text-white" : "border border-ink-50 bg-surface text-ink-700",
+            )}
+          >
+            <span className={cn("font-sans text-xs font-semibold", mine ? "text-primary-50" : "text-ink-300")}>
+              {message.card?.kind === "wander" ? "A Wander card" : "A Curio card"}
+            </span>
+            {message.card ? (
+              <>
+                <span className="font-sans text-sm font-semibold">{message.card.title}</span>
+                <span className="font-sans text-sm">{message.card.body}</span>
+              </>
+            ) : (
+              <span className="font-sans text-sm opacity-80">This card is no longer available.</span>
             )}
             <span className={cn("self-end font-sans text-xs font-medium", mine ? "text-primary-50" : "text-ink-500")}>
               {time}
@@ -457,6 +503,33 @@ function Bubble({
               </span>
             </div>
           </div>
+        ) : message.kind === "file" && message.file ? (
+          <a
+            href={message.mediaUrl ?? undefined}
+            download={message.file.name}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "flex items-center gap-3 rounded-2xl p-3 transition-opacity hover:opacity-90",
+              mine ? "bg-primary-600 text-white" : "border border-ink-50 bg-surface text-ink-700",
+              !message.mediaUrl && "pointer-events-none opacity-60",
+            )}
+          >
+            <span
+              className={cn(
+                "grid size-10 shrink-0 place-items-center rounded-lg font-sans text-[10px] font-bold uppercase",
+                mine ? "bg-white/20" : "bg-primary-50 text-primary-700",
+              )}
+            >
+              {message.file.name.split(".").pop()?.slice(0, 4) ?? "doc"}
+            </span>
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate font-sans text-sm font-semibold">{message.file.name}</span>
+              <span className={cn("font-sans text-xs", mine ? "text-primary-50" : "text-ink-400")}>
+                {message.file.size !== null ? `${formatBytes(message.file.size)} · ` : ""}Download · {time}
+              </span>
+            </span>
+          </a>
         ) : (message.kind === "video" || message.kind === "image") && message.mediaUrl ? (
           <div className="flex flex-col gap-1 rounded-2xl border border-ink-50 bg-surface p-1">
             <div className="relative overflow-hidden rounded-xl">
@@ -480,7 +553,11 @@ function Bubble({
             )}
           >
             <p className="font-sans text-sm font-medium whitespace-pre-line">
-              {message.kind === "text" ? message.body : messagePreview(message.kind, message.body)}
+              {message.kind === "text" && message.body ? (
+                <Linkify text={message.body} />
+              ) : (
+                messagePreview(message.kind, message.body)
+              )}
             </p>
             <span
               className={cn(
@@ -517,7 +594,7 @@ export function ChapterBadge({
 }) {
   const icon = chapterSlug ? getChapter(chapterSlug)?.icon : undefined;
   return (
-    <span className="flex w-fit items-center gap-1.5 rounded-full bg-ivory-200 px-2 py-0.5">
+    <span className="flex w-fit max-w-full items-center gap-1.5 rounded-full bg-ivory-200 px-2 py-0.5">
       {icon && (
         <Image src={icon} alt="" width={20} height={20} className="size-4 shrink-0 rounded-full" />
       )}

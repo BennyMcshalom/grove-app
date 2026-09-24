@@ -8,7 +8,9 @@ import { useToast } from "@/components/app/ToastProvider";
 import { useUnread } from "@/components/app/Unread";
 import { Button } from "@/components/ui/Button";
 import {
+  acknowledgeChapter,
   clearNotifications,
+  dismissNotification,
   loadNotifications,
   markNotificationsRead,
 } from "@/lib/notification-actions";
@@ -28,6 +30,22 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
   const { clear } = useUnread();
   const [items, setItems] = useState<InboxItem[] | null>(null);
   const [clearing, startClearing] = useTransition();
+
+  const act = async (item: InboxItem) => {
+    if (!item.action) return;
+    const result =
+      item.action.kind === "acknowledge" ? await acknowledgeChapter(item.id) : await dismissNotification(item.id);
+    if (result.error) {
+      toast({ title: result.error, tone: "danger" });
+      return;
+    }
+    setItems((prev) =>
+      item.action?.kind === "dismiss"
+        ? (prev ?? []).filter((i) => i.id !== item.id)
+        : (prev ?? []).map((i) => (i.id === item.id ? { ...i, action: undefined, read: true } : i)),
+    );
+    if (item.action.kind === "acknowledge") toast({ title: "They'll know you saw it." });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -117,6 +135,13 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
                     </p>
                   </div>
                 </Link>
+                {item.action && (
+                  <div className="flex justify-end px-4 pt-2">
+                    <Button size="sm" variant="secondary" onClick={() => void act(item)}>
+                      {item.action.label}
+                    </Button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

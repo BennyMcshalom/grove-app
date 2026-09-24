@@ -1,7 +1,7 @@
 "use client";
 
-import { Photo, Video } from "@/components/ui/Media";
-import { withTrim } from "@/lib/media-draft";
+import { PostMedia } from "@/components/app/PostMedia";
+import { Linkify } from "@/components/ui/Linkify";
 import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { PostComments } from "@/components/app/PostComments";
@@ -27,7 +27,6 @@ export function PostCard({ post: initial }: { post: Post }) {
   const [post, setPost] = useState(initial);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rooted, setRootedState] = useState(initial.rooted);
-  const [roots, setRoots] = useState(initial.roots);
   const [comments, setComments] = useState(initial.comments);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shared, setShared] = useState(false);
@@ -39,19 +38,18 @@ export function PostCard({ post: initial }: { post: Post }) {
   if (deleted) return null;
 
   const badge = progressLabel(post.progress);
-  const [cover, ...more] = post.media;
+  // Just Grouv: the caption sits inside the picture (Figma 110:3891).
+  const captionInImage = post.kind === "grouv" && post.media.length > 0;
 
   const toggleRoot = async () => {
     const next = !rooted;
     // Optimistic, then put it back if the server says no.
     setRootedState(next);
-    setRoots((n) => n + (next ? 1 : -1));
-    if (next) toast({ title: "Post rooted. Your Circle will see this post." });
+    if (next) toast({ title: "Only they'll know you saw it." });
 
     const result = await setRooted(post.id, next);
     if (result.error) {
       setRootedState(!next);
-      setRoots((n) => n + (next ? -1 : 1));
       toast({ title: result.error, tone: "danger" });
     }
   };
@@ -107,45 +105,27 @@ export function PostCard({ post: initial }: { post: Post }) {
           </div>
         </header>
 
-        {(post.title || post.body) && (
+        {(post.title || (post.body && !captionInImage)) && (
           <div className="flex flex-col gap-1 py-2">
             {post.title && (
               <h2 className="font-sans text-xl font-semibold text-ink-700">
-                {post.title}
+                <Linkify text={post.title} className="text-primary-600" />
               </h2>
             )}
-            {post.body && (
-              <p className="font-sans text-base whitespace-pre-line text-ink-400">{post.body}</p>
+            {post.body && !captionInImage && (
+              <p className="font-sans text-base whitespace-pre-line text-ink-400">
+                <Linkify text={post.body} className="text-primary-600" />
+              </p>
             )}
           </div>
         )}
 
-        {cover && (
-          <div className="relative aspect-[589/332] w-full overflow-hidden rounded-2xl bg-ivory-200">
-            {cover.kind === "photo" ? (
-              // Signed Storage links expire, so they skip the image optimiser.
-              <Photo
-                src={cover.src}
-                alt=""
-                fill
-                unoptimized
-                className="object-cover"
-              />
-            ) : (
-              <Video
-                src={withTrim(cover.src, cover.trimStart, cover.trimEnd)}
-                controls
-                playsInline
-                preload="metadata"
-                className="absolute inset-0 size-full object-cover"
-              />
-            )}
-            {more.length > 0 && (
-              <span className="absolute top-3 right-3 rounded-full bg-black/60 px-2.5 py-1 font-sans text-xs font-semibold text-white">
-                +{more.length}
-              </span>
-            )}
-          </div>
+        {post.media.length > 0 && (
+          <PostMedia
+            media={post.media}
+            caption={captionInImage ? post.body : undefined}
+            postedAt={captionInImage ? post.createdAt : undefined}
+          />
         )}
 
         <hr className="border-ink-50" />
@@ -153,12 +133,9 @@ export function PostCard({ post: initial }: { post: Post }) {
         <footer className="flex flex-wrap gap-5 py-3">
           <Action
             icon={<PlantIcon className="size-6" />}
-            label={
-              <>
-                <span className="hidden sm:inline">Root </span>
-                {roots}
-              </>
-            }
+            // "I see you": a private signal to the poster. Never a count,
+            // and it never changes what anyone's feed shows.
+            label={rooted ? "Seen" : "I see you"}
             tone="root"
             active={rooted}
             onClick={toggleRoot}

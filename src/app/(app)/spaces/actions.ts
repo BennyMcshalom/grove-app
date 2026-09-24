@@ -58,27 +58,6 @@ export async function connectWithMember(
   return { status: data.status };
 }
 
-/** Ask Members → "Enter Grouv": invite someone in this space to bond. */
-export async function inviteMemberToBond(
-  userId: string,
-  chapterSlug: string,
-): Promise<SpaceActionResult & { status?: "pending" | "active" | "declined" | "released" }> {
-  await requireOnboardedViewer();
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("invite_bond", {
-    p_other: userId,
-    p_chapter_slug: chapterSlug,
-  });
-
-  if (error || !data) {
-    console.error("[spaces] inviteMemberToBond failed", error);
-    if (error?.hint === "rate_limited") return { error: error.message };
-    return { error: "We couldn't send that invite. Try again." };
-  }
-  if (data.status === "pending") await sendNotificationEmailsSoon();
-  return { status: data.status };
-}
-
 /** Anonymous tab → "Ask". Lives for 7 days; replies come back without names. */
 export async function askSpace(
   chapterSlug: string,
@@ -100,7 +79,7 @@ export async function askSpace(
   if (error || !data) {
     if (error?.code === "42501") return { error: "You can only ask spaces you hold." };
     console.error("[spaces] askSpace failed", error);
-    if (error?.hint === "rate_limited") return { error: error.message };
+    if (error?.hint === "rate_limited" || error?.hint === "ask_limit") return { error: error.message };
     return { error: "We couldn't send your question. Try again." };
   }
   return { question: data };

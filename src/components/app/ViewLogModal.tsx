@@ -68,7 +68,7 @@ export function ViewLogModal({
                       style={{ backgroundImage: `url(${chapter.icon})` }}
                     />
                   )}
-                  <span className="font-sans text-xs text-ink-500">{log.phase}</span>
+                  <span className="font-sans text-xs text-ink-500">{entry?.phase ?? log.phase}</span>
                 </span>
                 <span className="size-1 rounded-full bg-ink-100" />
                 <span className="font-sans text-xs text-ink-400" suppressHydrationWarning>

@@ -5,7 +5,7 @@ import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
-import { FeedList } from "@/components/app/FeedList";
+import { FeedEnd, FeedList } from "@/components/app/FeedList";
 import { RightRail } from "@/components/app/RightRail";
 import { useToast } from "@/components/app/ToastProvider";
 import { FormError } from "@/components/auth/FormError";
@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/Button";
 import {
   askSpace,
   connectWithMember,
-  inviteMemberToBond,
   loadQuestionReplies,
   replyToQuestion,
   type QuestionReply,
@@ -99,16 +98,6 @@ export function SpaceView({
     });
   };
 
-  const invite = async (userId: string) => {
-    const result = await inviteMemberToBond(userId, slug);
-    if (result.error) {
-      toast({ title: result.error, tone: "danger" });
-      return;
-    }
-    updateMember(userId, { bond: result.status === "active" ? "active" : "pending" });
-    toast({ title: result.status === "active" ? "You're bonded" : "Invite sent" });
-  };
-
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -184,6 +173,7 @@ export function SpaceView({
                 query={{ scope: "roots", chapterSlug: slug }}
                 initial={roots}
                 empty={<EmptyFeed />}
+                ending={<FeedEnd />}
               />
             )}
 
@@ -214,8 +204,8 @@ export function SpaceView({
                 </div>
 
                 <p className="font-sans text-sm text-ink-400">
-                  Posts from people outside your circle, in the same stage.
-                  Connect to bring them in
+                  Open Grove: the one post a month people share beyond their
+                  circle, from others at your stage. Connect to bring them in
                 </p>
 
                 <FeedList
@@ -224,8 +214,8 @@ export function SpaceView({
                   empty={
                     <p className="py-6 text-center font-sans text-sm text-ink-300">
                       {acrossRegions
-                        ? "No one outside your circle has posted from where you are yet."
-                        : "No one near you has posted from where you are yet. Try searching across regions."}
+                        ? "No one at your stage has shared to Open Grove this month yet."
+                        : "No one near you has shared to Open Grove this month. Try searching across regions."}
                     </p>
                   }
                   renderPost={(post) => (
@@ -269,18 +259,24 @@ export function SpaceView({
                           {member.phase}
                         </span>
                       </span>
+                      {/* Bonds are formed by the engine, never invited: members
+                          can only be connected with here. */}
                       <PendingButton
-                        disabled={member.bond !== "none"}
-                        onClick={() => invite(member.userId)}
+                        disabled={member.bond === "active" || member.connection === "connected" || member.connection === "requested"}
+                        onClick={() => connect(member.userId)}
                         className="flex items-center gap-2 rounded-full bg-primary-100 px-3 py-2.5 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-200 disabled:bg-ivory-400 disabled:text-ink-400"
                       >
                         {member.bond === "active" ? (
-                          "Bonded"
-                        ) : member.bond === "pending" ? (
-                          "Invite sent"
+                          "Bond"
+                        ) : member.connection === "connected" ? (
+                          "In your circle"
+                        ) : member.connection === "requested" ? (
+                          "Requested"
+                        ) : member.connection === "incoming" ? (
+                          "Accept"
                         ) : (
                           <>
-                            Enter Grouv
+                            Connect
                             <ArrowRight className="size-4" />
                           </>
                         )}
@@ -372,7 +368,7 @@ function AnonymousTab({
           <FormError message={error} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="font-sans text-sm text-ink-300">
-              Live for 7 days &middot; Replies come back without names
+              Reaches only your connections at your stage &middot; Live for 7 days &middot; Replies come back without names
             </span>
             <Button
               size="sm"

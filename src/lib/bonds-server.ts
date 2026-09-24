@@ -18,7 +18,7 @@ export async function loadBondPeople(): Promise<BondPerson[]> {
     relationship: row.relationship,
     bondId: row.bond_id,
     since: row.together_since,
-    depth: row.depth,
+    rank: row.bond_rank,
     conversationId: row.conversation_id,
     lastMessage: row.last_message_at
       ? {

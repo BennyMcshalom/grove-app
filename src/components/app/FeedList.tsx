@@ -16,7 +16,22 @@ function scrollParent(node: HTMLElement): HTMLElement | null {
 }
 
 /**
- * A feed of posts that loads more as the end scrolls into view.
+ * Where a 48-hour feed stops. Nothing after it: no suggestions, no "you
+ * might also like", no way to load older posts.
+ */
+export function FeedEnd() {
+  return (
+    <div className="flex flex-col items-center gap-1 py-8 text-center">
+      <span aria-hidden="true" className="h-px w-16 bg-ink-100" />
+      <p className="pt-4 font-sans text-base font-medium text-ink-500">You&apos;re all caught up</p>
+      <p className="font-sans text-sm text-ink-300">That&apos;s everything from the last 48 hours.</p>
+    </div>
+  );
+}
+
+/**
+ * A feed of posts. Feeds that page (your own history) load more as the end
+ * scrolls into view; 48-hour feeds come in one piece and show `ending`.
  *
  * Pass `initial` when the server already rendered the first page; without it
  * the first page loads on mount. Give the component a `key` per query so
@@ -26,11 +41,14 @@ export function FeedList({
   query,
   initial,
   empty,
+  ending,
   renderPost = (post) => <PostCard key={post.id} post={post} />,
 }: {
   query: Omit<FeedQuery, "cursor">;
   initial?: FeedPage;
   empty: React.ReactNode;
+  /** Shown after the last post when there's nothing more to load. */
+  ending?: React.ReactNode;
   renderPost?: (post: Post) => React.ReactNode;
 }) {
   const queryKey = JSON.stringify(query);
@@ -109,6 +127,7 @@ export function FeedList({
         <PostCardSkeleton />
       )}
       {error && <p className="text-center font-sans text-sm text-destructive-60">{error}</p>}
+      {!cursor && !error && ending}
     </div>
   );
 }

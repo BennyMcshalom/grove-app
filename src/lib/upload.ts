@@ -5,7 +5,32 @@ export const UPLOAD_LIMITS = {
   photoBytes: 10 * 1024 * 1024,
   videoBytes: 100 * 1024 * 1024,
   audioBytes: 20 * 1024 * 1024,
+  documentBytes: 25 * 1024 * 1024,
 } as const;
+
+/** Documents chat accepts (the chat bucket allows exactly these). */
+export const DOCUMENT_TYPES: Record<string, string> = {
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+  "text/plain": "txt",
+  "text/csv": "csv",
+};
+
+export function isDocument(file: Blob) {
+  return file.type.split(";")[0] in DOCUMENT_TYPES;
+}
+
+/** "2.4 MB" */
+export function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 const EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -25,6 +50,7 @@ const EXTENSIONS: Record<string, string> = {
 function extensionFor(file: Blob, fallback: string) {
   const type = file.type.split(";")[0];
   if (EXTENSIONS[type]) return EXTENSIONS[type];
+  if (DOCUMENT_TYPES[type]) return DOCUMENT_TYPES[type];
   const name = "name" in file ? String((file as File).name) : "";
   const fromName = name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5);
   return fromName || fallback;

@@ -1,4 +1,6 @@
 import "server-only";
+import { sendEmail } from "@/lib/email/send";
+import { trialStartedEmail } from "@/lib/email/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -122,7 +124,9 @@ export function billingState(subscriber: RevenueCatSubscriber, now = Date.now())
 /** Copies one person's plan from RevenueCat into Supabase. */
 export async function syncBilling(userId: string): Promise<BillingState> {
   const state = billingState(await fetchSubscriber(userId));
-  const { error } = await createAdminClient().rpc("sync_billing", {
+  const admin = createAdminClient();
+  const { data: before } = await admin.from("subscriptions").select("status").eq("user_id", userId).maybeSingle();
+  const { error } = await admin.rpc("sync_billing", {
     p_user_id: userId,
     p_status: state.status,
     p_store: state.store,
@@ -132,7 +136,32 @@ export async function syncBilling(userId: string): Promise<BillingState> {
     p_management_url: state.managementUrl,
   });
   if (error) throw new Error(`sync_billing failed: ${error.message}`);
+
+  // A checkout that starts with a free trial gets the same confirmation as
+  // the in-app trial.
+  if (state.status === "trialing" && before?.status !== "trialing") {
+    await emailTrialStarted(userId, state.trialEnd).catch((e) =>
+      console.error("[billing] trial email failed", e),
+    );
+  }
   return state;
+}
+
+async function emailTrialStarted(userId: string, trialEnd: string | null) {
+  const admin = createAdminClient();
+  const [{ data: auth }, { data: profile }] = await Promise.all([
+    admin.auth.admin.getUserById(userId),
+    admin.from("profiles").select("first_name").eq("id", userId).maybeSingle(),
+  ]);
+  if (!auth.user?.email) return;
+  await sendEmail(
+    trialStartedEmail({
+      to: auth.user.email,
+      firstName: profile?.first_name ?? "there",
+      trialEndsAt: trialEnd,
+      siteUrl: (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/, ""),
+    }),
+  );
 }
 
 /** Removes the customer from RevenueCat after their account is deleted. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { PostingToMenu } from "@/components/app/PostMenu";
 import { useToast } from "@/components/app/ToastProvider";
@@ -8,7 +8,7 @@ import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
-import { createPost } from "@/lib/post-actions";
+import { createPost, openGroveAvailable } from "@/lib/post-actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
 import { MEDIA_LIMITS, PROGRESS, type PostProgress } from "@/lib/posts";
@@ -38,6 +38,11 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const [stage, setStage] = useState<PostProgress | null>(null);
   const [anonymous, setAnonymous] = useState(false);
   const [chapter, setChapter] = useState(viewer.chapters[0]?.slug ?? "");
+  // Open Grove: one post a month per space that reaches people at the same
+  // stage beyond your circle. Once it's used the option just isn't offered.
+  const [openGrove, setOpenGrove] = useState(false);
+  const [grove, setGrove] = useState<{ chapter: string; open: boolean } | null>(null);
+  const groveAvailable = grove?.chapter === chapter && grove.open;
   const [chapterMenuOpen, setChapterMenuOpen] = useState(false);
   const [doing, setDoing] = useState("");
   const [honest, setHonest] = useState("");
@@ -48,10 +53,22 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
 
   const uploading = attachments.some((a) => a.status === "uploading");
 
+  useEffect(() => {
+    if (!chapter) return;
+    let live = true;
+    void openGroveAvailable(chapter).then((open) => {
+      if (live) setGrove({ chapter, open });
+    });
+    return () => {
+      live = false;
+    };
+  }, [chapter]);
+
   const clearDraft = () => {
     setMode(MODES[0]);
     setStage(null);
     setAnonymous(false);
+    setOpenGrove(false);
     setDoing("");
     setHonest("");
     setCaption("");
@@ -166,6 +183,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         progress: isRoot ? stage : null,
         body: isRoot ? honest : caption,
         anonymous,
+        openGrove: openGrove && groveAvailable && !anonymous,
         media: attachments.flatMap((a) =>
           a.path ? [{ path: a.path, kind: a.kind, trimStart: a.trimStart, trimEnd: a.trimEnd }] : [],
         ),
@@ -175,6 +193,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         return;
       }
       toast({ title: `Posted to ${getChapter(chapter)?.name ?? "your space"}` });
+      if (openGrove && groveAvailable && !anonymous) setGrove({ chapter, open: false });
       clearDraft();
       onClose?.();
     });
@@ -314,11 +333,20 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
           <FormError message={error} />
 
           <div className="flex items-center justify-between gap-4 border-t border-ink-50 pt-6">
-            <Checkbox
-              label="Post anonymously"
-              checked={anonymous}
-              onChange={(e) => setAnonymous(e.target.checked)}
-            />
+            <div className="flex flex-col gap-3">
+              <Checkbox
+                label="Post anonymously"
+                checked={anonymous}
+                onChange={(e) => setAnonymous(e.target.checked)}
+              />
+              {groveAvailable && !anonymous && (
+                <Checkbox
+                  label="Share to Open Grove, beyond your circle"
+                  checked={openGrove}
+                  onChange={(e) => setOpenGrove(e.target.checked)}
+                />
+              )}
+            </div>
             <Button size="sm" onClick={submit} loading={posting} disabled={submitDisabled}>
               Grouv it
             </Button>
@@ -371,11 +399,20 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
           />
         </div>
 
-        <Checkbox
-          label="Post anonymously"
-          checked={anonymous}
-          onChange={(e) => setAnonymous(e.target.checked)}
-        />
+        <div className="flex flex-col gap-3">
+          <Checkbox
+            label="Post anonymously"
+            checked={anonymous}
+            onChange={(e) => setAnonymous(e.target.checked)}
+          />
+          {groveAvailable && !anonymous && (
+            <Checkbox
+              label="Share to Open Grove, beyond your circle"
+              checked={openGrove}
+              onChange={(e) => setOpenGrove(e.target.checked)}
+            />
+          )}
+        </div>
       </div>
 
       {attachmentRow}

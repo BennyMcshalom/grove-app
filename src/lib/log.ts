@@ -9,6 +9,8 @@ export interface LogEntry {
   /** Day N of the chapter this was logged in. */
   dayNumber: number;
   chapterSlug: string;
+  /** The stage in that space, for moments from other people. */
+  phase?: string;
   scope: "solo" | "bond";
 }
 

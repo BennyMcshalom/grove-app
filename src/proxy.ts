@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 /** Pages a signed-out visitor may open. Everything else needs a session. */
@@ -14,8 +14,20 @@ const AUTH_PAGES = new Set(["/sign-in", "/sign-up"]);
  * `getViewer()` guards), so a matcher change here can't open anything up.
  */
 export async function proxy(request: NextRequest) {
+  const { pathname, search, searchParams } = request.nextUrl;
+
+  // When Supabase can't use the callback we asked for, it falls back to the
+  // site root with the sign-in code (or an error) attached. Finish the
+  // sign-in instead of showing the landing page — that's what made Google
+  // sign-up need a second try.
+  if (pathname === "/" && (searchParams.has("code") || searchParams.has("error_description"))) {
+    const url = request.nextUrl.clone();
+    url.pathname = searchParams.has("code") ? "/auth/callback" : "/sign-in";
+    url.search = searchParams.has("code") ? `?code=${encodeURIComponent(searchParams.get("code")!)}` : "?error=google";
+    return NextResponse.redirect(url);
+  }
+
   const { response, userId } = await updateSession(request);
-  const { pathname, search } = request.nextUrl;
 
   const isPublic =
     PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));

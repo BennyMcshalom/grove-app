@@ -5,31 +5,44 @@ import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { Avatar } from "@/components/app/Avatar";
 import { listShareTargets, sendPostToBond } from "@/lib/bond-actions";
 
+type Target = { userId: string; name: string; avatarUrl: string | null };
+
 /**
  * Post menu → "Send to a Bond". Figma has the menu item but no picker, so this
- * reuses the post modals' white card with one row per bond.
+ * reuses the post modals' white card with one row per bond. The morning cards
+ * reuse it (with the whole circle) to send a card privately.
  */
 export function SendToBondModal({
   postId,
+  title = "Send to a Bond",
+  loadTargets = listShareTargets,
+  send = (userId) => sendPostToBond(postId ?? "", userId),
+  emptyText = "You don't have any bonds yet. Bonds form over time with the people you're closest to here.",
   onClose,
   onSent,
 }: {
-  postId: string;
+  postId?: string;
+  title?: string;
+  loadTargets?: () => Promise<Target[]>;
+  send?: (userId: string) => Promise<{ error?: string }>;
+  emptyText?: string;
   onClose: () => void;
   onSent: (name: string) => void;
 }) {
-  const [targets, setTargets] = useState<{ userId: string; name: string; avatarUrl: string | null }[] | null>(null);
+  const [targets, setTargets] = useState<Target[] | null>(null);
   const [sendingTo, setSendingTo] = useState<string | null>(null);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
     let cancelled = false;
-    listShareTargets().then((result) => {
+    loadTargets().then((result) => {
       if (!cancelled) setTargets(result);
     });
     return () => {
       cancelled = true;
     };
+    // The loader is fixed for the life of the modal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -40,12 +53,12 @@ export function SendToBondModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Send to a Bond"
+        aria-label={title}
         onClick={(e) => e.stopPropagation()}
         className="my-auto flex w-full max-w-[480px] flex-col gap-5 rounded-2xl bg-surface p-6"
       >
         <header className="flex items-center justify-between gap-4">
-          <h2 className="font-display text-xl font-semibold text-ink-700">Send to a Bond</h2>
+          <h2 className="font-display text-xl font-semibold text-ink-700">{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -63,9 +76,7 @@ export function SendToBondModal({
         {targets === null ? (
           <PersonRowsSkeleton count={3} label="Loading your bonds" />
         ) : targets.length === 0 ? (
-          <p className="font-sans text-sm text-ink-300">
-            You don&rsquo;t have any bonds yet. Invite someone from a space&rsquo;s Ask Members tab.
-          </p>
+          <p className="font-sans text-sm text-ink-300">{emptyText}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {targets.map((target) => (
@@ -80,7 +91,7 @@ export function SendToBondModal({
                   onClick={async () => {
                     setError(undefined);
                     setSendingTo(target.userId);
-                    const result = await sendPostToBond(postId, target.userId);
+                    const result = await send(target.userId);
                     setSendingTo(null);
                     if (result.error) setError(result.error);
                     else onSent(target.name);

@@ -6,7 +6,15 @@ import { TopBar } from "@/components/app/TopBar";
 import { ProximityCard } from "@/components/app/ProximityCard";
 import { useToast } from "@/components/app/ToastProvider";
 import { Button } from "@/components/ui/Button";
-import { findNearby, shareProximity, stopProximity, type NearbyMatch } from "@/app/(app)/nearby/actions";
+import {
+  findNearby,
+  shareProximity,
+  stopProximity,
+  waveNearby,
+  type NearbyMatch,
+  type ProximityMode,
+} from "@/app/(app)/nearby/actions";
+import { cn } from "@/lib/cn";
 import { connectWith } from "@/lib/bond-actions";
 
 /**
@@ -18,12 +26,17 @@ import { connectWith } from "@/lib/bond-actions";
  * person is; their direction is deliberately arbitrary, since only rounded
  * distance ever leaves the database. Copy is Figma's, including "Turn 0ff
  * Proximity".
+ *
+ * The search starts at walking distance and widens one ring every 30 seconds
+ * while nobody is found, stopping at 100 km. Two modes (the picker isn't in
+ * Figma): Stage-only, the default, where only people at your exact stage see
+ * you; and Open, where anyone nearby on Grouv can.
  */
 const STAGE_W = 511;
 const STAGE_H = 461;
-const RADIUS_KM = 5;
+const RINGS_KM = [0.5, 1, 2, 5, 10, 25, 50, 100] as const;
 const HEARTBEAT_MS = 60_000;
-const LOOK_AROUND_MS = 20_000;
+const LOOK_AROUND_MS = 30_000;
 
 /** Figma's three pin auras (amber, lime, cyan) plus two for the other auras. */
 const AURA_COLOR: Record<NearbyMatch["aura"], string> = {
@@ -53,6 +66,11 @@ export default function NearbyPage() {
   const [starting, setStarting] = useState(false);
   const [people, setPeople] = useState<NearbyMatch[]>([]);
   const [selected, setSelected] = useState<NearbyMatch | null>(null);
+  const [mode, setMode] = useState<ProximityMode>("stage_only");
+  const modeRef = useRef<ProximityMode>("stage_only");
+  // Which ring the search has widened to.
+  const [ring, setRing] = useState(0);
+  const ringRef = useRef(0);
   const position = useRef<{ lat: number; lng: number } | null>(null);
   const watchId = useRef<number | null>(null);
 
@@ -60,15 +78,30 @@ export default function NearbyPage() {
     if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
     watchId.current = null;
     position.current = null;
+    ringRef.current = 0;
+    setRing(0);
     setOn(false);
     setPeople([]);
     void stopProximity();
   }, []);
 
+  // Look within the current ring; if nobody's there, widen for next time.
   const lookAround = useCallback(async () => {
-    const result = await findNearby(RADIUS_KM);
-    if (!result.error) setPeople(result.people);
+    const result = await findNearby(RINGS_KM[ringRef.current]);
+    if (result.error) return;
+    setPeople(result.people);
+    if (result.people.length === 0 && ringRef.current < RINGS_KM.length - 1) {
+      ringRef.current += 1;
+      setRing(ringRef.current);
+    }
   }, []);
+
+  const changeMode = (next: ProximityMode) => {
+    modeRef.current = next;
+    setMode(next);
+    const fix = position.current;
+    if (on && fix) void shareProximity(fix.lat, fix.lng, next).then(() => lookAround());
+  };
 
   const turnOn = () => {
     if (!navigator.geolocation) {
@@ -81,7 +114,7 @@ export default function NearbyPage() {
         const first = position.current === null;
         position.current = { lat: coords.latitude, lng: coords.longitude };
         if (!first) return;
-        const result = await shareProximity(coords.latitude, coords.longitude);
+        const result = await shareProximity(coords.latitude, coords.longitude, modeRef.current);
         setStarting(false);
         if (result.error) {
           toast({ title: result.error, tone: "danger" });
@@ -106,7 +139,7 @@ export default function NearbyPage() {
     const heartbeat = setInterval(() => {
       const fix = position.current;
       // A hidden tab has "left the page"; don't quietly switch back on.
-      if (fix && document.visibilityState === "visible") void shareProximity(fix.lat, fix.lng);
+      if (fix && document.visibilityState === "visible") void shareProximity(fix.lat, fix.lng, modeRef.current);
     }, HEARTBEAT_MS);
     const look = setInterval(() => void lookAround(), LOOK_AROUND_MS);
     return () => {
@@ -122,7 +155,7 @@ export default function NearbyPage() {
     const onVisibility = () => {
       const fix = position.current;
       if (document.visibilityState === "hidden") leave();
-      else if (fix) void shareProximity(fix.lat, fix.lng).then(() => lookAround());
+      else if (fix) void shareProximity(fix.lat, fix.lng, modeRef.current).then(() => lookAround());
     };
     window.addEventListener("pagehide", leave);
     document.addEventListener("visibilitychange", onVisibility);
@@ -149,7 +182,7 @@ export default function NearbyPage() {
           <div className="flex w-full max-w-[556px] flex-col items-stretch gap-10 lg:gap-12">
             <div className="flex flex-col items-center gap-4">
               {on ? (
-                <PulseWithPins people={people} onSelect={setSelected} />
+                <PulseWithPins people={people} radiusKm={RINGS_KM[ring]} onSelect={setSelected} />
               ) : (
                 <Pulse />
               )}
@@ -161,14 +194,19 @@ export default function NearbyPage() {
                 <p className="font-sans text-sm text-ink-300 lg:text-base">
                   {on
                     ? people.length > 0
-                      ? "You're open. People nearby in the same life stage can see you too. No events, no plans, just real connections happening right now."
-                      : "You're open. No one in your chapters is nearby right now — we'll keep looking while this page is open."
+                      ? mode === "open"
+                        ? "You're open. Anyone nearby on Grouv can see you. No events, no plans, just real connections happening right now."
+                        : "You're open to your stage. Only people at your exact stage nearby can see you."
+                      : ring < RINGS_KM.length - 1
+                        ? `No one within ${formatKm(RINGS_KM[ring])} yet. We'll look a little further every 30 seconds while this page is open.`
+                        : "No one is nearby within 100 km right now. That's the honest answer. Try again another time."
                     : "See who’s in your chapter, right here, right now. No background tracking, ever."}
                 </p>
               </div>
             </div>
 
             <div className="flex flex-col items-center gap-2">
+              <ModePicker mode={mode} onChange={changeMode} />
               {on ? (
                 <button
                   type="button"
@@ -203,6 +241,17 @@ export default function NearbyPage() {
       {selected && (
         <ProximityCard
           person={selected}
+          canWave={selected.sameStage && !selected.iWaved}
+          onWave={async () => {
+            const result = await waveNearby(selected.userId);
+            if (result.error) {
+              toast({ title: result.error, tone: "danger" });
+              return;
+            }
+            setPeople((prev) => prev.map((p) => (p.userId === selected.userId ? { ...p, iWaved: true } : p)));
+            setSelected(null);
+            toast({ title: `You waved at ${selected.name}` });
+          }}
           onClose={() => setSelected(null)}
           onConnect={async () => {
             const result = await connectWith(selected.userId);
@@ -220,6 +269,37 @@ export default function NearbyPage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function formatKm(km: number) {
+  return km < 1 ? `${km * 1000} m` : `${km} km`;
+}
+
+/** Stage-only (default) or Open. Not in Figma. */
+function ModePicker({ mode, onChange }: { mode: ProximityMode; onChange: (mode: ProximityMode) => void }) {
+  const options: { value: ProximityMode; label: string }[] = [
+    { value: "stage_only", label: "Stage-only" },
+    { value: "open", label: "Open" },
+  ];
+  return (
+    <div role="radiogroup" aria-label="Who can see you" className="mb-2 flex rounded-full bg-ivory-200 p-1">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="radio"
+          aria-checked={mode === option.value}
+          onClick={() => onChange(option.value)}
+          className={cn(
+            "rounded-full px-4 py-1.5 font-ui text-sm font-medium transition-colors",
+            mode === option.value ? "bg-surface text-ink-700 shadow-sm" : "text-ink-400 hover:text-ink-600",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -243,9 +323,11 @@ function Pulse() {
 /** Frame 476:15080 — the same rings with the people nearby pinned across them. */
 function PulseWithPins({
   people,
+  radiusKm,
   onSelect,
 }: {
   people: NearbyMatch[];
+  radiusKm: number;
   onSelect: (person: NearbyMatch) => void;
 }) {
   const cx = 255;
@@ -269,7 +351,7 @@ function PulseWithPins({
 
       {people.map((person) => {
         // Nearest people just outside the core ring, farthest at the edge.
-        const r = 70 + Math.min(person.distanceKm / RADIUS_KM, 1) * 140;
+        const r = 70 + Math.min(person.distanceKm / radiusKm, 1) * 140;
         const angle = angleFor(person.userId);
         const x = cx + Math.cos(angle) * r - 26;
         const y = cy + Math.sin(angle) * r - 26;
@@ -300,6 +382,7 @@ function PulseWithPins({
             </span>
             <span className="whitespace-nowrap font-sans text-[11px] leading-tight text-ink-500">
               {person.name}
+              {person.wavedAtMe && " · waved"}
             </span>
           </button>
         );

@@ -159,6 +159,15 @@ export function TopBar({
     <header className="hidden shrink-0 flex-wrap items-end justify-between gap-4 bg-surface px-6 pt-8 lg:flex lg:pr-12 lg:pt-13">
       {title ? (
         <div className="flex items-center gap-4 pb-2">
+          {back && (
+            <Link
+              href={back}
+              aria-label="Back"
+              className="shrink-0 rounded-full p-1 text-ink-800 transition-colors hover:bg-ivory-200"
+            >
+              <BackIcon />
+            </Link>
+          )}
           {icon}
           <h1 className="font-display text-2xl font-semibold text-ink-600">
             {title}

@@ -33,7 +33,9 @@ type PostProgress =
   | "wrapping_up"
   | "starting_over";
 type MediaKind = "photo" | "video";
-type MessageKind = "text" | "voice" | "video" | "image" | "link" | "post_share" | "system";
+type MessageKind = "text" | "voice" | "video" | "image" | "link" | "post_share" | "system" | "card" | "file";
+type CardKind = "curio" | "wander";
+type ProximityMode = "open" | "stage_only";
 type ReportTarget =
   | "post"
   | "comment"
@@ -62,7 +64,15 @@ type NotificationKind =
   | "group_join_request"
   | "group_join_reviewed"
   | "wave_received"
-  | "chapter_prompt";
+  | "chapter_prompt"
+  | "bond_formed"
+  | "bond_shifted"
+  | "bond_chapter_opened"
+  | "stage_drift"
+  | "dormancy_nudge"
+  | "chapter_closing_suggested"
+  | "introduction_suggested"
+  | "introduction_received";
 
 type ReadOnlyTable<Row> = { Row: Row; Insert: never; Update: never; Relationships: [] };
 
@@ -90,7 +100,6 @@ type BondRow = {
   invitee_id: string;
   status: BondStatus;
   chapter_slug: string | null;
-  depth: number;
   created_at: string;
   accepted_at: string | null;
   released_at: string | null;
@@ -116,11 +125,17 @@ export type Database = {
           created_at: string;
           edited_at: string | null;
           deleted_at: string | null;
+          card_id: string | null;
+          file_name: string | null;
+          file_size: number | null;
         };
         Insert: {
           conversation_id: string;
           sender_id: string;
           kind?: MessageKind;
+          card_id?: string | null;
+          file_name?: string | null;
+          file_size?: number | null;
           body?: string | null;
           media_path?: string | null;
           duration_seconds?: number | null;
@@ -136,6 +151,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           ProfilesFk<"messages_sender_id_fkey", "sender_id">,
+          {
+            foreignKeyName: "messages_card_id_fkey";
+            columns: ["card_id"];
+            isOneToOne: false;
+            referencedRelation: "content_cards";
+            referencedColumns: ["id"];
+          },
         ];
       };
       conversation_members: {
@@ -144,6 +166,7 @@ export type Database = {
           user_id: string;
           joined_at: string;
           last_read_at: string | null;
+          muted: boolean;
         };
         Insert: never;
         Update: { last_read_at?: string | null };
@@ -213,6 +236,7 @@ export type Database = {
           status: ChapterStatus;
           opened_at: string;
           closed_at: string | null;
+          is_primary: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -262,6 +286,7 @@ export type Database = {
           wave_received: boolean;
           bond_invitation: boolean;
           email_updates: boolean;
+          timezone: string;
           updated_at: string;
         };
         Insert: never;
@@ -337,6 +362,7 @@ export type Database = {
           data: Json;
           read_at: string | null;
           emailed_at: string | null;
+          email_sent: boolean;
           created_at: string;
         };
         Insert: never;
@@ -353,6 +379,7 @@ export type Database = {
           progress: PostProgress | null;
           body: string | null;
           is_anonymous: boolean;
+          open_grove: boolean;
           roots_count: number;
           comments_count: number;
           created_at: string;
@@ -365,6 +392,7 @@ export type Database = {
           progress?: PostProgress | null;
           body?: string | null;
           is_anonymous?: boolean;
+          open_grove?: boolean;
         };
         Update: { title?: string | null; progress?: PostProgress | null; body?: string | null };
         Relationships: [];
@@ -411,12 +439,26 @@ export type Database = {
           author_id: string;
           body: string | null;
           media_path: string | null;
+          parent_id: string | null;
+          roots_count: number;
           created_at: string;
           updated_at: string;
         };
-        Insert: { post_id: string; author_id?: string; body?: string | null; media_path?: string | null };
+        Insert: {
+          post_id: string;
+          author_id?: string;
+          body?: string | null;
+          media_path?: string | null;
+          parent_id?: string | null;
+        };
         Update: { body?: string | null; media_path?: string | null };
         Relationships: [ProfilesFk<"comments_author_id_fkey", "author_id">];
+      };
+      comment_roots: {
+        Row: { comment_id: string; user_id: string; created_at: string };
+        Insert: { comment_id: string; user_id: string };
+        Update: never;
+        Relationships: [];
       };
       reports: {
         Row: {
@@ -642,7 +684,7 @@ export type Database = {
         Relationships: [];
       };
       waves: {
-        Row: { id: string; room_id: string; from_user: string; to_user: string; created_at: string };
+        Row: { id: string; room_id: string | null; from_user: string; to_user: string; created_at: string };
         Insert: { room_id: string; to_user: string };
         Update: never;
         Relationships: [];
@@ -654,11 +696,42 @@ export type Database = {
           longitude: number;
           started_at: string;
           expires_at: string;
+          mode: ProximityMode;
         };
-        Insert: { user_id: string; latitude: number; longitude: number; expires_at?: string };
-        Update: { latitude?: number; longitude?: number; expires_at?: string };
+        Insert: { user_id: string; latitude: number; longitude: number; expires_at?: string; mode?: ProximityMode };
+        Update: { latitude?: number; longitude?: number; expires_at?: string; mode?: ProximityMode };
         Relationships: [];
       };
+      bond_ranks: ReadOnlyTable<{ user_id: string; bond_id: string; rank: number }>;
+      blocks: ReadOnlyTable<{ blocker_id: string; blocked_id: string; created_at: string }>;
+      introductions: ReadOnlyTable<{
+        id: string;
+        introducer_id: string;
+        user_a: string;
+        user_b: string;
+        note: string | null;
+        created_at: string;
+        credited_at: string | null;
+      }>;
+      content_cards: ReadOnlyTable<{
+        id: string;
+        kind: CardKind;
+        chapter_slug: string | null;
+        topic_cluster: string;
+        title: string;
+        body: string;
+        active: boolean;
+        created_at: string;
+      }>;
+      user_daily_curio: ReadOnlyTable<{
+        id: string;
+        user_id: string;
+        card_id: string;
+        kind: CardKind;
+        chapter_slug: string | null;
+        served_on: string;
+        expires_at: string;
+      }>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -674,7 +747,7 @@ export type Database = {
           relationship: "bond" | "circle";
           bond_id: string | null;
           together_since: string;
-          depth: number;
+          bond_rank: number | null;
           conversation_id: string | null;
           last_message_body: string | null;
           last_message_kind: MessageKind | null;
@@ -686,7 +759,7 @@ export type Database = {
       pending_requests: {
         Args: Record<string, never>;
         Returns: {
-          kind: "connection" | "bond";
+          kind: "connection";
           request_id: string;
           user_id: string;
           first_name: string;
@@ -715,10 +788,6 @@ export type Database = {
       respond_to_connection: {
         Args: { p_connection_id: string; p_accept: boolean };
         Returns: ConnectionRow;
-      };
-      respond_to_bond: {
-        Args: { p_bond_id: string; p_accept: boolean };
-        Returns: BondRow;
       };
       complete_onboarding: {
         Args: {
@@ -753,7 +822,7 @@ export type Database = {
       };
       feed_posts: {
         Args: {
-          p_scope?: "all" | "roots" | "open" | "mine";
+          p_scope?: "home" | "all" | "roots" | "open" | "mine";
           p_chapter_slug?: string | null;
           p_from?: string | null;
           p_to?: string | null;
@@ -771,7 +840,7 @@ export type Database = {
           progress: PostProgress | null;
           body: string | null;
           is_anonymous: boolean;
-          roots_count: number;
+          open_grove: boolean;
           comments_count: number;
           created_at: string;
           author_id: string | null;
@@ -802,8 +871,9 @@ export type Database = {
         Returns: {
           id: string;
           body: string;
-          expires_at: string;
-          created_at: string;
+          /** Only the asker gets times back. */
+          expires_at: string | null;
+          created_at: string | null;
           is_mine: boolean;
           reply_count: number;
         }[];
@@ -811,10 +881,6 @@ export type Database = {
       request_connection: {
         Args: { p_other: string; p_chapter_slug?: string | null };
         Returns: ConnectionRow;
-      };
-      invite_bond: {
-        Args: { p_other: string; p_chapter_slug?: string | null };
-        Returns: BondRow;
       };
       circle_logs: {
         Args: { p_scope?: "solo" | "bond"; p_limit?: number };
@@ -833,6 +899,7 @@ export type Database = {
             entry_date: string;
             day_number: number;
             chapter_slug: string;
+            phase: string;
           }[];
         }[];
       };
@@ -1053,6 +1120,48 @@ export type Database = {
           chapter_slug: string;
           phase: string;
           distance_km: number;
+          same_stage: boolean;
+          waved_at_me: boolean;
+          i_waved: boolean;
+        }[];
+      };
+      wave_nearby: { Args: { p_user_id: string }; Returns: undefined };
+      match_candidates: {
+        Args: { p_chapter_slug?: string | null; p_global?: boolean; p_page?: number };
+        Returns: {
+          user_id: string;
+          first_name: string;
+          avatar_url: string | null;
+          aura: Aura;
+          chapter_slug: string;
+          phase: string;
+        }[];
+      };
+      introduce: {
+        Args: { p_user_a: string; p_user_b: string; p_note?: string | null };
+        Returns: Database["public"]["Tables"]["introductions"]["Row"];
+      };
+      acknowledge_chapter: { Args: { p_notification_id: string }; Returns: undefined };
+      set_primary_chapter: { Args: { p_user_chapter_id: string }; Returns: undefined };
+      set_chat_muted: { Args: { p_conversation_id: string; p_muted: boolean }; Returns: undefined };
+      block_user: { Args: { p_user_id: string }; Returns: undefined };
+      unblock_user: { Args: { p_user_id: string }; Returns: undefined };
+      my_unread_messages: {
+        Args: Record<string, never>;
+        Returns: { unread: number; latest_sender: string | null }[];
+      };
+      open_grove_available: { Args: { p_chapter_slug: string }; Returns: boolean };
+      set_my_timezone: { Args: { p_timezone: string }; Returns: undefined };
+      my_daily_cards: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          card_id: string;
+          kind: CardKind;
+          chapter_slug: string | null;
+          title: string;
+          body: string;
+          expires_at: string;
         }[];
       };
     };
@@ -1069,6 +1178,9 @@ export type Database = {
       post_progress: PostProgress;
       media_kind: MediaKind;
       report_reason: ReportReason;
+      card_kind: CardKind;
+      proximity_mode: ProximityMode;
+      notification_kind: NotificationKind;
     };
     CompositeTypes: { [_ in never]: never };
   };

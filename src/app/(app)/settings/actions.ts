@@ -1,16 +1,21 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { newPasswordSchema } from "@/lib/auth/schemas";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { getChapter } from "@/lib/chapters";
 import { AURAS, LOG_VISIBILITY, type Aura, type LogVisibility } from "@/lib/profile";
+import { sendEmail } from "@/lib/email/send";
+import { trialStartedEmail } from "@/lib/email/templates";
 import { geocode } from "@/lib/geocode";
+import { siteUrl } from "@/lib/site-url";
 import { billingEnabled, billingState, deleteSubscriber, fetchSubscriber, syncBilling } from "@/lib/revenuecat";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { supabaseUrl } from "@/lib/supabase/env";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
 export type ActionResult = { error?: string; fieldErrors?: Record<string, string> };
@@ -32,6 +37,8 @@ const ProfileSchema = z.object({
     openTo: z.string().max(1000),
   }),
   phases: z.array(z.object({ userChapterId: z.uuid(), slug: z.string(), phase: z.string() })).max(4),
+  /** The space that leads under your name. */
+  primaryChapterId: z.uuid().nullish(),
 });
 
 export type ProfileInput = z.input<typeof ProfileSchema>;
@@ -50,7 +57,7 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
     return { fieldErrors: { [String(issue.path[0])]: issue.message } };
   }
 
-  const { firstName, locationLabel, coordinates, aura, avatarUrl, prompts, phases } = parsed.data;
+  const { firstName, locationLabel, coordinates, aura, avatarUrl, prompts, phases, primaryChapterId } = parsed.data;
   const folder = avatarFolderUrl(viewer.userId);
   const previousAvatar = viewer.profile.avatar_url;
 
@@ -93,7 +100,12 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
     ),
   ]);
 
-  const failed = results.find((result) => result.error);
+  const primary =
+    primaryChapterId && phases.some((p) => p.userChapterId === primaryChapterId)
+      ? await supabase.rpc("set_primary_chapter", { p_user_chapter_id: primaryChapterId })
+      : null;
+
+  const failed = [...results, primary].find((result) => result?.error);
   if (failed?.error) {
     console.error("[settings] updateProfile failed", failed.error);
     return { error: "We couldn't save your changes. Try again." };
@@ -193,11 +205,11 @@ export async function updatePreferences(
   return {};
 }
 
-/** Subscription → "Start trial". */
+/** Subscription → "Start trial". Confirms it by email. */
 export async function startTrial(): Promise<ActionResult> {
-  await requireOnboardedViewer();
+  const viewer = await requireOnboardedViewer();
   const supabase = await createClient();
-  const { error } = await supabase.rpc("start_trial");
+  const { data: trial, error } = await supabase.rpc("start_trial");
 
   if (error) {
     return {
@@ -206,6 +218,24 @@ export async function startTrial(): Promise<ActionResult> {
           ? "Your free trial has already been used."
           : "We couldn't start your trial. Try again.",
     };
+  }
+
+  const { data: auth } = await supabase.auth.getUser();
+  if (auth.user?.email) {
+    const email = trialStartedEmail({
+      to: auth.user.email,
+      firstName: viewer.profile.first_name,
+      trialEndsAt: trial?.trial_ends_at ?? null,
+      siteUrl: await siteUrl(),
+    });
+    // After the response, so a slow mail provider doesn't hold up the button.
+    after(async () => {
+      try {
+        await sendEmail(email);
+      } catch (e) {
+        console.error("[billing] trial email failed", e);
+      }
+    });
   }
 
   refresh();
@@ -248,27 +278,92 @@ export async function billingManagementUrl(): Promise<ActionResult & { url?: str
   }
 }
 
-/** Account → "Change password". Also sets a first password for Google users. */
-export async function changePassword(password: string): Promise<ActionResult> {
+/**
+ * Account → "Change password". Someone holding an unlocked device mustn't be
+ * able to take the account over, so a change needs either the current
+ * password or a code emailed to the account (the "forgot it" path, and the
+ * only path for Google accounts that never set a password).
+ */
+export async function passwordStatus(): Promise<{ hasPassword: boolean; email: string | null }> {
   await requireOnboardedViewer();
-  const parsed = newPasswordSchema.safeParse(password);
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  return {
+    hasPassword: Boolean(data.user?.identities?.some((identity) => identity.provider === "email")),
+    email: data.user?.email ?? null,
+  };
+}
+
+/** Change it by proving the current password. */
+export async function changePassword(current: string, next: string): Promise<ActionResult> {
+  await requireOnboardedViewer();
+  const parsed = newPasswordSchema.safeParse(next);
   if (!parsed.success) return { fieldErrors: { password: parsed.error.issues[0].message } };
+  if (!current) return { fieldErrors: { current: "Enter your current password." } };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password: parsed.data });
+  const { data } = await supabase.auth.getUser();
+  const email = data.user?.email;
+  if (!email) return { error: "We couldn't find your account's email." };
 
-  if (error) {
-    if (error.code === "same_password") {
-      return { fieldErrors: { password: "That's already your password." } };
-    }
-    if (error.code === "weak_password") return { fieldErrors: { password: error.message } };
-    if (error.code === "reauthentication_needed") {
-      return { error: "For your security, sign out and back in, then change it again." };
-    }
-    return { error: "We couldn't change your password. Try again." };
+  // Checked on a throwaway client, so the viewer's own session is untouched;
+  // the extra session it makes is signed out straight away.
+  const checker = createSupabaseClient(supabaseUrl(), supabasePublishableKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error: wrong } = await checker.auth.signInWithPassword({ email, password: current });
+  if (wrong) {
+    if (wrong.code === "over_request_rate_limit") return { error: "Too many tries. Wait a minute and try again." };
+    return { fieldErrors: { current: "That isn't your current password." } };
   }
+  await checker.auth.signOut({ scope: "local" });
 
+  return savePassword(supabase, { password: parsed.data });
+}
+
+/** "Forgot your current password?" — emails a 6-digit code to the account. */
+export async function sendPasswordCode(): Promise<ActionResult> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.auth.reauthenticate();
+  if (error) {
+    console.error("[settings] reauthenticate failed", error);
+    return {
+      error:
+        error.code === "over_email_send_rate_limit"
+          ? "Wait a minute before asking for another code."
+          : "We couldn't send a code. Try again shortly.",
+    };
+  }
   return {};
+}
+
+/** Change it with the emailed code instead of the current password. */
+export async function changePasswordWithCode(code: string, next: string): Promise<ActionResult> {
+  await requireOnboardedViewer();
+  const parsed = newPasswordSchema.safeParse(next);
+  if (!parsed.success) return { fieldErrors: { password: parsed.error.issues[0].message } };
+  const nonce = code.replace(/\s/g, "");
+  if (!/^\d{6,10}$/.test(nonce)) return { fieldErrors: { code: "Enter the code from the email." } };
+
+  const supabase = await createClient();
+  return savePassword(supabase, { password: parsed.data, nonce });
+}
+
+async function savePassword(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  attributes: { password: string; nonce?: string },
+): Promise<ActionResult> {
+  const { error } = await supabase.auth.updateUser(attributes);
+  if (!error) return {};
+
+  if (error.code === "same_password") return { fieldErrors: { password: "That's already your password." } };
+  if (error.code === "weak_password") return { fieldErrors: { password: error.message } };
+  if (error.code === "reauthentication_not_valid" || error.code === "otp_expired") {
+    return { fieldErrors: { code: "That code is wrong or has expired. Ask for a new one." } };
+  }
+  console.error("[settings] updateUser(password) failed", error);
+  return { error: "We couldn't change your password. Try again." };
 }
 
 /**

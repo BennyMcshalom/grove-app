@@ -49,12 +49,15 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
   const supabase = await createClient();
   const userId = viewer.userId;
 
-  const [chapters, subscription, unread, focus] = await Promise.all([
+  const [chapters, subscription, unread, focus, messages] = await Promise.all([
     supabase
       .from("user_chapters")
-      .select("id, chapter_slug, phase, opened_at")
+      .select("id, chapter_slug, phase, opened_at, is_primary")
       .eq("user_id", userId)
       .eq("status", "open")
+      // Primary first, then the order they were opened in — never by
+      // whatever order the rows come back.
+      .order("is_primary", { ascending: false })
       .order("opened_at"),
     supabase.from("subscriptions").select("status, trial_ends_at").eq("user_id", userId).single(),
     supabase
@@ -71,6 +74,7 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
       .order("ends_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase.rpc("my_unread_messages"),
   ]);
 
   return {
@@ -84,10 +88,12 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
       slug: c.chapter_slug,
       phase: c.phase,
       openedAt: c.opened_at,
+      isPrimary: c.is_primary,
     })),
     subscriptionStatus: subscription.data?.status ?? "none",
     trialEndsAt: subscription.data?.trial_ends_at ?? null,
     unreadNotifications: unread.count ?? 0,
+    unreadMessages: messages.data?.[0]?.unread ?? 0,
     focusEndsAt: focus.data?.ends_at ?? null,
     theme: viewer.profile.theme,
     callsEnabled: callsEnabled(),

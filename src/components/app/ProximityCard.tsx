@@ -15,14 +15,20 @@ import { auraLabel } from "@/lib/profile";
  */
 export function ProximityCard({
   person,
+  canWave,
+  onWave,
   onClose,
   onConnect,
 }: {
   person: NearbyMatch;
+  /** Same stage, not yet waved at. A wave isn't a request. */
+  canWave: boolean;
+  onWave: () => Promise<void>;
   onClose: () => void;
   onConnect: () => Promise<void>;
 }) {
   const [connecting, setConnecting] = useState(false);
+  const [waving, setWaving] = useState(false);
 
   return (
     <div
@@ -81,10 +87,29 @@ export function ProximityCard({
             </div>
 
             <p className="font-sans text-sm text-ink-300">
-              {auraLabel(person.aura)} &middot; in {getChapter(person.chapterSlug)?.name ?? "your chapter"} with you
+              {auraLabel(person.aura)} &middot;{" "}
+              {person.sameStage
+                ? `at your stage in ${getChapter(person.chapterSlug)?.name ?? "your chapter"}`
+                : `in ${getChapter(person.chapterSlug)?.name ?? "their chapter"}`}
+              {person.wavedAtMe && <> &middot; waved at you</>}
             </p>
           </div>
 
+          {canWave && (
+            <Button
+              size="sm"
+              variant="secondary"
+              fullWidth
+              loading={waving}
+              onClick={async () => {
+                setWaving(true);
+                await onWave();
+                setWaving(false);
+              }}
+            >
+              Wave
+            </Button>
+          )}
           <Button
             size="sm"
             fullWidth

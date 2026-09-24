@@ -1,5 +1,5 @@
 import "server-only";
-import type { FeedPage, FeedQuery, Post } from "@/lib/posts";
+import { ENDING_SCOPES, type FeedPage, type FeedQuery, type Post } from "@/lib/posts";
 import type { Database } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 import { signPaths } from "@/lib/storage-server";
@@ -36,8 +36,11 @@ export async function loadFeed(query: FeedQuery, viewerName: string): Promise<Fe
 
   return {
     posts: await toPosts(rows, viewerName),
+    // The feed ends at 48 hours: no next page, ever.
     nextCursor:
-      rows.length === FEED_PAGE_SIZE && last ? { before: last.created_at, beforeId: last.id } : null,
+      !ENDING_SCOPES.includes(query.scope) && rows.length === FEED_PAGE_SIZE && last
+        ? { before: last.created_at, beforeId: last.id }
+        : null,
   };
 }
 
@@ -74,7 +77,7 @@ async function toPosts(rows: FeedRow[], viewerName: string): Promise<Post[]> {
       const src = signed.get(m.path);
       return src ? [{ src, kind: m.kind, trimStart: m.trim_start, trimEnd: m.trim_end }] : [];
     }),
-    roots: row.roots_count,
+    openGrove: row.open_grove,
     comments: row.comments_count,
     rooted: row.rooted,
     mine: row.is_mine,

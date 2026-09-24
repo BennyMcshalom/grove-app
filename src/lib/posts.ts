@@ -60,9 +60,11 @@ export interface Post {
     trimStart?: number | null;
     trimEnd?: number | null;
   }[];
-  roots: number;
   comments: number;
+  /** The viewer's own "I see you". Never shown as a count. */
   rooted: boolean;
+  /** This month's one post shared beyond the author's circle. */
+  openGrove: boolean;
   mine: boolean;
   createdAt: string;
 }
@@ -75,6 +77,10 @@ export interface PostComment {
   body: string;
   time: string;
   mine: boolean;
+  /** The comment this one replies to; replies are one level deep. */
+  parentId: string | null;
+  roots: number;
+  rooted: boolean;
 }
 
 /** Where the next page starts: the last post of the current one. */
@@ -85,12 +91,18 @@ export interface FeedCursor {
 
 /**
  * Which posts a feed shows:
- *   all   — everything the viewer may see (home)
- *   roots — a space's posts from the viewer, their circle, or anonymous
- *   open  — named people outside the circle at the viewer's stage
- *   mine  — the viewer's own posts, anonymous ones included
+ *   home  — you, your circle and your bonds, last 48 hours, newest first
+ *   roots — the same, in one space
+ *   open  — Open Grove posts from people outside the circle at your stage
+ *   mine  — the viewer's own posts, anonymous ones included (pages)
+ *   all   — whatever the viewer may see (permalinks)
+ *
+ * home and roots end: 48 hours, no next page, no ranking of any kind.
  */
-export type FeedScope = "all" | "roots" | "open" | "mine";
+export type FeedScope = "home" | "all" | "roots" | "open" | "mine";
+
+/** Scopes that stop at 48 hours and never load more. */
+export const ENDING_SCOPES: FeedScope[] = ["home", "roots"];
 
 export interface FeedQuery {
   scope: FeedScope;

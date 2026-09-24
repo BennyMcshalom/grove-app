@@ -18,10 +18,12 @@ export interface ShellViewer {
   aura: Aura;
   locationLabel: string | null;
   /** Open chapters, oldest first. */
-  chapters: { id: string; slug: string; phase: string; openedAt: string }[];
+  chapters: { id: string; slug: string; phase: string; openedAt: string; isPrimary: boolean }[];
   subscriptionStatus: "none" | "trialing" | "active" | "past_due" | "canceled" | "expired";
   trialEndsAt: string | null;
   unreadNotifications: number;
+  /** Unread direct messages, for the Bonds badge. */
+  unreadMessages: number;
   /** Set while a Deep Focus session is running. */
   focusEndsAt: string | null;
   /** The saved appearance. `applyTheme` puts it on <html>. */

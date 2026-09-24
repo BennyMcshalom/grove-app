@@ -4,11 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * Records a short voice note with the browser's MediaRecorder. Tap to start,
- * tap again to stop; `onRecorded` gets the audio and its length. Figma has the
- * mic buttons but no recording state, so this keeps to one pill.
+ * Records a short voice note with the browser's MediaRecorder.
+ *
+ * Record → pause / resume as often as needed → Stop. Stopping doesn't send:
+ * it shows the recording to play back, then Send (which calls `onRecorded`)
+ * or Discard. Figma has the mic buttons but no recording states, so these
+ * keep to one pill.
  */
 const MAX_SECONDS = 120;
+
+type Phase = "idle" | "recording" | "paused" | "review";
 
 export function VoiceRecorder({
   onRecorded,
@@ -21,27 +26,38 @@ export function VoiceRecorder({
   label?: string;
   className?: string;
   disabled?: boolean;
-  /** Icon-only, for the chat composer's mic button. */
+  /** Icon-sized, for the chat composer's mic button. */
   compact?: boolean;
 }) {
-  const [recording, setRecording] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState<string>();
+  const [take, setTake] = useState<{ audio: Blob; url: string; seconds: number } | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
-  const startedAt = useRef(0);
+  // Time recorded before the current stretch, plus when that stretch began.
+  const banked = useRef(0);
+  const stretchStart = useRef(0);
 
   useEffect(() => {
-    if (!recording) return;
+    if (phase !== "recording") return;
     const timer = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startedAt.current) / 1000);
-      setSeconds(elapsed);
-      if (elapsed >= MAX_SECONDS) recorder.current?.stop();
+      const total = Math.floor(banked.current + (Date.now() - stretchStart.current) / 1000);
+      setSeconds(total);
+      if (total >= MAX_SECONDS) stop();
     }, 250);
     return () => clearInterval(timer);
-  }, [recording]);
+  }, [phase]);
 
-  // Stop the microphone if the component goes away mid-recording.
-  useEffect(() => () => recorder.current?.stream.getTracks().forEach((t) => t.stop()), []);
+  // Let go of the microphone and the preview if the component goes away.
+  useEffect(
+    () => () => {
+      recorder.current?.stream.getTracks().forEach((t) => t.stop());
+    },
+    [],
+  );
+  useEffect(() => () => {
+    if (take) URL.revokeObjectURL(take.url);
+  }, [take]);
 
   const start = async () => {
     setError(undefined);
@@ -59,64 +75,168 @@ export function VoiceRecorder({
       media.ondataavailable = (e) => e.data.size && chunks.push(e.data);
       media.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        setRecording(false);
-        const length = Math.max(1, Math.round((Date.now() - startedAt.current) / 1000));
         const audio = new Blob(chunks, { type: (media.mimeType || "audio/webm").split(";")[0] });
-        if (audio.size > 0) onRecorded(audio, length);
+        const length = Math.max(1, Math.round(banked.current));
+        if (audio.size > 0) {
+          setTake({ audio, url: URL.createObjectURL(audio), seconds: length });
+          setPhase("review");
+        } else {
+          setPhase("idle");
+        }
       };
       recorder.current = media;
-      startedAt.current = Date.now();
+      banked.current = 0;
+      stretchStart.current = Date.now();
       setSeconds(0);
       media.start();
-      setRecording(true);
+      setPhase("recording");
     } catch {
       setError("Microphone permission was declined.");
     }
   };
 
-  const stop = () => recorder.current?.state === "recording" && recorder.current.stop();
+  const pause = () => {
+    if (recorder.current?.state !== "recording") return;
+    recorder.current.pause();
+    banked.current += (Date.now() - stretchStart.current) / 1000;
+    setSeconds(Math.floor(banked.current));
+    setPhase("paused");
+  };
 
-  if (compact) {
-    return (
+  const resume = () => {
+    if (recorder.current?.state !== "paused") return;
+    stretchStart.current = Date.now();
+    recorder.current.resume();
+    setPhase("recording");
+  };
+
+  function stop() {
+    const media = recorder.current;
+    if (!media || media.state === "inactive") return;
+    if (media.state === "recording") banked.current += (Date.now() - stretchStart.current) / 1000;
+    media.stop();
+  }
+
+  const discard = () => {
+    setTake(null);
+    setSeconds(0);
+    setPhase("idle");
+  };
+
+  const send = () => {
+    if (!take) return;
+    onRecorded(take.audio, take.seconds);
+    discard();
+  };
+
+  const time = formatSeconds(phase === "review" && take ? take.seconds : seconds);
+
+  if (phase === "idle") {
+    return compact ? (
       <button
         type="button"
         disabled={disabled}
-        onClick={recording ? stop : start}
-        aria-pressed={recording}
-        aria-label={recording ? "Stop recording" : label}
-        title={error ?? (recording ? `Recording ${formatSeconds(seconds)}` : label)}
-        className={cn(
-          "flex h-8 items-center gap-1 rounded-full px-1.5 transition-colors disabled:opacity-40",
-          recording ? "bg-destructive-60 text-white" : "hover:bg-ivory-200",
-          className,
-        )}
+        onClick={start}
+        aria-label={label}
+        title={error ?? label}
+        className={cn("flex h-8 items-center rounded-full px-1.5 transition-colors hover:bg-ivory-200 disabled:opacity-40", className)}
       >
-        {recording ? <StopIcon /> : <MicIcon />}
-        {recording && <span className="font-sans text-xs">{formatSeconds(seconds)}</span>}
+        <MicIcon />
       </button>
+    ) : (
+      <span className="flex flex-col gap-1">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={start}
+          className={cn(
+            "flex w-fit items-center gap-2 rounded-full bg-primary-50 px-4 py-2.5 font-ui text-sm font-medium text-primary-800 transition-colors hover:bg-primary-100 disabled:opacity-60",
+            className,
+          )}
+        >
+          <MicIcon />
+          {label}
+        </button>
+        {error && <span className="font-sans text-xs text-destructive-60">{error}</span>}
+      </span>
     );
   }
 
   return (
-    <span className="flex flex-col gap-1">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={recording ? stop : start}
-        aria-pressed={recording}
-        className={cn(
-          "flex w-fit items-center gap-2 rounded-full px-4 py-2.5 font-ui text-sm font-medium transition-colors disabled:opacity-60",
-          recording
-            ? "bg-destructive-60 text-white hover:opacity-90"
-            : "bg-primary-50 text-primary-800 hover:bg-primary-100",
-          className,
-        )}
-      >
-        {recording ? <StopIcon /> : <MicIcon />}
-        {recording ? `Stop · ${formatSeconds(seconds)}` : label}
-      </button>
-      {error && <span className="font-sans text-xs text-destructive-60">{error}</span>}
+    <span
+      className={cn(
+        "flex items-center gap-1.5 rounded-full bg-ivory-200 py-1 pr-1.5 pl-3",
+        compact ? "min-w-0" : "w-fit",
+        className,
+      )}
+    >
+      {phase === "review" && take ? (
+        <>
+          {/* The take to listen back to before it goes anywhere. */}
+          <audio src={take.url} controls preload="metadata" className="h-8 max-w-[200px] min-w-0" />
+          <PillButton label="Discard" onClick={discard}>
+            <TrashIcon />
+          </PillButton>
+          <PillButton label="Send voice note" onClick={send} tone="primary" disabled={disabled}>
+            <SendIcon />
+          </PillButton>
+        </>
+      ) : (
+        <>
+          <span
+            className={cn("size-2 shrink-0 rounded-full", phase === "recording" ? "animate-pulse bg-destructive-60" : "bg-ink-300")}
+            aria-hidden="true"
+          />
+          <span className="font-sans text-xs font-medium text-ink-600 tabular-nums" aria-live="polite">
+            {phase === "paused" ? `Paused · ${time}` : time}
+          </span>
+          {phase === "recording" ? (
+            <PillButton label="Pause" onClick={pause}>
+              <PauseIcon />
+            </PillButton>
+          ) : (
+            <PillButton label="Resume" onClick={resume}>
+              <MicIcon />
+            </PillButton>
+          )}
+          <PillButton label="Stop and review" onClick={stop} tone="danger">
+            <StopIcon />
+          </PillButton>
+        </>
+      )}
     </span>
+  );
+}
+
+function PillButton({
+  label,
+  onClick,
+  children,
+  tone = "plain",
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  tone?: "plain" | "primary" | "danger";
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      className={cn(
+        "grid size-7 shrink-0 place-items-center rounded-full transition-colors disabled:opacity-50",
+        tone === "primary" && "bg-primary-500 text-white hover:bg-primary-400",
+        tone === "danger" && "bg-destructive-60 text-white hover:opacity-90",
+        tone === "plain" && "text-ink-600 hover:bg-ivory-300",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -137,8 +257,33 @@ function MicIcon() {
 
 function StopIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="currentColor" className="size-4" aria-hidden="true">
+    <svg viewBox="0 0 16 16" fill="currentColor" className="size-3.5" aria-hidden="true">
       <rect x="4" y="4" width="8" height="8" rx="1.5" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className="size-3.5" aria-hidden="true">
+      <rect x="4" y="3.5" width="2.5" height="9" rx="1" />
+      <rect x="9.5" y="3.5" width="2.5" height="9" rx="1" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="size-4" aria-hidden="true">
+      <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="size-3.5" aria-hidden="true">
+      <path d="M2.5 8 13 3l-3.5 10-2-4-5-1Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
     </svg>
   );
 }

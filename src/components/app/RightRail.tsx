@@ -9,7 +9,7 @@ import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
 import { ArrowRight } from "@/components/ui/ArrowRight";
 import { loadSuggestedGroups } from "@/app/(app)/groups/actions";
-import { connectWith, loadRail } from "@/lib/bond-actions";
+import { cancelConnectionRequest, connectWith, loadRail } from "@/lib/bond-actions";
 import type { BondPerson, Suggestion } from "@/lib/bonds";
 import { getChapter } from "@/lib/chapters";
 import type { Group } from "@/lib/groups";
@@ -253,31 +253,60 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 /**
  * Invite flips to "Invited" — Figma's alert for this action is
- * "Connection request sent" (285:9289).
+ * "Connection request sent" (285:9289). Until it's answered, "Invited" takes
+ * the request back.
  */
 function InviteButton({ userId }: { userId: string }) {
   const toast = useToast();
-  const [state, setState] = useState<"idle" | "busy" | "invited">("idle");
+  const [state, setState] = useState<"idle" | "busy" | "invited" | "connected">("idle");
+
+  const invite = async () => {
+    setState("busy");
+    const result = await connectWith(userId);
+    if (result.error) {
+      setState("idle");
+      toast({ title: result.error, tone: "danger" });
+      return;
+    }
+    const connected = result.status === "accepted";
+    setState(connected ? "connected" : "invited");
+    toast({ title: connected ? "You're connected" : "Connection request sent" });
+  };
+
+  const revoke = async () => {
+    setState("busy");
+    const result = await cancelConnectionRequest(userId);
+    if (result.error) {
+      setState("invited");
+      toast({ title: result.error, tone: "danger" });
+      return;
+    }
+    setState("idle");
+    toast({ title: "Invite cancelled" });
+  };
 
   return (
     <button
       type="button"
-      onClick={async () => {
-        setState("busy");
-        const result = await connectWith(userId);
-        if (result.error) {
-          setState("idle");
-          toast({ title: result.error, tone: "danger" });
-          return;
-        }
-        setState("invited");
-        toast({ title: result.status === "accepted" ? "You're connected" : "Connection request sent" });
-      }}
-      disabled={state !== "idle"}
-      className="flex shrink-0 items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm font-medium text-primary-500 transition-colors hover:bg-primary-50 disabled:text-ink-300 disabled:hover:bg-transparent"
+      onClick={state === "invited" ? revoke : invite}
+      disabled={state === "busy" || state === "connected"}
+      title={state === "invited" ? "Cancel this invite" : undefined}
+      className="group flex shrink-0 items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm font-medium text-primary-500 transition-colors hover:bg-primary-50 disabled:text-ink-300 disabled:hover:bg-transparent"
     >
-      {state === "invited" ? "Invited" : "Invite"}
-      {state === "idle" && <ArrowRight className="size-4" />}
+      {state === "invited" ? (
+        <>
+          <span className="group-hover:hidden">Invited</span>
+          <span className="hidden group-hover:inline">Cancel invite</span>
+          <span aria-hidden="true" className="text-xs">✕</span>
+        </>
+      ) : state === "connected" ? (
+        "Connected"
+      ) : (
+        <>
+          Invite
+          {state === "idle" && <ArrowRight className="size-4" />}
+        </>
+      )}
     </button>
   );
 }

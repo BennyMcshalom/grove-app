@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { TopBar } from "@/components/app/TopBar";
 import { Composer } from "@/components/app/Composer";
+import { DailyCards } from "@/components/app/DailyCards";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
-import { FeedList } from "@/components/app/FeedList";
+import { FeedEnd, FeedList } from "@/components/app/FeedList";
 import { RightRail } from "@/components/app/RightRail";
 import type { FeedPage } from "@/lib/posts";
 
@@ -12,8 +13,9 @@ import type { FeedPage } from "@/lib/posts";
  * Home feed — Figma frame 58:2301.
  *
  * A 724px scrolling feed column beside the 396px right rail (94:2684). "All"
- * is everything the viewer may see; each chapter tab narrows it to one space
- * and falls back to the empty state Figma draws (650:37394 / 664:16902).
+ * is the last 48 hours from you, your circle and your bonds, newest first,
+ * and then it ends; each chapter tab narrows it to one space and falls back
+ * to the empty state Figma draws (650:37394 / 664:16902).
  */
 export function HomeFeed({ firstPage }: { firstPage: FeedPage }) {
   // Figma's phone Home (601:30182) has no inline composer: it sits behind the
@@ -32,11 +34,13 @@ export function HomeFeed({ firstPage }: { firstPage: FeedPage }) {
             <div className="hidden lg:block">
               <Composer />
             </div>
+            <DailyCards />
             <FeedList
               key={chapterSlug ?? "all"}
-              query={{ scope: "all", chapterSlug }}
+              query={{ scope: "home", chapterSlug }}
               initial={chapterSlug === null ? firstPage : undefined}
               empty={<EmptyFeed onCompose={() => setComposing(true)} />}
+              ending={<FeedEnd />}
             />
           </div>
         </div>

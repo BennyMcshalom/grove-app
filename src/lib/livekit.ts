@@ -6,7 +6,11 @@ import "server-only";
  * ringing and call history; LiveKit carries the audio and video.
  */
 export function callsEnabled() {
-  return Boolean(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
+  // Call signalling only ever runs over TLS (wss://); a plain ws:// URL
+  // switches calls off rather than set them up in the clear.
+  return Boolean(
+    process.env.LIVEKIT_URL?.startsWith("wss://") && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET,
+  );
 }
 
 const ROOM_PREFIX = "call-";

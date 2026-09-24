@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { landingPath } from "@/lib/auth/viewer";
-import { siteUrl } from "@/lib/site-url";
+import { requestOrigin } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -9,7 +9,8 @@ import { createClient } from "@/lib/supabase/server";
  */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const origin = await siteUrl();
+  // Stay on the host the session cookie was just set on.
+  const origin = await requestOrigin();
 
   if (code) {
     const supabase = await createClient();

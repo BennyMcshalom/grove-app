@@ -22,7 +22,7 @@ type Result = { error?: string };
 const progressValues = PROGRESS.map((p) => p.value) as [PostProgress, ...PostProgress[]];
 
 const FeedQuerySchema = z.object({
-  scope: z.enum(["all", "roots", "open", "mine"]),
+  scope: z.enum(["home", "all", "roots", "open", "mine"]),
   chapterSlug: z.string().nullish(),
   from: z.string().nullish(),
   to: z.string().nullish(),
@@ -45,6 +45,8 @@ const CreatePostSchema = z.object({
   progress: z.enum(progressValues).nullable(),
   body: z.string().trim().max(4000),
   anonymous: z.boolean(),
+  /** Share to Open Grove: once per space per calendar month. */
+  openGrove: z.boolean().default(false),
   media: z
     .array(
       z.object({
@@ -66,7 +68,7 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   const parsed = CreatePostSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Something in that post didn't look right." };
 
-  const { chapterSlug, kind, title, progress, body, anonymous, media } = parsed.data;
+  const { chapterSlug, kind, title, progress, body, anonymous, openGrove, media } = parsed.data;
   const isRoot = kind === "root";
 
   if (isRoot && !title && !body && media.length === 0) {
@@ -89,6 +91,7 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
       progress: isRoot ? progress : null,
       body: body || null,
       is_anonymous: anonymous,
+      open_grove: openGrove && !anonymous,
     })
     .select("id")
     .single();
@@ -97,6 +100,7 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
     if (error?.code === "42501") return { error: "You can only post into chapters you hold." };
     console.error("[posts] createPost failed", error);
     if (error?.hint === "rate_limited") return { error: error.message };
+    if (error?.hint === "open_grove_used") return { error: "Open Grove is already used in this space this month." };
     return { error: "We couldn't post that. Try again." };
   }
 
@@ -122,7 +126,19 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   return {};
 }
 
-/** Root / unroot. The card updates optimistically and reverts on error. */
+/**
+ * Whether the composer offers Open Grove for this space. When it's used for
+ * the month the option simply isn't there; nothing explains why.
+ */
+export async function openGroveAvailable(chapterSlug: string): Promise<boolean> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("open_grove_available", { p_chapter_slug: chapterSlug });
+  if (error) console.error("[posts] open_grove_available failed", error);
+  return data === true;
+}
+
+/** "I see you" on / off (stored as a root). The card updates optimistically and reverts on error. */
 export async function setRooted(postId: string, rooted: boolean): Promise<Result> {
   const viewer = await requireOnboardedViewer();
   const supabase = await createClient();
@@ -240,15 +256,23 @@ export async function loadComments(postId: string): Promise<{ comments: PostComm
 
   const { data, error } = await supabase
     .from("comments")
-    .select("id, author_id, body, created_at, author:profiles!comments_author_id_fkey(first_name, avatar_url)")
+    .select(
+      "id, author_id, body, parent_id, roots_count, created_at, author:profiles!comments_author_id_fkey(first_name, avatar_url)",
+    )
     .eq("post_id", postId)
     .order("created_at")
-    .limit(100);
+    .limit(200);
 
   if (error) {
     console.error("[posts] loadComments failed", error);
     return { comments: [], error: "We couldn't load comments." };
   }
+
+  const ids = (data ?? []).map((c) => c.id);
+  const { data: mineRooted } = ids.length
+    ? await supabase.from("comment_roots").select("comment_id").eq("user_id", viewer.userId).in("comment_id", ids)
+    : { data: [] as { comment_id: string }[] };
+  const rooted = new Set((mineRooted ?? []).map((r) => r.comment_id));
 
   const now = Date.now();
   return {
@@ -260,13 +284,31 @@ export async function loadComments(postId: string): Promise<{ comments: PostComm
       body: c.body ?? "",
       time: timeAgo(c.created_at, now),
       mine: c.author_id === viewer.userId,
+      parentId: c.parent_id,
+      roots: c.roots_count,
+      rooted: rooted.has(c.id),
     })),
   };
+}
+
+/** Root / unroot a comment. */
+export async function setCommentRooted(commentId: string, rooted: boolean): Promise<Result> {
+  const viewer = await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = rooted
+    ? await supabase.from("comment_roots").insert({ comment_id: commentId, user_id: viewer.userId })
+    : await supabase.from("comment_roots").delete().eq("comment_id", commentId).eq("user_id", viewer.userId);
+  if (error && error.code !== "23505") {
+    console.error("[posts] setCommentRooted failed", error);
+    return { error: "That didn't go through. Try again." };
+  }
+  return {};
 }
 
 export async function addComment(
   postId: string,
   body: string,
+  parentId: string | null = null,
 ): Promise<{ comment?: PostComment; error?: string }> {
   const viewer = await requireOnboardedViewer();
   const text = body.trim();
@@ -276,7 +318,7 @@ export async function addComment(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("comments")
-    .insert({ post_id: postId, body: text })
+    .insert({ post_id: postId, body: text, parent_id: parentId })
     .select("id, created_at")
     .single();
 
@@ -295,6 +337,9 @@ export async function addComment(
       body: text,
       time: timeAgo(data.created_at),
       mine: true,
+      parentId,
+      roots: 0,
+      rooted: false,
     },
   };
 }

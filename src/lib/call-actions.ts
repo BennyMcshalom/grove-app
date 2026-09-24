@@ -19,7 +19,14 @@ async function connectionFor(callId: string, userId: string, name: string): Prom
     name,
     ttl: "6h",
   });
-  token.addGrant({ roomJoin: true, room: roomForCall(callId), canPublish: true, canSubscribe: true });
+  // canUpdateOwnMetadata lets each side publish its public E2EE key (see call-e2ee.ts).
+  token.addGrant({
+    roomJoin: true,
+    room: roomForCall(callId),
+    canPublish: true,
+    canSubscribe: true,
+    canUpdateOwnMetadata: true,
+  });
   return { url: process.env.LIVEKIT_URL!, token: await token.toJwt() };
 }
 

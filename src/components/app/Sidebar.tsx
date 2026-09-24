@@ -1,5 +1,6 @@
 "use client";
 
+import { NavCount, useUnreadMessages } from "@/components/app/UnreadMessages";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -222,9 +223,11 @@ function MenuItem({
   collapsed?: boolean;
 }) {
   const active = pathname === href || pathname.startsWith(`${href}/`);
+  const messages = useUnreadMessages();
+  const badge = href === "/bonds" ? messages : 0;
 
   return (
-    <li>
+    <li className="relative">
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
@@ -256,6 +259,9 @@ function MenuItem({
           />
         )}
         {collapsed ? <span className="sr-only">{label}</span> : label}
+        {badge > 0 && (
+          <NavCount count={badge} className={collapsed ? "absolute top-1.5 right-1.5" : "ml-auto"} />
+        )}
       </Link>
     </li>
   );

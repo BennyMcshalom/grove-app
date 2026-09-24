@@ -28,6 +28,36 @@ function layout(body: string) {
 </html>`;
 }
 
+/** Sent when a free trial starts, so there's a record of when it ends. */
+export function trialStartedEmail({
+  to,
+  firstName,
+  trialEndsAt,
+  siteUrl,
+}: {
+  to: string;
+  firstName: string;
+  trialEndsAt: string | null;
+  siteUrl: string;
+}): Email {
+  const name = escapeHtml(firstName);
+  const ends = trialEndsAt
+    ? new Date(trialEndsAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    : null;
+
+  return {
+    to,
+    subject: "Your Grouv free trial has started",
+    text: `Hi ${firstName},\n\nYour free trial of Grouv has started${ends ? ` and runs until ${ends}` : ""}. You won't be charged for the trial. See or change your plan any time in Settings: ${siteUrl}/settings`,
+    html: layout(`
+      <p style="margin:0 0 16px;">Hi ${name},</p>
+      <p style="margin:0 0 16px;">Your free trial of Grouv has started${ends ? ` and runs until <strong>${escapeHtml(ends)}</strong>` : ""}. Everything is open to you in the meantime.</p>
+      <p style="margin:0 0 24px;">You won't be charged for the trial. You can see or change your plan any time in Settings.</p>
+      <a href="${siteUrl}/settings" style="display:inline-block;background:#F57E16;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;">Open Settings</a>
+    `),
+  };
+}
+
 export function welcomeEmail({
   to,
   firstName,
@@ -85,13 +115,23 @@ export function notificationEmail(input: NotificationEmailInput): Email | null {
           cta: "See the request",
           href: "/bonds",
         };
-      case "bond_invitation":
+      // No score, no explanation: just that it happened.
+      case "bond_formed":
         return {
-          subject: `${who} invited you to bond`,
-          line: `${who} invited you to bond. Bonds see the parts of you your circle doesn't.`,
-          cta: "See the invitation",
+          subject: "Something has taken root",
+          line: `Something between you and ${who} has taken root.`,
+          cta: "Open Grouv",
           href: "/bonds",
         };
+      case "introduction_received": {
+        const note = typeof input.data.note === "string" && input.data.note ? ` They said: "${input.data.note}"` : "";
+        return {
+          subject: `${who} thinks you should meet someone`,
+          line: `${who} introduced you to someone in a similar chapter.${note}`,
+          cta: "Take a look",
+          href: input.entityId ? `/people/${input.entityId}` : "/bonds",
+        };
+      }
       case "group_join_request":
         return {
           subject: `${who} asked to join ${group}`,

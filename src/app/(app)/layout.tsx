@@ -2,6 +2,8 @@ import { CallProvider } from "@/components/app/CallProvider";
 import { Sidebar } from "@/components/app/Sidebar";
 import { MobileNav } from "@/components/app/MobileNav";
 import { ToastProvider } from "@/components/app/ToastProvider";
+import { SessionSync } from "@/components/app/SessionSync";
+import { UnreadMessagesProvider } from "@/components/app/UnreadMessages";
 import { SidebarProvider } from "@/components/app/SidebarProvider";
 import { ViewerProvider } from "@/components/app/ViewerProvider";
 import { getShellViewer } from "@/lib/auth/viewer";
@@ -26,7 +28,9 @@ export default async function AppLayout({
 
   return (
     <ViewerProvider viewer={viewer}>
+      <SessionSync />
       <ToastProvider>
+        <UnreadMessagesProvider userId={viewer.id} initial={viewer.unreadMessages}>
         <CallProvider>
         <SidebarProvider>
           <div className="flex h-viewport overflow-hidden bg-ivory-100">
@@ -40,6 +44,7 @@ export default async function AppLayout({
           </div>
         </SidebarProvider>
         </CallProvider>
+        </UnreadMessagesProvider>
       </ToastProvider>
     </ViewerProvider>
   );

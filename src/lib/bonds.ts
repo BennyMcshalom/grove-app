@@ -2,7 +2,7 @@ import type { Aura } from "@/lib/profile";
 
 /** Bonds-screen shapes, built on the server from the bonds_* RPCs. */
 
-export type MessageKind = "text" | "voice" | "video" | "image" | "link" | "post_share" | "system";
+export type MessageKind = "text" | "voice" | "video" | "image" | "link" | "post_share" | "system" | "card" | "file";
 
 /** Someone in the viewer's bonds or circle, with the chat they share. */
 export interface BondPerson {
@@ -16,15 +16,18 @@ export interface BondPerson {
   relationship: "bond" | "circle";
   bondId: string | null;
   since: string;
-  /** 0–100. */
-  depth: number;
+  /**
+   * The viewer's rank for this bond, 1–5, set weekly by the bond engine.
+   * Shown only as the colour of the bond mark — never as a number.
+   */
+  rank: number | null;
   conversationId: string | null;
   lastMessage: { preview: string; at: string; fromMe: boolean } | null;
   unread: number;
 }
 
 export interface PendingRequest {
-  kind: "connection" | "bond";
+  kind: "connection";
   requestId: string;
   userId: string;
   name: string;
@@ -54,9 +57,22 @@ export interface ChatMessage {
    * in a space they don't hold). Undefined for every other kind.
    */
   sharedPost?: { id: string; title: string | null; body: string | null; chapterSlug: string } | null;
+  /** A Curio or Wander card sent privately; null if it was retired. */
+  card?: { kind: "curio" | "wander"; title: string; body: string } | null;
   /** Signed link for voice notes, videos and photos. */
   mediaUrl?: string | null;
   durationSeconds?: number | null;
+  /** Documents: what to call the download and how big it is. */
+  file?: { name: string; size: number | null };
+}
+
+/** A morning card: one Curio per open space, one Wander. Gone at noon. */
+export interface DailyCard {
+  cardId: string;
+  kind: "curio" | "wander";
+  chapterSlug: string | null;
+  title: string;
+  body: string;
 }
 
 /** One line for a conversation list. */
@@ -75,9 +91,23 @@ export function messagePreview(kind: MessageKind | null, body: string | null) {
       return "Photo";
     case "link":
       return "Link";
+    case "card":
+      return "Shared a card";
+    case "file":
+      return "Document";
     default:
       return "";
   }
+}
+
+/**
+ * Bond ranks by colour, strongest first: deep gold, warm amber, soft sage,
+ * muted teal, cool stone. The only way rank is ever shown.
+ */
+export const BOND_RANK_COLORS = ["#C9A84C", "#D4884A", "#5C8A6A", "#3A7A7A", "#7A8A96"] as const;
+
+export function bondRankColor(rank: number | null) {
+  return BOND_RANK_COLORS[Math.min(Math.max((rank ?? 5) - 1, 0), 4)];
 }
 
 /** "7 months", "3 weeks", "5 days", "Today" — how long a bond has lasted. */

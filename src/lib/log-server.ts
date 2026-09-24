@@ -67,6 +67,7 @@ export async function loadCircleLogs(scope: "solo" | "bond"): Promise<CircleLog[
       entryDate: e.entry_date,
       dayNumber: e.day_number,
       chapterSlug: e.chapter_slug,
+      phase: e.phase,
       scope,
     })),
   }));

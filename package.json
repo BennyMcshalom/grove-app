@@ -9,7 +9,7 @@
     "lint": "eslint",
     "db:types": "supabase gen types typescript --linked --schema public > src/lib/supabase/database.types.ts",
     "db:push": "supabase db push",
-    "db:test": "node scripts/db-test/scenarios.mjs"
+    "db:test": "node --max-opt=2 scripts/db-test/scenarios.mjs"
   },
   "engines": {
     "node": ">=22"

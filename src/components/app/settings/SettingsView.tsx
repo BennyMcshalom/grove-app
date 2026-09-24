@@ -12,6 +12,9 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import {
   changePassword,
+  changePasswordWithCode,
+  passwordStatus,
+  sendPasswordCode,
   deleteAccount,
   billingManagementUrl,
   refreshBilling,
@@ -562,19 +565,59 @@ function DangerZone() {
   );
 }
 
-/** No Figma frame exists for this; it reuses the sign-up password field and rules. */
+/**
+ * No Figma frame exists for this; it reuses the sign-up password field and
+ * rules. A change needs the current password, or — if it's forgotten, or the
+ * account only ever used Google — a 6-digit code emailed to the account.
+ */
 function ChangePasswordModal({ onClose }: { onClose: () => void }) {
   const toast = useToast();
+  const [status, setStatus] = useState<{ hasPassword: boolean; email: string | null } | null>(null);
+  const [useCode, setUseCode] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [current, setCurrent] = useState("");
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string>();
-  const [fieldError, setFieldError] = useState<string>();
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, startSaving] = useTransition();
+  const [sending, startSending] = useTransition();
+
+  useEffect(() => {
+    let live = true;
+    void passwordStatus().then((result) => {
+      if (!live) return;
+      setStatus(result);
+      // Nothing to remember for a Google-only account: straight to the code.
+      if (!result.hasPassword) setUseCode(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const rules = [
     { label: "At least 8 characters", met: password.length >= 8 },
     { label: "At least one letter", met: /[a-zA-Z]/.test(password) },
     { label: "At least one number", met: /\d/.test(password) },
+    { label: "Both new passwords match", met: password.length > 0 && password === confirm },
   ];
+
+  const sendCode = () =>
+    startSending(async () => {
+      setError(undefined);
+      const result = await sendPasswordCode();
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setCodeSent(true);
+      toast({ title: `Code sent to ${status?.email ?? "your email"}` });
+    });
+
+  const ready =
+    rules.every((r) => r.met) && (useCode ? codeSent && code.trim().length >= 6 : current.length > 0);
 
   return (
     <div
@@ -589,12 +632,12 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
         onSubmit={(e) => {
           e.preventDefault();
           setError(undefined);
-          setFieldError(undefined);
+          setFieldErrors({});
           startSaving(async () => {
-            const result = await changePassword(password);
+            const result = useCode ? await changePasswordWithCode(code, password) : await changePassword(current, password);
             if (result.error || result.fieldErrors) {
               setError(result.error);
-              setFieldError(result.fieldErrors?.password);
+              setFieldErrors(result.fieldErrors ?? {});
               return;
             }
             toast({ title: "Password updated", tone: "confirm" });
@@ -603,34 +646,97 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
         }}
         className="my-auto flex w-full max-w-[480px] flex-col gap-5 rounded-2xl bg-surface p-6"
       >
-        <h2 className="font-display text-xl font-semibold text-ink-800">Change password</h2>
+        <h2 className="font-display text-xl font-semibold text-ink-800">
+          {status && !status.hasPassword ? "Set a password" : "Change password"}
+        </h2>
         <FormError message={error} />
-        <div className="flex flex-col gap-3">
-          <Input
-            label="New password"
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={fieldError}
-            required
-          />
-          <ul className="flex flex-col gap-3">
-            {rules.map((rule) => (
-              <li key={rule.label}>
-                <Checkbox readOnlyMarker checked={rule.met} label={rule.label} />
-              </li>
-            ))}
-          </ul>
-        </div>
+
+        {status === null ? (
+          <p className="font-sans text-sm text-ink-300">One moment…</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {useCode ? (
+              <div className="flex flex-col gap-3">
+                <p className="font-sans text-sm text-ink-400">
+                  To confirm it&apos;s you, we&apos;ll email a 6-digit code to {status.email ?? "your email"}.
+                </p>
+                {codeSent ? (
+                  <Input
+                    label="Code from the email"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    error={fieldErrors.code}
+                    required
+                  />
+                ) : null}
+                <Button type="button" variant="secondary" size="sm" loading={sending} onClick={sendCode}>
+                  {codeSent ? "Send a new code" : "Email me a code"}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Input
+                  label="Current password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={current}
+                  onChange={(e) => setCurrent(e.target.value)}
+                  error={fieldErrors.current}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseCode(true);
+                    setFieldErrors({});
+                  }}
+                  className="self-start font-sans text-sm font-medium text-primary-600 hover:underline"
+                >
+                  Forgot your current password?
+                </button>
+              </div>
+            )}
+
+            <Input
+              label="New password"
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              error={fieldErrors.password}
+              required
+            />
+            <Input
+              label="Confirm new password"
+              type="password"
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+            />
+            <ul className="flex flex-col gap-3">
+              {rules.map((rule) => (
+                <li key={rule.label}>
+                  <Checkbox readOnlyMarker checked={rule.met} label={rule.label} />
+                </li>
+              ))}
+            </ul>
+            {useCode && status.hasPassword && (
+              <button
+                type="button"
+                onClick={() => setUseCode(false)}
+                className="self-start font-sans text-sm font-medium text-primary-600 hover:underline"
+              >
+                I remember my current password
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
-          <Button
-            type="submit"
-            size="sm"
-            fullWidth
-            loading={saving}
-            disabled={!rules.every((r) => r.met)}
-          >
+          <Button type="submit" size="sm" fullWidth loading={saving} disabled={!ready}>
             Update password
           </Button>
           <Button type="button" variant="tertiary" size="sm" fullWidth onClick={onClose}>
