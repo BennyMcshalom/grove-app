@@ -75,7 +75,9 @@ async function toPosts(rows: FeedRow[], viewerName: string): Promise<Post[]> {
     body: row.body,
     media: row.media.flatMap((m) => {
       const src = signed.get(m.path);
-      return src ? [{ src, kind: m.kind, trimStart: m.trim_start, trimEnd: m.trim_end }] : [];
+      return src
+        ? [{ src, kind: m.kind, trimStart: m.trim_start, trimEnd: m.trim_end, width: m.width, height: m.height }]
+        : [];
     }),
     openGrove: row.open_grove,
     comments: row.comments_count,

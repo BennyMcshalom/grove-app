@@ -59,6 +59,9 @@ export interface Post {
     /** Seconds; set when a clip was trimmed in the composer. */
     trimStart?: number | null;
     trimEnd?: number | null;
+    /** Pixel size, when the composer recorded it; reserves the space. */
+    width?: number | null;
+    height?: number | null;
   }[];
   comments: number;
   /** The viewer's own "I see you". Never shown as a count. */

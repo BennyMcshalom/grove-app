@@ -57,12 +57,19 @@ export function PostCard({ post: initial }: { post: Post }) {
   return (
     <article
       id={`post-${post.id}`}
-      className="flex gap-4 rounded-2xl bg-surface p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]"
+      className="flex gap-4 rounded-2xl bg-surface p-4 sm:p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]"
     >
-      <Avatar src={post.avatar} name={post.author} className="size-10" />
+      {/* Beside the post on wider screens; on phones it moves into the
+          header so text and media get the card's full width (as X and
+          LinkedIn do). */}
+      <span className="hidden shrink-0 sm:block">
+        <Avatar src={post.avatar} name={post.author} className="size-10" />
+      </span>
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <header className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-3">
+          <Avatar src={post.avatar} name={post.author} className="size-10 shrink-0 sm:hidden" />
           <div className="flex min-w-0 flex-col justify-center">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-sans text-lg font-semibold text-ink-700">
@@ -78,6 +85,7 @@ export function PostCard({ post: initial }: { post: Post }) {
             <span className="font-sans text-base text-ink-300">
               {post.time}
             </span>
+          </div>
           </div>
 
           <div className="relative shrink-0">

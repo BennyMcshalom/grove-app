@@ -15,6 +15,7 @@ import { MEDIA_LIMITS, PROGRESS, type PostProgress } from "@/lib/posts";
 import { MediaTiles } from "@/components/app/media/MediaTiles";
 import type { MediaDraft } from "@/lib/media-draft";
 import { createClient } from "@/lib/supabase/client";
+import { mediaSize, uploadWithProgress } from "@/lib/upload";
 
 /**
  * Post composer — Figma frame 100:1206 (660px card, 32px padding, 16px radius).
@@ -105,11 +106,38 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
       const id = crypto.randomUUID();
       setAttachments((prev) => [
         ...prev,
-        { id, name: file.name, kind, status: "uploading", previewUrl: URL.createObjectURL(file) },
+        { id, name: file.name, kind, status: "uploading", progress: 0, file, previewUrl: URL.createObjectURL(file) },
       ]);
+      void measure(id, file, kind);
       void upload(id, file, kind);
     }
   };
+
+  /** Records the pixel size, so the post holds its shape while it loads. */
+  const measure = async (id: string, file: Blob, kind: "photo" | "video") => {
+    const size = await mediaSize(file, kind);
+    if (size) setAttachments((prev) => prev.map((a) => (a.id === id ? { ...a, ...size } : a)));
+  };
+
+  /** A failed upload goes again with the same file. */
+  const retry = (draft: MediaDraft) => {
+    if (!draft.file) return;
+    setAttachments((prev) => prev.map((a) => (a.id === draft.id ? { ...a, status: "uploading", progress: 0 } : a)));
+    void upload(draft.id, draft.file, draft.kind, draft.name);
+  };
+
+  /** Drag-and-drop or paste: photos and videos, sorted into their kinds. */
+  const attachAny = (files: File[]) => {
+    const photos = files.filter((f) => f.type.startsWith("image/"));
+    const videos = files.filter((f) => f.type.startsWith("video/"));
+    if (photos.length === 0 && videos.length === 0) {
+      if (files.length) toast({ title: "Only photos and videos can go in a post", tone: "danger" });
+      return;
+    }
+    if (photos.length) attach(photos, "photo");
+    if (videos.length) attach(videos, "video");
+  };
+  const [dragging, setDragging] = useState(false);
 
   /** Puts one file in the bucket and marks the draft done, or failed. */
   const upload = async (id: string, file: Blob, kind: "photo" | "video", name?: string) => {
@@ -121,9 +149,10 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
       ((name ?? "").split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) ||
       (kind === "photo" ? "jpg" : "mp4");
     const path = `${viewer.id}/${crypto.randomUUID()}.${extension}`;
-    const { error: uploadError } = await createClient()
-      .storage.from("media")
-      .upload(path, file, { contentType: file.type || undefined });
+    const result = await uploadWithProgress("media", path, file, (progress) =>
+      setAttachments((prev) => prev.map((a) => (a.id === id ? { ...a, progress } : a))),
+    );
+    const uploadError = "error" in result ? result.error : null;
     setAttachments((prev) =>
       prev.map((a) => (a.id === id ? (uploadError ? { ...a, status: "failed" } : { ...a, status: "done", path }) : a)),
     );
@@ -137,10 +166,11 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     setAttachments((prev) =>
       prev.map((a) =>
         a.id === draft.id
-          ? { ...a, status: "uploading", path: undefined, previewUrl: URL.createObjectURL(blob) }
+          ? { ...a, status: "uploading", progress: 0, file: blob, path: undefined, previewUrl: URL.createObjectURL(blob) }
           : a,
       ),
     );
+    void measure(draft.id, blob, "photo");
     void upload(draft.id, blob, "photo", draft.name).then(() => {
       if (previous) void createClient().storage.from("media").remove([previous]);
     });
@@ -185,7 +215,9 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         anonymous,
         openGrove: openGrove && groveAvailable && !anonymous,
         media: attachments.flatMap((a) =>
-          a.path ? [{ path: a.path, kind: a.kind, trimStart: a.trimStart, trimEnd: a.trimEnd }] : [],
+          a.path
+            ? [{ path: a.path, kind: a.kind, trimStart: a.trimStart, trimEnd: a.trimEnd, width: a.width, height: a.height }]
+            : [],
         ),
       });
       if (result.error) {
@@ -216,6 +248,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     <MediaTiles
       drafts={attachments}
       onRemove={detach}
+      onRetry={retry}
       onMove={move}
       onCrop={applyCrop}
       onTrim={applyTrim}
@@ -225,7 +258,37 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const submitDisabled = uploading || attachments.some((a) => a.status === "failed");
 
   return (
-    <article className="flex flex-col gap-6 rounded-2xl bg-surface p-6 lg:p-8">
+    <article
+      className={cn(
+        "relative flex flex-col gap-6 rounded-2xl bg-surface p-6 lg:p-8",
+        dragging && "ring-2 ring-primary-400 ring-offset-2 ring-offset-ivory-100",
+      )}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.files.length) return;
+        e.preventDefault();
+        setDragging(false);
+        attachAny(Array.from(e.dataTransfer.files));
+      }}
+      onPaste={(e) => {
+        const files = Array.from(e.clipboardData.files);
+        if (files.length === 0) return;
+        e.preventDefault();
+        attachAny(files);
+      }}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-2xl bg-primary-50/90">
+          <span className="font-sans text-base font-semibold text-primary-700">Drop photos or videos to add them</span>
+        </div>
+      )}
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <span className="relative size-12 shrink-0">

@@ -279,3 +279,11 @@
     background-color: var(--color-ink-100);
   }
 }
+
+/* Swipeable rows (post carousels): scroll by touch or buttons, no bar. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

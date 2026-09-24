@@ -55,6 +55,8 @@ const CreatePostSchema = z.object({
         // Where a clip starts and ends, in seconds. Nothing is re-encoded.
         trimStart: z.number().min(0).nullish(),
         trimEnd: z.number().min(0).nullish(),
+        width: z.number().int().positive().max(20000).nullish(),
+        height: z.number().int().positive().max(20000).nullish(),
       }),
     )
     .max(MEDIA_LIMITS.maxFiles),
@@ -113,6 +115,8 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
         position,
         trim_start: m.kind === "video" ? (m.trimStart ?? null) : null,
         trim_end: m.kind === "video" ? (m.trimEnd ?? null) : null,
+        width: m.width ?? null,
+        height: m.height ?? null,
       })),
     );
     if (mediaError) {

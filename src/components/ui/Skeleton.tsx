@@ -27,7 +27,7 @@ export function SkeletonText({ lines = 3, className }: { lines?: number; classNa
 export function PostCardSkeleton({ withMedia = false }: { withMedia?: boolean }) {
   return (
     <article aria-hidden="true" className="flex gap-4 rounded-2xl bg-surface p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
-      <Skeleton className="size-10 shrink-0 rounded-full" />
+      <Skeleton className="hidden size-10 shrink-0 rounded-full sm:block" />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-2">
           <Skeleton className="h-4 w-32" />
@@ -101,6 +101,105 @@ export function MessagesSkeleton({ count = 5 }: { count?: number }) {
           />
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Route-level placeholders (the pages' loading.tsx files). They show the
+ * instant a link is followed, laid out like the page that's coming, so
+ * navigation never sits on a blank or frozen screen.
+ */
+
+/** The page title bar. */
+export function TopBarSkeleton({ withTabs = false }: { withTabs?: boolean }) {
+  return (
+    <div aria-hidden="true" className="flex shrink-0 flex-col gap-4 bg-surface px-5 pt-4 pb-3 lg:px-6 lg:pt-10">
+      <Skeleton className="h-7 w-44" />
+      {withTabs && (
+        <div className="flex gap-3">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Skeleton key={i} className="h-8 w-20 rounded-full" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The right-hand rail on wide screens. */
+export function RailSkeleton() {
+  return (
+    <aside aria-hidden="true" className="hidden w-[396px] shrink-0 flex-col gap-7 bg-surface px-8 pt-6 xl:flex">
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} className="flex flex-col gap-4">
+          <Skeleton className="h-4 w-28" />
+          <PersonRowsSkeleton count={3} label="" />
+        </div>
+      ))}
+    </aside>
+  );
+}
+
+/** Home and a space: title, feed column, rail. */
+export function FeedPageSkeleton({ withTabs = true }: { withTabs?: boolean }) {
+  return (
+    <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <TopBarSkeleton withTabs={withTabs} />
+        <div className="min-h-0 flex-1 overflow-hidden px-4 py-6 lg:px-8">
+          <div className="mx-auto flex w-full max-w-[724px] flex-col gap-6">
+            <Skeleton className="hidden h-40 w-full rounded-2xl lg:block" />
+            <FeedSkeleton count={2} />
+          </div>
+        </div>
+      </div>
+      <RailSkeleton />
+    </div>
+  );
+}
+
+/** Any other page: title and a stack of cards. */
+export function PageSkeleton() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <span className="sr-only" role="status">
+        Loading
+      </span>
+      <TopBarSkeleton />
+      <div className="min-h-0 flex-1 overflow-hidden px-4 py-6 lg:px-8">
+        <div aria-hidden="true" className="mx-auto flex w-full max-w-[1096px] flex-col gap-5">
+          <Skeleton className="h-36 w-full rounded-2xl" />
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Skeleton className="h-44 rounded-2xl" />
+            <Skeleton className="h-44 rounded-2xl" />
+          </div>
+          <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+            <PersonRowsSkeleton count={4} label="" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Bonds: conversation list beside the chat. */
+export function ChatPageSkeleton() {
+  return (
+    <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div aria-hidden="true" className="flex w-full flex-col gap-4 border-r border-ink-50 bg-surface p-4 lg:w-[360px]">
+        <Skeleton className="h-7 w-28" />
+        <PersonRowsSkeleton count={7} label="Loading your bonds" />
+      </div>
+      <div className="hidden min-w-0 flex-1 flex-col bg-ivory-100 lg:flex">
+        <div className="flex items-center gap-3 bg-surface p-5">
+          <Skeleton className="size-12 rounded-full" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="flex-1 p-5">
+          <MessagesSkeleton />
+        </div>
+      </div>
     </div>
   );
 }

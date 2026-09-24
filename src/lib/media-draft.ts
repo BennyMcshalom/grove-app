@@ -10,6 +10,13 @@ export interface MediaDraft {
   /** An object URL for the local file — revoke it when the draft goes. */
   previewUrl: string;
   status: "uploading" | "done" | "failed";
+  /** 0–1 while uploading. */
+  progress?: number;
+  /** The file itself, kept so a failed upload can be retried. */
+  file?: Blob;
+  /** Pixel size, measured before upload so the post reserves its shape. */
+  width?: number;
+  height?: number;
   /** Where it landed in the `media` bucket, once uploaded. */
   path?: string;
   /** Seconds. Set by the trimmer; playback honours the range. */

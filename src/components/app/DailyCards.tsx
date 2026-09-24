@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SendToBondModal } from "@/components/app/SendToBondModal";
 import { useToast } from "@/components/app/ToastProvider";
-import { listCardTargets, loadDailyCards, sendCard } from "@/lib/bond-actions";
+import { listCardTargets, sendCard } from "@/lib/bond-actions";
 import type { DailyCard } from "@/lib/bonds";
 import { getChapter } from "@/lib/chapters";
 
@@ -13,20 +13,9 @@ import { getChapter } from "@/lib/chapters";
  * read, open or skip is recorded — the only action is sending one privately
  * to someone in your circle.
  */
-export function DailyCards() {
+export function DailyCards({ cards }: { cards: DailyCard[] }) {
   const toast = useToast();
-  const [cards, setCards] = useState<DailyCard[]>([]);
   const [sending, setSending] = useState<DailyCard | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    loadDailyCards().then((result) => {
-      if (!cancelled) setCards(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   if (cards.length === 0) return null;
 

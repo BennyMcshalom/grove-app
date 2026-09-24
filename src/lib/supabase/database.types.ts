@@ -849,7 +849,14 @@ export type Database = {
           author_phase: string | null;
           is_mine: boolean;
           rooted: boolean;
-          media: { kind: MediaKind; path: string; trim_start: number | null; trim_end: number | null }[];
+          media: {
+            kind: MediaKind;
+            path: string;
+            trim_start: number | null;
+            trim_end: number | null;
+            width: number | null;
+            height: number | null;
+          }[];
         }[];
       };
       space_members: {

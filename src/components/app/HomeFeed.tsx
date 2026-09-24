@@ -7,6 +7,7 @@ import { DailyCards } from "@/components/app/DailyCards";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { FeedEnd, FeedList } from "@/components/app/FeedList";
 import { RightRail } from "@/components/app/RightRail";
+import type { DailyCard } from "@/lib/bonds";
 import type { FeedPage } from "@/lib/posts";
 
 /**
@@ -17,7 +18,7 @@ import type { FeedPage } from "@/lib/posts";
  * and then it ends; each chapter tab narrows it to one space and falls back
  * to the empty state Figma draws (650:37394 / 664:16902).
  */
-export function HomeFeed({ firstPage }: { firstPage: FeedPage }) {
+export function HomeFeed({ firstPage, cards }: { firstPage: FeedPage; cards: DailyCard[] }) {
   // Figma's phone Home (601:30182) has no inline composer: it sits behind the
   // orange FAB above the tab bar.
   const [composing, setComposing] = useState(false);
@@ -34,7 +35,7 @@ export function HomeFeed({ firstPage }: { firstPage: FeedPage }) {
             <div className="hidden lg:block">
               <Composer />
             </div>
-            <DailyCards />
+            <DailyCards cards={cards} />
             <FeedList
               key={chapterSlug ?? "all"}
               query={{ scope: "home", chapterSlug }}

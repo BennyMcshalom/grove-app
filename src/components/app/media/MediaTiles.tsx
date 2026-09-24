@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ImageCropper } from "@/components/app/media/ImageCropper";
 import { VideoTrimmer } from "@/components/app/media/VideoTrimmer";
 import { clock, type MediaDraft } from "@/lib/media-draft";
-import { cn } from "@/lib/cn";
 
 /**
  * What's attached to a post, before it is posted: a thumbnail each, with the
@@ -13,12 +12,14 @@ import { cn } from "@/lib/cn";
 export function MediaTiles({
   drafts,
   onRemove,
+  onRetry,
   onMove,
   onCrop,
   onTrim,
 }: {
   drafts: MediaDraft[];
   onRemove: (draft: MediaDraft) => void;
+  onRetry: (draft: MediaDraft) => void;
   onMove: (draft: MediaDraft, direction: -1 | 1) => void;
   onCrop: (draft: MediaDraft, blob: Blob) => void;
   onTrim: (draft: MediaDraft, range: { start: number; end: number; duration: number }) => void;
@@ -33,7 +34,7 @@ export function MediaTiles({
         {drafts.map((draft, index) => (
           <li
             key={draft.id}
-            className="relative size-28 overflow-hidden rounded-xl bg-ivory-200 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]"
+            className="relative size-28 overflow-hidden rounded-xl bg-ivory-200 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] sm:size-32"
           >
             {draft.kind === "photo" ? (
               /* eslint-disable-next-line @next/next/no-img-element -- a local object URL, never optimised */
@@ -42,15 +43,39 @@ export function MediaTiles({
               <video src={draft.previewUrl} preload="metadata" muted playsInline className="size-full object-cover" />
             )}
 
-            {/* Uploading and failure states sit over the picture. */}
-            {draft.status !== "done" && (
-              <span
-                className={cn(
-                  "absolute inset-0 grid place-items-center px-2 text-center font-sans text-xs font-medium",
-                  draft.status === "failed" ? "bg-destructive-60/80 text-white" : "bg-ink-900/45 text-white",
+            {/* Uploading: a real progress bar. Failed: say so, and offer Retry. */}
+            {draft.status === "uploading" && (
+              <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-ink-900/40 px-3">
+                <span className="font-sans text-xs font-semibold text-white tabular-nums">
+                  {Math.round((draft.progress ?? 0) * 100)}%
+                </span>
+                <span
+                  role="progressbar"
+                  aria-label={`Uploading ${draft.name}`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round((draft.progress ?? 0) * 100)}
+                  className="h-1.5 w-full overflow-hidden rounded-full bg-white/30"
+                >
+                  <span
+                    className="block h-full rounded-full bg-white transition-[width] duration-200"
+                    style={{ width: `${Math.max(4, Math.round((draft.progress ?? 0) * 100))}%` }}
+                  />
+                </span>
+              </span>
+            )}
+            {draft.status === "failed" && (
+              <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-destructive-60/85 px-2 text-center">
+                <span className="font-sans text-xs font-medium text-white">Upload failed</span>
+                {draft.file && (
+                  <button
+                    type="button"
+                    onClick={() => onRetry(draft)}
+                    className="rounded-full bg-white px-3 py-1 font-sans text-xs font-semibold text-destructive-60"
+                  >
+                    Retry
+                  </button>
                 )}
-              >
-                {draft.status === "failed" ? "Upload failed" : "Uploading…"}
               </span>
             )}
 
@@ -89,6 +114,7 @@ export function MediaTiles({
               </button>
             </div>
 
+            {draft.status === "done" && (
             <button
               type="button"
               onClick={() => setEditing(draft)}
@@ -96,6 +122,7 @@ export function MediaTiles({
             >
               {draft.kind === "photo" ? "Crop" : "Trim"}
             </button>
+            )}
           </li>
         ))}
       </ul>
