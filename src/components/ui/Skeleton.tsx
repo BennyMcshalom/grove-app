@@ -130,7 +130,7 @@ export function TopBarSkeleton({ withTabs = false }: { withTabs?: boolean }) {
 /** The right-hand rail on wide screens. */
 export function RailSkeleton() {
   return (
-    <aside aria-hidden="true" className="hidden w-[396px] shrink-0 flex-col gap-7 bg-surface px-8 pt-6 xl:flex">
+    <aside aria-hidden="true" className="hidden w-[300px] shrink-0 flex-col gap-7 bg-surface px-6 pt-6 rail:flex wide:w-[396px] wide:px-8">
       {Array.from({ length: 3 }, (_, i) => (
         <div key={i} className="flex flex-col gap-4">
           <Skeleton className="h-4 w-28" />

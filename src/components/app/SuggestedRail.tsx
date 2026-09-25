@@ -30,7 +30,7 @@ export function SuggestedRail() {
   }, []);
 
   return (
-    <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-surface px-8 py-6 xl:block">
+    <aside className="hidden w-[300px] shrink-0 scroll-slim overflow-y-auto bg-surface px-6 py-6 rail:block wide:w-[396px] wide:px-8">
       <div className="flex flex-col gap-5">
         <header className="flex items-center justify-between gap-4">
           <h2 className="font-sans text-base font-medium text-ink-600">

@@ -13,7 +13,7 @@ const WASH = "var(--wash-warm)";
 
 export function EventsRail({ events, room }: { events: EventCard[]; room: LiveRoom | null }) {
   return (
-    <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-surface px-8 py-6 xl:block">
+    <aside className="hidden w-[300px] shrink-0 scroll-slim overflow-y-auto bg-surface px-6 py-6 rail:block wide:w-[396px] wide:px-8">
       <div className="flex flex-col gap-7">
         <section className="flex flex-col gap-4">
           <h2 className="font-sans text-base font-medium text-ink-600">

@@ -76,7 +76,7 @@ export function EventView({
         />
 
         <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
-          <div role="tablist" className="mx-auto mb-6 flex w-full max-w-[724px] xl:hidden">
+          <div role="tablist" className="mx-auto mb-6 flex w-full max-w-[724px] rail:hidden">
             {TABS.map((t) => (
               <button
                 key={t}
@@ -97,13 +97,13 @@ export function EventView({
           </div>
 
           {tab === "Event Details" && (
-            <div className="mx-auto w-full max-w-[724px] xl:hidden">{details}</div>
+            <div className="mx-auto w-full max-w-[724px] rail:hidden">{details}</div>
           )}
 
           <section
             className={cn(
               "mx-auto w-full max-w-[724px] flex-col items-center gap-4 rounded-2xl bg-surface p-6",
-              tab === "Conversation" ? "flex" : "hidden xl:flex",
+              tab === "Conversation" ? "flex" : "hidden rail:flex",
             )}
           >
             <p className="flex w-full max-w-[427px] items-start gap-2 rounded-xl border border-primary-200 bg-primary-50 p-2 font-sans text-sm text-ink-200">
@@ -139,7 +139,7 @@ export function EventView({
           <div
             className={cn(
               "shrink-0 border-t border-ink-50 bg-surface px-4 py-5 lg:px-8",
-              tab === "Conversation" ? "block" : "hidden xl:block",
+              tab === "Conversation" ? "block" : "hidden rail:block",
             )}
           >
             <RoomComposer placeholder="Join conversation" onSend={chat.send} sending={chat.sending} />
@@ -148,7 +148,7 @@ export function EventView({
       </div>
 
       {/* Sidebar 452:11307 — 396px, scrolls on its own. */}
-      <aside className="hidden w-[396px] shrink-0 flex-col gap-7 scroll-slim overflow-y-auto bg-surface px-8 pt-6 pb-10 xl:flex">
+      <aside className="hidden w-[300px] shrink-0 flex-col gap-7 scroll-slim overflow-y-auto bg-surface px-6 pt-6 pb-10 rail:flex wide:w-[396px] wide:px-8">
         {details}
       </aside>
     </div>

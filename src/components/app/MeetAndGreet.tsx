@@ -77,7 +77,7 @@ export function MeetAndGreet({ rooms, onHost }: { rooms: LiveRoom[]; onHost?: ()
       </section>
 
       {myRoom && (
-        <section className="flex flex-col gap-4 xl:hidden">
+        <section className="flex flex-col gap-4 rail:hidden">
           <h2 className="font-sans text-base font-medium text-ink-600">
             YOUR LIVE MEET
           </h2>

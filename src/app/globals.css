@@ -6,6 +6,10 @@
    file is `primary-600` here. Do not hand-tune these; change them in Figma.
 --------------------------------------------------------------------------- */
 @theme {
+  /* Side panels: shown from 1180px at 300px, full 396px from 1440px — so a
+     laptop at 100% with Windows scaling (about 1265px wide) keeps them. */
+  --breakpoint-rail: 73.75rem;
+  --breakpoint-wide: 90rem;
   --color-primary-50: #fef1e9;
   --color-primary-100: #fbd3b9;
   --color-primary-200: #f9bd98;

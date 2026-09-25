@@ -77,8 +77,8 @@ export function RightRail({
   const loading = rail === null && variant === "feed";
 
   return (
-    <aside className="hidden w-[396px] shrink-0 scroll-slim overflow-y-auto bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] xl:block">
-      <div className="flex w-full flex-col gap-7 px-8 pt-6 pb-10">
+    <aside className="hidden w-[300px] shrink-0 scroll-slim overflow-y-auto bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] rail:block wide:w-[396px]">
+      <div className="flex w-full flex-col gap-7 px-6 pt-6 pb-10 wide:px-8">
         <Section
           title={variant === "space" ? "In this space" : "Your circle"}
           action="View all"
