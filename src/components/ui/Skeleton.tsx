@@ -203,3 +203,14 @@ export function ChatPageSkeleton() {
     </div>
   );
 }
+
+/** A profile grid of 9:16 tiles, three across. */
+export function TileGridSkeleton({ count = 9, className }: { count?: number; className?: string }) {
+  return (
+    <div aria-hidden="true" className={cn("grid grid-cols-3 gap-1 sm:gap-2", className)}>
+      {Array.from({ length: count }, (_, i) => (
+        <Skeleton key={i} className="aspect-[9/16] rounded-lg sm:rounded-xl" />
+      ))}
+    </div>
+  );
+}

@@ -3,11 +3,12 @@
 import Image from "next/image";
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/auth/FormError";
+import { LogCoverflow } from "@/components/app/LogCoverflow";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { saveLogEntry } from "@/app/(app)/log/actions";
 import { cn } from "@/lib/cn";
-import { localDay, logDateLabel, type LogEntry } from "@/lib/log";
+import { localDay, type LogEntry } from "@/lib/log";
 import { removeUploads, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
 
 /**
@@ -219,59 +220,23 @@ export function LogPrompt({
 }
 
 /**
- * The memories collage — Figma frame 249:12246. Scattered, rotated photo
- * cards on a warm gradient, each captioned.
- *
- * Figma places five cards at x = 130 / 147 / 184 / 241 / 318 in a 708px panel
- * with widths 140–240px, fanning left-to-right and growing as they go. Those
- * are converted to percentages so the fan scales with the container.
+ * Log Memories: the moments as a cover-flow you drag through (LogCoverflow).
  */
-const MEMORIES = [
-  { left: "10%", top: "26%", w: "18%", rotate: -7 },
-  { left: "22%", top: "22%", w: "20%", rotate: 4 },
-  { left: "35%", top: "18%", w: "22%", rotate: -4 },
-  { left: "48%", top: "14%", w: "24%", rotate: 6 },
-  { left: "62%", top: "10%", w: "26%", rotate: -3 },
-];
-
-/**
- * The Career Archive draws the same fan on a 1096x389 card (433:17113), where
- * the cards sit at x = 334 / 351 / 388 / 445 / 522 with widths 140-240. Those
- * are a different fraction of the container than the 708px panel's, so each
- * surface carries its own set rather than reusing one and overflowing.
- */
-const ARCHIVE_MEMORIES = [
-  { left: "30.5%", top: "27.2%", w: "12.8%", rotate: -7 },
-  { left: "32.0%", top: "23.9%", w: "14.6%", rotate: 4 },
-  { left: "35.4%", top: "20.6%", w: "16.4%", rotate: -4 },
-  { left: "40.6%", top: "17.2%", w: "18.2%", rotate: 6 },
-  { left: "47.6%", top: "10.8%", w: "21.9%", rotate: -3 },
-];
-
 export function LogMemories({
   entries,
   header = true,
   surface = "gradient",
 }: {
-  /** Newest first; the fan shows the latest five. */
+  /** Newest first; the newest starts in front. */
   entries: LogEntry[];
   /** The Career Archive (433:17113) drops the "Log Memories" heading. */
   header?: boolean;
   /**
-   * Grouv Log lays the fan on a warm gradient with captions below each card;
-   * the Career Archive lays it on a white 16px card with the caption over the
-   * photo instead.
+   * Grouv Log lays the moments on a warm gradient; the Career Archive lays
+   * them on a white card.
    */
   surface?: "gradient" | "white";
 }) {
-  // The arrows rotate which card is frontmost.
-  const [offset, setOffset] = useState(0);
-  const slots = surface === "white" ? ARCHIVE_MEMORIES : MEMORIES;
-  // Oldest of the five at the back-left, newest front-right.
-  const shown = entries.slice(0, slots.length).reverse();
-  const step = (dir: number) =>
-    setOffset((o) => (o + dir + shown.length) % Math.max(shown.length, 1));
-
   return (
     <section className="flex w-full flex-col gap-4">
       {header && (
@@ -280,17 +245,15 @@ export function LogMemories({
             Log Memories
           </h2>
           <p className="font-sans text-base text-ink-400">
-            {entries.length === 1 ? "1 moment" : `${entries.length} moments`}
+            {entries.length === 1 ? "1 moment" : `${entries.length} moments`} · drag or swipe to look back
           </p>
         </header>
       )}
 
       <div
         className={cn(
-          "relative w-full overflow-hidden rounded-2xl",
-          surface === "white"
-            ? "bg-surface"
-            : "h-[280px] lg:h-[354px]",
+          "relative h-[360px] w-full overflow-hidden rounded-2xl sm:h-[420px] lg:h-[460px]",
+          surface === "white" ? "bg-surface" : "",
         )}
         style={
           surface === "gradient"
@@ -298,98 +261,12 @@ export function LogMemories({
                 backgroundImage:
                   "linear-gradient(195deg, rgba(232,163,118,0.8) 0%, rgba(243,163,111,1) 36%)",
               }
-            : { aspectRatio: "1096 / 389" }
+            : undefined
         }
       >
-        {shown.length === 0 ? (
-          <p
-            className={cn(
-              "absolute inset-0 grid place-items-center px-6 text-center font-sans text-sm",
-              surface === "white" ? "text-ink-300" : "text-white",
-            )}
-          >
-            No moments logged yet.
-          </p>
-        ) : (
-          shown.map((entry, i) => {
-            const slot = slots[i + (slots.length - shown.length)];
-            return (
-              <figure
-                key={entry.id}
-                className="absolute overflow-hidden rounded-[20px] border border-ink-100 bg-surface shadow-md"
-                style={{
-                  left: slot.left,
-                  top: slot.top,
-                  width: slot.w,
-                  transform: `rotate(${slot.rotate}deg)`,
-                  zIndex: (i + offset) % shown.length,
-                }}
-              >
-                <div className="relative aspect-[3/4] w-full bg-ivory-100">
-                  {entry.photoUrl ? (
-                    <Image src={entry.photoUrl} alt="" fill unoptimized className="object-cover" />
-                  ) : (
-                    <p className="absolute inset-0 overflow-hidden p-3 font-sans text-[11px] leading-snug text-ink-600">
-                      {entry.body}
-                    </p>
-                  )}
-                  {surface === "white" && entry.photoUrl && entry.body && (
-                    <figcaption className="absolute inset-x-0 bottom-0 line-clamp-2 bg-gradient-to-t from-ink-900/70 to-transparent px-2 pt-6 pb-2 text-center font-sans text-[10px] font-medium text-white">
-                      {entry.body}
-                    </figcaption>
-                  )}
-                </div>
-                {surface === "gradient" && (
-                  <figcaption className="truncate px-2 py-1.5 text-center font-sans text-[10px] font-medium text-ink-700">
-                    Day {entry.dayNumber} · {logDateLabel(entry.entryDate)}
-                  </figcaption>
-                )}
-              </figure>
-            );
-          })
-        )}
-
-        {shown.length > 1 && (
-          <>
-            <NavArrow side="left" onClick={() => step(-1)} />
-            <NavArrow side="right" onClick={() => step(1)} />
-          </>
-        )}
+        <LogCoverflow entries={entries} tone={surface === "white" ? "plain" : "warm"} />
       </div>
     </section>
-  );
-}
-
-/** The 40px glassy scrubbers at each end of the collage (Figma 249:12327/8). */
-function NavArrow({
-  side,
-  onClick,
-}: {
-  side: "left" | "right";
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={side === "left" ? "Previous memory" : "Next memory"}
-      className="absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-surface/40 text-ink-700 backdrop-blur-[20px]"
-      style={{
-        [side]: "32px",
-        backgroundImage:
-          "linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 100%)",
-      }}
-    >
-      <svg viewBox="0 0 24 24" fill="none" className="size-5" aria-hidden="true">
-        <path
-          d={side === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"}
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </button>
   );
 }
 

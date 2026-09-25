@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FeedSkeleton, PostCardSkeleton } from "@/components/ui/Skeleton";
+import { FeedSkeleton, PostCardSkeleton, TileGridSkeleton } from "@/components/ui/Skeleton";
 import { PostCard } from "@/components/app/PostCard";
 import { loadPosts } from "@/lib/post-actions";
 import type { FeedCursor, FeedPage, FeedQuery, Post } from "@/lib/posts";
@@ -42,8 +42,11 @@ export function FeedList({
   initial,
   empty,
   ending,
+  layout = "list",
   renderPost = (post) => <PostCard key={post.id} post={post} />,
 }: {
+  /** "grid": a 3-column profile grid of 9:16 tiles (render PostTile). */
+  layout?: "list" | "grid";
   query: Omit<FeedQuery, "cursor">;
   initial?: FeedPage;
   empty: React.ReactNode;
@@ -108,7 +111,7 @@ export function FeedList({
   }, [cursor, loadMore]);
 
   if (posts === null) {
-    return <FeedSkeleton />;
+    return layout === "grid" ? <TileGridSkeleton className="mx-auto w-full max-w-[720px]" /> : <FeedSkeleton />;
   }
 
   if (posts.length === 0) {
@@ -116,6 +119,17 @@ export function FeedList({
       <p className="py-10 text-center font-sans text-sm text-destructive-60">{error}</p>
     ) : (
       <>{empty}</>
+    );
+  }
+
+  if (layout === "grid") {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="mx-auto grid w-full max-w-[720px] grid-cols-3 gap-1 sm:gap-2">{posts.map((post) => renderPost(post))}</div>
+        {cursor && <div ref={sentinel} aria-hidden="true" className="h-px" />}
+        {showLoadingMore && <TileGridSkeleton count={3} className="mx-auto w-full max-w-[720px]" />}
+        {error && <p className="text-center font-sans text-sm text-destructive-60">{error}</p>}
+      </div>
     );
   }
 

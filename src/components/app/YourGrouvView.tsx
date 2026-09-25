@@ -4,6 +4,8 @@ import { Photo } from "@/components/ui/Media";
 import { useState } from "react";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { FeedList } from "@/components/app/FeedList";
+import { MomentViewer } from "@/components/app/LogCoverflow";
+import { PostTile } from "@/components/app/PostTile";
 import { GrouvRings, type RingPerson, type RingPrompts } from "@/components/app/GrouvRings";
 import { TopBar } from "@/components/app/TopBar";
 import { Button } from "@/components/ui/Button";
@@ -15,11 +17,58 @@ import type { FeedPage } from "@/lib/posts";
  * Your Grouv — Figma frames 417:16407 (Your Posts) and 435:18506 (Your Grouv
  * Logs).
  *
- * A 1096px column: the rings hero (489:17418), then a two-tab group whose
- * first tab lists your posts and whose second shows the logged days as a row
- * of captioned photo tiles (435:19253).
+ * A 1096px column: the rings hero (489:17418), then a two-tab group. Both
+ * tabs are a 3-column grid of 9:16 tiles, newest first — posts, and logged
+ * moments.
  */
 const TABS = ["Your Posts", "Your Grouv Logs"];
+
+/** A logged moment as a 9:16 tile: its photo, or its words on a warm card. */
+function LogTile({ entry, onOpen }: { entry: LogEntry; onOpen: () => void }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group relative block aspect-[9/16] w-full overflow-hidden rounded-lg bg-ivory-200 text-left sm:rounded-xl"
+    >
+      {entry.photoUrl ? (
+        <>
+          {!loaded && <span className="absolute inset-0 shimmer bg-ivory-300" aria-hidden="true" />}
+          <Photo
+            src={entry.photoUrl}
+            alt=""
+            fill
+            unoptimized
+            sizes="(min-width: 1024px) 360px, 33vw"
+            onLoad={() => setLoaded(true)}
+            className={cn(
+              "object-cover transition-[opacity,transform] duration-300 group-hover:scale-[1.03]",
+              loaded ? "opacity-100" : "opacity-0",
+            )}
+          />
+        </>
+      ) : (
+        <span className="absolute inset-0 bg-gradient-to-br from-primary-100 via-ivory-100 to-primary-50 p-3 sm:p-4">
+          <span className="line-clamp-[9] font-display text-sm leading-snug text-ink-700 sm:text-base">{entry.body}</span>
+        </span>
+      )}
+      <span
+        className={cn(
+          "absolute inset-x-0 bottom-0 flex flex-col gap-0.5 px-2.5 pb-2.5",
+          entry.photoUrl && "bg-gradient-to-t from-black/65 to-transparent pt-10",
+        )}
+      >
+        {entry.photoUrl && entry.body && (
+          <span className="line-clamp-2 font-sans text-xs leading-snug font-medium text-white sm:text-sm">{entry.body}</span>
+        )}
+        <span className={cn("font-sans text-[10px] font-medium sm:text-xs", entry.photoUrl ? "text-white/85" : "text-ink-400")}>
+          Day {entry.dayNumber} · {logDateLabel(entry.entryDate)}
+        </span>
+      </span>
+    </button>
+  );
+}
 
 export function YourGrouvView({
   posts,
@@ -33,6 +82,7 @@ export function YourGrouvView({
   prompts: RingPrompts;
 }) {
   const [tab, setTab] = useState(TABS[0]);
+  const [opened, setOpened] = useState<LogEntry | null>(null);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -64,8 +114,16 @@ export function YourGrouvView({
               ))}
             </div>
 
+            {/* Both tabs are a profile grid: three across, 9:16 tiles, newest
+                first (Instagram's layout). */}
             {tab === TABS[0] ? (
-              <FeedList query={{ scope: "mine" }} initial={posts} empty={<EmptyFeed />} />
+              <FeedList
+                query={{ scope: "mine" }}
+                initial={posts}
+                layout="grid"
+                empty={<EmptyFeed />}
+                renderPost={(post) => <PostTile key={post.id} post={post} />}
+              />
             ) : logs.length === 0 ? (
               <div className="flex flex-col items-center gap-3 rounded-3xl bg-surface px-4 py-10 text-center">
                 <p className="font-sans text-sm text-ink-300">You haven&rsquo;t logged a moment yet.</p>
@@ -74,50 +132,15 @@ export function YourGrouvView({
                 </Button>
               </div>
             ) : (
-              <div className="rounded-3xl bg-surface px-4 py-3">
-                <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                  {logs.map((log) => (
-                    <li
-                      key={log.id}
-                      className="relative aspect-[254/219] overflow-hidden rounded-[20px] border border-ink-100 bg-ivory-100"
-                    >
-                      {log.photoUrl && (
-                        <Photo src={log.photoUrl} alt="" fill unoptimized className="object-cover" />
-                      )}
-                      <span
-                        className={cn(
-                          "absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 px-3 py-3",
-                          log.photoUrl
-                            ? "bg-gradient-to-t from-ink-900/70 to-transparent"
-                            : "top-0 justify-center",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "flex items-center gap-2 font-sans text-[10px] font-medium",
-                            log.photoUrl ? "text-white" : "text-ink-300",
-                          )}
-                        >
-                          Day {log.dayNumber}
-                          <span className={cn("size-1 rounded-full", log.photoUrl ? "bg-ink-50" : "bg-ink-300")} />
-                          {logDateLabel(log.entryDate)}
-                        </span>
-                        {log.body && (
-                          <span
-                            className={cn(
-                              "line-clamp-3 text-center font-sans text-sm font-medium",
-                              log.photoUrl ? "text-white" : "text-ink-600",
-                            )}
-                          >
-                            {log.body}
-                          </span>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <ul className="mx-auto grid w-full max-w-[720px] grid-cols-3 gap-1 sm:gap-2">
+                {logs.map((log) => (
+                  <li key={log.id}>
+                    <LogTile entry={log} onOpen={() => setOpened(log)} />
+                  </li>
+                ))}
+              </ul>
             )}
+            {opened && <MomentViewer entry={opened} onClose={() => setOpened(null)} />}
           </div>
         </div>
       </div>

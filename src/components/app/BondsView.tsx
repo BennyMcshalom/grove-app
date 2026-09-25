@@ -40,7 +40,12 @@ export function BondsView({
   const [activity, setActivity] = useState<Record<string, Partial<Activity>>>({});
   const merged = people.map((p) => ({ ...p, ...activity[p.userId] }));
   const bonds = merged.filter((p) => p.relationship === "bond");
-  const circle = merged.filter((p) => p.relationship === "circle");
+  // Most recent activity first, like any chat list: the last message, or when
+  // you connected — so someone you've just accepted lands at the top.
+  const lastActive = (p: BondPerson) => Math.max(Date.parse(p.since) || 0, p.lastMessage ? Date.parse(p.lastMessage.at) : 0);
+  const circle = merged
+    .filter((p) => p.relationship === "circle")
+    .sort((a, b) => lastActive(b) - lastActive(a));
 
   const [selectedId, setSelectedId] = useState<string | null>(openWith ?? merged[0]?.userId ?? null);
   // On a phone the list and the chat are separate screens (635:18535 vs
@@ -179,7 +184,7 @@ export function BondsView({
             </h2>
             {bonds.length === 0 ? (
               <p className="px-4 pb-4 font-sans text-sm text-ink-300">
-                No bonds yet. Invite someone from a space&rsquo;s Ask Members tab.
+                No bonds yet. Bonds form on their own as you and someone in your circle keep showing up for each other.
               </p>
             ) : (
               <ul>
