@@ -435,3 +435,167 @@ export async function sendPostToBond(postId: string, userId: string): Promise<Re
   }
   return {};
 }
+
+// ---------------------------------------------------------------------------
+// Invited Bonds, check-ins, the Release ritual and the Bond Log
+// ---------------------------------------------------------------------------
+
+/** Season Pass actions answer with `locked` so the UI can open the paywall. */
+type PassResult = Result & { locked?: boolean };
+
+function bondError(
+  error: { hint?: string | null; message: string } | null,
+  fallback: string,
+  name = "them",
+): PassResult {
+  switch (error?.hint) {
+    case "pass_required":
+      return { error: error.message, locked: true };
+    case "inviter_pass":
+      return { error: `${name}'s Season Pass isn't active, so this can't be accepted right now.` };
+    case "bond_cap":
+      return { error: "Bonds are capped at five. End one before starting another." };
+    case "already_bonded":
+      return { error: `You and ${name} are already Bonded.` };
+    case "already_invited":
+      return { error: `There's already a Bond invite between you and ${name}.` };
+    case "not_in_circle":
+      return { error: "You can only Bond with people in your circle." };
+    case "goal":
+    case "empty":
+    case "date":
+    case "horizon":
+    case "already_running":
+    case "already_shared":
+    case "not_open":
+    case "read_only":
+    case "rate_limited":
+      return { error: error.message };
+    default:
+      return { error: fallback };
+  }
+}
+
+/** "Turn this into a Bond" → Send Bond invite (Figma 1102:24491). */
+export async function inviteToBond(userId: string, goal: string, name?: string): Promise<PassResult> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("invite_to_bond", { p_other: userId, p_goal: goal.trim().slice(0, 200) });
+  if (error) {
+    console.error("[bonds] invite_to_bond failed", error.code, error.hint);
+    return bondError(error, "We couldn't send that invite. Try again.", name);
+  }
+  refresh();
+  return {};
+}
+
+/** Bond invitation → Accept / Decline (Figma 1228:29152). */
+export async function respondToBondInvite(bondId: string, accept: boolean, name?: string): Promise<PassResult> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("respond_to_bond_invite", { p_bond_id: bondId, p_accept: accept });
+  if (error) {
+    console.error("[bonds] respond_to_bond_invite failed", error.code, error.hint);
+    return bondError(error, "That invite is no longer waiting on you.", name);
+  }
+  refresh();
+  return {};
+}
+
+export async function withdrawBondInvite(bondId: string): Promise<Result> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("withdraw_bond_invite", { p_bond_id: bondId });
+  if (error) return { error: "That invite was already answered." };
+  refresh();
+  return {};
+}
+
+/** "End this Bond?" → End Bond (Figma 1160:21879). */
+export async function endBond(bondId: string): Promise<Result> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("end_bond", { p_bond_id: bondId });
+  if (error) {
+    console.error("[bonds] end_bond failed", error.code);
+    return { error: "That Bond has already ended." };
+  }
+  refresh();
+  return {};
+}
+
+export async function setBondGoal(bondId: string, goal: string, horizonMonths: number | null): Promise<PassResult> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_bond_goal", {
+    p_bond_id: bondId,
+    p_goal: goal.trim().slice(0, 200),
+    p_horizon_months: horizonMonths,
+  });
+  if (error) return bondError(error, "We couldn't save that goal. Try again.");
+  refresh();
+  return {};
+}
+
+/** "Log a check-in" → Save check-in (Figma 1236:22458). */
+export async function logBondCheckin(
+  bondId: string,
+  mode: "in_app" | "in_person",
+  body: string,
+  happenedOn: string,
+): Promise<PassResult> {
+  await requireOnboardedViewer();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(happenedOn)) return { error: "Choose a day." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("log_bond_checkin", {
+    p_bond_id: bondId,
+    p_mode: mode,
+    p_body: body.trim().slice(0, 500),
+    p_happened_on: happenedOn,
+  });
+  if (error) return bondError(error, "We couldn't save that check-in. Try again.");
+  refresh();
+  return {};
+}
+
+/** "Start a challenge or activity" → Start challenge (Figma 1189:21296). */
+export async function startBondActivity(
+  bondId: string,
+  kind: "weekly" | "gratitude" | "something_new",
+): Promise<PassResult> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("start_bond_activity", { p_bond_id: bondId, p_kind: kind });
+  if (error) return bondError(error, "We couldn't start that. Try again.");
+  refresh();
+  return {};
+}
+
+export async function endBondActivity(activityId: string): Promise<Result> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("end_bond_activity", { p_activity_id: activityId });
+  if (error) return { error: "That has already ended." };
+  refresh();
+  return {};
+}
+
+/** This week's prompt / gratitude day → Save as draft or Share response. */
+export async function saveBondResponse(
+  activityId: string,
+  round: number,
+  body: string,
+  share: boolean,
+): Promise<PassResult> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("save_bond_response", {
+    p_activity_id: activityId,
+    p_round: round,
+    p_body: body.trim().slice(0, 2000),
+    p_share: share,
+  });
+  if (error) return bondError(error, "We couldn't save that. Try again.");
+  refresh();
+  return {};
+}

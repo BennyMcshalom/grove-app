@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
+import { Modal, ModalHeader, ModalStatus } from "@/components/ui/Modal";
+import { Glyph } from "@/components/app/EventsView";
 import { FormError } from "@/components/auth/FormError";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
@@ -24,6 +26,7 @@ import { localDay } from "@/lib/log";
 export function CreateEventModal({ onClose }: { onClose: () => void }) {
   const viewer = useViewer();
   const toast = useToast();
+  const router = useRouter();
   const [icon, setIcon] = useState<string>(PICKER_ICONS[0]);
   const [title, setTitle] = useState("");
   const [venue, setVenue] = useState("");
@@ -60,39 +63,19 @@ export function CreateEventModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center scroll-slim overflow-y-auto bg-ink-900/40 p-4 sm:p-8"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Create an Event"
-        onClick={(e) => e.stopPropagation()}
-        className="my-auto flex w-full max-w-[600px] flex-col gap-6 rounded-2xl bg-surface p-6 sm:p-8"
-      >
-        <header className="flex items-center justify-between gap-4">
-          <h2 className="font-display text-2xl font-semibold text-ink-800">
-            Create an Event
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded p-3 text-ink-800 transition-colors hover:bg-ivory-200"
-          >
-            <CloseIcon />
-          </button>
-        </header>
+    <Modal label="Create an Event" onClose={onClose} width="max-w-[600px]">
+        <ModalHeader title={createdId ? undefined : "Create an Event"} onClose={onClose} />
 
+        {/* PRD §11 "Event created and joined": the host is going and the chat is open. */}
         {createdId ? (
-          <div className="flex flex-col gap-4">
-            <p className="rounded-xl border border-primary-200 bg-primary-50 p-4 font-sans text-base text-ink-400">
-              Your event is set up. It will show under Events near you.
-            </p>
-            <Link href={`/events/${createdId}`} className="font-sans text-sm font-medium text-primary-600 hover:underline">
-              Go to your event
-            </Link>
+          <div className="flex flex-col items-center gap-6">
+            <ModalStatus icon={<Glyph icon={icon} className="size-7" />} title="Event created">
+              You&rsquo;re grouv&rsquo;d to {title.trim()}. The event conversation is open, and
+              it shows under Events near you.
+            </ModalStatus>
+            <Button size="sm" fullWidth onClick={() => router.push(`/events/${createdId}`)}>
+              View Event
+            </Button>
           </div>
         ) : (
           <form
@@ -204,8 +187,7 @@ export function CreateEventModal({ onClose }: { onClose: () => void }) {
             </div>
           </form>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -229,19 +211,6 @@ function Labelled({
       </span>
       {children}
     </label>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" className="size-5" aria-hidden="true">
-      <path
-        d="m3.5 3.5 9 9m0-9-9 9"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }
 

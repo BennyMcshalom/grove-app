@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ReportPostModal } from "@/components/app/PostModals";
 import { ConfirmBar } from "@/components/app/PersonView";
+import { EndBondModal } from "@/components/app/bonds/BondModals";
 import { useToast } from "@/components/app/ToastProvider";
 import { blockUser, chatMuted, removeFromCircle, setChatMuted } from "@/lib/bond-actions";
 import type { BondPerson } from "@/lib/bonds";
@@ -11,9 +12,9 @@ import { cn } from "@/lib/cn";
 
 /**
  * The chat header's "…": view profile, mute, remove from circle, block,
- * report. No Figma frame; it borrows the post menu's look. Bonds are formed
- * by the engine, so there's no "unbond" — removing someone from your circle
- * ends a bond as well, because only connected people can be bonded.
+ * report. It borrows the post menu's look. In a Bond it leads with "View Bond
+ * details", "Mute Bond" and "End Bond" (Figma note 1268:22520); removing
+ * someone from your circle still ends a bond as well.
  */
 export function ChatMenu({
   person,
@@ -29,6 +30,8 @@ export function ChatMenu({
   const [muted, setMuted] = useState<boolean | null>(null);
   const [confirming, setConfirming] = useState<"remove" | "block" | null>(null);
   const [reporting, setReporting] = useState(false);
+  const [ending, setEnding] = useState(false);
+  const bondId = person.relationship === "bond" ? person.bondId : null;
   const [busy, startBusy] = useTransition();
   const menu = useRef<HTMLDivElement>(null);
 
@@ -93,10 +96,22 @@ export function ChatMenu({
           role="menu"
           className="absolute top-full right-0 z-30 mt-2 flex w-56 flex-col rounded-xl bg-surface p-1.5 shadow-[0px_8px_24px_0px_rgba(0,0,0,0.12)]"
         >
+          {bondId && <MenuLink href={`/bonds/${bondId}`}>View Bond details</MenuLink>}
           <MenuLink href={`/people/${person.userId}`}>View profile</MenuLink>
           {conversationId && (
             <MenuItem onClick={toggleMute} disabled={busy || muted === null}>
               {muted ? "Unmute" : "Mute"}
+              {bondId ? " Bond" : ""}
+            </MenuItem>
+          )}
+          {bondId && (
+            <MenuItem
+              onClick={() => {
+                setEnding(true);
+                setOpen(false);
+              }}
+            >
+              End Bond
             </MenuItem>
           )}
           <MenuItem
@@ -144,15 +159,14 @@ export function ChatMenu({
         </div>
       )}
 
+      {ending && bondId && <EndBondModal bondId={bondId} name={person.name} onClose={() => setEnding(false)} />}
+
       {reporting && (
         <ReportPostModal
           postId={person.userId}
           targetType="profile"
           onClose={() => setReporting(false)}
-          onReported={() => {
-            setReporting(false);
-            toast({ title: "Thanks. Our team will take a look." });
-          }}
+          onReported={() => setReporting(false)}
         />
       )}
     </div>

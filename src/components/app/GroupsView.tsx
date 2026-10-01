@@ -7,6 +7,8 @@ import { GroupCard } from "@/components/app/GroupCard";
 import { EmptyState } from "@/components/app/EmptyState";
 import { SuggestedRail } from "@/components/app/SuggestedRail";
 import { CreateGroupModal } from "@/components/app/CreateGroupModal";
+import { usePaywall } from "@/components/app/pass/PaywallProvider";
+import { useViewer } from "@/components/app/ViewerProvider";
 import type { Group } from "@/lib/groups";
 
 /**
@@ -16,10 +18,21 @@ import type { Group } from "@/lib/groups";
  * then group cards: yours first, then the rest by size. Admin Mode reveals the
  * Admin action on the groups you run.
  */
-export function GroupsView({ groups }: { groups: Group[] }) {
+export function GroupsView({
+  groups,
+  pending = {},
+}: {
+  groups: Group[];
+  /** Admin Mode: requests waiting per group you run. */
+  pending?: Record<string, number>;
+}) {
   const [adminMode, setAdminMode] = useState(false);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
+  const { hasPass } = useViewer();
+  const paywall = usePaywall();
+  // Starting a group is Season Pass (PRD §8); joining and admin moderation aren't.
+  const startGroup = () => (hasPass ? setCreating(true) : paywall("create_group"));
 
   const needle = query.trim().toLowerCase();
   const visible = groups.filter((g) => {
@@ -53,7 +66,7 @@ export function GroupsView({ groups }: { groups: Group[] }) {
             <Button
               size="sm"
               className="shrink-0 sm:h-14 sm:px-8 sm:text-base"
-              onClick={() => setCreating(true)}
+              onClick={startGroup}
             >
               Create group
             </Button>
@@ -79,7 +92,7 @@ export function GroupsView({ groups }: { groups: Group[] }) {
               action={
                 <button
                   type="button"
-                  onClick={() => setCreating(true)}
+                  onClick={startGroup}
                   className="flex items-center gap-2 rounded-full px-4 py-2 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
                 >
                   <span aria-hidden="true" className="text-lg leading-none">
@@ -93,7 +106,7 @@ export function GroupsView({ groups }: { groups: Group[] }) {
             <ul className="flex flex-col gap-4">
               {visible.map((group) => (
                 <li key={group.id}>
-                  <GroupCard group={group} adminMode={adminMode} />
+                  <GroupCard group={group} adminMode={adminMode} pendingRequests={pending[group.id] ?? 0} />
                 </li>
               ))}
             </ul>

@@ -36,6 +36,22 @@ export const MEDIA_LIMITS = {
   videoBytes: 100 * 1024 * 1024,
 } as const;
 
+/**
+ * Who a post is for — the composer's audience menu (Figma 1310:23137).
+ * "everyone" is the author's circle and bonds, as posts always were.
+ */
+export const AUDIENCES = [
+  { value: "only_me", label: "Only me", hint: "Visible only to you" },
+  { value: "selected_bonds", label: "Selected Bonds", hint: "Choose specific Bonds to share with" },
+  { value: "everyone", label: "Everyone", hint: "Visible to your whole Grouv circle" },
+] as const;
+
+export type PostAudience = (typeof AUDIENCES)[number]["value"];
+
+export function audienceLabel(audience: PostAudience) {
+  return AUDIENCES.find((a) => a.value === audience)?.label ?? "Everyone";
+}
+
 /** A post as the cards render it — built on the server from feed_posts rows. */
 export interface Post {
   id: string;
@@ -68,6 +84,8 @@ export interface Post {
   rooted: boolean;
   /** This month's one post shared beyond the author's circle. */
   openGrove: boolean;
+  /** Who it's for; the author's own cards label anything narrower than everyone. */
+  audience: PostAudience;
   mine: boolean;
   createdAt: string;
 }

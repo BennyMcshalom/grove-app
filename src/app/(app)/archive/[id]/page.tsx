@@ -5,6 +5,7 @@ import { getChapter } from "@/lib/chapters";
 import { loadFeed } from "@/lib/feed";
 import { loadMyLogEntries } from "@/lib/log-server";
 import { createClient } from "@/lib/supabase/server";
+import { loadChapterWrapIds } from "@/lib/wrapped-server";
 
 /**
  * Career Archive — Figma frames 382:11745 (Posts) and 433:16789 (Logs).
@@ -36,7 +37,7 @@ export default async function ChapterArchivePage({ params }: PageProps<"/archive
     to: chapter.closed_at,
   };
 
-  const [{ data: tallies }, { data: bonds }, posts, logs] = await Promise.all([
+  const [{ data: tallies }, { data: bonds }, posts, logs, wraps] = await Promise.all([
     supabase.rpc("chapter_tallies", { p_user_chapter_id: chapter.id }),
     // close_chapter releases a chapter's bonds in the same transaction, so
     // they carry its exact closing time.
@@ -51,6 +52,7 @@ export default async function ChapterArchivePage({ params }: PageProps<"/archive
       .or(`inviter_id.eq.${viewer.id},invitee_id.eq.${viewer.id}`),
     loadFeed(postsQuery, viewer.firstName),
     loadMyLogEntries(viewer.id, { userChapterId: chapter.id }),
+    loadChapterWrapIds([chapter.id]),
   ]);
 
   const closure = chapter.chapter_closures;
@@ -58,6 +60,8 @@ export default async function ChapterArchivePage({ params }: PageProps<"/archive
 
   return (
     <ChapterArchiveView
+      userChapterId={chapter.id}
+      wrapId={wraps.get(chapter.id) ?? null}
       name={getChapter(chapter.chapter_slug)?.name ?? "Chapter"}
       posts={posts}
       postsQuery={postsQuery}

@@ -15,6 +15,7 @@ export function LogRail({
   phase,
   daysThisWeek,
   visibility,
+  onEditVisibility,
   className,
 }: {
   chapterName: string | null;
@@ -22,6 +23,8 @@ export function LogRail({
   phase: string | null;
   daysThisWeek: number;
   visibility: LogVisibility;
+  /** Opens WHO CAN SEE YOUR LOG (1307:22530); without it the dots go to Settings. */
+  onEditVisibility?: () => void;
   className?: string;
 }) {
   const audience = LOG_VISIBILITY.find((v) => v.value === visibility) ?? LOG_VISIBILITY[0];
@@ -88,14 +91,25 @@ export function LogRail({
               </span>
               <span className="font-sans text-xs text-ink-300">{audience.body}</span>
             </span>
-            {/* Settings > Privacy owns "Log visibility" (390:13507). */}
-            <Link
-              href="/settings"
-              aria-label="Log visibility options"
-              className="shrink-0 rounded p-1 text-ink-400 transition-colors hover:bg-ivory-300"
-            >
-              <DotsIcon />
-            </Link>
+            {onEditVisibility ? (
+              <button
+                type="button"
+                onClick={onEditVisibility}
+                aria-label="Who can see your log"
+                className="shrink-0 rounded p-1 text-ink-400 transition-colors hover:bg-ivory-300"
+              >
+                <DotsIcon />
+              </button>
+            ) : (
+              /* Settings > Privacy owns "Log visibility" (390:13507). */
+              <Link
+                href="/settings"
+                aria-label="Log visibility options"
+                className="shrink-0 rounded p-1 text-ink-400 transition-colors hover:bg-ivory-300"
+              >
+                <DotsIcon />
+              </Link>
+            )}
           </div>
         </section>
       </div>

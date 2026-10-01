@@ -4,6 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
+import { SearchArt } from "@/components/app/home/MatchesModal";
+import { Button } from "@/components/ui/Button";
+import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
@@ -27,14 +30,20 @@ const GROUPS: { kind: SearchResult["kind"]; label: string }[] = [
 export function SearchView({
   initialQuery,
   initialResults,
+  initialFailed = false,
 }: {
   initialQuery: string;
   initialResults: SearchResult[] | null;
+  /** The server's search failed: start on the error state (1206:22696). */
+  initialFailed?: boolean;
 }) {
   const viewer = useViewer();
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState(initialResults);
   const [searching, setSearching] = useState(false);
+  const [failed, setFailed] = useState(initialFailed);
+  // Bumped by "Retry search" to run the same terms again.
+  const [attempt, setAttempt] = useState(0);
   const latest = useRef(initialQuery);
 
   // The suggestion chips are phases from the viewer's own chapters, then a few
@@ -52,22 +61,34 @@ export function SearchView({
   useEffect(() => {
     const term = query.trim();
     latest.current = term;
-    if (term === initialQuery.trim()) return;
+    if (term === initialQuery.trim() && attempt === 0) return;
     if (term.length < 2) {
-      const clear = setTimeout(() => setResults(null), 0);
+      const clear = setTimeout(() => {
+        setResults(null);
+        setFailed(false);
+      }, 0);
       return () => clearTimeout(clear);
     }
 
     const timer = setTimeout(async () => {
       setSearching(true);
-      const found = await searchEverything(term);
-      if (latest.current !== term) return;
-      setResults(found);
-      setSearching(false);
-      window.history.replaceState(null, "", `/search?q=${encodeURIComponent(term)}`);
+      setFailed(false);
+      try {
+        const found = await searchEverything(term);
+        if (latest.current !== term) return;
+        setResults(found);
+        window.history.replaceState(null, "", `/search?q=${encodeURIComponent(term)}`);
+      } catch {
+        // The terms stay in the box; "Retry search" runs them again.
+        if (latest.current === term) setFailed(true);
+      } finally {
+        if (latest.current === term) setSearching(false);
+      }
     }, 250);
     return () => clearTimeout(timer);
-  }, [query, initialQuery]);
+  }, [query, initialQuery, attempt]);
+
+  const term = query.trim();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-ivory-100">
@@ -96,7 +117,29 @@ export function SearchView({
           <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-ink-300 lg:left-6 lg:size-6" />
         </label>
 
-        {results === null ? (
+        {failed ? (
+          // Error — Figma 1206:22696.
+          <SearchState
+            title="Search isn't working right now"
+            body="Something went wrong on our end. Check your connection and try again — your search terms are still here."
+            action="Retry search"
+            onAction={() => setAttempt((n) => n + 1)}
+          />
+        ) : searching && term.length >= 2 ? (
+          // Loading — Figma 1206:22415.
+          <PersonRowsSkeleton count={4} label="Searching" />
+        ) : results !== null && results.length === 0 && term.length >= 2 ? (
+          // No results — Figma 1206:22547.
+          <SearchState
+            title={`No results for "${term}"`}
+            body="We couldn't find any people, groups, or chapters matching that. Try a different word, or browse what's popular right now."
+            action="Clear search"
+            onAction={() => {
+              setQuery("");
+              window.history.replaceState(null, "", "/search");
+            }}
+          />
+        ) : results === null ? (
           <div className="flex flex-col gap-8">
             <h1 className="text-center font-display text-xl leading-[1.2] font-semibold text-ink-500 lg:text-left lg:text-3xl lg:leading-[1.04] xl:text-4xl">
               What are you looking for?
@@ -146,6 +189,32 @@ export function SearchView({
         )}
       </div>
       </div>
+    </div>
+  );
+}
+
+/** The magnifier art over a title, a line and one action (1206:22547 / 22696). */
+function SearchState({
+  title,
+  body,
+  action,
+  onAction,
+}: {
+  title: string;
+  body: string;
+  action: string;
+  onAction: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-6 py-6 text-center" role="status">
+      <SearchArt className="h-[180px] w-[240px] lg:h-[240px] lg:w-[320px]" />
+      <div className="flex max-w-[480px] flex-col gap-2">
+        <h2 className="font-display text-xl font-semibold text-ink-800 lg:text-2xl">{title}</h2>
+        <p className="font-sans text-base text-ink-400">{body}</p>
+      </div>
+      <Button size="sm" onClick={onAction}>
+        {action}
+      </Button>
     </div>
   );
 }

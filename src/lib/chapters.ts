@@ -141,8 +141,13 @@ export const CHAPTERS: Chapter[] = [
   },
 ];
 
-/** Figma's "You can only hold 4 chapters at once". */
-export const MAX_CHAPTERS = 4;
+/**
+ * PRD v1.1 §13: all eight Spaces can be held during the 14-day trial and with
+ * Season Pass; Free keeps four active (the rest pause). The database enforces
+ * both (private.space_limit).
+ */
+export const MAX_CHAPTERS = 8;
+export const FREE_ACTIVE_SPACES = 4;
 
 export function getChapter(slug: string): Chapter | undefined {
   return CHAPTERS.find((c) => c.slug === slug);

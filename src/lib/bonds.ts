@@ -21,6 +21,16 @@ export interface BondPerson {
    * Shown only as the colour of the bond mark — never as a number.
    */
   rank: number | null;
+  /** Formed by the engine, or invited with a shared goal (Season Pass). */
+  origin: "engine" | "invite" | null;
+  /** "Checking in on our first year in a new city" — the chat header shows it. */
+  sharedGoal: string | null;
+  goalHorizonMonths: number | null;
+  checkinCount: number;
+  /** Coarse 10–100 depth for the bar — never shown as a number (PRD D8). */
+  depthLevel: number | null;
+  /** A Bond invite in flight between you (circle rows only). */
+  invite: { id: string; fromMe: boolean; goal: string | null } | null;
   conversationId: string | null;
   lastMessage: { preview: string; at: string; fromMe: boolean } | null;
   unread: number;
@@ -120,3 +130,106 @@ export function bondDuration(since: string, now = Date.now()) {
   if (months < 24) return `${months} months`;
   return `${Math.floor(days / 365)} years`;
 }
+
+/** YOUR BOND INVITES: someone asked the viewer into a Bond (Figma 1093:22073). */
+export interface BondInvite {
+  bondId: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  chapterSlug: string | null;
+  phase: string | null;
+  goal: string | null;
+}
+
+/** Bond Details — Figma 1228:29301 (paid) / 1238:30546 (free). */
+export interface BondDetails {
+  bondId: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  chapterSlug: string | null;
+  phase: string | null;
+  origin: "engine" | "invite";
+  status: "active" | "released";
+  sharedGoal: string | null;
+  goalHorizonMonths: number | null;
+  since: string;
+  releasedAt: string | null;
+  endedByMe: boolean;
+  depthLevel: number;
+  checkinCount: number;
+  firstCheckinOn: string | null;
+  logCount: number;
+}
+
+export interface BondCheckin {
+  id: string;
+  fromMe: boolean;
+  mode: "in_app" | "in_person";
+  body: string;
+  happenedOn: string;
+}
+
+export type BondStage = "pre" | "mid" | "post";
+
+/**
+ * MILESTONES: Pre-project until the pair first checks in, Mid-project while
+ * they work on it, Post-project once the goal's horizon has passed or the Bond
+ * was released.
+ */
+export function bondStage(details: Pick<BondDetails, "since" | "goalHorizonMonths" | "status" | "checkinCount" | "logCount">, now = Date.now()): BondStage {
+  if (details.status === "released") return "post";
+  if (details.goalHorizonMonths) {
+    const end = new Date(details.since);
+    end.setMonth(end.getMonth() + details.goalHorizonMonths);
+    if (end.getTime() <= now) return "post";
+  }
+  return details.checkinCount > 0 || details.logCount > 0 ? "mid" : "pre";
+}
+
+export const BOND_STAGE_LABEL: Record<BondStage, string> = {
+  pre: "Pre-project",
+  mid: "Mid-project",
+  post: "Post-project",
+};
+
+/** "7 months" on the goal bar: the goal's horizon, else how long it's lasted. */
+export function goalSpan(horizonMonths: number | null, since: string) {
+  if (horizonMonths) return `${horizonMonths} ${horizonMonths === 1 ? "month" : "months"}`;
+  return bondDuration(since);
+}
+
+/** Bond Log: one prompt round, with your answer and theirs once shared. */
+export interface BondLogRound {
+  activityId: string;
+  kind: "weekly" | "gratitude" | "something_new";
+  activityStartedAt: string;
+  activityEnded: boolean;
+  round: number;
+  opensOn: string;
+  title: string;
+  subtitle: string | null;
+  mine: { body: string; shared: boolean } | null;
+  theirs: { body: string } | null;
+  theirShared: boolean;
+}
+
+/** One Bond keeping a log with the viewer (Grouv Log → Bond Log tab). */
+export interface BondLogSummary {
+  bondId: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  chapterSlug: string | null;
+  phase: string | null;
+  status: "active" | "released";
+  sharedCount: number;
+  waitingOnMe: boolean;
+}
+
+export const BOND_ACTIVITIES = [
+  { kind: "gratitude", label: "5-day gratitude challenge", body: "Share one thing you’re grateful for, every day this week" },
+  { kind: "weekly", label: "Weekly check-in", body: "A standing prompt to reflect together once a week" },
+  { kind: "something_new", label: "Try something new together", body: "Pick an activity neither of you has done before" },
+] as const;

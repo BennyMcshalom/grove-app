@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/app/TopBar";
 import { Composer } from "@/components/app/Composer";
 import { DailyCards } from "@/components/app/DailyCards";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { FeedEnd, FeedList } from "@/components/app/FeedList";
 import { RightRail } from "@/components/app/RightRail";
+import { ChapterToday } from "@/components/app/home/ChapterToday";
+import { IntroStatusModal } from "@/components/app/home/IntroStatusModal";
+import { MatchesModal } from "@/components/app/home/MatchesModal";
+import type { Introduction } from "@/lib/matches";
+import type { WrapSummary } from "@/lib/wrapped";
 import type { DailyCard } from "@/lib/bonds";
 import type { FeedPage } from "@/lib/posts";
 
@@ -18,7 +24,43 @@ import type { FeedPage } from "@/lib/posts";
  * and then it ends; each chapter tab narrows it to one space and falls back
  * to the empty state Figma draws (650:37394 / 664:16902).
  */
-export function HomeFeed({ firstPage, cards }: { firstPage: FeedPage; cards: DailyCard[] }) {
+export function HomeFeed({
+  firstPage,
+  cards,
+  introductions = [],
+  matchCount = 0,
+  wrap = null,
+  openMatches = false,
+  openIntroId = null,
+}: {
+  firstPage: FeedPage;
+  cards: DailyCard[];
+  /** Chapter Today: introductions sent and received. */
+  introductions?: Introduction[];
+  /** How many potential connections are waiting (0 hides the card). */
+  matchCount?: number;
+  wrap?: Pick<WrapSummary, "id" | "range"> | null;
+  /** Opened from a link: the matches modal, or one introduction. */
+  openMatches?: boolean;
+  openIntroId?: string | null;
+}) {
+  const router = useRouter();
+  const [matchesOpen, setMatchesOpen] = useState(openMatches);
+  const [intro, setIntro] = useState<Introduction | null>(
+    () => introductions.find((i) => i.connectionId === openIntroId) ?? null,
+  );
+  // A notification link can land here while Home is already open: follow it.
+  const [linked, setLinked] = useState({ openMatches, openIntroId });
+  if (linked.openMatches !== openMatches || linked.openIntroId !== openIntroId) {
+    setLinked({ openMatches, openIntroId });
+    if (openMatches) setMatchesOpen(true);
+    const target = introductions.find((i) => i.connectionId === openIntroId);
+    if (target) setIntro(target);
+  }
+  // Links that opened a modal leave the address clean once it closes.
+  const clearQuery = () => {
+    if (openMatches || openIntroId) router.replace("/home", { scroll: false });
+  };
   // Figma's phone Home (601:30182) has no inline composer: it sits behind the
   // orange FAB above the tab bar.
   const [composing, setComposing] = useState(false);
@@ -35,6 +77,13 @@ export function HomeFeed({ firstPage, cards }: { firstPage: FeedPage; cards: Dai
             <div className="hidden lg:block">
               <Composer />
             </div>
+            <ChapterToday
+              introductions={introductions}
+              matchCount={matchCount}
+              wrap={wrap}
+              onOpenIntro={setIntro}
+              onOpenMatches={() => setMatchesOpen(true)}
+            />
             <DailyCards cards={cards} />
             <FeedList
               key={chapterSlug ?? "all"}
@@ -65,6 +114,28 @@ export function HomeFeed({ firstPage, cards }: { firstPage: FeedPage; cards: Dai
           />
         </svg>
       </button>
+
+      {matchesOpen && (
+        <MatchesModal
+          onClose={() => {
+            setMatchesOpen(false);
+            clearQuery();
+          }}
+        />
+      )}
+      {intro && (
+        <IntroStatusModal
+          intro={intro}
+          onClose={() => {
+            setIntro(null);
+            clearQuery();
+          }}
+          onFindMatches={() => {
+            setIntro(null);
+            setMatchesOpen(true);
+          }}
+        />
+      )}
 
       {composing && (
         <div

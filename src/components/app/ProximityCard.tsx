@@ -19,8 +19,11 @@ export function ProximityCard({
   onWave,
   onClose,
   onConnect,
+  hideDistance = false,
 }: {
   person: NearbyMatch;
+  /** Approximate location (cross 1207:22823): no distance at all. */
+  hideDistance?: boolean;
   /** Same stage, not yet waved at. A wave isn't a request. */
   canWave: boolean;
   onWave: () => Promise<void>;
@@ -70,9 +73,11 @@ export function ProximityCard({
                   <span className="font-sans text-base font-medium text-ink-700">
                     {person.name}
                   </span>
-                  <span className="font-sans text-sm font-medium text-ink-200">
-                    {person.distanceKm < 0.1 ? "Right here" : `${person.distanceKm.toFixed(1)}KM away`}
-                  </span>
+                  {!hideDistance && (
+                    <span className="font-sans text-sm font-medium text-ink-200">
+                      {person.distanceKm < 0.1 ? "Right here" : `${person.distanceKm.toFixed(1)}KM away`}
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="font-sans text-xs font-medium text-ink-400">

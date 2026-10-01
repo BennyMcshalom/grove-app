@@ -80,6 +80,7 @@ async function toPosts(rows: FeedRow[], viewerName: string): Promise<Post[]> {
         : [];
     }),
     openGrove: row.open_grove,
+    audience: row.audience ?? "everyone",
     comments: row.comments_count,
     rooted: row.rooted,
     mine: row.is_mine,

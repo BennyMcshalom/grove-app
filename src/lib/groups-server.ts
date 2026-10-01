@@ -103,3 +103,19 @@ export async function loadJoinRequests(groupId: string): Promise<JoinRequest[]> 
     createdAt: r.created_at,
   }));
 }
+
+/** Admin Mode: pending join requests per group the viewer runs. */
+export async function loadAdminPending(): Promise<Record<string, number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_pending_requests");
+  if (error) console.error("[groups] admin_pending_requests failed", error);
+  return Object.fromEntries((data ?? []).map((r) => [r.group_id, r.pending]));
+}
+
+/** The approve/decline outcome of the viewer's request, until they've seen it. */
+export async function loadRequestOutcome(groupId: string): Promise<"approved" | "declined" | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("group_request_outcome", { p_group_id: groupId });
+  if (error) console.error("[groups] group_request_outcome failed", error);
+  return data === "approved" || data === "declined" ? data : null;
+}

@@ -2,28 +2,47 @@
 
 import { useState } from "react";
 import { GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
+import { useRespondToInvite } from "@/components/app/bonds/BondModals";
 import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
 import { cancelConnectionRequest, connectWith, respondToRequest } from "@/lib/bond-actions";
-import type { PendingRequest, Suggestion } from "@/lib/bonds";
+import type { BondInvite, PendingRequest, Suggestion } from "@/lib/bonds";
 
 /**
- * The Bonds rail — Figma frame 452:10158.
+ * The Bonds rail — Figma frames 452:10158 and 1093:22073.
  *
+ * YOUR BOND INVITES (Season Pass invites, each with its goal) sits on top.
  * PENDING CONNECTION carries Accept / Decline per request (circle requests and
  * bond invites alike); PEOPLE YOU MIGHT KNOW offers Connect. Each action raises
  * the matching alert from the section's set (253:14786, 285:9289, 285:9261).
  */
 export function BondsRail({
+  invites = [],
   pending,
   suggestions,
 }: {
+  invites?: BondInvite[];
   pending: PendingRequest[];
   suggestions: Suggestion[];
 }) {
   return (
     <aside className="hidden w-[260px] shrink-0 scroll-slim overflow-y-auto bg-ivory-100 px-4 py-6 lg:block xl:w-[300px] xl:px-5">
       <div className="flex flex-col gap-7">
+        {invites.length > 0 && (
+          <section className="flex flex-col gap-4">
+            <h2 className="font-sans text-base font-medium text-ink-600">
+              YOUR BOND INVITES
+            </h2>
+            <ul className="flex flex-col gap-4">
+              {invites.map((invite) => (
+                <li key={invite.bondId} className="flex flex-col gap-3 rounded-lg bg-surface p-3">
+                  <BondInviteCard invite={invite} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section className="flex flex-col gap-4">
           <h2 className="font-sans text-base font-medium text-ink-600">
             PENDING CONNECTION
@@ -119,6 +138,55 @@ export function PendingCard({ request }: { request: PendingRequest }) {
             type="button"
             disabled={busy}
             onClick={() => respond(false)}
+            className="flex-1 rounded-full bg-primary-50 px-3 py-2 font-ui text-sm font-medium text-primary-800 transition-colors hover:bg-primary-100 disabled:opacity-60"
+          >
+            Decline
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** A Bond invite: who, their goal, Accept / Decline. Shared with the phone list. */
+export function BondInviteCard({ invite }: { invite: BondInvite }) {
+  const respond = useRespondToInvite();
+  const [handled, setHandled] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const online = useIsOnline(invite.userId);
+
+  const act = async (accept: boolean) => {
+    setBusy(true);
+    const ok = await respond(invite.bondId, accept, invite.name);
+    setBusy(false);
+    if (ok) setHandled(accept ? "Accepted" : "Declined");
+  };
+
+  return (
+    <>
+      <div className="flex min-w-0 items-center gap-3 border-b border-ink-50 pb-3">
+        <GlowAvatar src={invite.avatarUrl} name={invite.name} online={online} />
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate font-sans text-sm font-medium text-ink-700">{invite.name}</span>
+          {invite.goal && <span className="line-clamp-2 font-sans text-xs text-ink-400">Goal: {invite.goal}</span>}
+        </span>
+      </div>
+      {handled ? (
+        <p className="font-sans text-sm text-ink-300">{handled}</p>
+      ) : (
+        <div className="flex gap-3">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => act(true)}
+            className="flex-1 rounded-full bg-primary-500 px-3 py-2 font-ui text-sm font-medium text-white transition-colors hover:bg-primary-400 disabled:opacity-60"
+          >
+            Accept
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => act(false)}
             className="flex-1 rounded-full bg-primary-50 px-3 py-2 font-ui text-sm font-medium text-primary-800 transition-colors hover:bg-primary-100 disabled:opacity-60"
           >
             Decline

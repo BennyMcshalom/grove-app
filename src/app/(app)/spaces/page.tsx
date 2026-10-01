@@ -4,6 +4,8 @@ import {
   OpenSpaceCard,
   DirectorySpaceCard,
 } from "@/components/app/SpaceCard";
+import { InvitationsList } from "@/components/app/invite/InvitationsList";
+import { OpenInvitation } from "@/components/app/invite/OpenInvitation";
 import { getShellViewer } from "@/lib/auth/viewer";
 import { CHAPTERS, getChapter } from "@/lib/chapters";
 import { createClient } from "@/lib/supabase/server";
@@ -14,7 +16,9 @@ import { createClient } from "@/lib/supabase/server";
  * Two sections in the 724px column: the chapters you have open, and a
  * directory of the ones you could open next.
  */
-export default async function SpacesPage() {
+export default async function SpacesPage({ searchParams }: PageProps<"/spaces">) {
+  // ?invite=<token>: an invitation link opened while signed in (/i/<token>).
+  const { invite } = await searchParams;
   const viewer = await getShellViewer();
   const openSlugs = viewer.chapters.map((c) => c.slug);
 
@@ -34,6 +38,7 @@ export default async function SpacesPage() {
         status: held.phase,
         members: summary?.member_count ?? 1,
         avatars: summary?.member_avatars ?? [],
+        paused: Boolean(held.pausedAt),
       },
     ];
   });
@@ -46,6 +51,18 @@ export default async function SpacesPage() {
 
         <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-8 pb-10">
+            {/* Below the rail breakpoint the INVITATIONS rail section leads the page. */}
+            <div className="rail:hidden">
+              <InvitationsList
+                heading={(rows) => (
+                  <section className="flex flex-col gap-4">
+                    <h2 className="font-sans text-base font-medium tracking-wide text-ink-700 uppercase">Invitations</h2>
+                    {rows}
+                  </section>
+                )}
+              />
+            </div>
+
             <section className="flex flex-col gap-6">
               <h1 className="font-display text-2xl font-semibold text-ink-500">
                 Your open chapters
@@ -86,7 +103,8 @@ export default async function SpacesPage() {
         </div>
       </div>
 
-      <RightRail />
+      <RightRail invitations />
+      {typeof invite === "string" && <OpenInvitation token={invite} />}
     </div>
   );
 }

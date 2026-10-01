@@ -7,6 +7,7 @@ import { requireViewer } from "@/lib/auth/viewer";
 import { getChapter, MAX_CHAPTERS } from "@/lib/chapters";
 import { sendEmail } from "@/lib/email/send";
 import { welcomeEmail } from "@/lib/email/templates";
+import { claimReferralFromCookie } from "@/lib/referral";
 import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
@@ -44,6 +45,10 @@ export async function completeOnboarding(input: OnboardingInput): Promise<{ erro
       return { error: `Pick where you are in ${chapter.name} before continuing.` };
     }
   }
+
+  // An invite link they came in on (/r/[code]) attaches now, while the
+  // account is still new; afterwards claim_referral refuses.
+  await claimReferralFromCookie();
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("complete_onboarding", {

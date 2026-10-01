@@ -260,10 +260,7 @@ export function PersonView({ person }: { person: Person }) {
           postId={person.id}
           targetType="profile"
           onClose={() => setReporting(false)}
-          onReported={() => {
-            setReporting(false);
-            toast({ title: "Thanks. We'll take a look.", tone: "confirm" });
-          }}
+          onReported={() => setReporting(false)}
         />
       )}
     </div>

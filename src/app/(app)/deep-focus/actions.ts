@@ -30,13 +30,19 @@ export async function beginDeepFocus(
   const supabase = await createClient();
   const nowIso = new Date(now).toISOString();
 
-  // One session at a time: close any that's still running.
+  // One session at a time: close any that's still running, and let older
+  // sessions go without their welcome back.
   await supabase
     .from("focus_sessions")
     .update({ ended_early_at: nowIso })
     .eq("user_id", viewer.userId)
     .is("ended_early_at", null)
     .gt("ends_at", nowIso);
+  await supabase
+    .from("focus_sessions")
+    .update({ digest_seen_at: nowIso })
+    .eq("user_id", viewer.userId)
+    .is("digest_seen_at", null);
 
   const { error } = await supabase
     .from("focus_sessions")
@@ -51,7 +57,10 @@ export async function beginDeepFocus(
   return {};
 }
 
-/** "Return to Grouv" — ends the running session early. */
+/**
+ * "Return early", after its confirmation — ends the running session and
+ * shows "Welcome back" (Figma 1207:22861) on the same page.
+ */
 export async function endDeepFocus() {
   const viewer = await requireOnboardedViewer();
   const supabase = await createClient();
@@ -63,6 +72,21 @@ export async function endDeepFocus() {
     .eq("user_id", viewer.userId)
     .is("ended_early_at", null)
     .gt("ends_at", nowIso);
+
+  refresh();
+}
+
+/** "Skip for now" / "I'm ready — take me in": the welcome back is done. */
+export async function finishFocusReturn() {
+  const viewer = await requireOnboardedViewer();
+  const supabase = await createClient();
+  await supabase
+    .from("focus_sessions")
+    .update({ digest_seen_at: new Date().toISOString() })
+    .eq("user_id", viewer.userId)
+    .is("digest_seen_at", null)
+    // Only a session that has ended, never one still running.
+    .or(`ended_early_at.not.is.null,ends_at.lte.${new Date().toISOString()}`);
 
   redirect("/home");
 }

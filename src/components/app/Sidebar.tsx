@@ -9,6 +9,7 @@ import { Avatar } from "@/components/app/Avatar";
 import { useSidebar } from "@/components/app/SidebarProvider";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
+import { passPromo } from "@/components/app/pass/promo";
 import { updatePreferences } from "@/app/(app)/settings/actions";
 import { applyTheme } from "@/lib/theme";
 import { cn } from "@/lib/cn";
@@ -305,12 +306,12 @@ function CurrentUser({ collapsed = false }: { collapsed?: boolean }) {
 
 /** Figma 65:1729 — the primary-500 trial promo, until a trial or plan starts. */
 function TrialCard() {
-  const { subscriptionStatus } = useViewer();
-  if (subscriptionStatus === "trialing" || subscriptionStatus === "active") return null;
+  const promo = passPromo(useViewer());
+  if (!promo) return null;
 
   return (
     <Link
-      href="/settings"
+      href={promo.href}
       className="flex items-center gap-3 rounded-2xl bg-primary-500 px-4 py-3 transition-opacity hover:opacity-90"
     >
       <svg viewBox="0 0 16 16" className="size-4 shrink-0" aria-hidden="true">
@@ -322,12 +323,8 @@ function TrialCard() {
         />
       </svg>
       <span className="flex flex-col">
-        <span className="font-sans text-sm font-semibold text-white">
-          {subscriptionStatus === "none" ? "Start 14-day trial" : "Get full access"}
-        </span>
-        <span className="font-sans text-xs text-white">
-          {subscriptionStatus === "none" ? "Full access, free" : "Subscribe in Settings"}
-        </span>
+        <span className="font-sans text-sm font-semibold text-white">{promo.title}</span>
+        <span className="font-sans text-xs text-white">{promo.body}</span>
       </span>
     </Link>
   );

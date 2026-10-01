@@ -26,6 +26,12 @@ import { cn } from "@/lib/cn";
 import { applyTheme } from "@/lib/theme";
 import { isCancelled, planPackage, priceLabel, purchasesFor } from "@/lib/revenuecat-client";
 import { AURAS, LOG_VISIBILITY, auraLabel, type LogVisibility } from "@/lib/profile";
+import {
+  BlockedAccountsCard,
+  PrivacyAiCard,
+  type BlockedAccount,
+  type PrivacySettings,
+} from "@/components/app/settings/PrivacySections";
 
 /**
  * Settings — Figma frame 390:13507.
@@ -65,11 +71,16 @@ export function SettingsView({
   preferences,
   isStaff,
   billing,
+  privacy = { discoverable: true, activityMatching: true },
+  blocked = [],
 }: {
   prompts: SettingsPrompts;
   preferences: SettingsPreferences;
   isStaff: boolean;
   billing: SettingsBilling;
+  /** Privacy & AI toggles and blocked accounts (PRD §12). */
+  privacy?: PrivacySettings;
+  blocked?: BlockedAccount[];
 }) {
   const toast = useToast();
   const [prefs, setPrefs] = useState(preferences);
@@ -208,6 +219,18 @@ export function SettingsView({
           <Card>
             <SectionLabel>Subscription</SectionLabel>
             <SubscriptionRow billing={billing} />
+            {/* Plans, dates, restore, cancel (Figma 1545:22030…) and referrals. */}
+            <Row
+              title="Manage Season Pass"
+              body="Compare plans, see your access dates, restore or cancel."
+              href="/settings/subscription"
+              divider
+            />
+            <Row
+              title="Invite a friend"
+              body="Bring someone into their next chapter. Earn a month of Season Pass."
+              href="/settings/invite"
+            />
           </Card>
 
           <Card>
@@ -243,6 +266,9 @@ export function SettingsView({
               trailing={<CaretIcon className="size-6 text-ink-400" />}
             />
           </Card>
+
+          <PrivacyAiCard initial={privacy} />
+          <BlockedAccountsCard initial={blocked} />
 
           <DangerZone />
 
@@ -748,7 +774,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
+export function Card({ children }: { children: React.ReactNode }) {
   return (
     <section className="flex w-full flex-col gap-3.5 rounded-lg bg-surface px-5 py-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
       {children}
@@ -756,13 +782,13 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+export function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="font-sans text-sm text-ink-200 uppercase">{children}</h2>
   );
 }
 
-function Row({
+export function Row({
   title,
   body,
   trailing,
@@ -813,7 +839,7 @@ function Row({
 }
 
 /** Toggle Only — Figma component set 177:4264. 44x24, 2px padding. */
-function Toggle({
+export function Toggle({
   label,
   on,
   onChange,

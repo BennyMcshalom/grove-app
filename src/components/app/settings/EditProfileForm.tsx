@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ImageCropper } from "@/components/app/media/ImageCropper";
 import { TopBar } from "@/components/app/TopBar";
 import { Avatar } from "@/components/app/Avatar";
@@ -8,7 +8,7 @@ import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
-import { updateProfile } from "@/app/(app)/settings/actions";
+import { checkUsername, updateProfile } from "@/app/(app)/settings/actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
 import { AURAS, type Aura } from "@/lib/profile";
@@ -19,7 +19,8 @@ import { createClient } from "@/lib/supabase/client";
  *
  * Four cards in the 1096px column: UPDATE PROFILE (avatar, name, location),
  * the aura chips, the Bonds-only prompts, and per-space status. Every label,
- * placeholder and hint is Figma's (frame 404:15157).
+ * placeholder and hint is Figma's (frame 404:15157). Username (PRD §12) isn't
+ * in the frame; it sits under Name in the same field style.
  */
 const AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -30,11 +31,19 @@ export interface EditablePrompts {
   openTo: string;
 }
 
-export function EditProfileForm({ prompts: initialPrompts }: { prompts: EditablePrompts }) {
+export function EditProfileForm({
+  prompts: initialPrompts,
+  username: initialUsername = "",
+}: {
+  prompts: EditablePrompts;
+  username?: string;
+}) {
   const viewer = useViewer();
   const toast = useToast();
 
   const [name, setName] = useState(viewer.firstName);
+  const [username, setUsername] = useState(initialUsername);
+  const [usernameError, setUsernameError] = useState<string>();
   const [location, setLocation] = useState(viewer.locationLabel ?? "");
   // The coordinates behind a detected location, so saving needn't look the city up again.
   const [detected, setDetected] = useState<{ label: string; latitude: number; longitude: number } | null>(null);
@@ -55,6 +64,23 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
   const [cropping, setCropping] = useState<{ name: string; previewUrl: string } | null>(null);
   const [locating, setLocating] = useState(false);
   const [saving, startSaving] = useTransition();
+
+  // Checked as it's typed, once they pause; the save checks again.
+  useEffect(() => {
+    const value = username.trim().toLowerCase();
+    // Typing clears the last error; blank or unchanged needs no check.
+    if (value === "" || value === initialUsername) return;
+    let live = true;
+    const timer = setTimeout(() => {
+      void checkUsername(value).then((result) => {
+        if (live) setUsernameError(result.available ? undefined : result.error);
+      });
+    }, 400);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [username, initialUsername]);
 
   // Uploads straight to Storage (RLS keeps it to the viewer's own folder); the
   // profile only points at the new photo once "Save Changes" succeeds.
@@ -152,10 +178,12 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
           phase: phases[c.id],
         })),
         primaryChapterId: primaryId,
+        username,
       });
       if (result.error || result.fieldErrors) {
         setError(result.error);
         setNameError(result.fieldErrors?.firstName);
+        if (result.fieldErrors?.username) setUsernameError(result.fieldErrors.username);
         return;
       }
       toast({ title: "Profile updated", tone: "confirm" });
@@ -227,6 +255,30 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
                     onChange={(e) => setName(e.target.value)}
                     className={fieldClass}
                   />
+                </Labelled>
+
+                <Labelled
+                  label="Username"
+                  hint={usernameError ?? "Letters, numbers, dots and underscores. How people can find you."}
+                  error={Boolean(usernameError)}
+                >
+                  <div className="flex items-center gap-0.5 rounded-lg bg-ivory-100 px-3.5 py-2.5 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] focus-within:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]">
+                    <span className="font-sans text-xs text-ink-300" aria-hidden="true">@</span>
+                    <input
+                      value={username}
+                      maxLength={30}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      onChange={(e) => {
+                        setUsername(e.target.value.toLowerCase().replace(/\s/g, ""));
+                        setUsernameError(undefined);
+                      }}
+                      placeholder="yourname"
+                      aria-invalid={Boolean(usernameError)}
+                      className="min-w-0 flex-1 bg-transparent font-sans text-xs text-ink-500 outline-none placeholder:text-ink-300"
+                    />
+                  </div>
                 </Labelled>
 
                 <Labelled
@@ -353,7 +405,7 @@ export function EditProfileForm({ prompts: initialPrompts }: { prompts: Editable
 
           <div className="flex flex-col gap-3">
             <FormError message={error} />
-            <Button type="submit" size="sm" fullWidth loading={saving} disabled={uploading}>
+            <Button type="submit" size="sm" fullWidth loading={saving} disabled={uploading || Boolean(usernameError)}>
               Save Changes
             </Button>
           </div>

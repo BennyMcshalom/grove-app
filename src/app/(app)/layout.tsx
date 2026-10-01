@@ -1,8 +1,10 @@
 import { CallProvider } from "@/components/app/CallProvider";
 import { Sidebar } from "@/components/app/Sidebar";
 import { MobileNav } from "@/components/app/MobileNav";
+import { PaywallProvider } from "@/components/app/pass/PaywallProvider";
 import { ToastProvider } from "@/components/app/ToastProvider";
 import { SessionSync } from "@/components/app/SessionSync";
+import { ChapterInviteReturn } from "@/components/app/invite/ChapterInviteReturn";
 import { UnreadMessagesProvider } from "@/components/app/UnreadMessages";
 import { SidebarProvider } from "@/components/app/SidebarProvider";
 import { ViewerProvider } from "@/components/app/ViewerProvider";
@@ -29,7 +31,9 @@ export default async function AppLayout({
   return (
     <ViewerProvider viewer={viewer}>
       <SessionSync />
+      <ChapterInviteReturn />
       <ToastProvider>
+        <PaywallProvider>
         <UnreadMessagesProvider userId={viewer.id} initial={viewer.unreadMessages}>
         <CallProvider>
         <SidebarProvider>
@@ -45,6 +49,7 @@ export default async function AppLayout({
         </SidebarProvider>
         </CallProvider>
         </UnreadMessagesProvider>
+        </PaywallProvider>
       </ToastProvider>
     </ViewerProvider>
   );

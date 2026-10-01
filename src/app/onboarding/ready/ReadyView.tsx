@@ -1,0 +1,113 @@
+"use client";
+
+import Image from "next/image";
+import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
+import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
+import { CHAPTERS, getChapter } from "@/lib/chapters";
+import { Button } from "@/components/ui/Button";
+import { ArrowRight } from "@/components/ui/ArrowRight";
+import { longDate } from "@/components/app/pass/PassStatus";
+
+/** Onboarding 3 — "Your Grouv is ready." (Figma 56:1791). */
+/** Figma draws these four when nothing has been chosen yet. */
+const FALLBACK = ["wealth", "career", "spiritual", "adventure"];
+
+export function ReadyView({ trialEndsAt }: { trialEndsAt: string | null }) {
+  const { chapters } = useOnboarding();
+  const chosen = (chapters.length > 0 ? chapters : FALLBACK)
+    .map(getChapter)
+    .filter((c): c is (typeof CHAPTERS)[number] => Boolean(c));
+
+  return (
+    <OnboardingShell step={3} totalSteps={3} chromeless>
+      <div className="m-auto flex w-full max-w-[646px] flex-col items-center gap-5 lg:gap-8">
+        <PhotoCluster />
+
+        {/* Frame 56:1866 — the chapters you picked, 32px glyphs at a 12px gap. */}
+        <ul className="flex items-center gap-3">
+          {chosen.map((chapter) => (
+            <li key={chapter.slug}>
+              <Image
+                src={chapter.icon}
+                alt={chapter.name}
+                width={32}
+                height={32}
+                className="size-7"
+              />
+            </li>
+          ))}
+        </ul>
+
+        <header className="flex flex-col gap-2 text-center">
+          <h1 className="font-display text-xl leading-[1.04] font-semibold text-ink-700 sm:text-2xl lg:text-3xl">
+            Your Grouv is ready.
+          </h1>
+          <p className="font-sans text-xs text-ink-300 lg:text-sm">
+            We&rsquo;ve matched your chapters, interests, and what you&rsquo;re
+            looking for with people who are on a similar path. Your people are
+            waiting. Come find your Grouv.
+          </p>
+        </header>
+
+        {/* PRD §4/§13: label the 14-day Season Pass trial, its end date, and
+            what Free includes afterwards. */}
+        {trialEndsAt && (
+          <div className="flex w-full max-w-[460px] flex-col gap-1 rounded-xl bg-primary-50 px-4 py-3 text-center">
+            <span className="font-sans text-sm font-semibold text-primary-800">
+              Your 14-day Season Pass trial is on — until {longDate(trialEndsAt)}
+            </span>
+            <span className="font-sans text-xs text-ink-400">
+              All eight Spaces, Bonds, Bond Log and Life Wrapped are open to you. Nothing to pay: afterwards
+              you move to Free, with four active Spaces and everything you&rsquo;ve made kept.
+            </span>
+          </div>
+        )}
+
+        <Button size="md" className="w-[228px]" iconRight={<ArrowRight />} href="/home">
+          Enter Grouv
+        </Button>
+      </div>
+    </OnboardingShell>
+  );
+}
+
+/**
+ * Three glowing portraits — Figma 56:1855, a 418x376 stage with the 180px
+ * bubble at (20, 176), the 140px at (258, 151) and the 120px at (139, 20).
+ * Percentages so it scales down on short screens.
+ */
+function PhotoCluster() {
+  return (
+    <div className="relative aspect-[418/376] w-full max-w-[180px] shrink-0 sm:max-w-[220px] lg:max-w-[280px] xl:max-w-[330px]">
+      <div className="absolute top-[46.8%] left-[4.8%] aspect-square w-[43.06%] overflow-hidden rounded-pill shadow-[0px_0px_15px_15px_rgba(245,126,22,0.3)]">
+        <Image
+          src="/images/splash-bubble-b-5c8e1f.png"
+          alt=""
+          fill
+          sizes="180px"
+          className="object-cover"
+        />
+      </div>
+
+      <div className="absolute top-[40.2%] left-[61.7%] aspect-square w-[33.49%] overflow-hidden rounded-pill shadow-[0px_0px_15px_15px_rgba(16,146,48,0.3)]">
+        <Image
+          src="/images/splash-bubble-a-74fb0f.png"
+          alt=""
+          fill
+          sizes="140px"
+          className="object-cover"
+        />
+      </div>
+
+      <div className="absolute top-[5.3%] left-[33.3%] aspect-square w-[28.71%] overflow-hidden rounded-pill shadow-[0px_0px_15px_15px_rgba(245,193,22,0.3)]">
+        <Image
+          src="/images/ready-bubble-c-4002b3.png"
+          alt=""
+          fill
+          sizes="120px"
+          className="object-cover"
+        />
+      </div>
+    </div>
+  );
+}

@@ -1,3 +1,5 @@
+import type { LogVisibility } from "@/lib/profile";
+
 /** Grouv Log shapes, built on the server. */
 
 export interface LogEntry {
@@ -12,6 +14,8 @@ export interface LogEntry {
   /** The stage in that space, for moments from other people. */
   phase?: string;
   scope: "solo" | "bond";
+  /** The moment's own audience; null follows the log's setting. Own moments only. */
+  visibility?: LogVisibility | null;
 }
 
 export interface CircleLog {

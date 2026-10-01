@@ -36,9 +36,18 @@ const ProfileSchema = z.object({
     sittingWith: z.string().max(1000),
     openTo: z.string().max(1000),
   }),
-  phases: z.array(z.object({ userChapterId: z.uuid(), slug: z.string(), phase: z.string() })).max(4),
+  phases: z.array(z.object({ userChapterId: z.uuid(), slug: z.string(), phase: z.string() })).max(8),
   /** The space that leads under your name. */
   primaryChapterId: z.uuid().nullish(),
+  /** Optional; blank clears it. Left out, it is not touched. */
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .refine((v) => v === "" || (/^[a-z0-9][a-z0-9_.]{1,28}[a-z0-9]$/.test(v) && !/[._]{2}/.test(v)), {
+      message: "3–30 letters, numbers, dots or underscores.",
+    })
+    .optional(),
 });
 
 export type ProfileInput = z.input<typeof ProfileSchema>;
@@ -57,7 +66,8 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
     return { fieldErrors: { [String(issue.path[0])]: issue.message } };
   }
 
-  const { firstName, locationLabel, coordinates, aura, avatarUrl, prompts, phases, primaryChapterId } = parsed.data;
+  const { firstName, locationLabel, coordinates, aura, avatarUrl, prompts, phases, primaryChapterId, username } =
+    parsed.data;
   const folder = avatarFolderUrl(viewer.userId);
   const previousAvatar = viewer.profile.avatar_url;
 
@@ -82,6 +92,7 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
         location_label: blankToNull(locationLabel),
         aura,
         avatar_url: avatarUrl,
+        ...(username !== undefined && { username: username || null }),
       })
       .eq("id", viewer.userId),
     supabase.from("profile_prompts").upsert({
@@ -104,6 +115,10 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
     primaryChapterId && phases.some((p) => p.userChapterId === primaryChapterId)
       ? await supabase.rpc("set_primary_chapter", { p_user_chapter_id: primaryChapterId })
       : null;
+
+  // Someone took the username between the check and the save.
+  if (results[0].error?.code === "23505") return { fieldErrors: { username: "That username is taken." } };
+  if (results[0].error?.code === "23514") return { fieldErrors: { username: "That username isn't allowed." } };
 
   const failed = [...results, primary].find((result) => result?.error);
   if (failed?.error) {
@@ -205,6 +220,54 @@ export async function updatePreferences(
   return {};
 }
 
+const PrivacySchema = z.object({
+  discoverable: z.boolean().optional(),
+  activityMatching: z.boolean().optional(),
+});
+
+/**
+ * Privacy & AI toggles (PRD §12). Both are honoured in the database:
+ * "Show me in suggestions" by match_candidates, "Learn from my activity" by
+ * the interaction log. Never paywalled.
+ */
+export async function updatePrivacy(input: z.input<typeof PrivacySchema>): Promise<ActionResult> {
+  const viewer = await requireOnboardedViewer();
+  const parsed = PrivacySchema.safeParse(input);
+  if (!parsed.success) return { error: "That setting isn't one we recognise." };
+
+  const { discoverable, activityMatching } = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.from("privacy_settings").upsert({
+    user_id: viewer.userId,
+    ...(discoverable !== undefined && { discoverable }),
+    ...(activityMatching !== undefined && { activity_matching: activityMatching }),
+  });
+
+  if (error) {
+    console.error("[settings] updatePrivacy failed", error);
+    return { error: "We couldn't save that setting. Try again." };
+  }
+  refresh();
+  return {};
+}
+
+// Mirrors the profiles.username check. A "use server" file exports only
+// actions, so the form keeps its own copy for instant feedback.
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_.]{1,28}[a-z0-9]$/;
+
+/** Edit Profile checks a username as it's typed. */
+export async function checkUsername(username: string): Promise<{ available: boolean; error?: string }> {
+  await requireOnboardedViewer();
+  const value = username.trim().toLowerCase();
+  if (!USERNAME_PATTERN.test(value) || /[._]{2}/.test(value)) {
+    return { available: false, error: "3–30 letters, numbers, dots or underscores." };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("username_available", { p_username: value });
+  if (error) return { available: false, error: "We couldn't check that name. Try again." };
+  return data ? { available: true } : { available: false, error: "That username is taken." };
+}
+
 /** Subscription → "Start trial". Confirms it by email. */
 export async function startTrial(): Promise<ActionResult> {
   const viewer = await requireOnboardedViewer();
@@ -246,14 +309,16 @@ export async function startTrial(): Promise<ActionResult> {
  * After RevenueCat's checkout closes: pull the viewer's plan straight away
  * rather than wait for the webhook, so Settings shows it on return.
  */
-export async function refreshBilling(): Promise<ActionResult & { status?: string | null }> {
+export async function refreshBilling(): Promise<
+  ActionResult & { status?: string | null; currentPeriodEnd?: string | null; trialEnd?: string | null }
+> {
   const viewer = await requireOnboardedViewer();
   if (!billingEnabled()) return { error: "Subscriptions aren't open yet." };
 
   try {
     const state = await syncBilling(viewer.userId);
     refresh();
-    return { status: state.status };
+    return { status: state.status, currentPeriodEnd: state.currentPeriodEnd, trialEnd: state.trialEnd };
   } catch (error) {
     console.error("[billing] refresh failed", error);
     return { error: "Your payment went through, but your plan is taking a moment to show. Check back shortly." };

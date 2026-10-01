@@ -84,6 +84,10 @@ export function PostCard({ post: initial }: { post: Post }) {
             </div>
             <span className="font-sans text-base text-ink-300">
               {post.time}
+              {/* Only the author sees who a narrower post was for. */}
+              {post.mine && post.audience !== "everyone" && (
+                <> · {post.audience === "only_me" ? "Only me" : "Selected Bonds"}</>
+              )}
             </span>
           </div>
           </div>
@@ -206,10 +210,7 @@ export function PostCard({ post: initial }: { post: Post }) {
           <ReportPostModal
             postId={post.id}
             onClose={() => setDialog(null)}
-            onReported={() => {
-              setDialog(null);
-              toast({ title: "Report submitted" });
-            }}
+            onReported={() => setDialog(null)}
           />
         )}
         {dialog === "Delete Post" && (

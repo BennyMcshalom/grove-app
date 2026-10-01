@@ -23,15 +23,16 @@ export default function ChaptersPage() {
           centres it while it fits and grows from the top when it doesn't, so
           nothing is ever pushed above the scroll origin and clipped. */}
       <div className="min-h-0 flex-1 snap-y snap-proximity scroll-slim overflow-y-auto">
-        <div className="mx-auto flex min-h-full w-full max-w-[1216px] flex-col justify-center gap-3 py-1 lg:gap-5">
+        {/* Phone (585:20253) starts under the header; desktop centres. */}
+        <div className="mx-auto flex min-h-full w-full max-w-[1216px] flex-col justify-start gap-3 pt-4 pb-1 lg:justify-center lg:gap-5 lg:py-1">
           <header className="flex shrink-0 flex-col gap-2 text-center">
             <h1 className="mx-auto max-w-[784px] font-display text-lg leading-[1.04] font-semibold text-ink-700 sm:text-xl lg:text-2xl xl:text-3xl [@media(max-height:680px)]:text-base">
               Which chapters of life are you in?
             </h1>
             <p className="font-sans text-xs text-ink-300 lg:text-sm">
-              Choose up to four chapters that reflect where you are
-              right now. These will shape the spaces and people you discover on
-              Grouv.
+              Choose any of the eight chapters that reflect where you are
+              right now. All stay active during your 14-day Season Pass trial;
+              Free keeps four active after that.
             </p>
           </header>
 
@@ -40,7 +41,7 @@ export default function ChaptersPage() {
           <ul className="mx-auto grid w-full max-w-[960px] shrink-0 auto-rows-min grid-cols-2 content-start gap-3 lg:grid-cols-4 lg:gap-4">
             {CHAPTERS.map((chapter) => {
               const selected = chapters.includes(chapter.slug);
-              // Once four are held, the rest are inert until one is released.
+              // Once all are held, the rest are inert until one is released.
               const disabled = !selected && atLimit;
 
               return (
@@ -92,7 +93,7 @@ export default function ChaptersPage() {
                 {chapters.length}/{MAX_CHAPTERS} chosen
               </span>
               <span className="font-sans text-xs text-ink-300 lg:text-sm">
-                You can only hold {MAX_CHAPTERS} chapters at once
+                Season Pass holds all {MAX_CHAPTERS} · Free keeps 4 active
               </span>
             </p>
 

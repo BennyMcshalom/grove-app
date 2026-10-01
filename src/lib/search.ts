@@ -12,7 +12,7 @@ export interface SearchResult {
   chapterSlug: string | null;
 }
 
-/** People, posts, groups and spaces matching a phrase (two characters or more). */
+/** People, posts, groups and spaces matching a phrase (two characters or more). Throws when search fails. */
 export async function searchEverything(query: string): Promise<SearchResult[]> {
   await requireOnboardedViewer();
   const term = query.trim().slice(0, 80);
@@ -20,7 +20,11 @@ export async function searchEverything(query: string): Promise<SearchResult[]> {
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("search_everything", { p_query: term, p_limit: 8 });
-  if (error) console.error("[search] search_everything failed", error);
+  // Thrown, so the screen can tell "nothing matched" from "search is down".
+  if (error) {
+    console.error("[search] search_everything failed", error);
+    throw new Error("Search failed");
+  }
 
   return (data ?? []).map((row) => ({
     kind: row.kind,

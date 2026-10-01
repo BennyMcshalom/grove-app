@@ -7,6 +7,7 @@ import { Avatar } from "@/components/app/Avatar";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { deletePost, reportContent, updatePost } from "@/lib/post-actions";
 import { getChapter } from "@/lib/chapters";
 import { PROGRESS, REPORT_REASONS, type Post, type PostProgress, type ReportReason } from "@/lib/posts";
@@ -120,6 +121,12 @@ export function EditPostModal({
               className="absolute inset-0 size-full object-cover"
             />
           )}
+          {/* Edit (Figma h15): a Just Grouv caption reads over its media, live. */}
+          {!isRoot && honest.trim() && (
+            <p className="pointer-events-none absolute inset-x-0 bottom-0 line-clamp-2 bg-black/40 px-6 py-3 text-center font-sans text-base font-medium text-white">
+              {honest}
+            </p>
+          )}
         </div>
       )}
 
@@ -187,7 +194,7 @@ export function EditPostModal({
 
         <label className="flex flex-col gap-1.5">
           <span className="font-sans text-sm font-medium text-ink-500">
-            {isRoot ? "ONE HONEST THING ABOUT WHERE YOU ARE" : "CAPTION"}
+            {isRoot ? "ONE HONEST THING ABOUT WHERE YOU ARE" : "Caption"}
           </span>
           <textarea
             value={honest}
@@ -213,7 +220,12 @@ export function EditPostModal({
   );
 }
 
-/** Report this — Figma 115:7248. Also reports a person from their profile. */
+/**
+ * Report this — Figma 115:7248 / 599:22903. Also reports a person from their
+ * profile or a chat. Once sent it turns into the "Report submitted"
+ * confirmation (PRD catalog, Cross: Report submitted); "Done" hands back to
+ * the caller through `onReported`.
+ */
 export function ReportPostModal({
   postId,
   targetType = "post",
@@ -229,6 +241,9 @@ export function ReportPostModal({
   const [details, setDetails] = useState("");
   const [error, setError] = useState<string>();
   const [sending, startSending] = useTransition();
+  const [sent, setSent] = useState(false);
+
+  if (sent) return <ReportSubmittedModal onDone={onReported} />;
 
   return (
     <Shell label="Report this" onClose={onClose}>
@@ -241,7 +256,7 @@ export function ReportPostModal({
           startSending(async () => {
             const result = await reportContent(targetType, postId, reason, details);
             if (result.error) setError(result.error);
-            else onReported();
+            else setSent(true);
           });
         }}
       >
@@ -292,6 +307,27 @@ export function ReportPostModal({
         </div>
       </form>
     </Shell>
+  );
+}
+
+/**
+ * "Report submitted" — PRD catalog, Cross: Report submitted. The clear next
+ * step the PRD asks for, and nothing about who will review it.
+ */
+export function ReportSubmittedModal({ onDone }: { onDone: () => void }) {
+  return (
+    <Modal label="Report submitted" onClose={onDone} width="max-w-[480px]" className="gap-4">
+      <div className="flex flex-col gap-2" role="status">
+        <h2 className="font-display text-xl font-semibold text-ink-800">Report submitted</h2>
+        <p className="font-sans text-sm text-ink-300">
+          Thanks for flagging this. Our safety team reviews every report and will follow up if we
+          need anything else from you.
+        </p>
+      </div>
+      <Button size="sm" fullWidth onClick={onDone} autoFocus>
+        Done
+      </Button>
+    </Modal>
   );
 }
 

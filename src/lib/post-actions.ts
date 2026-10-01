@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
+import { loadBondPeople } from "@/lib/bonds-server";
 import { loadFeed } from "@/lib/feed";
 import {
   MEDIA_LIMITS,
@@ -47,6 +48,10 @@ const CreatePostSchema = z.object({
   anonymous: z.boolean(),
   /** Share to Open Grove: once per space per calendar month. */
   openGrove: z.boolean().default(false),
+  /** Everyone (the circle), exactly the chosen bonds, or only the author. */
+  audience: z.enum(["everyone", "selected_bonds", "only_me"]).default("everyone"),
+  /** For "selected_bonds": who, by user id. Each must be an active bond. */
+  audienceIds: z.array(z.uuid()).max(50).default([]),
   media: z
     .array(
       z.object({
@@ -70,7 +75,7 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   const parsed = CreatePostSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Something in that post didn't look right." };
 
-  const { chapterSlug, kind, title, progress, body, anonymous, openGrove, media } = parsed.data;
+  const { chapterSlug, kind, title, progress, body, anonymous, openGrove, media, audience, audienceIds } = parsed.data;
   const isRoot = kind === "root";
 
   if (isRoot && !title && !body && media.length === 0) {
@@ -78,6 +83,9 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   }
   if (!isRoot && !body && media.length === 0) {
     return { error: "Add a photo, a video or a caption first." };
+  }
+  if (audience === "selected_bonds" && audienceIds.length === 0) {
+    return { error: "Choose at least one Bond to share with." };
   }
   if (media.some((m) => !m.path.startsWith(`${viewer.userId}/`))) {
     return { error: "One of your uploads didn't finish. Try attaching it again." };
@@ -93,7 +101,8 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
       progress: isRoot ? progress : null,
       body: body || null,
       is_anonymous: anonymous,
-      open_grove: openGrove && !anonymous,
+      open_grove: openGrove && !anonymous && audience === "everyone",
+      audience,
     })
     .select("id")
     .single();
@@ -101,9 +110,28 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   if (error || !post) {
     if (error?.code === "42501") return { error: "You can only post into chapters you hold." };
     console.error("[posts] createPost failed", error);
-    if (error?.hint === "rate_limited") return { error: error.message };
+    if (error?.hint === "rate_limited" || error?.hint === "space_paused") return { error: error.message };
     if (error?.hint === "open_grove_used") return { error: "Open Grove is already used in this space this month." };
     return { error: "We couldn't post that. Try again." };
+  }
+
+  // Until this lands the post is visible to its author alone, so a failure
+  // here never shows it to more people than chosen.
+  if (audience === "selected_bonds") {
+    const { error: audienceError } = await supabase.rpc("set_post_audience", {
+      p_post_id: post.id,
+      p_user_ids: audienceIds,
+    });
+    if (audienceError) {
+      console.error("[posts] set_post_audience failed", audienceError);
+      await supabase.from("posts").delete().eq("id", post.id);
+      return {
+        error:
+          audienceError.hint === "not_bonded"
+            ? "You can only share with your Bonds."
+            : "We couldn't set who sees this. Try again.",
+      };
+    }
   }
 
   if (media.length > 0) {
@@ -128,6 +156,17 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
 
   refresh();
   return {};
+}
+
+/** Composer → "Selected Bonds": the viewer's active bonds (Figma 1310:23173). */
+export async function listAudienceBonds(): Promise<
+  { userId: string; name: string; avatarUrl: string | null; phase: string | null }[]
+> {
+  await requireOnboardedViewer();
+  const people = await loadBondPeople();
+  return people
+    .filter((p) => p.relationship === "bond")
+    .map(({ userId, name, avatarUrl, phase }) => ({ userId, name, avatarUrl, phase }));
 }
 
 /**

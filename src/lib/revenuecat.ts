@@ -74,6 +74,8 @@ export type BillingState = {
   trialEnd: string | null;
   cancelAtPeriodEnd: boolean;
   managementUrl: string | null;
+  /** The RevenueCat product behind the entitlement (Founding / Monthly / Weekly). */
+  productId: string | null;
 };
 
 const time = (iso: string | null) => (iso ? Date.parse(iso) : null);
@@ -88,6 +90,7 @@ export function billingState(subscriber: RevenueCatSubscriber, now = Date.now())
     trialEnd: null,
     cancelAtPeriodEnd: false,
     managementUrl: null,
+    productId: null,
   };
   if (!entitlement) return none;
 
@@ -118,6 +121,7 @@ export function billingState(subscriber: RevenueCatSubscriber, now = Date.now())
     trialEnd: status === "trialing" ? entitlement.expires_date : null,
     cancelAtPeriodEnd: active && Boolean(subscription?.unsubscribe_detected_at),
     managementUrl: subscriber.management_url,
+    productId: entitlement.product_identifier,
   };
 }
 
@@ -134,6 +138,7 @@ export async function syncBilling(userId: string): Promise<BillingState> {
     p_trial_end: state.trialEnd,
     p_cancel_at_period_end: state.cancelAtPeriodEnd,
     p_management_url: state.managementUrl,
+    p_plan: state.productId,
   });
   if (error) throw new Error(`sync_billing failed: ${error.message}`);
 

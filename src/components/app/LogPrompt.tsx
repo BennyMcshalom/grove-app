@@ -226,6 +226,7 @@ export function LogMemories({
   entries,
   header = true,
   surface = "gradient",
+  onEdit,
 }: {
   /** Newest first; the newest starts in front. */
   entries: LogEntry[];
@@ -236,6 +237,8 @@ export function LogMemories({
    * them on a white card.
    */
   surface?: "gradient" | "white";
+  /** Your own moments can be edited from the opened card. */
+  onEdit?: (entry: LogEntry) => void;
 }) {
   return (
     <section className="flex w-full flex-col gap-4">
@@ -264,7 +267,7 @@ export function LogMemories({
             : undefined
         }
       >
-        <LogCoverflow entries={entries} tone={surface === "white" ? "plain" : "warm"} />
+        <LogCoverflow entries={entries} tone={surface === "white" ? "plain" : "warm"} onEdit={onEdit} />
       </div>
     </section>
   );

@@ -60,7 +60,12 @@ export function OnboardingShell({
               key={index}
               className={cn(
                 "h-2 rounded-3xl transition-all duration-200",
-                index === step - 1 ? "w-7 bg-primary-600" : "w-2 bg-ivory-600",
+                // Component 47:455 — Completed / Active / Default.
+                index === step - 1
+                  ? "w-7 bg-primary-600"
+                  : index < step - 1
+                    ? "w-2 bg-primary-100"
+                    : "w-2 bg-ivory-600",
               )}
             />
           ))}

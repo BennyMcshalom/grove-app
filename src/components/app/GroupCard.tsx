@@ -21,9 +21,12 @@ import type { Group } from "@/lib/groups";
 export function GroupCard({
   group,
   adminMode = false,
+  pendingRequests = 0,
 }: {
   group: Group;
   adminMode?: boolean;
+  /** Join requests waiting on this admin (PRD §8 "Admin pending approvals"). */
+  pendingRequests?: number;
 }) {
   const toast = useToast();
   const [requested, setRequested] = useState(group.requestPending);
@@ -107,8 +110,14 @@ export function GroupCard({
                 size="sm"
                 href={`/groups/${group.slug}`}
                 className="bg-ivory-500 px-3 py-2.5 text-sm text-ink-600 hover:bg-ivory-600"
+                aria-label={pendingRequests ? `Admin, ${pendingRequests} waiting` : undefined}
               >
                 Admin
+                {pendingRequests > 0 && (
+                  <span className="ml-1 grid min-w-5 place-items-center rounded-full bg-primary-500 px-1.5 font-sans text-xs font-semibold text-white">
+                    {pendingRequests}
+                  </span>
+                )}
               </Button>
             ) : (
               <span />

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useViewer } from "@/components/app/ViewerProvider";
+import { passPromo } from "@/components/app/pass/promo";
 
 /**
  * The phone "More" sheet — Figma frame 601:31816.
@@ -19,8 +20,7 @@ const ITEMS = [
 ];
 
 export function MobileMenuSheet({ onClose }: { onClose: () => void }) {
-  const { subscriptionStatus } = useViewer();
-  const showTrial = subscriptionStatus !== "trialing" && subscriptionStatus !== "active";
+  const promo = passPromo(useViewer());
 
   return (
     <div
@@ -84,21 +84,17 @@ export function MobileMenuSheet({ onClose }: { onClose: () => void }) {
           ))}
         </ul>
 
-        {showTrial && (
+        {promo && (
         <div className="border-t border-ink-50 pt-6">
           <Link
-            href="/settings"
+            href={promo.href}
             onClick={onClose}
             className="flex items-center gap-3 rounded-2xl bg-primary-500 px-4 py-3 text-white"
           >
             <SproutIcon />
             <span className="flex flex-col">
-              <span className="font-sans text-sm font-semibold">
-                {subscriptionStatus === "none" ? "Start 14-day trial" : "Get full access"}
-              </span>
-              <span className="font-sans text-xs text-white">
-                {subscriptionStatus === "none" ? "Full access, free" : "Subscribe in Settings"}
-              </span>
+              <span className="font-sans text-sm font-semibold">{promo.title}</span>
+              <span className="font-sans text-xs text-white">{promo.body}</span>
             </span>
           </Link>
         </div>

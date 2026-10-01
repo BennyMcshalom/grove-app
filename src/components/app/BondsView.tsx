@@ -4,10 +4,10 @@ import { BondMark } from "@/components/app/BondMark";
 import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { BondChat, GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
-import { BondsRail, PendingCard, SuggestionCard } from "@/components/app/BondsRail";
+import { BondInviteCard, BondsRail, PendingCard, SuggestionCard } from "@/components/app/BondsRail";
 import { useIsOnline } from "@/components/app/Presence";
 import { useCollapsedSidebar } from "@/components/app/SidebarProvider";
-import { bondDuration, type BondPerson, type PendingRequest, type Suggestion } from "@/lib/bonds";
+import { bondDuration, type BondInvite, type BondPerson, type PendingRequest, type Suggestion } from "@/lib/bonds";
 import { cn } from "@/lib/cn";
 
 /**
@@ -22,11 +22,13 @@ type Activity = Pick<BondPerson, "conversationId" | "lastMessage" | "unread">;
 
 export function BondsView({
   people,
+  invites = [],
   pending,
   suggestions,
   openWith,
 }: {
   people: BondPerson[];
+  invites?: BondInvite[];
   pending: PendingRequest[];
   suggestions: Suggestion[];
   openWith: string | null;
@@ -82,6 +84,21 @@ export function BondsView({
             chatOpen ? "hidden" : "flex",
           )}
         >
+          {invites.length > 0 && (
+            <section className="flex flex-col gap-4 bg-ivory-100 px-4 py-4 md:hidden">
+              <h2 className="font-sans text-base font-medium text-ink-600">
+                YOUR BOND INVITES
+              </h2>
+              <ul className="flex flex-col gap-3">
+                {invites.map((invite) => (
+                  <li key={invite.bondId} className="flex flex-col gap-3 rounded-lg bg-surface p-3">
+                    <BondInviteCard invite={invite} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {/* Frame 635:18535 — the phone leads with these two sections. */}
           {pending.length > 0 && (
             <section className="flex flex-col gap-4 bg-ivory-100 px-4 py-4 md:hidden">
@@ -255,7 +272,7 @@ export function BondsView({
           )}
         </div>
 
-        <BondsRail pending={pending} suggestions={suggestions} />
+        <BondsRail invites={invites} pending={pending} suggestions={suggestions} />
       </div>
     </div>
   );

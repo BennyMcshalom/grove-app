@@ -25,6 +25,7 @@ export function Alert({
   title,
   description,
   action,
+  onAction,
   onClose,
   className,
 }: {
@@ -32,6 +33,8 @@ export function Alert({
   title: string;
   description?: string;
   action?: string;
+  /** e.g. "View Event" on the You're grouv'd toast (450:8591). */
+  onAction?: () => void;
   onClose?: () => void;
   className?: string;
 }) {
@@ -60,6 +63,7 @@ export function Alert({
         {action && (
           <button
             type="button"
+            onClick={onAction}
             className={cn(
               "w-fit font-sans text-sm font-semibold underline",
               tone === "info" ? "text-primary-600" : "text-destructive-70",

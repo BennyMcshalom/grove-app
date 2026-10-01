@@ -4,13 +4,17 @@ import { Photo } from "@/components/ui/Media";
 import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { LogMemories, LogPrompt } from "@/components/app/LogPrompt";
+import { BondLogList } from "@/components/app/bonds/BondLogList";
+import { EditLogEntryModal, LogVisibilityModal } from "@/components/app/LogModals";
 import { LogRail } from "@/components/app/LogRail";
 import { TopBar } from "@/components/app/TopBar";
 import { ViewLogModal } from "@/components/app/ViewLogModal";
+import { WrappedLogCard } from "@/components/app/wrapped/WrappedLogCard";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { Button } from "@/components/ui/Button";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import type { BondLogSummary } from "@/lib/bonds";
 import type { CircleLog, LogEntry } from "@/lib/log";
 import type { LogVisibility } from "@/lib/profile";
 
@@ -34,6 +38,7 @@ export function LogView({
   circleBond,
   prompts,
   bonds,
+  bondLogs = [],
   visibility,
   weekStart,
 }: {
@@ -42,6 +47,8 @@ export function LogView({
   circleBond: CircleLog[];
   prompts: Record<string, { id: string; body: string }>;
   bonds: { bondId: string; name: string }[];
+  /** Every Bond keeping a log with you — the Bond Log tab (1232:23130). */
+  bondLogs?: BondLogSummary[];
   visibility: LogVisibility;
   /** The first calendar day of the last seven, for "days logged this week". */
   weekStart: string;
@@ -50,6 +57,8 @@ export function LogView({
   const [slug, setSlug] = useState(viewer.chapters[0]?.slug ?? null);
   const [scope, setScope] = useState<"solo" | "bond">("solo");
   const [viewing, setViewing] = useState<CircleLog | null>(null);
+  const [pickingAudience, setPickingAudience] = useState(false);
+  const [editing, setEditing] = useState<LogEntry | null>(null);
 
   const held = viewer.chapters.find((c) => c.slug === slug);
   const chapter = slug ? getChapter(slug) : undefined;
@@ -58,6 +67,10 @@ export function LogView({
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <TopBar title="Grouv Log" />
+        {/* Wraps outlive chapters: keep them reachable with none open. */}
+        <div className="mx-auto w-full max-w-[708px] px-4 pt-6 lg:px-0">
+          <WrappedLogCard />
+        </div>
         <div className="m-auto flex max-w-[360px] flex-col items-center gap-3 p-6 text-center">
           <p className="font-sans text-base text-ink-400">
             Your log lives inside your chapters. Open one to start logging moments.
@@ -130,15 +143,42 @@ export function LogView({
               </div>
             </div>
 
-            <LogPrompt
-              key={`${held.id}-${scope}`}
-              chapterName={chapter.name}
-              userChapterId={held.id}
-              prompt={prompts[chapter.slug] ?? { id: "", body: "One honest moment from today" }}
-              scope={scope}
-              bonds={bonds}
-            />
-            <LogMemories key={`${slug}-${scope}`} entries={mine} />
+            {/* "YOUR LIFE WRAPPED" sits between the tabs and today's prompt. */}
+            <WrappedLogCard />
+
+            {scope === "solo" ? (
+              <>
+                {/* Phone 635:17174: the rail's audience picker sits above the card. */}
+                <div className="-mb-4 flex w-full justify-end rail:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setPickingAudience(true)}
+                    aria-label="Who can see your log"
+                    className="grid size-8 place-items-center rounded-md bg-surface text-ink-600"
+                  >
+                    <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden="true">
+                      <circle cx="10" cy="4" r="1.5" />
+                      <circle cx="10" cy="10" r="1.5" />
+                      <circle cx="10" cy="16" r="1.5" />
+                    </svg>
+                  </button>
+                </div>
+                <LogPrompt
+                  key={`${held.id}-${scope}`}
+                  chapterName={chapter.name}
+                  userChapterId={held.id}
+                  prompt={prompts[chapter.slug] ?? { id: "", body: "One honest moment from today" }}
+                  scope={scope}
+                  bonds={bonds}
+                />
+                <LogMemories key={`${slug}-${scope}`} entries={mine} onEdit={setEditing} />
+              </>
+            ) : (
+              <>
+                <BondLogList logs={bondLogs} />
+                {mine.length > 0 && <LogMemories key={`${slug}-${scope}`} entries={mine} />}
+              </>
+            )}
 
             <section className="flex w-full flex-col gap-5">
               <header className="flex flex-col gap-1">
@@ -230,7 +270,13 @@ export function LogView({
         phase={held.phase}
         daysThisWeek={daysThisWeek}
         visibility={visibility}
+        onEditVisibility={() => setPickingAudience(true)}
       />
+
+      {pickingAudience && <LogVisibilityModal visibility={visibility} onClose={() => setPickingAudience(false)} />}
+      {editing && (
+        <EditLogEntryModal entry={editing} logVisibility={visibility} onClose={() => setEditing(null)} />
+      )}
 
       {viewing && <ViewLogModal log={viewing} onClose={() => setViewing(null)} />}
     </div>

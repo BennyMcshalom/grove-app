@@ -5,11 +5,12 @@ import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { ChapterGroupCard, GROUP_GRADIENT } from "@/components/app/ChapterGroupCard";
+import { IntroduceModal } from "@/components/app/home/IntroduceModal";
+import { InvitationsList } from "@/components/app/invite/InvitationsList";
 import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
-import { ArrowRight } from "@/components/ui/ArrowRight";
 import { loadSuggestedGroups } from "@/app/(app)/groups/actions";
-import { cancelConnectionRequest, connectWith, loadRail } from "@/lib/bond-actions";
+import { cancelConnectionRequest, loadRail } from "@/lib/bond-actions";
 import type { BondPerson, Suggestion } from "@/lib/bonds";
 import { getChapter } from "@/lib/chapters";
 import type { Group } from "@/lib/groups";
@@ -46,6 +47,7 @@ export interface RailMember {
 export function RightRail({
   variant = "feed",
   spaceMembers,
+  invitations = false,
 }: {
   /**
    * The space detail rail (172:6133) swaps "Your circle" for "IN THIS SPACE"
@@ -54,6 +56,8 @@ export function RightRail({
   variant?: "feed" | "space";
   /** For the space variant: the people holding that space. */
   spaceMembers?: RailMember[];
+  /** INVITATIONS on top (My Spaces 122:8022, Space 172:3169); hidden when empty. */
+  invitations?: boolean;
 } = {}) {
   const [rail, setRail] = useState<{ people: BondPerson[]; suggestions: Suggestion[] } | null>(null);
   const [groups, setGroups] = useState<Group[] | null>(null);
@@ -79,6 +83,19 @@ export function RightRail({
   return (
     <aside className="hidden w-[300px] shrink-0 scroll-slim overflow-y-auto bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] rail:block wide:w-[396px]">
       <div className="flex w-full flex-col gap-7 px-6 pt-6 pb-10 wide:px-8">
+        {invitations && (
+          <InvitationsList
+            heading={(rows) => (
+              <>
+                <section className="flex flex-col gap-4">
+                  <h2 className="font-sans text-base font-medium tracking-wide text-ink-700 uppercase">Invitations</h2>
+                  {rows}
+                </section>
+                <Divider />
+              </>
+            )}
+          />
+        )}
         <Section
           title={variant === "space" ? "In this space" : "Your circle"}
           action="View all"
@@ -87,11 +104,11 @@ export function RightRail({
           {loading ? (
             <Placeholder />
           ) : circle.length === 0 ? (
-            <Empty>
-              {variant === "space"
-                ? "No one else holds this space yet."
-                : "Your circle fills up as you connect with people."}
-            </Empty>
+            variant === "space" ? (
+              <Empty>No one else holds this space yet.</Empty>
+            ) : (
+              <EmptyCircle />
+            )
           ) : (
             <ul className="flex flex-col gap-4">
               {circle.slice(0, 4).map((p) => (
@@ -174,7 +191,7 @@ export function RightRail({
 
         <Divider />
 
-        <Section title="Suggested for you" action="View all" href="/bonds">
+        <Section title="Suggested for you" action="View all" href="/home?matches=1">
           {rail === null ? (
             <Placeholder />
           ) : rail.suggestions.length === 0 ? (
@@ -202,7 +219,7 @@ export function RightRail({
                         </span>
                       </span>
                     </span>
-                    <InviteButton userId={p.userId} />
+                    <IntroduceButton suggestion={p} />
                   </div>
                 </li>
               ))}
@@ -252,26 +269,17 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Invite flips to "Invited" — Figma's alert for this action is
- * "Connection request sent" (285:9289). Until it's answered, "Invited" takes
- * the request back.
+ * "Introduce yourself" (Figma 1087:21626) opens the introduction note
+ * (980:20547); a connection is always a request that carries one. Once sent
+ * it flips to "Invited", which still takes the request back until answered.
  */
-function InviteButton({ userId }: { userId: string }) {
+function IntroduceButton({ suggestion }: { suggestion: Suggestion }) {
   const toast = useToast();
+  const userId = suggestion.userId;
   const [state, setState] = useState<"idle" | "busy" | "invited" | "connected">("idle");
+  const [writing, setWriting] = useState(false);
 
-  const invite = async () => {
-    setState("busy");
-    const result = await connectWith(userId);
-    if (result.error) {
-      setState("idle");
-      toast({ title: result.error, tone: "danger" });
-      return;
-    }
-    const connected = result.status === "accepted";
-    setState(connected ? "connected" : "invited");
-    toast({ title: connected ? "You're connected" : "Connection request sent" });
-  };
+  const invite = () => setWriting(true);
 
   const revoke = async () => {
     setState("busy");
@@ -286,12 +294,21 @@ function InviteButton({ userId }: { userId: string }) {
   };
 
   return (
+    <>
+    {writing && (
+      <IntroduceModal
+        person={{ userId, name: suggestion.name, chapterSlug: suggestion.sharedChapter, phase: suggestion.phase }}
+        backLabel="Done"
+        onClose={() => setWriting(false)}
+        onSent={(accepted) => setState(accepted ? "connected" : "invited")}
+      />
+    )}
     <button
       type="button"
       onClick={state === "invited" ? revoke : invite}
       disabled={state === "busy" || state === "connected"}
       title={state === "invited" ? "Cancel this invite" : undefined}
-      className="group flex shrink-0 items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm font-medium text-primary-500 transition-colors hover:bg-primary-50 disabled:text-ink-300 disabled:hover:bg-transparent"
+      className="group flex shrink-0 items-center gap-2 rounded-full bg-primary-100 px-3 py-2 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-200 disabled:bg-transparent disabled:text-ink-300"
     >
       {state === "invited" ? (
         <>
@@ -302,12 +319,31 @@ function InviteButton({ userId }: { userId: string }) {
       ) : state === "connected" ? (
         "Connected"
       ) : (
-        <>
-          Invite
-          {state === "idle" && <ArrowRight className="size-4" />}
-        </>
+        "Introduce yourself"
       )}
     </button>
+    </>
+  );
+}
+
+/** Figma 1087:21626 — the empty rail: a bookmark badge and a line on how a circle forms. */
+function EmptyCircle() {
+  return (
+    <div className="flex flex-col items-center gap-3 py-4 text-center">
+      <svg viewBox="0 0 120 100" className="h-[90px] w-[110px]" fill="none" aria-hidden="true">
+        <ellipse cx="46" cy="52" rx="30" ry="26" className="fill-primary-100" />
+        <ellipse cx="78" cy="56" rx="26" ry="22" className="fill-primary-50" />
+        <path d="M42 12h36v64l-18-12-18 12z" className="fill-surface stroke-ink-100" strokeWidth="2" strokeLinejoin="round" />
+        <circle cx="60" cy="34" r="11" className="fill-ink-50" />
+        <path d="m60 27 2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z" className="fill-surface" />
+        <path d="M30 18h6M33 15v6M92 70h6M95 67v6" className="stroke-primary-400" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+      <p className="font-sans text-sm font-medium text-ink-600">Your Circle is empty for now</p>
+      <p className="font-sans text-xs text-ink-300">
+        Your Circle is made up of people you connect with regularly. Keep talking, and your Circle will start showing
+        up here.
+      </p>
+    </div>
   );
 }
 

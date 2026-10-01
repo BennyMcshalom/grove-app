@@ -11,8 +11,11 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { createPost, openGroveAvailable } from "@/lib/post-actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
-import { MEDIA_LIMITS, PROGRESS, type PostProgress } from "@/lib/posts";
+import { MEDIA_LIMITS, PROGRESS, type PostAudience, type PostProgress } from "@/lib/posts";
+import { AudiencePicker } from "@/components/app/media/AudiencePicker";
+import { MediaPreview } from "@/components/app/media/MediaPreview";
 import { MediaTiles } from "@/components/app/media/MediaTiles";
+import { clearDraft as forgetDraft, draftHasContent, readDraft, writeDraft, type ComposerDraft } from "@/lib/composer-draft";
 import type { MediaDraft } from "@/lib/media-draft";
 import { createClient } from "@/lib/supabase/client";
 import { mediaSize, uploadWithProgress } from "@/lib/upload";
@@ -25,9 +28,17 @@ import { mediaSize, uploadWithProgress } from "@/lib/upload";
  * form entirely: two upload tiles, a caption, and "Grouv it".
  *
  * Files upload to Storage as soon as they're picked, so posting is quick and
- * a failed upload shows before the post is written.
+ * a failed upload shows before the post is written ("Uploading… 62%", h05).
+ *
+ * PRD §6 additions: an exact audience (AudiencePicker — Only me, Selected
+ * Bonds, Everyone) previewed before publishing; the anonymity warning
+ * (Figma h06/h14); a large preview of attached media with the caption over it
+ * (h07/h14); and a draft that's kept in this browser and can be resumed or
+ * discarded. A failed upload or post keeps the whole draft for Retry.
  */
 const MODES = ["Root a thought", "Just Grouv"] as const;
+
+const ANONYMITY_WARNING = "Even without your name, a photo, video, or voice clip can still identify you.";
 
 
 
@@ -51,8 +62,106 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const [attachments, setAttachments] = useState<MediaDraft[]>([]);
   const [error, setError] = useState<string>();
   const [posting, startPosting] = useTransition();
+  const [audience, setAudience] = useState<PostAudience>("everyone");
+  const [audienceIds, setAudienceIds] = useState<string[]>([]);
+  // A draft from an earlier visit, offered until it's resumed or discarded.
+  const [savedDraft, setSavedDraft] = useState<ComposerDraft | null>(null);
 
   const uploading = attachments.some((a) => a.status === "uploading");
+  const uploadingNow = attachments.filter((a) => a.status === "uploading");
+  const uploadPercent = uploadingNow.length
+    ? Math.round((uploadingNow.reduce((sum, a) => sum + (a.progress ?? 0), 0) / uploadingNow.length) * 100)
+    : null;
+
+  const currentDraft = (): ComposerDraft => ({
+    mode: mode === MODES[0] ? "root" : "grouv",
+    chapter,
+    stage,
+    anonymous,
+    doing,
+    honest,
+    caption,
+    audience,
+    audienceIds,
+    media: attachments.flatMap((a) =>
+      a.path && a.status === "done"
+        ? [
+            {
+              path: a.path,
+              kind: a.kind,
+              name: a.name,
+              width: a.width,
+              height: a.height,
+              trimStart: a.trimStart,
+              trimEnd: a.trimEnd,
+              duration: a.duration,
+            },
+          ]
+        : [],
+    ),
+    savedAt: new Date().toISOString(),
+  });
+
+  // Look for a saved draft once (storage isn't there on the server render).
+  useEffect(() => {
+    let live = true;
+    void Promise.resolve().then(() => {
+      if (live) setSavedDraft(readDraft(viewer.id));
+    });
+    return () => {
+      live = false;
+    };
+  }, [viewer.id]);
+
+  // Keep the draft as it's written, a moment after typing stops. An offered
+  // draft isn't overwritten until it's resumed or discarded.
+  useEffect(() => {
+    if (savedDraft) return;
+    const timer = window.setTimeout(() => {
+      const draft = currentDraft();
+      if (draftHasContent(draft)) writeDraft(viewer.id, draft);
+    }, 400);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- currentDraft reads exactly these
+  }, [mode, chapter, stage, anonymous, doing, honest, caption, audience, audienceIds, attachments, savedDraft, viewer.id]);
+
+  /** "Resume draft": fields come back as they were, media from Storage. */
+  const resumeDraft = async () => {
+    const draft = savedDraft;
+    if (!draft) return;
+    setSavedDraft(null);
+    setMode(draft.mode === "root" ? MODES[0] : MODES[1]);
+    if (viewer.chapters.some((c) => c.slug === draft.chapter)) setChapter(draft.chapter);
+    setStage(draft.stage);
+    setAnonymous(draft.anonymous);
+    setDoing(draft.doing);
+    setHonest(draft.honest);
+    setCaption(draft.caption);
+    setAudience(draft.audience);
+    setAudienceIds(draft.audienceIds);
+    if (draft.media.length === 0) return;
+    const { data } = await createClient()
+      .storage.from("media")
+      .createSignedUrls(
+        draft.media.map((m) => m.path),
+        60 * 60,
+      );
+    const urls = new Map((data ?? []).flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl] as const] : [])));
+    setAttachments(
+      draft.media.flatMap((m) => {
+        const url = urls.get(m.path);
+        return url ? [{ ...m, id: crypto.randomUUID(), status: "done" as const, previewUrl: url }] : [];
+      }),
+    );
+  };
+
+  /** "Discard": the saved draft and its uploads go. */
+  const discardSavedDraft = () => {
+    const paths = savedDraft?.media.map((m) => m.path) ?? [];
+    if (paths.length) void createClient().storage.from("media").remove(paths);
+    forgetDraft(viewer.id);
+    setSavedDraft(null);
+  };
 
   useEffect(() => {
     if (!chapter) return;
@@ -76,10 +185,23 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     setAttachments([]);
     setChapterMenuOpen(false);
     setError(undefined);
+    setAudience("everyone");
+    setAudienceIds([]);
+    forgetDraft(viewer.id);
   };
 
-  /** The close button clears the draft rather than doing nothing. */
+  /**
+   * The inline card's × discards the draft, as it always has. The composer
+   * sheet's × keeps it: "Draft saved", to resume next time.
+   */
   const close = () => {
+    const draft = currentDraft();
+    if (onClose && draftHasContent(draft) && !uploading) {
+      writeDraft(viewer.id, draft);
+      toast({ title: "Draft saved", description: "Pick up where you left off next time you open the composer." });
+      onClose();
+      return;
+    }
     const uploaded = attachments.flatMap((a) => (a.path ? [a.path] : []));
     if (uploaded.length) void createClient().storage.from("media").remove(uploaded);
     clearDraft();
@@ -213,19 +335,32 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         progress: isRoot ? stage : null,
         body: isRoot ? honest : caption,
         anonymous,
-        openGrove: openGrove && groveAvailable && !anonymous,
+        openGrove: openGrove && groveAvailable && !anonymous && audience === "everyone",
+        audience,
+        audienceIds: audience === "selected_bonds" ? audienceIds : [],
         media: attachments.flatMap((a) =>
           a.path
             ? [{ path: a.path, kind: a.kind, trimStart: a.trimStart, trimEnd: a.trimEnd, width: a.width, height: a.height }]
             : [],
         ),
-      });
+      }).catch((): { error?: string } => ({ error: "We couldn't post that. Your draft is kept — try again." }));
       if (result.error) {
+        // Everything stays as written, so trying again is one tap.
         setError(result.error);
         return;
       }
-      toast({ title: `Posted to ${getChapter(chapter)?.name ?? "your space"}` });
-      if (openGrove && groveAvailable && !anonymous) setGrove({ chapter, open: false });
+      // Figma 599:23020 / 599:23021, and where it went for the narrower audiences.
+      toast(
+        audience === "only_me"
+          ? { title: "Saved privately", description: "Only you can see it. Find it in your posts on your profile." }
+          : audience === "selected_bonds"
+            ? {
+                title: isRoot ? "Post rooted." : "Post Grouved.",
+                description: `Only the ${audienceIds.length === 1 ? "Bond" : `${audienceIds.length} Bonds`} you chose will see this post.`,
+              }
+            : { title: isRoot ? "Post rooted. Your Circle will see this post." : "Post Grouved. Your Circle will see this post." },
+      );
+      if (openGrove && groveAvailable && !anonymous && audience === "everyone") setGrove({ chapter, open: false });
       clearDraft();
       onClose?.();
     });
@@ -255,7 +390,22 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     />
   );
 
-  const submitDisabled = uploading || attachments.some((a) => a.status === "failed");
+  const submitDisabled =
+    uploading ||
+    attachments.some((a) => a.status === "failed") ||
+    (audience === "selected_bonds" && audienceIds.length === 0);
+
+  const audiencePicker = (
+    <AudiencePicker
+      audience={audience}
+      selected={audienceIds}
+      onChange={(next, ids) => {
+        setAudience(next);
+        setAudienceIds(ids);
+        if (next !== "everyone") setOpenGrove(false);
+      }}
+    />
+  );
 
   return (
     <article
@@ -359,11 +509,48 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         ))}
       </div>
 
+      {savedDraft && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-primary-50 px-4 py-3">
+          <span className="font-sans text-sm text-primary-800">You have a saved draft.</span>
+          <span className="flex gap-2">
+            <Button size="sm" variant="tertiary" onClick={discardSavedDraft}>
+              Discard
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => void resumeDraft()}>
+              Resume draft
+            </Button>
+          </span>
+        </div>
+      )}
+
+      {/* Root - Uploading (Figma h05): one bar for everything in flight. */}
+      {uploadPercent !== null && (
+        <div className="flex flex-col gap-2" aria-live="polite">
+          <span
+            role="progressbar"
+            aria-label="Uploading"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={uploadPercent}
+            className="h-2 w-full overflow-hidden rounded-full bg-primary-50"
+          >
+            <span
+              className="block h-full rounded-full bg-primary-600 transition-[width] motion-reduce:transition-none"
+              style={{ width: `${uploadPercent}%` }}
+            />
+          </span>
+          <span className="font-sans text-sm text-ink-500 tabular-nums">Uploading… {uploadPercent}%</span>
+        </div>
+      )}
+
       {mode === MODES[1] ? (
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-6">
+            {attachments.length > 0 && (
+              <MediaPreview drafts={attachments} caption={caption} onAdd={attachAny} />
+            )}
             {/* Frame 112:6433 — two upload tiles side by side. */}
-            <div className="flex flex-col gap-6 sm:flex-row">
+            <div className={cn("flex flex-col gap-6 sm:flex-row", attachments.length > 0 && "hidden")}>
               <UploadTile
                 title="Photo"
                 body="Upload a photo"
@@ -393,30 +580,40 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
             />
           </div>
 
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-3">
+                <Checkbox
+                  label="Post anonymously"
+                  checked={anonymous}
+                  onChange={(e) => setAnonymous(e.target.checked)}
+                />
+                {groveAvailable && !anonymous && audience === "everyone" && (
+                  <Checkbox
+                    label="Share to Open Grove, beyond your circle"
+                    checked={openGrove}
+                    onChange={(e) => setOpenGrove(e.target.checked)}
+                  />
+                )}
+              </div>
+              {audiencePicker}
+            </div>
+            {/* Figma h14/h23: Just Grouv is media, so the warning always shows. */}
+            <p className="font-sans text-xs text-ink-300">{ANONYMITY_WARNING}</p>
+          </div>
+
           <FormError message={error} />
 
-          <div className="flex items-center justify-between gap-4 border-t border-ink-50 pt-6">
-            <div className="flex flex-col gap-3">
-              <Checkbox
-                label="Post anonymously"
-                checked={anonymous}
-                onChange={(e) => setAnonymous(e.target.checked)}
-              />
-              {groveAvailable && !anonymous && (
-                <Checkbox
-                  label="Share to Open Grove, beyond your circle"
-                  checked={openGrove}
-                  onChange={(e) => setOpenGrove(e.target.checked)}
-                />
-              )}
-            </div>
+          <div className="flex items-center justify-end gap-4 border-t border-ink-50 pt-6">
             <Button size="sm" onClick={submit} loading={posting} disabled={submitDisabled}>
-              Grouv it
+              {error ? "Try again" : "Grouv it"}
             </Button>
           </div>
         </div>
       ) : (
       <>
+      {/* Root - Preview (Figma h07): attached media leads the card. */}
+      {attachments.length > 0 && <MediaPreview drafts={attachments} onAdd={attachAny} />}
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-6">
           <Field
@@ -462,19 +659,24 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
           />
         </div>
 
-        <div className="flex flex-col gap-3">
-          <Checkbox
-            label="Post anonymously"
-            checked={anonymous}
-            onChange={(e) => setAnonymous(e.target.checked)}
-          />
-          {groveAvailable && !anonymous && (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-3">
             <Checkbox
-              label="Share to Open Grove, beyond your circle"
-              checked={openGrove}
-              onChange={(e) => setOpenGrove(e.target.checked)}
+              label="Post anonymously"
+              checked={anonymous}
+              onChange={(e) => setAnonymous(e.target.checked)}
             />
-          )}
+            {/* Figma h06: the warning appears with the tick. */}
+            {anonymous && <p className="max-w-[340px] pl-6 font-sans text-xs text-ink-300">{ANONYMITY_WARNING}</p>}
+            {groveAvailable && !anonymous && audience === "everyone" && (
+              <Checkbox
+                label="Share to Open Grove, beyond your circle"
+                checked={openGrove}
+                onChange={(e) => setOpenGrove(e.target.checked)}
+              />
+            )}
+          </div>
+          {audiencePicker}
         </div>
       </div>
 
@@ -497,7 +699,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
           />
         </div>
         <Button size="sm" onClick={submit} loading={posting} disabled={submitDisabled}>
-          Root this
+          {error ? "Try again" : "Root this"}
         </Button>
       </footer>
       </>

@@ -22,7 +22,7 @@ export async function loadMyLogEntries(
   const supabase = await createClient();
   let query = supabase
     .from("log_entries")
-    .select("id, body, photo_path, entry_date, scope, created_at, chapter:user_chapters(chapter_slug, opened_at)")
+    .select("id, body, photo_path, entry_date, scope, visibility, created_at, chapter:user_chapters(chapter_slug, opened_at)")
     .eq("user_id", userId)
     .order("entry_date", { ascending: false })
     .order("created_at", { ascending: false })
@@ -42,6 +42,7 @@ export async function loadMyLogEntries(
     dayNumber: row.chapter ? dayNumber(row.entry_date, row.chapter.opened_at) : 1,
     chapterSlug: row.chapter?.chapter_slug ?? "",
     scope: row.scope,
+    visibility: row.visibility,
   }));
 }
 

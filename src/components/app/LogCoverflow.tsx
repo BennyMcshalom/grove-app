@@ -30,12 +30,15 @@ export function LogCoverflow({
   entries,
   tone = "warm",
   className,
+  onEdit,
 }: {
   /** Newest first; the newest starts in front. */
   entries: LogEntry[];
   /** "warm": on the orange Grouv Log panel. "plain": on a white card. */
   tone?: "warm" | "plain";
   className?: string;
+  /** Your own log: the opened moment offers Edit (Figma 1424:24224). */
+  onEdit?: (entry: LogEntry) => void;
 }) {
   const [active, setActive] = useState(0);
   // Cards' worth of in-progress drag (positive = dragging right).
@@ -190,7 +193,20 @@ export function LogCoverflow({
         </span>
       </div>
 
-      {opened && <MomentViewer entry={opened} onClose={() => setOpened(null)} />}
+      {opened && (
+        <MomentViewer
+          entry={opened}
+          onClose={() => setOpened(null)}
+          onEdit={
+            onEdit
+              ? () => {
+                  setOpened(null);
+                  onEdit(opened);
+                }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }
@@ -307,7 +323,15 @@ function Arrow({ side, disabled, onClick }: { side: "left" | "right"; disabled: 
 }
 
 /** The front card, opened: the whole photo and every word of the moment. */
-export function MomentViewer({ entry, onClose }: { entry: LogEntry; onClose: () => void }) {
+export function MomentViewer({
+  entry,
+  onClose,
+  onEdit,
+}: {
+  entry: LogEntry;
+  onClose: () => void;
+  onEdit?: () => void;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -337,13 +361,24 @@ export function MomentViewer({ entry, onClose }: { entry: LogEntry; onClose: () 
             {chapter ? ` · ${chapter.name}` : ""}
           </span>
           {entry.body && <p className="font-sans text-base whitespace-pre-line text-ink-700">{entry.body}</p>}
-          <button
-            type="button"
-            onClick={onClose}
-            className="mt-2 self-end rounded-full px-4 py-2 font-ui text-sm font-medium text-primary-600 hover:bg-primary-50"
-          >
-            Close
-          </button>
+          <div className="mt-2 flex justify-end gap-2">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="rounded-full px-4 py-2 font-ui text-sm font-medium text-ink-600 hover:bg-ivory-200"
+              >
+                Edit
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full px-4 py-2 font-ui text-sm font-medium text-primary-600 hover:bg-primary-50"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>,

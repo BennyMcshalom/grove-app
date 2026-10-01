@@ -24,7 +24,9 @@ const CreateGroupSchema = z.object({
 export type CreateGroupInput = z.input<typeof CreateGroupSchema>;
 
 /** Start a group → "Create group". The creator becomes its admin. */
-export async function createGroup(input: CreateGroupInput): Promise<Result & { slug?: string }> {
+export async function createGroup(
+  input: CreateGroupInput,
+): Promise<Result & { slug?: string; passRequired?: boolean }> {
   await requireOnboardedViewer();
   const parsed = CreateGroupSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the group's details." };
@@ -40,6 +42,7 @@ export async function createGroup(input: CreateGroupInput): Promise<Result & { s
     .single();
 
   if (error || !data) {
+    if (error?.hint === "pass_required") return { error: "Starting a group comes with the Season Pass.", passRequired: true };
     console.error("[groups] createGroup failed", error);
     if (error?.hint === "rate_limited") return { error: error.message };
     return { error: "We couldn't start that group. Try again." };
@@ -200,4 +203,13 @@ export async function deleteVideoTruth(videoId: string): Promise<Result> {
 export async function loadSuggestedGroups(limit = 6): Promise<Group[]> {
   await requireOnboardedViewer();
   return loadGroups({ suggested: true, limit });
+}
+
+/** The request-outcome modal was seen; don't show it again. */
+export async function acknowledgeGroupRequest(groupId: string): Promise<Result> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("acknowledge_group_request", { p_group_id: groupId });
+  if (error) console.error("[groups] acknowledge_group_request failed", error);
+  return {};
 }

@@ -34,6 +34,23 @@ export function distanceLabel(km: number | null) {
   return `${km < 10 ? km.toFixed(1).replace(/.0$/, "") : Math.round(km)} km away`;
 }
 
+/** "Capacity reached" — nobody new can say I'll Grouv (the attendee trigger enforces it too). */
+export function isFull(event: Pick<EventCard, "goingCount" | "capacity">) {
+  return event.goingCount >= event.capacity;
+}
+
+/** How full the event is, 0–100, for the capacity bar. */
+export function capacityPercent(event: Pick<EventCard, "goingCount" | "capacity">) {
+  return event.capacity > 0 ? Math.min(100, (event.goingCount / event.capacity) * 100) : 100;
+}
+
+/** "12 of your circle have GROUV", or the head count when none of your circle is going. */
+export function circleLabel(event: Pick<EventCard, "circleGoing" | "goingCount">) {
+  return event.circleGoing > 0
+    ? `${event.circleGoing} of your circle have GROUV`
+    : `${event.goingCount} going`;
+}
+
 /** OpenStreetMap, which needs no key. */
 export function mapUrl(latitude: number, longitude: number) {
   return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=16/${latitude}/${longitude}`;

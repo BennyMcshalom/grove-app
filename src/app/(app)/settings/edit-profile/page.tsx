@@ -7,11 +7,14 @@ export default async function EditProfilePage() {
   const viewer = await getShellViewer();
   const supabase = await createClient();
 
-  const { data: prompts } = await supabase
-    .from("profile_prompts")
-    .select("honest_tension, sitting_with, open_to")
-    .eq("user_id", viewer.id)
-    .maybeSingle();
+  const [{ data: prompts }, { data: profile }] = await Promise.all([
+    supabase
+      .from("profile_prompts")
+      .select("honest_tension, sitting_with, open_to")
+      .eq("user_id", viewer.id)
+      .maybeSingle(),
+    supabase.from("profiles").select("username").eq("id", viewer.id).single(),
+  ]);
 
   return (
     <EditProfileForm
@@ -20,6 +23,7 @@ export default async function EditProfilePage() {
         sittingWith: prompts?.sitting_with ?? "",
         openTo: prompts?.open_to ?? "",
       }}
+      username={profile?.username ?? ""}
     />
   );
 }

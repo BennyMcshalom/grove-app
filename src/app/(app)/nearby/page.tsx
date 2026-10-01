@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { TopBar } from "@/components/app/TopBar";
 import { ProximityCard } from "@/components/app/ProximityCard";
+import { SearchArt } from "@/components/app/SearchArt";
 import { useToast } from "@/components/app/ToastProvider";
 import { Button } from "@/components/ui/Button";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/app/(app)/nearby/actions";
 import { cn } from "@/lib/cn";
 import { connectWith } from "@/lib/bond-actions";
+import { getChapter } from "@/lib/chapters";
 
 /**
  * Nearby — Figma frames 357:7651 (off) and 476:15061 (proximity on).
@@ -31,7 +33,14 @@ import { connectWith } from "@/lib/bond-actions";
  * while nobody is found, stopping at 100 km. Two modes (the picker isn't in
  * Figma): Stage-only, the default, where only people at your exact stage see
  * you; and Open, where anyone nearby on Grouv can.
+ *
+ * Cross states (1207:22753 / 22788 / 22823): location denied, no one nearby,
+ * and the readable list — shown when the browser only shares an approximate
+ * area (so no distances at all), or on request as the accessible alternative
+ * to the orbit (rounded distances only). The list is sorted by shared context.
  */
+/** A fix this loose (metres) is an approximate area, not a position. */
+const APPROXIMATE_M = 1000;
 const STAGE_W = 511;
 const STAGE_H = 461;
 const RINGS_KM = [0.5, 1, 2, 5, 10, 25, 50, 100] as const;
@@ -70,6 +79,12 @@ export default function NearbyPage() {
   const modeRef = useRef<ProximityMode>("stage_only");
   // Which ring the search has widened to.
   const [ring, setRing] = useState(0);
+  // Cross states: permission denied, approximate location, the list view,
+  // and whether a first look has come back yet.
+  const [denied, setDenied] = useState(false);
+  const [approximate, setApproximate] = useState(false);
+  const [listView, setListView] = useState(false);
+  const [looked, setLooked] = useState(false);
   const ringRef = useRef(0);
   const position = useRef<{ lat: number; lng: number } | null>(null);
   const watchId = useRef<number | null>(null);
@@ -81,6 +96,8 @@ export default function NearbyPage() {
     ringRef.current = 0;
     setRing(0);
     setOn(false);
+    setLooked(false);
+    setApproximate(false);
     setPeople([]);
     void stopProximity();
   }, []);
@@ -90,6 +107,7 @@ export default function NearbyPage() {
     const result = await findNearby(RINGS_KM[ringRef.current]);
     if (result.error) return;
     setPeople(result.people);
+    setLooked(true);
     if (result.people.length === 0 && ringRef.current < RINGS_KM.length - 1) {
       ringRef.current += 1;
       setRing(ringRef.current);
@@ -108,12 +126,14 @@ export default function NearbyPage() {
       toast({ title: "This browser can't share your location", tone: "danger" });
       return;
     }
+    setDenied(false);
     setStarting(true);
     watchId.current = navigator.geolocation.watchPosition(
       async ({ coords }) => {
         const first = position.current === null;
         position.current = { lat: coords.latitude, lng: coords.longitude };
         if (!first) return;
+        setApproximate(coords.accuracy > APPROXIMATE_M);
         const result = await shareProximity(coords.latitude, coords.longitude, modeRef.current);
         setStarting(false);
         if (result.error) {
@@ -124,9 +144,10 @@ export default function NearbyPage() {
         setOn(true);
         void lookAround();
       },
-      () => {
+      (failure) => {
         setStarting(false);
-        toast({ title: "Location permission was declined", tone: "danger" });
+        if (failure.code === failure.PERMISSION_DENIED) setDenied(true);
+        else toast({ title: "We couldn't find your location. Try again.", tone: "danger" });
         turnOff();
       },
       { enableHighAccuracy: false, maximumAge: 60_000, timeout: 15_000 },
@@ -178,6 +199,37 @@ export default function NearbyPage() {
       <TopBar title="Nearby" back="/home" />
 
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto p-4 lg:p-8">
+        {denied ? (
+          <NearbyState
+            title="Turn on location to see who is nearby"
+            body="Grouv Nearby needs location access to work. You control it completely — it only runs while you're on this page, and turns off the moment you leave."
+            action={<DeniedActions onRetry={turnOn} onDismiss={() => setDenied(false)} />}
+          />
+        ) : on && looked && people.length === 0 ? (
+          <NearbyState
+            title="No one's nearby right now"
+            body="Proximity is on and we're looking — this refreshes automatically as people come and go. Check back in a bit, or explore Groups and Events instead."
+            note={ring < RINGS_KM.length - 1 ? `Looking within ${formatKm(RINGS_KM[ring])} now.` : undefined}
+            action={
+              <div className="flex flex-col items-center gap-2">
+                <Button size="sm" className="w-[240px]" href="/events">
+                  Browse Events nearby
+                </Button>
+                <Button variant="tertiary" size="sm" onClick={turnOff}>
+                  Turn off Proximity
+                </Button>
+              </div>
+            }
+          />
+        ) : on && (approximate || listView) ? (
+          <PeopleList
+            people={people}
+            approximate={approximate}
+            onSelect={setSelected}
+            onShowMap={approximate ? undefined : () => setListView(false)}
+            onTurnOff={turnOff}
+          />
+        ) : (
         <div className="flex min-h-full items-center justify-center rounded-3xl bg-surface p-6">
           <div className="flex w-full max-w-[556px] flex-col items-stretch gap-10 lg:gap-12">
             <div className="flex flex-col items-center gap-4">
@@ -233,14 +285,25 @@ export default function NearbyPage() {
                   ? "Turns off the moment you leave this page"
                   : "Turns off when you leave this page"}
               </p>
+              {on && people.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setListView(true)}
+                  className="font-sans text-sm font-medium text-primary-600 hover:underline"
+                >
+                  Show as a list
+                </button>
+              )}
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {selected && (
         <ProximityCard
           person={selected}
+          hideDistance={approximate}
           canWave={selected.sameStage && !selected.iWaved}
           onWave={async () => {
             const result = await waveNearby(selected.userId);
@@ -271,6 +334,171 @@ export default function NearbyPage() {
       )}
     </div>
   );
+}
+
+/** Cross 1207:22753 / 1207:22788 — the illustration over a title, copy and actions. */
+function NearbyState({
+  title,
+  body,
+  note,
+  action,
+}: {
+  title: string;
+  body: string;
+  note?: string;
+  action: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-full items-center justify-center rounded-3xl bg-surface p-6">
+      <div className="flex w-full max-w-[460px] flex-col items-center gap-4 text-center" role="status">
+        <SearchArt />
+        <div className="flex flex-col gap-2">
+          <h1 className="font-sans text-xl font-semibold text-ink-700">{title}</h1>
+          <p className="font-sans text-sm text-ink-300">{body}</p>
+          {note && <p className="font-sans text-xs text-ink-200">{note}</p>}
+        </div>
+        {action}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * "Open Settings". A web page can't open the browser's site settings, so the
+ * button says where the switch is, then offers to ask again.
+ */
+function DeniedActions({ onRetry, onDismiss }: { onRetry: () => void; onDismiss: () => void }) {
+  const [help, setHelp] = useState(false);
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {help ? (
+        <>
+          <p className="max-w-[380px] font-sans text-sm text-ink-400">
+            Tap the lock or settings icon beside this site&rsquo;s address, set Location to Allow, then
+            try again. On a phone, also check that your browser is allowed to use location.
+          </p>
+          <Button size="sm" className="w-[240px]" onClick={onRetry}>
+            Try again
+          </Button>
+        </>
+      ) : (
+        <Button size="sm" className="w-[240px]" onClick={() => setHelp(true)}>
+          Open Settings
+        </Button>
+      )}
+      <Button variant="tertiary" size="sm" onClick={onDismiss}>
+        Not now
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Cross 1207:22823 — "People nearby" as a readable list, sorted by how much
+ * you have in common: same stage first, then anyone who waved, then nearest.
+ * With an approximate area there's no distance at all; otherwise only the
+ * rounded one ("about 2 km").
+ */
+function PeopleList({
+  people,
+  approximate,
+  onSelect,
+  onShowMap,
+  onTurnOff,
+}: {
+  people: NearbyMatch[];
+  approximate: boolean;
+  onSelect: (person: NearbyMatch) => void;
+  onShowMap?: () => void;
+  onTurnOff: () => void;
+}) {
+  const toast = useToast();
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const sorted = [...people].sort(
+    (a, b) =>
+      Number(b.sameStage) - Number(a.sameStage) ||
+      Number(b.wavedAtMe) - Number(a.wavedAtMe) ||
+      (approximate ? a.name.localeCompare(b.name) : a.distanceKm - b.distanceKm),
+  );
+
+  const connect = async (person: NearbyMatch) => {
+    setConnecting(person.userId);
+    const result = await connectWith(person.userId);
+    setConnecting(null);
+    toast(
+      result.error
+        ? { title: result.error, tone: "danger" }
+        : {
+            title:
+              result.status === "accepted"
+                ? "You're connected"
+                : "Connect request sent. We'll let you know when they accept.",
+          },
+    );
+  };
+
+  return (
+    <div className="min-h-full rounded-3xl bg-surface p-6 lg:p-10">
+      <div className="flex w-full max-w-[640px] flex-col gap-6">
+        <header className="flex flex-col gap-1">
+          <h1 className="font-sans text-xl font-semibold text-ink-700">People nearby</h1>
+          <p className="font-sans text-sm text-ink-300">
+            {approximate
+              ? "You've shared an approximate area instead of a precise location, so we can't show exact distance — here's who's around, sorted by how much you have in common."
+              : "Everyone around you, sorted by how much you have in common. Distances are rounded, never exact."}
+          </p>
+        </header>
+        <ul className="flex flex-col gap-3">
+          {sorted.map((person) => {
+            const chapter = getChapter(person.chapterSlug)?.name ?? person.chapterSlug;
+            return (
+              <li key={person.userId} className="flex items-center gap-3 rounded-lg border border-ink-50 p-3">
+                <button
+                  type="button"
+                  onClick={() => onSelect(person)}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                >
+                  <Avatar src={person.avatarUrl} name={person.name} sizes="40px" className="size-10" />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate font-sans text-sm font-semibold text-ink-700">
+                      {person.name}
+                      {person.wavedAtMe && <span className="font-normal text-ink-300"> · waved at you</span>}
+                    </span>
+                    <span className="truncate font-sans text-xs text-ink-300">
+                      {chapter} · {person.phase}
+                      {!approximate && ` · about ${roundedKm(person.distanceKm)}`}
+                    </span>
+                  </span>
+                </button>
+                <Button
+                  size="sm"
+                  loading={connecting === person.userId}
+                  onClick={() => void connect(person)}
+                >
+                  Connect
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex flex-wrap items-center gap-4">
+          {onShowMap && (
+            <Button variant="secondary" size="sm" onClick={onShowMap}>
+              Show the map
+            </Button>
+          )}
+          <Button variant="tertiary" size="sm" onClick={onTurnOff}>
+            Turn off Proximity
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Whole kilometres (or "under 1 km"): never finer than the orbit shows. */
+function roundedKm(km: number) {
+  return km < 1 ? "under 1 km" : `${Math.round(km)} km`;
 }
 
 function formatKm(km: number) {

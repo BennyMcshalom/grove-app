@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { ShellViewer } from "@/components/app/ViewerProvider";
+import { FREE_ACTIVE_SPACES } from "@/lib/chapters";
 import { callsEnabled } from "@/lib/livekit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -49,17 +50,26 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
   const supabase = await createClient();
   const userId = viewer.userId;
 
-  const [chapters, subscription, unread, focus, messages] = await Promise.all([
+  const loadChapters = () =>
     supabase
       .from("user_chapters")
-      .select("id, chapter_slug, phase, opened_at, is_primary")
+      .select("id, chapter_slug, phase, opened_at, is_primary, paused_at")
       .eq("user_id", userId)
       .eq("status", "open")
       // Primary first, then the order they were opened in — never by
       // whatever order the rows come back.
       .order("is_primary", { ascending: false })
-      .order("opened_at"),
-    supabase.from("subscriptions").select("status, trial_ends_at").eq("user_id", userId).single(),
+      .order("opened_at");
+  const loadSubscription = () =>
+    supabase
+      .from("subscriptions")
+      .select("status, trial_started_at, trial_ends_at, current_period_end, bonus_until, spaces_review_due")
+      .eq("user_id", userId)
+      .single();
+
+  const [firstChapters, firstSubscription, unread, focus, messages] = await Promise.all([
+    loadChapters(),
+    loadSubscription(),
     supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
@@ -67,19 +77,38 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
       .is("read_at", null),
     supabase
       .from("focus_sessions")
-      .select("ends_at")
+      // The latest session still owed its "Welcome back": running, or ended
+      // and not yet seen.
+      .select("ends_at, ended_early_at")
       .eq("user_id", userId)
-      .is("ended_early_at", null)
-      .gt("ends_at", new Date().toISOString())
-      .order("ends_at", { ascending: false })
+      .is("digest_seen_at", null)
+      .order("started_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
     supabase.rpc("my_unread_messages"),
   ]);
 
+  const focusRunning =
+    Boolean(focus.data) && !focus.data!.ended_early_at && Date.parse(focus.data!.ends_at) > Date.now();
+
+  // A trial or plan that ended on a date changes no row, so the hourly sweep
+  // may not have paused Spaces yet (or restored them after subscribing). Put
+  // them in step now, so what the shell shows matches what the database allows.
+  let chapters = firstChapters;
+  let subscription = firstSubscription;
+  const pass = hasPass(subscription.data);
+  const active = (chapters.data ?? []).filter((c) => !c.paused_at).length;
+  const paused = (chapters.data ?? []).length - active;
+  if ((!pass && active > FREE_ACTIVE_SPACES) || (pass && paused > 0)) {
+    const { error } = await supabase.rpc("sync_my_spaces");
+    if (error) console.error("[pass] sync_my_spaces failed", error);
+    else [chapters, subscription] = await Promise.all([loadChapters(), loadSubscription()]);
+  }
+
   return {
     id: userId,
     firstName: viewer.profile.first_name,
+    email: viewer.email ?? null,
     avatarUrl: viewer.profile.avatar_url,
     aura: viewer.profile.aura,
     locationLabel: viewer.profile.location_label,
@@ -89,12 +118,17 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
       phase: c.phase,
       openedAt: c.opened_at,
       isPrimary: c.is_primary,
+      pausedAt: c.paused_at,
     })),
     subscriptionStatus: subscription.data?.status ?? "none",
     trialEndsAt: subscription.data?.trial_ends_at ?? null,
+    hasPass: hasPass(subscription.data),
+    trialAvailable: subscription.data?.status === "none" && !subscription.data.trial_started_at,
+    spacesReviewDue: !hasPass(subscription.data) && Boolean(subscription.data?.spaces_review_due),
     unreadNotifications: unread.count ?? 0,
     unreadMessages: messages.data?.[0]?.unread ?? 0,
-    focusEndsAt: focus.data?.ends_at ?? null,
+    focusEndsAt: focusRunning ? focus.data!.ends_at : null,
+    focusReturnPending: Boolean(focus.data) && !focusRunning,
     theme: viewer.profile.theme,
     callsEnabled: callsEnabled(),
   };
@@ -103,4 +137,29 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
 /** Where a freshly signed-in user should land. */
 export function landingPath(profile: { onboarded_at: string | null } | null) {
   return profile?.onboarded_at ? "/home" : "/onboarding/chapters";
+}
+
+/**
+ * Mirrors private.has_pass(): the Season Pass is in effect right now. A bonus
+ * month (referral reward) counts whatever the plan status says.
+ */
+export function hasPass(
+  s:
+    | {
+        status: string;
+        trial_ends_at: string | null;
+        current_period_end: string | null;
+        bonus_until?: string | null;
+      }
+    | null
+    | undefined,
+  now = Date.now(),
+) {
+  if (!s) return false;
+  const until = (at: string | null | undefined) => (at ? Date.parse(at) > now : false);
+  if (until(s.bonus_until)) return true;
+  if (s.status === "trialing") return s.trial_ends_at || s.current_period_end ? until(s.trial_ends_at ?? s.current_period_end) : false;
+  if (s.status === "active" || s.status === "past_due") return true;
+  if (s.status === "canceled") return until(s.current_period_end);
+  return false;
 }

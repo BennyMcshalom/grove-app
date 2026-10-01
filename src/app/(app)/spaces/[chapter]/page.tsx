@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { SpaceView, type SpaceMember } from "@/components/app/SpaceView";
+import { PausedSpaceNotice } from "@/components/app/pass/PausedSpaceNotice";
 import { getShellViewer } from "@/lib/auth/viewer";
 import { getChapter } from "@/lib/chapters";
 import { loadFeed } from "@/lib/feed";
@@ -27,8 +28,11 @@ export default async function SpacePage({ params }: PageProps<"/spaces/[chapter]
   ]);
 
   return (
+    <>
+    {held.pausedAt && <PausedSpaceNotice userChapterId={held.id} name={getChapter(slug)!.name} />}
     <SpaceView
       slug={slug}
+      userChapterId={held.id}
       phase={held.phase}
       hasRegion={hasRegion === true}
       roots={roots}
@@ -58,7 +62,9 @@ export default async function SpacePage({ params }: PageProps<"/spaces/[chapter]
         body: q.body,
         isMine: q.is_mine,
         replyCount: q.reply_count,
+        expiresAt: q.expires_at,
       }))}
     />
+    </>
   );
 }

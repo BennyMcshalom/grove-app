@@ -85,6 +85,34 @@ export function welcomeEmail({
   };
 }
 
+/** Invite a friend → Email: the member's personal link, in their name. */
+export function referralInviteEmail({
+  to,
+  friendName,
+  inviterName,
+  link,
+}: {
+  to: string;
+  friendName: string | null;
+  inviterName: string;
+  link: string;
+}): Email {
+  const inviter = escapeHtml(inviterName);
+  const hello = friendName ? `Hi ${escapeHtml(friendName)},` : "Hi,";
+
+  return {
+    to,
+    subject: `${inviterName} invited you to Grouv`,
+    html: layout(`
+      <p style="margin:0 0 16px;">${hello}</p>
+      <p style="margin:0 0 16px;">${inviter} is on Grouv — a place to meet people in the same chapter of life as you — and wants to bring you into your next chapter.</p>
+      <p style="margin:0 0 24px;">You'll get 14 days of the full Season Pass, free, when you join.</p>
+      <a href="${link}" style="display:inline-block;background:#F57E16;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;">Join ${inviter} on Grouv</a>
+    `),
+    text: `${friendName ? `Hi ${friendName},` : "Hi,"}\n\n${inviterName} is on Grouv — a place to meet people in the same chapter of life as you — and wants to bring you into your next chapter. You'll get 14 days of the full Season Pass, free, when you join.\n\nJoin: ${link}`,
+  };
+}
+
 export interface NotificationEmailInput {
   to: string;
   kind: string;

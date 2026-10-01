@@ -11,7 +11,16 @@ import { Button } from "@/components/ui/Button";
 import { cancelEvent, setRsvp } from "@/app/(app)/events/actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
-import { distanceLabel, eventDateLabel, eventTimeLabel, mapUrl, type Attendee, type EventCard } from "@/lib/events";
+import {
+  capacityPercent,
+  distanceLabel,
+  eventDateLabel,
+  eventTimeLabel,
+  isFull,
+  mapUrl,
+  type Attendee,
+  type EventCard,
+} from "@/lib/events";
 
 /**
  * Event View — Figma frame 452:9875.
@@ -19,7 +28,9 @@ import { distanceLabel, eventDateLabel, eventTimeLabel, mapUrl, type Attendee, t
  * A 724px conversation panel with the "group created" notice above the
  * messages, a "Join conversation" composer pinned to the bottom of the column,
  * and a 396px rail holding EVENT DETAILS and the ATTENDEE LIST (452:11307).
- * The phone frame (635:24106) turns that rail into an "Event Details" tab.
+ * The phone frames turn that rail into an "Event Details" tab (635:24106
+ * Conversation, 635:24424 Event Details, where the rows sit on white cards).
+ * A full event shows "Capacity reached" to anyone not already going.
  * The conversation is for people going; everyone else sees the RSVP.
  */
 const TABS = ["Conversation", "Event Details"] as const;
@@ -38,7 +49,7 @@ export function EventView({
   const [pending, startTransition] = useTransition();
   const chat = useRoomMessages(event.conversationId, event.going);
   const cancelled = event.status === "cancelled";
-  const full = !event.going && event.goingCount >= event.capacity;
+  const full = !event.going && isFull(event);
 
   const rsvp = (going: boolean) =>
     startTransition(async () => {
@@ -47,8 +58,9 @@ export function EventView({
       if (going) toast({ title: "You're grouv'd.", description: `See you at ${event.title}` });
     });
 
-  const details = (
+  const details = (carded: boolean) => (
     <EventDetails
+      carded={carded}
       event={event}
       attendees={attendees}
       isHost={isHost}
@@ -97,16 +109,17 @@ export function EventView({
           </div>
 
           {tab === "Event Details" && (
-            <div className="mx-auto w-full max-w-[724px] rail:hidden">{details}</div>
+            <div className="mx-auto w-full max-w-[724px] rail:hidden">{details(true)}</div>
           )}
 
           <section
             className={cn(
-              "mx-auto w-full max-w-[724px] flex-col items-center gap-4 rounded-2xl bg-surface p-6",
+              // The phone draws the messages straight on the page (635:24106).
+              "mx-auto w-full max-w-[724px] flex-col items-center gap-4 lg:rounded-2xl lg:bg-surface lg:p-6",
               tab === "Conversation" ? "flex" : "hidden rail:flex",
             )}
           >
-            <p className="flex w-full max-w-[427px] items-start gap-2 rounded-xl border border-primary-200 bg-primary-50 p-2 font-sans text-sm text-ink-200">
+            <p className="flex w-full max-w-[427px] items-start gap-2 rounded-xl border border-primary-200 bg-primary-50 p-2 font-sans text-sm text-ink-300 italic">
               <InfoIcon className="size-5 shrink-0 text-primary-600" />
               {cancelled
                 ? "This event has been cancelled."
@@ -126,7 +139,7 @@ export function EventView({
                 </p>
                 {!cancelled && (
                   <Button size="sm" onClick={() => rsvp(true)} loading={pending} disabled={full}>
-                    {full ? "This event is full" : "I'll Grouv"}
+                    {full ? "Capacity reached" : "I'll Grouv"}
                   </Button>
                 )}
               </div>
@@ -149,7 +162,7 @@ export function EventView({
 
       {/* Sidebar 452:11307 — 396px, scrolls on its own. */}
       <aside className="hidden w-[300px] shrink-0 flex-col gap-7 scroll-slim overflow-y-auto bg-surface px-6 pt-6 pb-10 rail:flex wide:w-[396px] wide:px-8">
-        {details}
+        {details(false)}
       </aside>
     </div>
   );
@@ -157,6 +170,7 @@ export function EventView({
 
 /** The rail's contents — a column on desktop, a tab on the phone. */
 function EventDetails({
+  carded,
   event,
   attendees,
   isHost,
@@ -164,6 +178,8 @@ function EventDetails({
   pending,
   full,
 }: {
+  /** The phone tab puts the rows and the attendees on white cards (635:24424). */
+  carded: boolean;
   event: EventCard;
   attendees: Attendee[];
   isHost: boolean;
@@ -174,6 +190,8 @@ function EventDetails({
   const toast = useToast();
   const [cancelling, startCancelling] = useTransition();
   const cancelled = event.status === "cancelled";
+  const card = carded ? "rounded-lg bg-surface p-4" : "";
+  const distance = distanceLabel(event.distanceKm);
 
   return (
     <div className="flex flex-col gap-7">
@@ -181,7 +199,7 @@ function EventDetails({
         <h2 className="font-sans text-base font-semibold text-ink-700">
           EVENT DETAILS
         </h2>
-        <div className="flex flex-col" suppressHydrationWarning>
+        <div className={cn("flex flex-col", card)} suppressHydrationWarning>
           <DetailRow icon={<UserIcon />} label="Organizer">
             <Value>{isHost ? "You" : (event.hostName ?? "—")}</Value>
           </DetailRow>
@@ -192,10 +210,10 @@ function EventDetails({
             <Value>{eventDateLabel(event.startsAt)}</Value>
           </DetailRow>
           <DetailRow icon={<PinIcon />} label="Where">
-            <Value>
-              {event.venueName}
-              {distanceLabel(event.distanceKm) && ` · ${distanceLabel(event.distanceKm)}`}
-            </Value>
+            <span className="flex items-baseline justify-between gap-3">
+              <Value>{event.venueName}</Value>
+              {distance && <span className="shrink-0 font-sans text-sm text-ink-200">{distance}</span>}
+            </span>
             {event.latitude !== null && event.longitude !== null && (
               <a
                 href={mapUrl(event.latitude, event.longitude)}
@@ -222,7 +240,7 @@ function EventDetails({
               )
             ) : (
               <Button size="sm" onClick={() => onRsvp(true)} loading={pending} disabled={full}>
-                {full ? "Full" : "I'll Grouv"}
+                {full ? "Capacity reached" : "I'll Grouv"}
               </Button>
             )}
             {isHost && (
@@ -244,7 +262,7 @@ function EventDetails({
         )}
       </section>
 
-      <span className="h-px w-full bg-ink-50" />
+      {!carded && <span className="h-px w-full bg-ink-50" />}
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
@@ -252,25 +270,28 @@ function EventDetails({
             ATTENDEE LIST
           </h2>
           <div className="flex items-center gap-3">
-            <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-lg bg-ivory-500">
+            <span className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-primary-50">
               <span
-                className="block h-full rounded-lg bg-primary-500"
-                style={{ width: `${Math.min(100, (event.goingCount / event.capacity) * 100)}%` }}
+                className="block h-full rounded-full bg-primary-500"
+                style={{ width: `${capacityPercent(event)}%` }}
               />
             </span>
             <span className="shrink-0 font-sans text-xs font-medium text-ink-400">
               {event.goingCount}/{event.capacity} Grouving
             </span>
           </div>
+          {isFull(event) && (
+            <p className="font-sans text-xs font-medium text-primary-600">Capacity reached</p>
+          )}
           <p className="font-sans text-xs text-ink-300">
             {isHost ? "As the host, you can see everyone going" : "Only people in your Circle are visible here"}
           </p>
         </div>
 
         {attendees.length === 0 ? (
-          <p className="font-sans text-sm text-ink-300">No one from your circle is going yet.</p>
+          <p className={cn("font-sans text-sm text-ink-300", card)}>No one from your circle is going yet.</p>
         ) : (
-          <ul className="flex flex-col">
+          <ul className={cn("flex flex-col", card)}>
             {attendees.map((person) => (
               <li key={person.userId} className="flex items-center gap-3 px-1 py-2">
                 <Avatar src={person.avatarUrl} name={person.name} sizes="32px" className="size-8" />

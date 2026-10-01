@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { IconPicker } from "@/components/app/IconPicker";
+import { usePaywall } from "@/components/app/pass/PaywallProvider";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
@@ -34,6 +35,7 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const [error, setError] = useState<string>();
   const [saving, startSaving] = useTransition();
+  const paywall = usePaywall();
 
   return (
     <div
@@ -93,6 +95,12 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
                   color: color as (typeof GROUP_COLORS)[number],
                   chapterSlug: chapterSlug || null,
                 });
+                if (result.passRequired) {
+                  // The trial ended while the sheet was open.
+                  onClose();
+                  paywall("create_group");
+                  return;
+                }
                 if (result.error || !result.slug) {
                   setError(result.error);
                   return;

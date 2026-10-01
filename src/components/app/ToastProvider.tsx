@@ -14,6 +14,9 @@ export interface Toast {
   title: string;
   description?: string;
   tone?: AlertTone;
+  /** A link-style button under the text; tapping it also dismisses the toast. */
+  action?: string;
+  onAction?: () => void;
 }
 
 const ToastContext = createContext<(toast: Omit<Toast, "id">) => void>(() => {});
@@ -49,6 +52,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               tone={toast.tone ?? "info"}
               title={toast.title}
               description={toast.description}
+              action={toast.action}
+              onAction={
+                toast.onAction &&
+                (() => {
+                  toast.onAction?.();
+                  setToasts((prev) => prev.filter((t) => t.id !== toast.id));
+                })
+              }
               onClose={() =>
                 setToasts((prev) => prev.filter((t) => t.id !== toast.id))
               }

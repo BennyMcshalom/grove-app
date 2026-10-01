@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ChapterReflection, type Reflection } from "@/components/app/ChapterReflection";
 import { FeedList } from "@/components/app/FeedList";
 import { LogMemories } from "@/components/app/LogPrompt";
+import { ArchiveChapterActions } from "@/components/app/wrapped/ArchiveChapterActions";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { LogEntry } from "@/lib/log";
@@ -19,12 +20,17 @@ import type { FeedPage, FeedQuery } from "@/lib/posts";
 const TABS = ["Posts", "Logs"];
 
 export function ChapterArchiveView({
+  userChapterId,
+  wrapId,
   name,
   posts,
   postsQuery,
   logs,
   reflection,
 }: {
+  userChapterId: string;
+  /** The chapter's Life Wrapped, when it has one. */
+  wrapId: string | null;
   name: string;
   posts: FeedPage;
   postsQuery: Omit<FeedQuery, "cursor">;
@@ -60,10 +66,14 @@ export function ChapterArchiveView({
           <EyeIcon />
           Read Reflection
         </button>
-        <span className="hidden lg:block">
-          <Button size="sm" onClick={() => setReflecting(true)}>
-            Read Reflection
-          </Button>
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="hidden lg:block">
+            <Button size="sm" onClick={() => setReflecting(true)}>
+              Read Reflection
+            </Button>
+          </span>
+          {/* View Wrapped / Download / Share — Figma 1466:25032. */}
+          <ArchiveChapterActions userChapterId={userChapterId} wrapId={wrapId} variant="menu" />
         </span>
       </header>
 

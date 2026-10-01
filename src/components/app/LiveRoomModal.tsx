@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { useToast } from "@/components/app/ToastProvider";
+import { Modal, ModalClose } from "@/components/ui/Modal";
 import { leaveLiveRoom, loadRoomPeople, setWave } from "@/app/(app)/events/actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
@@ -57,17 +58,7 @@ export function LiveRoomModal({
   const here = people?.length ?? 0;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center scroll-slim overflow-y-auto bg-ink-900/40 p-4 sm:p-8"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-        className="my-auto flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-surface p-6 sm:p-8"
-      >
+    <Modal label={title} onClose={onClose}>
         <header className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <span className="grid size-14 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600">
@@ -91,18 +82,11 @@ export function LiveRoomModal({
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="shrink-0 rounded p-3 text-ink-800 transition-colors hover:bg-ivory-200"
-          >
-            <CloseIcon />
-          </button>
+          <ModalClose onClose={onClose} className="shrink-0" />
         </header>
 
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-primary-50 p-5">
-          <p className="font-sans text-lg text-black">
+          <p className="font-sans text-lg text-ink-800">
             You&rsquo;re here and visible in this room
           </p>
           <button
@@ -136,8 +120,7 @@ export function LiveRoomModal({
                   <div className="flex items-center gap-6">
                     <span className="relative size-12 shrink-0">
                       <span
-                        className="absolute inset-0 rounded-full bg-[#F0B231]"
-                        style={{ boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" }}
+                        className="absolute inset-0 rounded-full bg-warning-40 shadow-[0px_2px_9px_9px] shadow-primary-400/45"
                       />
                       <Avatar src={person.avatarUrl} name={person.name} sizes="48px" className="relative size-12" />
                       <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
@@ -188,8 +171,7 @@ export function LiveRoomModal({
             })}
           </ul>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -212,14 +194,6 @@ function HandIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" className="size-5" aria-hidden="true">
-      <path d="m3.5 3.5 9 9m0-9-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }

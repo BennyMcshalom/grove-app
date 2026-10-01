@@ -9,7 +9,10 @@ import { useToast } from "@/components/app/ToastProvider";
 import { VideoViewer } from "@/components/app/VideoViewer";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { formatSeconds } from "@/components/app/VoiceRecorder";
+import { Button } from "@/components/ui/Button";
+import { Modal, ModalClose, ModalStatus } from "@/components/ui/Modal";
 import {
+  acknowledgeGroupRequest,
   addVideoTruth,
   deleteTruth,
   deleteVideoTruth,
@@ -42,11 +45,14 @@ export function GroupView({
   truths,
   videos,
   requests,
+  outcome = null,
 }: {
   group: Group;
   truths: Truth[];
   videos: VideoTruth[];
   requests: JoinRequest[];
+  /** An admin answered your request since you last looked (PRD §8). */
+  outcome?: "approved" | "declined" | null;
 }) {
   const toast = useToast();
   const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0]);
@@ -250,7 +256,57 @@ export function GroupView({
       </div>
 
       <SuggestedRail />
+
+      {outcome && <RequestOutcome group={group} outcome={outcome} />}
     </div>
+  );
+}
+
+/**
+ * "Join request accepted" / "declined" (PRD §8) — the same centred status
+ * card as "Request sent" (222:13844), shown once.
+ */
+function RequestOutcome({ group, outcome }: { group: Group; outcome: "approved" | "declined" }) {
+  const [open, setOpen] = useState(true);
+  if (!open) return null;
+  const close = () => {
+    setOpen(false);
+    void acknowledgeGroupRequest(group.id);
+  };
+
+  return (
+    <Modal label={outcome === "approved" ? "Request accepted" : "Request declined"} onClose={close} width="max-w-[480px]">
+      <div className="flex justify-end">
+        <ModalClose onClose={close} className="-mt-3 -mr-3" />
+      </div>
+      {outcome === "approved" ? (
+        <ModalStatus icon={<CheckIcon />} title="Request accepted">
+          You&rsquo;re in {group.title}. Say hello in the conversation.
+        </ModalStatus>
+      ) : (
+        <ModalStatus icon={<CrossIcon />} tone="danger" title="Request declined">
+          An admin didn&rsquo;t approve your request to join {group.title} this time. There are other groups in your
+          chapters.
+        </ModalStatus>
+      )}
+      {outcome === "approved" ? (
+        <Button fullWidth onClick={close}>
+          Open the conversation
+        </Button>
+      ) : (
+        <Button variant="secondary" fullWidth href="/groups" onClick={close}>
+          Browse groups
+        </Button>
+      )}
+    </Modal>
+  );
+}
+
+function CrossIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
+      <path d="M7 7l10 10M17 7 7 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
 

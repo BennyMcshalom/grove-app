@@ -8,7 +8,7 @@ import { signPaths } from "@/lib/storage-server";
 import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
 import { createClient } from "@/lib/supabase/server";
 
-export type SpaceActionResult = { error?: string };
+export type SpaceActionResult = { error?: string; limit?: boolean };
 
 /** Directory card → "Join" → "That's where i am". */
 export async function joinSpace(slug: string, phase: string): Promise<SpaceActionResult> {
@@ -24,9 +24,8 @@ export async function joinSpace(slug: string, phase: string): Promise<SpaceActio
     .insert({ user_id: viewer.userId, chapter_slug: slug, phase });
 
   if (error) {
-    if (error.hint === "chapter_limit") {
-      return { error: "You can only hold 4 chapters at once. Close one to make room." };
-    }
+    // Free keeps four active: the client opens the Season Pass paywall.
+    if (error.hint === "chapter_limit") return { error: error.message, limit: true };
     if (error.code === "23505") return { error: `You already hold ${chapter.name}.` };
     console.error("[spaces] joinSpace failed", error);
     if (error?.hint === "rate_limited") return { error: error.message };

@@ -2,13 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
+import { Dot, LiveMeetCard, PinIcon } from "@/components/app/EventsRail";
 import { LiveRoomModal } from "@/components/app/LiveRoomModal";
 import { useToast } from "@/components/app/ToastProvider";
 import { joinLiveRoom, startLiveRoom } from "@/app/(app)/events/actions";
 import type { LiveRoom } from "@/lib/events";
 
 /**
- * Meet & Greet — Figma frame 367:8960 (the Events section's second tab).
+ * Meet & Greet — Figma frames 367:8951 / 367:8960 (the Events section's
+ * second tab) and 635:25558 (phone, with YOUR LIVE MEET above the list).
  *
  * A "start one here" card whose button stays disabled until the place is
  * named, then LIVE NEAR YOU rooms. Naming a room someone already started
@@ -81,28 +83,7 @@ export function MeetAndGreet({ rooms, onHost }: { rooms: LiveRoom[]; onHost?: ()
           <h2 className="font-sans text-base font-medium text-ink-600">
             YOUR LIVE MEET
           </h2>
-          <button
-            type="button"
-            onClick={() => setOpenRoom({ id: myRoom.id, title: myRoom.title })}
-            className="flex flex-col gap-2 rounded-lg p-4 text-left"
-            style={{
-              backgroundImage:
-                "var(--wash-pink)",
-            }}
-          >
-            <div className="flex w-full items-center justify-between gap-2">
-              <span className="font-display text-[13.8px] leading-[1.26] font-semibold text-ink-500">
-                {myRoom.title}
-              </span>
-              <span className="flex items-center gap-1.5 font-sans text-xs font-medium text-success-60">
-                <span className="size-2 rounded-full bg-success-60" />
-                live
-              </span>
-            </div>
-            <span className="font-sans text-xs text-ink-400">
-              {myRoom.hereCount} Meeting &amp; Greeting
-            </span>
-          </button>
+          <LiveMeetCard room={myRoom} onOpen={() => setOpenRoom({ id: myRoom.id, title: myRoom.title })} />
         </section>
       )}
 
@@ -161,11 +142,14 @@ export function MeetAndGreet({ rooms, onHost }: { rooms: LiveRoom[]; onHost?: ()
                   {(room.venueName || room.communityLabel || room.here) && (
                     <div className="flex flex-wrap items-center gap-2">
                       {room.venueName && (
-                        <span className="font-sans text-xs font-medium text-ink-400">{room.venueName}</span>
+                        <span className="flex items-center gap-1 font-sans text-xs font-medium text-ink-400">
+                          <PinIcon className="size-3.5 text-primary-600" />
+                          {room.venueName}
+                        </span>
                       )}
                       {room.communityLabel && (
                         <span className="flex items-center gap-1">
-                          <span className="size-1.5 rounded-full bg-primary-500" />
+                          {room.venueName && <Dot />}
                           <span className="font-sans text-xs font-medium text-ink-400">
                             {room.communityLabel}
                           </span>

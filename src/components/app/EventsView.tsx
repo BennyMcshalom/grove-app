@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Avatar } from "@/components/app/Avatar";
 import { TopBar } from "@/components/app/TopBar";
-import { EventsRail } from "@/components/app/EventsRail";
+import {
+  AttendeeStack,
+  CalendarIcon,
+  ChapterHost,
+  Dot,
+  EventsRail,
+  PinIcon,
+  TimerIcon,
+} from "@/components/app/EventsRail";
 import { EmptyState } from "@/components/app/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { MeetAndGreet } from "@/components/app/MeetAndGreet";
@@ -12,13 +20,23 @@ import { CreateEventModal } from "@/components/app/CreateEventModal";
 import { useToast } from "@/components/app/ToastProvider";
 import { setRsvp, touchLiveRoom } from "@/app/(app)/events/actions";
 import { cn } from "@/lib/cn";
-import { distanceLabel, eventDateLabel, eventTimeLabel, type EventCard, type LiveRoom } from "@/lib/events";
+import {
+  capacityPercent,
+  circleLabel,
+  distanceLabel,
+  eventDateLabel,
+  eventTimeLabel,
+  isFull,
+  type EventCard,
+  type LiveRoom,
+} from "@/lib/events";
 
 /**
- * Events — Figma frame 354:6662 ("Gatherings").
+ * Events — Figma frames 354:6662 ("Gatherings", desktop) and 635:21551 (phone).
  *
  * Tabs, a section header with search + Host an Event, then event cards —
- * events in your spaces first, then soonest.
+ * events in your spaces first, then soonest. On the phone the GROUV'D EVENTS
+ * rail becomes a "View Grouv'd Events" link pinned under the list.
  */
 const TABS = ["Gatherings", "Meet & Greet"] as const;
 
@@ -42,6 +60,7 @@ export function EventsView({ events, rooms }: { events: EventCard[]; rooms: Live
   const visible = events.filter((e) =>
     needle ? `${e.title} ${e.venueName}`.toLowerCase().includes(needle) : true,
   );
+  const grouvd = events.filter((e) => e.going);
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -83,7 +102,7 @@ export function EventsView({ events, rooms }: { events: EventCard[]; rooms: Live
                   aria-label="Search events"
                   aria-expanded={searchOpen}
                   onClick={() => setSearchOpen((v) => !v)}
-                  className="grid size-10 place-items-center rounded-full bg-surface text-ink-400 transition-colors hover:bg-ivory-200"
+                  className="grid size-10 place-items-center rounded-full bg-surface text-primary-600 transition-colors hover:bg-ivory-200"
                 >
                   <SearchIcon />
                 </button>
@@ -103,11 +122,19 @@ export function EventsView({ events, rooms }: { events: EventCard[]; rooms: Live
               />
             )}
 
+            {/* No Events — 648:36642. */}
             {visible.length === 0 ? (
               <EmptyState
                 variant="screen"
                 title="No Events"
-                body={needle ? "No events match that search" : "There are no events coming up yet"}
+                body={needle ? "No events match that search" : "There are no events hosting near you yet"}
+                action={
+                  needle ? undefined : (
+                    <Button size="sm" variant="secondary" onClick={() => setCreating(true)}>
+                      Host an Event
+                    </Button>
+                  )
+                }
               />
             ) : (
             <ul className="flex flex-col gap-4">
@@ -122,109 +149,158 @@ export function EventsView({ events, rooms }: { events: EventCard[]; rooms: Live
             )}
           </div>
         </div>
+
+        {/* Phone 635:21551 — the rail's list lives on its own page here. */}
+        {tab === "Gatherings" && (
+          <div className="shrink-0 border-t border-ink-50 bg-surface px-4 py-5 text-center rail:hidden">
+            <Link
+              href="/events/grouvd"
+              className="font-sans text-sm font-medium text-primary-600 hover:underline"
+            >
+              View Grouv&rsquo;d Events{grouvd.length > 0 && ` (${grouvd.length})`}
+            </Link>
+          </div>
+        )}
       </div>
 
-      <EventsRail events={events.filter((e) => e.going)} room={myRoom} />
+      <EventsRail events={grouvd} room={myRoom} />
 
       {creating && <CreateEventModal onClose={() => setCreating(false)} />}
     </div>
   );
 }
 
+/**
+ * An event card — 354:6662 / 635:21551: glyph, title and I'll Grouv; the Space
+ * chip and host; your circle going beside the capacity bar; the description
+ * in quotes; then date, time and venue chips.
+ */
 function EventRow({ event }: { event: EventCard }) {
   const toast = useToast();
+  const router = useRouter();
   const [going, setGoing] = useState(event.going);
   const [pending, startTransition] = useTransition();
-  const full = !going && event.goingCount >= event.capacity;
+  // Capacity reached — only for people who aren't already in.
+  const full = !going && isFull(event);
+  const distance = distanceLabel(event.distanceKm);
+
+  const rsvp = () =>
+    startTransition(async () => {
+      const next = !going;
+      setGoing(next);
+      const result = await setRsvp(event.id, next);
+      if (result.error) {
+        setGoing(!next);
+        toast({ title: result.error, tone: "danger" });
+        return;
+      }
+      // Toast 450:8591.
+      if (next) {
+        toast({
+          title: "You're grouv'd.",
+          description: `See you at ${event.title}`,
+          action: "View Event",
+          onAction: () => router.push(`/events/${event.id}`),
+        });
+      }
+    });
 
   return (
-    <div className="relative flex gap-2 rounded-lg bg-surface p-4">
+    <div className="flex gap-2 rounded-lg bg-surface p-4">
       <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600">
         <Glyph icon={event.icon} />
       </span>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2 pr-28">
-        <h2 className="font-sans text-sm font-semibold text-ink-600">
-          {/* Opens the Event View (452:9875). */}
-          <Link href={`/events/${event.id}`} className="hover:underline">
-            {event.title}
-          </Link>
-        </h2>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="pt-1.5 font-sans text-sm font-semibold text-ink-600">
+            {/* Opens the Event View (452:9875). */}
+            <Link href={`/events/${event.id}`} className="hover:underline">
+              {event.title}
+            </Link>
+          </h2>
+          <button
+            type="button"
+            disabled={pending || full}
+            onClick={rsvp}
+            aria-pressed={going}
+            className={cn(
+              "flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 font-ui text-sm font-medium transition-colors",
+              going
+                ? "bg-primary-50 text-primary-800"
+                : full
+                  ? "bg-ivory-500 text-ink-300"
+                  : "text-primary-600 hover:bg-primary-50",
+              pending && "opacity-60",
+            )}
+          >
+            {going ? "You're grouv'd" : full ? "Capacity reached" : "I'll Grouv"}
+            {!full && <ArrowIcon />}
+          </button>
+        </div>
 
-        {event.hostName && (
-          <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-primary-600" />
-            <span className="font-sans text-xs font-medium text-ink-400">
-              {event.hostName}
-            </span>
-          </div>
-        )}
+        <ChapterHost event={event} />
 
         <div className="flex items-center gap-3">
-          {event.attendeeAvatars.length > 0 && (
-            <span className="flex">
-              {event.attendeeAvatars.map((src, i) => (
-                <span
-                  key={`${src}-${i}`}
-                  className="rounded-full border-2 border-surface"
-                  style={{ marginLeft: i === 0 ? 0 : -8 }}
-                >
-                  <Avatar src={src} name="" sizes="24px" className="size-5" />
-                </span>
-              ))}
-            </span>
-          )}
-          <span className="font-sans text-xs text-ink-400">
-            {event.goingCount} going
-            {event.circleGoing > 0 && ` · ${event.circleGoing} from your circle`}
-          </span>
+          <AttendeeStack avatars={event.attendeeAvatars} />
+          <CapacityMeter event={event} className="min-w-0 flex-1 sm:max-w-80" />
         </div>
 
         {event.description && (
-          <p className="line-clamp-2 font-sans text-xs text-ink-400">
-            {event.description}
+          <p className="line-clamp-2 font-sans text-xs text-ink-400 italic">
+            &ldquo;{event.description}&rdquo;
           </p>
         )}
 
         <div className="flex flex-wrap gap-2" suppressHydrationWarning>
-          <Chip>{eventDateLabel(event.startsAt)}</Chip>
-          <Chip>{eventTimeLabel(event.startsAt)}</Chip>
-          <Chip>{event.venueName}</Chip>
-          {distanceLabel(event.distanceKm) && <Chip>{distanceLabel(event.distanceKm)}</Chip>}
+          <Chip>
+            <CalendarIcon className="size-3.5" />
+            {eventDateLabel(event.startsAt)}
+          </Chip>
+          <Chip>
+            <TimerIcon className="size-3.5" />
+            {eventTimeLabel(event.startsAt)}
+          </Chip>
+          <Chip>
+            <PinIcon className="size-3.5" />
+            {event.venueName}
+            {distance && (
+              <>
+                <Dot />
+                {distance}
+              </>
+            )}
+          </Chip>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="absolute top-4 right-4">
-        <button
-          type="button"
-          disabled={pending || full}
-          onClick={() =>
-            startTransition(async () => {
-              const next = !going;
-              setGoing(next);
-              const result = await setRsvp(event.id, next);
-              if (result.error) {
-                setGoing(!next);
-                toast({ title: result.error, tone: "danger" });
-                return;
-              }
-              if (next) {
-                toast({ title: "You're grouv'd.", description: `See you at ${event.title}` });
-              }
-            })
-          }
-          aria-pressed={going}
-          className={cn(
-            "flex items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm font-medium transition-colors disabled:opacity-60",
-            going
-              ? "bg-primary-50 text-primary-800"
-              : "text-primary-600 hover:bg-primary-50",
-          )}
-        >
-          {going ? "You're grouv'd" : full ? "Full" : "I'll Grouv"}
-          <ArrowIcon />
-        </button>
+/** "12 of your circle have GROUV … 78/100" over the capacity bar. */
+function CapacityMeter({ event, className }: { event: EventCard; className?: string }) {
+  const full = isFull(event);
+  return (
+    <div className={cn("flex flex-col gap-1.5", className)}>
+      <div className="flex items-center justify-between gap-2 font-sans text-xs text-ink-400">
+        <span className="truncate">{circleLabel(event)}</span>
+        <span className={cn("shrink-0", full && "font-medium text-primary-600")}>
+          {full ? "Capacity reached" : `${event.goingCount}/${event.capacity}`}
+        </span>
       </div>
+      <span
+        role="meter"
+        aria-label="Places taken"
+        aria-valuemin={0}
+        aria-valuemax={event.capacity}
+        aria-valuenow={Math.min(event.goingCount, event.capacity)}
+        className="h-1 w-full overflow-hidden rounded-full bg-primary-50"
+      >
+        <span
+          className="block h-full rounded-full bg-primary-500"
+          style={{ width: `${capacityPercent(event)}%` }}
+        />
+      </span>
     </div>
   );
 }
@@ -249,7 +325,7 @@ export function Glyph({ icon, className = "size-5" }: { icon: string; className?
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="flex items-center gap-1 rounded-full bg-ivory-500 p-2 font-sans text-xs font-medium text-ink-400">
+    <span className="flex items-center gap-1.5 rounded-full bg-ivory-500 p-2 font-sans text-xs font-medium text-ink-400">
       {children}
     </span>
   );

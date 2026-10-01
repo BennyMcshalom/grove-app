@@ -1,13 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/app/Avatar";
 import { CloseChapterWizard } from "@/components/app/CloseChapterWizard";
 import { JoinSpaceModal } from "@/components/app/JoinSpaceModal";
 import { useToast } from "@/components/app/ToastProvider";
-import { closeChapter, joinSpace } from "@/app/(app)/spaces/actions";
+import { usePaywall, useSpaceChooser } from "@/components/app/pass/PaywallProvider";
+import { joinSpace } from "@/app/(app)/spaces/actions";
+import { resumeSpace } from "@/lib/pass-actions";
 import type { Chapter } from "@/lib/chapters";
 
 /**
@@ -22,6 +24,7 @@ export function OpenSpaceCard({
   status,
   members,
   avatars,
+  paused = false,
 }: {
   userChapterId: string;
   chapter: Chapter;
@@ -29,10 +32,21 @@ export function OpenSpaceCard({
   members: number;
   /** Up to four member photos. */
   avatars: string[];
+  /** Paused on Free (PRD §13): readable, no new posts or logs. */
+  paused?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [closed, setClosed] = useState(false);
+  const [resuming, startResuming] = useTransition();
   const toast = useToast();
+  const chooseSpaces = useSpaceChooser();
+
+  const reactivate = () =>
+    startResuming(async () => {
+      const result = await resumeSpace(userChapterId);
+      if (result.full) return chooseSpaces(userChapterId);
+      toast(result.error ? { title: result.error, tone: "danger" } : { title: `${chapter.name} is active again`, tone: "confirm" });
+    });
 
   return (
     <article className="flex flex-col justify-between gap-4 rounded-lg bg-surface p-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
@@ -67,14 +81,26 @@ export function OpenSpaceCard({
         </div>
 
         <span className="flex w-fit items-center gap-1 rounded-full bg-ivory-500 px-2 py-1">
-          <span className="size-1.5 rounded-full bg-primary-600" />
+          <span className={paused ? "size-1.5 rounded-full bg-ink-200" : "size-1.5 rounded-full bg-primary-600"} />
           <span className="font-sans text-xs font-medium text-ink-400">
-            In progress
+            {paused ? "Paused" : "In progress"}
           </span>
         </span>
       </div>
 
       <div className="flex flex-col gap-1">
+        {paused && (
+          <Button
+            variant="secondary"
+            size="sm"
+            fullWidth
+            loading={resuming}
+            onClick={reactivate}
+            className="px-3 py-1.5 text-xs"
+          >
+            Reactivate
+          </Button>
+        )}
         <Button
           size="sm"
           fullWidth
@@ -100,15 +126,10 @@ export function OpenSpaceCard({
         {confirming && (
           <CloseChapterWizard
             chapter={chapter}
+            userChapterId={userChapterId}
             onClose={() => setConfirming(false)}
-            onFinish={async (answers) => {
-              const result = await closeChapter({ userChapterId, ...answers });
-              if (result.error) return result;
-              setConfirming(false);
-              setClosed(true);
-              toast({ title: "Chapter closed and added to life archive" });
-              return {};
-            }}
+            onClosed={() => setClosed(true)}
+            onReopened={() => setClosed(false)}
           />
         )}
       </div>
@@ -124,6 +145,7 @@ export function DirectorySpaceCard({ chapter }: { chapter: Chapter }) {
   // "Join" opens the chapter's "where are you?" sheet (223:14200).
   const [joining, setJoining] = useState(false);
   const toast = useToast();
+  const paywall = usePaywall();
 
   return (
     <article className="flex h-[142px] flex-col justify-between rounded-lg bg-surface p-4 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
@@ -157,6 +179,12 @@ export function DirectorySpaceCard({ chapter }: { chapter: Chapter }) {
           onClose={() => setJoining(false)}
           onJoin={async ([phase]) => {
             const result = await joinSpace(chapter.slug, phase);
+            // A fifth active Space on Free → Season Pass paywall.
+            if (result.limit) {
+              setJoining(false);
+              paywall("space_limit");
+              return {};
+            }
             if (result.error) return result;
             // The page refreshes and this chapter moves up to "Your open chapters".
             setJoining(false);

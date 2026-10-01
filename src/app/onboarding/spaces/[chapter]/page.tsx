@@ -62,9 +62,11 @@ export default function SpacePage() {
           stay on one line — "Relationships, where are you?" needs ~700px at the
           desktop size, and capping it at the list's 625px was forcing a wrap.
           The list itself is still constrained to 625px below. */}
-      <div className="mx-auto flex min-h-0 w-full max-w-[760px] flex-1 flex-col justify-center gap-4 lg:gap-6">
+      {/* Phone (599:21204 …) hangs the content under the header rather than
+          centring it; desktop keeps it centred. */}
+      <div className="mx-auto flex min-h-0 w-full max-w-[760px] flex-1 flex-col justify-start gap-4 pt-4 lg:justify-center lg:gap-6 lg:pt-0">
         <header className="flex shrink-0 flex-col gap-1.5">
-          <p className="text-center font-sans text-xs tracking-wide text-ink-200 uppercase lg:text-sm">
+          <p className="text-center font-sans text-xs text-ink-200 lg:text-sm lg:tracking-wide lg:uppercase">
             Space {Math.max(position, 0) + 1} of {chapters.length || 1}
           </p>
           <div className="flex items-center justify-center gap-2">

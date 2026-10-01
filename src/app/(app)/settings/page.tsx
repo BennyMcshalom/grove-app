@@ -9,26 +9,45 @@ export default async function SettingsPage() {
   const session = await getViewer();
   const supabase = await createClient();
 
-  const [{ data: prompts }, { data: preferences }, { data: profile }, { data: isStaff }, { data: subscription }] =
-    await Promise.all([
-      supabase
-        .from("profile_prompts")
-        .select("honest_tension, sitting_with, open_to")
-        .eq("user_id", viewer.id)
-        .maybeSingle(),
-      supabase
-        .from("notification_preferences")
-        .select("chapter_prompt, wave_received, email_updates")
-        .eq("user_id", viewer.id)
-        .single(),
-      supabase.from("profiles").select("theme, log_visibility").eq("id", viewer.id).single(),
-      supabase.rpc("am_i_staff"),
-      supabase
-        .from("subscriptions")
-        .select("trial_started_at, current_period_end, cancel_at_period_end, billing_store")
-        .eq("user_id", viewer.id)
-        .single(),
-    ]);
+  const [
+    { data: prompts },
+    { data: preferences },
+    { data: profile },
+    { data: isStaff },
+    { data: subscription },
+    { data: privacy },
+    { data: blocks },
+  ] = await Promise.all([
+    supabase
+      .from("profile_prompts")
+      .select("honest_tension, sitting_with, open_to")
+      .eq("user_id", viewer.id)
+      .maybeSingle(),
+    supabase
+      .from("notification_preferences")
+      .select("chapter_prompt, wave_received, email_updates")
+      .eq("user_id", viewer.id)
+      .single(),
+    supabase.from("profiles").select("theme, log_visibility").eq("id", viewer.id).single(),
+    supabase.rpc("am_i_staff"),
+    supabase
+      .from("subscriptions")
+      .select("trial_started_at, current_period_end, cancel_at_period_end, billing_store")
+      .eq("user_id", viewer.id)
+      .single(),
+    supabase.from("privacy_settings").select("discoverable, activity_matching").eq("user_id", viewer.id).maybeSingle(),
+    supabase
+      .from("blocks")
+      .select("blocked_id, created_at")
+      .eq("blocker_id", viewer.id)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  // Blocked accounts by name and photo (profiles are readable to members).
+  const blockedIds = (blocks ?? []).map((b) => b.blocked_id);
+  const { data: blockedProfiles } = blockedIds.length
+    ? await supabase.from("profiles").select("id, first_name, avatar_url").in("id", blockedIds)
+    : { data: [] };
 
   return (
     <SettingsView
@@ -53,6 +72,16 @@ export default async function SettingsPage() {
         currentPeriodEnd: subscription?.current_period_end ?? null,
         cancelAtPeriodEnd: subscription?.cancel_at_period_end ?? false,
       }}
+      privacy={{
+        discoverable: privacy?.discoverable ?? true,
+        activityMatching: privacy?.activity_matching ?? true,
+      }}
+      blocked={(blocks ?? []).flatMap((b) => {
+        const person = blockedProfiles?.find((p) => p.id === b.blocked_id);
+        return person
+          ? [{ userId: person.id, name: person.first_name, avatarUrl: person.avatar_url, blockedAt: b.created_at }]
+          : [];
+      })}
     />
   );
 }

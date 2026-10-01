@@ -111,7 +111,7 @@ await fails(
   [JSON.stringify([{ slug: "career", phase: "Deep in recovery" }])],
   "foreign key",
 );
-await fails("onboarding needs 1-4 chapters", D, `select public.complete_onboarding('[]'::jsonb)`, [], "between 1 and 4");
+await fails("onboarding needs 1-8 chapters", D, `select public.complete_onboarding('[]'::jsonb)`, [], "between 1 and 8");
 
 await step("chapter limit", async () => {
   await q(A, `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'wealth', 'Investing seriously')`, [A]);
@@ -385,11 +385,24 @@ await step("bonds overview, requests and suggestions", async () => {
   );
 });
 
+// Starting a group needs the Season Pass; lend it for the insert only.
+async function withPass(uid, fn) {
+  const [prev] = await su(`select status from public.subscriptions where user_id = $1`, [uid]);
+  await su(`update public.subscriptions set status = 'active' where user_id = $1`, [uid]);
+  try {
+    return await fn();
+  } finally {
+    await su(`update public.subscriptions set status = $2 where user_id = $1`, [uid, prev.status]);
+  }
+}
+
 let group, groupConv;
 await step("groups", async () => {
-  [{ id: group, conversation_id: groupConv }] = await q(
-    A,
-    `insert into public.groups (title, label, description, icon, color, chapter_slug) values ('First-time Founder!', 'First 1000 days', 'desc', 'suitcase', '#FED1DD', 'career') returning id, conversation_id, slug`,
+  [{ id: group, conversation_id: groupConv }] = await withPass(A, () =>
+    q(
+      A,
+      `insert into public.groups (title, label, description, icon, color, chapter_slug) values ('First-time Founder!', 'First 1000 days', 'desc', 'suitcase', '#FED1DD', 'career') returning id, conversation_id, slug`,
+    ),
   );
   const [g] = await su(`select slug, member_count, created_by from public.groups where id = $1`, [group]);
   check("slug generated", /^first-time-founder-[0-9a-f]{6}$/.test(g.slug), g.slug);
@@ -414,7 +427,9 @@ await step("groups", async () => {
   check("requester notified of approval", bNotes[0]?.data?.approved === true, bNotes);
 });
 await fails("can't self-join approval group", C, `insert into public.group_members (group_id, user_id) values ($1, $2)`, [group, C], "row-level security");
-await fails("bad group color rejected", A, `insert into public.groups (title, color) values ('x', '#000000')`, [], "check");
+await withPass(A, () =>
+  fails("bad group color rejected", A, `insert into public.groups (title, color) values ('x', '#000000')`, [], "check"),
+);
 
 // --- events --------------------------------------------------------------------
 let event;
@@ -553,9 +568,8 @@ await step("group cards, truths and admins", async () => {
   const [bCard] = await q(B, `select * from public.group_cards(null, $1)`, [card.slug]);
   check("slug lookup shows the member's role", bCard?.my_role === "member", bCard);
 
-  const [{ id: healthGroup }] = await q(
-    C,
-    `insert into public.groups (title, chapter_slug) values ('Recovery circle', 'health') returning id`,
+  const [{ id: healthGroup }] = await withPass(C, () =>
+    q(C, `insert into public.groups (title, chapter_slug) values ('Recovery circle', 'health') returning id`),
   );
   const suggested = await q(A, `select slug from public.group_cards(null, null, true)`);
   check("suggests groups in the viewer's chapters", suggested.length === 1, suggested);
@@ -1237,6 +1251,527 @@ await step("circle log chips follow the moment", async () => {
   check("each moment carries its space's stage", row?.entries?.[0]?.phase === "Relearning the basics", row);
 });
 
+// --- Season Pass: trial at activation, paused Spaces, referrals ---------------
+let passT, passN;
+await step("season pass trial at activation", async () => {
+  [{ id: passT }] = await su(
+    `insert into auth.users (email, raw_user_meta_data, email_confirmed_at) values ('tomi@x.com', '{"first_name":"Tomi"}', now()) returning id`,
+  );
+  const [t] = await su(`select status, trial_ends_at - trial_started_at as span from public.subscriptions where user_id = $1`, [passT]);
+  check("a verified sign-up starts the 14-day trial", t.status === "trialing" && /14 days/.test(JSON.stringify(t.span)), t);
+  const [{ has_pass }] = await q(passT, `select public.has_pass()`);
+  check("the trial is Season Pass", has_pass === true);
+
+  const [{ id: U }] = await su(`insert into auth.users (email) values ('uma@x.com') returning id`);
+  const [before] = await su(`select status from public.subscriptions where user_id = $1`, [U]);
+  check("no trial before the email is verified", before.status === "none", before);
+  await su(`update auth.users set email_confirmed_at = now() where id = $1`, [U]);
+  const [after] = await su(`select status, trial_started_at from public.subscriptions where user_id = $1`, [U]);
+  check("verifying the email starts it", after.status === "trialing", after);
+  await su(`update auth.users set email_confirmed_at = now() + interval '1 second' where id = $1`, [U]);
+  const [again] = await su(`select trial_started_at from public.subscriptions where user_id = $1`, [U]);
+  check("one trial per account", String(again.trial_started_at) === String(after.trial_started_at), again);
+  await fails("no second trial through start_trial", U, `select public.start_trial()`, [], "already been used");
+
+  const [{ id: V }] = await su(`insert into auth.users (email) values ('vic@x.com') returning id`);
+  const [{ status }] = await q(V, `select (public.start_trial()).status`);
+  check("an existing member who never started can still start one", status === "trialing", status);
+});
+
+await step("season pass holds eight spaces, free keeps four", async () => {
+  await q(passT, `select public.complete_onboarding($1::jsonb)`, [
+    JSON.stringify([
+      { slug: "career", phase: "Growing a team" },
+      { slug: "health", phase: "Building a habit" },
+      { slug: "wealth", phase: "Investing seriously" },
+      { slug: "creative", phase: "Mid-project" },
+      { slug: "learning", phase: "Day one" },
+      { slug: "spiritual", phase: "Newly questioning" },
+    ]),
+  ]);
+  const held = await su(`select count(*)::int n from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null`, [passT]);
+  check("onboarding takes six Spaces on the trial", held[0].n === 6, held[0].n);
+
+  // The two used most recently survive the downgrade even though they were
+  // opened first.
+  await q(passT, `insert into public.posts (chapter_slug, kind, body) values ('career', 'grouv', 'still here')`);
+  const [health] = await su(`select id from public.user_chapters where user_id = $1 and chapter_slug = 'health'`, [passT]);
+  await q(passT, `insert into public.log_entries (user_chapter_id, body) values ($1, 'walked')`, [health.id]);
+
+  await su(`update public.subscriptions set trial_ends_at = now() - interval '1 minute' where user_id = $1`, [passT]);
+  await su(`select private.expire_trials()`);
+  const rows = await su(
+    `select chapter_slug, paused_at is not null as paused from public.user_chapters where user_id = $1 and status = 'open'`,
+    [passT],
+  );
+  const active = rows.filter((r) => !r.paused).map((r) => r.chapter_slug);
+  check("trial end keeps four active", active.length === 4 && rows.length === 6, rows);
+  check("the last used stay active", active.includes("career") && active.includes("health"), active);
+  const [{ status, spaces_review_due }] = await su(`select status, spaces_review_due from public.subscriptions where user_id = $1`, [passT]);
+  check("trial expired and a choice is due", status === "expired" && spaces_review_due === true, { status, spaces_review_due });
+  const note = await su(`select 1 from public.notifications where user_id = $1 and kind = 'spaces_paused'`, [passT]);
+  check("the member is told Spaces paused", note.length === 1, note.length);
+
+  const pausedSlug = rows.find((r) => r.paused).chapter_slug;
+  await fails("no posts into a paused Space", passT, `insert into public.posts (chapter_slug, kind, body) values ($1, 'grouv', 'x')`, [pausedSlug], "paused");
+  const [pausedRow] = await su(`select id from public.user_chapters where user_id = $1 and chapter_slug = $2 and status = 'open'`, [passT, pausedSlug]);
+  await fails("no log entries into a paused Space", passT, `insert into public.log_entries (user_chapter_id, body) values ($1, 'x')`, [pausedRow.id], "paused");
+  const visible = await q(passT, `select 1 from public.user_chapters where id = $1`, [pausedRow.id]);
+  check("a paused Space stays visible", visible.length === 1);
+  await fails("reactivating needs room on Free", passT, `select public.resume_space($1)`, [pausedRow.id], "4 chapters");
+  await fails(
+    "a fifth active Space on Free is refused",
+    passT,
+    `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'adventure', 'Planning the leap')`,
+    [passT],
+    "4 chapters",
+  );
+
+  const ids = (await su(`select id, chapter_slug from public.user_chapters where user_id = $1 and status = 'open' order by chapter_slug`, [passT]));
+  await fails("choose at most four", passT, `select public.choose_active_spaces($1::uuid[])`, [ids.slice(0, 5).map((r) => r.id)], "four");
+  const pick = ids.filter((r) => ["creative", "learning", "spiritual", "wealth"].includes(r.chapter_slug)).map((r) => r.id);
+  await q(passT, `select public.choose_active_spaces($1::uuid[])`, [pick]);
+  const chosen = await su(`select chapter_slug from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null order by 1`, [passT]);
+  check("the chosen four are active", chosen.map((r) => r.chapter_slug).join() === "creative,learning,spiritual,wealth", chosen);
+  const [{ spaces_review_due: due }] = await su(`select spaces_review_due from public.subscriptions where user_id = $1`, [passT]);
+  check("choosing clears the prompt", due === false);
+
+  await su(
+    `select public.sync_billing($1, 'active', 'rc_billing', now() + interval '1 year', null, false, null, 'grouv_founding_annual')`,
+    [passT],
+  );
+  const all = await su(`select count(*)::int n from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null`, [passT]);
+  check("subscribing restores every paused Space", all[0].n === 6, all[0].n);
+  const [{ plan }] = await su(`select plan from public.subscriptions where user_id = $1`, [passT]);
+  check("the plan's product is recorded", plan === "grouv_founding_annual", plan);
+  await q(passT, `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'adventure', 'Planning the leap')`, [passT]);
+
+  // Canceled: access runs to the period end, then the sweep pauses.
+  await su(`update public.subscriptions set status = 'canceled', current_period_end = now() + interval '1 day' where user_id = $1`, [passT]);
+  const still = await su(`select count(*)::int n from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null`, [passT]);
+  check("canceled keeps access until the period ends", still[0].n === 7, still[0].n);
+  await su(`update public.subscriptions set current_period_end = now() - interval '1 minute' where user_id = $1`, [passT]);
+  const ended = await su(`select count(*)::int n from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null`, [passT]);
+  check("then Free's four apply", ended[0].n === 4, ended[0].n);
+  // Leave the post counts the later steps check as they were.
+  await su(`delete from public.posts where author_id = $1`, [passT]);
+});
+
+await step("trial reminder", async () => {
+  const [{ id: W }] = await su(
+    `insert into auth.users (email, email_confirmed_at) values ('wen@x.com', now()) returning id`,
+  );
+  await su(`update public.subscriptions set trial_ends_at = now() + interval '2 days' where user_id = $1`, [W]);
+  await su(`select private.expire_trials()`);
+  await su(`select private.expire_trials()`);
+  const notes = await su(`select count(*)::int n from public.notifications where user_id = $1 and kind = 'trial_ending'`, [W]);
+  check("one reminder before the trial ends", notes[0].n === 1, notes[0].n);
+});
+
+await step("referrals", async () => {
+  const [{ code, invites_sent }] = await q(passT, `select * from public.my_referral()`);
+  check("a code from the first name", /^tomi\d+$/.test(code) && invites_sent === 0, code);
+  const [{ code: same }] = await q(passT, `select code from public.my_referral()`);
+  check("the code is stable", same === code, same);
+  const inviter = await db.transaction(async (tx) => {
+    await tx.exec("set local role anon");
+    return (await tx.query("select * from public.referral_inviter($1)", [code.toUpperCase()])).rows;
+  });
+  check("the landing page can name the inviter", inviter[0]?.first_name === "Tomi", inviter);
+
+  [{ id: passN }] = await su(
+    `insert into auth.users (email, raw_user_meta_data, email_confirmed_at) values ('nia@x.com', '{"first_name":"Nia"}', now()) returning id`,
+  );
+  const [{ claim_referral: claimed }] = await q(passN, `select public.claim_referral($1)`, [code]);
+  check("a new account attaches to the link", claimed === true);
+  const [{ claim_referral: twice }] = await q(passN, `select public.claim_referral($1)`, [code]);
+  check("only once", twice === false);
+  const [{ claim_referral: self }] = await q(passT, `select public.claim_referral($1)`, [code]);
+  check("not your own, nor after onboarding", self === false);
+  const joined = await su(`select 1 from public.notifications where user_id = $1 and kind = 'referral_joined' and actor_id = $2`, [passT, passN]);
+  check("the referrer hears they joined", joined.length === 1);
+
+  await q(passT, `select public.record_referral_invite('email')`);
+  const [stats] = await q(passT, `select * from public.my_referral()`);
+  check("counters", stats.invites_sent === 1 && stats.friends_joined === 1 && stats.rewards_earned === 0, stats);
+  const hidden = await q(passN, `select * from public.referrals`);
+  check("the invitee can't read the referral row", hidden.length === 0);
+
+  const [ref] = await q(passT, `select * from public.my_referrals()`);
+  check("the list names the friend", ref?.first_name === "Nia" && ref.status === "joined", ref);
+  await q(passT, `select public.nudge_referral($1)`, [ref.id]);
+  const nudge = await su(`select 1 from public.notifications where user_id = $1 and kind = 'referral_nudge'`, [passN]);
+  check("a nudge reaches the friend", nudge.length === 1);
+  await fails("one nudge every few days", passT, `select public.nudge_referral($1)`, [ref.id], "recently");
+  await fails("no reward before they qualify", passT, `select public.claim_referral_reward($1)`, [ref.id], "isn't ready");
+
+  await q(passN, `select public.complete_onboarding($1::jsonb)`, [JSON.stringify([{ slug: "career", phase: "Starting over" }])]);
+  const [{ id: nChapter }] = await su(`select id from public.user_chapters where user_id = $1`, [passN]);
+  await q(passN, `select public.close_chapter($1)`, [nChapter]);
+  const [qualified] = await q(passT, `select status from public.my_referrals()`);
+  check("closing a first chapter qualifies the referral", qualified.status === "qualified", qualified);
+  const earned = await su(`select 1 from public.notifications where user_id = $1 and kind = 'referral_reward_earned'`, [passT]);
+  check("the referrer hears a reward is ready", earned.length === 1);
+
+  const [{ has_pass: beforeReward }] = await q(passT, `select public.has_pass()`);
+  const [{ claim_referral_reward: until }] = await q(passT, `select public.claim_referral_reward($1)`, [ref.id]);
+  const days = (new Date(until) - Date.now()) / 86_400_000;
+  check("the reward is a month of Season Pass", days > 27 && days < 32, days);
+  const [{ has_pass: afterReward }] = await q(passT, `select public.has_pass()`);
+  check("and it unlocks access", beforeReward === false && afterReward === true, { beforeReward, afterReward });
+  const back = await su(`select count(*)::int n from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null`, [passT]);
+  check("the reward restores paused Spaces", back[0].n === 7, back[0].n);
+  await fails("a reward is claimed once", passT, `select public.claim_referral_reward($1)`, [ref.id], "isn't ready");
+});
+
+// --- settings and safety (usernames, privacy, report outcomes, export, Deep Focus)
+const J = await person("Jalen", learning);
+const K = await person("Kemi", learning);
+await connect(J, K);
+
+await step("usernames", async () => {
+  await q(J, `update public.profiles set username = 'jalen.c' where id = $1`, [J]);
+  const [{ username_available: taken }] = await q(K, `select public.username_available('Jalen.C')`);
+  check("a taken username isn't available, whatever the case", taken === false);
+  const [{ username_available: mine }] = await q(J, `select public.username_available('jalen.c')`);
+  check("your own username counts as available to you", mine === true);
+  await fails("usernames are unique", K, `update public.profiles set username = 'jalen.c' where id = $1`, [K], "duplicate");
+  await fails("usernames are lowercase", K, `update public.profiles set username = 'Kemi' where id = $1`, [K], "check");
+  await fails("and at least 3 characters", K, `update public.profiles set username = 'ke' where id = $1`, [K], "check");
+  await fails("reserved names are refused", K, `update public.profiles set username = 'admin' where id = $1`, [K], "check");
+});
+
+await step("privacy: suggestions and activity matching", async () => {
+  const L = await person("Lola", learning);
+  const before = await q(L, `select user_id from public.match_candidates(null, true)`);
+  check("people show up in suggestions by default", before.some((r) => r.user_id === G), before);
+  await q(G, `insert into public.privacy_settings (user_id, discoverable) values ($1, false)`, [G]);
+  const after = await q(L, `select user_id from public.match_candidates(null, true)`);
+  check("'Show me in suggestions' off hides them", !after.some((r) => r.user_id === G), after);
+  const others = await q(L, `select privacy_settings.* from public.privacy_settings`);
+  check("privacy settings are private", others.length === 0, others);
+
+  await q(K, `insert into public.privacy_settings (user_id, activity_matching) values ($1, false)`, [K]);
+  const [{ open_direct_conversation: jk }] = await q(J, `select public.open_direct_conversation($1)`, [K]);
+  await q(J, `insert into public.messages (conversation_id, sender_id, body) values ($1, $2, 'hey')`, [jk, J]);
+  const logged = await su(`select 1 from private.interactions where user_low = least($1::uuid, $2::uuid) and user_high = greatest($1::uuid, $2::uuid)`, [J, K]);
+  check("activity matching off: nothing is learned from the chat", logged.length === 0, logged.length);
+  await q(K, `update public.privacy_settings set activity_matching = true where user_id = $1`, [K]);
+});
+
+await step("report outcome reaches the reporter, never the reviewer", async () => {
+  await q(K, `insert into public.reports (target_type, target_id, reason) values ('profile', $1, 'harassment')`, [J]);
+  const [{ id: report }] = await su(`select id from public.reports where reporter_id = $1`, [K]);
+  await su(`insert into public.staff (user_id) values ($1)`, [G]);
+  await q(G, `select public.moderate_target('profile', $1, 'dismiss', 'reviewer-only note')`, [J]);
+  await su(`delete from public.staff where user_id = $1`, [G]);
+  const notes = await q(K, `select kind::text, actor_id, entity_id, data from public.notifications where kind = 'report_reviewed'`);
+  check(
+    "the reporter hears their report was reviewed, about Jalen, with no actor",
+    notes.length === 1 && notes[0].actor_id === null && notes[0].entity_id === report && notes[0].data.subject === "Jalen",
+    notes,
+  );
+  await fails("reporters can't read who reviewed", K, `select reviewed_by from public.reports`, [], "permission denied");
+  await fails("or the reviewer's note", K, `select resolution_note from public.reports`, [], "permission denied");
+  const own = await q(K, `select id, status from public.reports`);
+  check("but can read their report's status", own.length === 1 && own[0].status === "dismissed", own);
+  const [outcome] = await q(K, `select * from public.my_report($1)`, [report]);
+  check("the outcome page has the status and subject", outcome?.status === "dismissed" && outcome.subject === "Jalen" && !("reviewed_by" in outcome), outcome);
+  const stranger = await q(J, `select * from public.my_report($1)`, [report]);
+  check("nobody else can open it", stranger.length === 0, stranger);
+});
+
+await step("data export", async () => {
+  await q(J, `insert into public.posts (chapter_slug, body, is_anonymous) values ('learning', 'quiet one', true)`);
+  await q(J, `insert into public.posts (chapter_slug, body) values ('learning', 'loud one')`);
+  const [{ export_my_data: data }] = await q(J, `select public.export_my_data()`);
+  check("export has the profile with username", data.profile?.username === "jalen.c", data.profile);
+  check("export has named and anonymous posts", data.posts.length === 2, data.posts.length);
+  check("export has the messages they sent", data.messages_sent.some((m) => m.body === "hey"), data.messages_sent);
+  check("and connections by first name", data.connections.some((c) => c.with === "Kemi"), data.connections);
+  check("and chapters", data.chapters.length === 1, data.chapters.length);
+  const [{ export_my_data: theirs }] = await q(K, `select public.export_my_data()`);
+  check("nobody else's messages or posts leak in", theirs.messages_sent.length === 0 && theirs.posts.length === 0, theirs.messages_sent);
+  check("reports filed carry no reviewer", theirs.reports_filed.length === 1 && !("reviewed_by" in theirs.reports_filed[0]), theirs.reports_filed);
+  await fails("export needs a signed-in member", null, `select public.export_my_data()`, [], "");
+  // Leave the post count as the account-deletion check expects it.
+  await q(J, `delete from public.posts`);
+});
+
+await step("deep focus digest", async () => {
+  const [{ id: session }] = await su(
+    `insert into public.focus_sessions (user_id, duration, started_at, ends_at)
+     values ($1, 'until_evening', now() - interval '3 hours', now() - interval '1 hour') returning id`,
+    [K],
+  );
+  const [{ open_direct_conversation: jk }] = await q(J, `select public.open_direct_conversation($1)`, [K]);
+  await su(
+    `insert into public.messages (conversation_id, sender_id, body, created_at) values ($1, $2, 'while away', now() - interval '2 hours')`,
+    [jk, J],
+  );
+  await su(`insert into public.messages (conversation_id, sender_id, body, created_at) values ($1, $2, 'after', now())`, [jk, J]);
+  const [digest] = await q(K, `select * from public.focus_digest()`);
+  check("the digest counts messages from while you were away only", digest?.other_messages === 1 && digest.other_sender === "Jalen", digest);
+  const [pending] = await q(K, `select digest_seen_at from public.focus_sessions where id = $1`, [session]);
+  check("a new ended session still owes its welcome back", pending.digest_seen_at === null, pending);
+  await q(K, `update public.focus_sessions set digest_seen_at = now() where id = $1`, [session]);
+  const empty = await q(D, `select * from public.focus_digest()`);
+  check("no session, no digest", empty.length === 0, empty);
+});
+
+await step("life wrapped", async () => {
+  const W = await person("Wren", [{ slug: "career", phase: "Starting over" }]);
+  const V = await person("Vale", [{ slug: "career", phase: "Growing a team" }]);
+  await connect(W, V);
+  const [{ id: uc }] = await su(
+    `update public.user_chapters set opened_at = now() - interval '30 days' where user_id = $1 and chapter_slug = 'career' returning id`,
+    [W],
+  );
+  const setPlan = (uid, status) =>
+    su(`update public.subscriptions set status = $2, trial_ends_at = null, current_period_end = null where user_id = $1`, [uid, status]);
+  await setPlan(V, "active");
+
+  await setPlan(W, "none");
+  await fails("Free can't generate a wrap", W, `select public.generate_wrap('month', array[$1]::uuid[])`, [uc], "Season Pass");
+  await setPlan(W, "active");
+
+  await su(
+    `insert into public.log_entries (user_id, user_chapter_id, body, entry_date)
+     values ($1, $2, 'Said yes to a coffee with Vale today', current_date - 9), ($1, $2, 'ok', current_date - 9)`,
+    [W, uc],
+  );
+  await fails("fewer than three moments isn't enough", W, `select public.generate_wrap('month', array[$1]::uuid[])`, [uc], "Not enough");
+
+  await su(
+    `insert into public.log_entries (user_id, user_chapter_id, body, photo_path, entry_date) values
+       ($1, $2, 'Called it home out loud for the first time', null, current_date - 7),
+       ($1, $2, null, $1 || '/view.jpg', current_date - 5),
+       ($1, $2, 'Career felt steady for once this week', null, current_date - 3),
+       ($1, $2, 'Grateful for a felt sense of steadiness', null, current_date - 1),
+       ($1, $2, 'A quiet one', null, current_date)`,
+    [W, uc],
+  );
+  const [{ generate_wrap: wrap }] = await q(W, `select public.generate_wrap('month', array[$1]::uuid[], null, current_date)`, [uc]);
+  const moments = await q(W, `select * from public.wrap_moments where wrap_id = $1 order by position`, [wrap]);
+  check("a wrap holds five moments", moments.length === 5, moments.length);
+  check("moments run in date order", moments.every((m, i) => i === 0 || m.moment_date >= moments[i - 1].moment_date), moments);
+  check("the photo moment is picked", moments.some((m) => m.photo_path), moments);
+  check("one moment per day while there are enough days", new Set(moments.map((m) => String(m.moment_date))).size === 5, moments);
+  const [{ title }] = await q(W, `select title from public.wraps where id = $1`, [wrap]);
+  check("titled with the chapter's stage", title === "Starting over", title);
+  const [{ generate_wrap: again }] = await q(W, `select public.generate_wrap('month', array[$1]::uuid[], null, current_date)`, [uc]);
+  check("the same window returns the same wrap", again === wrap, { again, wrap });
+
+  const peek = await q(V, `select * from public.wraps`);
+  check("wraps are private", peek.length === 0, peek);
+  const vale = moments.find((m) => m.body?.includes("Vale"));
+  await fails("others can't edit your wrap", V, `select public.update_wrap_moment($1, 'mine now')`, [vale.id], "isn't in your wraps");
+
+  const [{ update_wrap_moment: wrapOnly }] = await q(W, `select public.update_wrap_moment($1, 'Coffee with Vale, and Career talk')`, [vale.id]);
+  const [kept] = await su(`select body from public.log_entries where id = $1`, [vale.log_entry_id]);
+  check("editing the wrap leaves the Log alone", wrapOnly === false && kept.body === "Said yes to a coffee with Vale today", kept);
+  const [{ update_wrap_moment: synced }] = await q(W, `select public.update_wrap_moment($1, 'Coffee with Vale, and Career talk', true)`, [vale.id]);
+  const [source] = await su(`select body from public.log_entries where id = $1`, [vale.log_entry_id]);
+  check("asked to, it updates the memory too", synced === true && source.body === "Coffee with Vale, and Career talk", source);
+
+  const [{ wrap_share_preview: preview }] = await q(W, `select public.wrap_share_preview($1, true)`, [vale.id]);
+  check("the preview shows what will leave", preview === "Coffee with someone, and this chapter talk", preview);
+  await fails("previews are the owner's", V, `select public.wrap_share_preview($1, true)`, [vale.id], "isn't in your wraps");
+  const [share] = await q(W, `select * from public.create_wrap_share($1, true, true)`, [vale.id]);
+  check("links get a token", typeof share?.token === "string" && share.token.length === 16, share);
+  const card = await db.transaction(async (tx) => {
+    await tx.exec("set local role anon");
+    return (await tx.query(`select * from public.shared_wrap_card($1)`, [share.token])).rows;
+  });
+  check("the card opens signed out", card.length === 1, card);
+  check("hide names swaps people and chapters", card[0]?.body === "Coffee with someone, and this chapter talk" && card[0]?.sharer_name === null, card[0]);
+  const direct = await db.transaction(async (tx) => {
+    await tx.exec("set local role anon");
+    return (await tx.query(`select * from public.wrap_shares`)).rows;
+  });
+  check("signed out, only the card function reads links", direct.length === 0, direct.length);
+  const photoMoment = moments.find((m) => m.photo_path);
+  await fails("a photo-only moment can't share with photos hidden", W, `select * from public.create_wrap_share($1, false, true)`, [photoMoment.id], "only a photo");
+  const [named] = await q(W, `select * from public.create_wrap_share($1, false, false)`, [photoMoment.id]);
+  const [namedCard] = await q(V, `select * from public.shared_wrap_card($1)`, [named.token]);
+  check("shown names and photos stay", namedCard?.sharer_name === "Wren" && namedCard?.photo_path === `${W}/view.jpg`, namedCard);
+
+  await fails("only the sharer revokes", V, `select public.revoke_wrap_share($1)`, [share.id], "already off");
+  await setPlan(W, "none");
+  const stillMine = await q(W, `select * from public.wrap_moments where wrap_id = $1`, [wrap]);
+  check("wraps stay readable on Free", stillMine.length === 5, stillMine.length);
+  const [{ generate_wrap: reopenedOnFree }] = await q(W, `select public.generate_wrap('month', array[$1]::uuid[], null, current_date)`, [uc]);
+  check("and an existing wrap still opens", reopenedOnFree === wrap);
+  await fails("Free can't share", W, `select * from public.create_wrap_share($1)`, [vale.id], "Season Pass");
+  await fails("or edit", W, `select public.update_wrap_moment($1, 'x')`, [vale.id], "Season Pass");
+  await q(W, `select public.revoke_wrap_share($1)`, [share.id]);
+  const gone = await q(V, `select * from public.shared_wrap_card($1)`, [share.token]);
+  check("a revoked link shows nothing", gone.length === 0, gone);
+  await setPlan(W, "active");
+
+  await q(W, `select public.close_chapter($1)`, [uc]);
+  const [{ generate_wrap: chapterWrap }] = await q(W, `select public.generate_wrap('chapter', '{}', $1)`, [uc]);
+  const [cw] = await q(W, `select range, starts_on, user_chapter_id from public.wraps where id = $1`, [chapterWrap]);
+  check("a closed chapter gets its own wrap", cw?.range === "chapter" && cw.user_chapter_id === uc, cw);
+  const ready = await su(`select * from public.notifications where user_id = $1 and kind = 'wrapped_ready'`, [W]);
+  check("and a wrapped_ready notification", ready.length === 1 && ready[0].entity_id === chapterWrap, ready);
+  const [{ generate_wrap: sameChapter }] = await q(W, `select public.generate_wrap('chapter', '{}', $1)`, [uc]);
+  check("one wrap per closed chapter", sameChapter === chapterWrap);
+  await fails("open chapters have no chapter wrap", V, `select public.generate_wrap('chapter', '{}', $1)`, [uc], "isn't closed");
+
+  await q(W, `select public.reopen_chapter($1)`, [uc]);
+  const [reopened] = await su(`select status, closed_at from public.user_chapters where id = $1`, [uc]);
+  const leftovers = await su(
+    `select (select count(*)::int from public.wraps where user_chapter_id = $1) wraps,
+            (select count(*)::int from public.chapter_closures where user_chapter_id = $1) closures,
+            (select count(*)::int from public.notifications where user_id = $2 and kind = 'wrapped_ready') notes`,
+    [uc, W],
+  );
+  check("undo reopens the chapter", reopened.status === "open" && reopened.closed_at === null, reopened);
+  check("and clears its reflection, wrap and notice", leftovers[0].wraps === 0 && leftovers[0].closures === 0 && leftovers[0].notes === 0, leftovers[0]);
+  await q(W, `select public.close_chapter($1)`, [uc]);
+  await su(`update public.user_chapters set closed_at = now() - interval '1 hour' where id = $1`, [uc]);
+  await fails("undo only right after closing", W, `select public.reopen_chapter($1)`, [uc], "Life Archive now");
+
+  const [{ id: uc2 }] = await su(
+    `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'health', 'Starting over') returning id`,
+    [W],
+  );
+  await su(
+    `insert into public.log_entries (user_id, user_chapter_id, body, entry_date) values ($1, $2, 'one', current_date), ($1, $2, 'two', current_date), ($1, $2, 'three', current_date)`,
+    [W, uc2],
+  );
+  const [{ generate_weekly_wraps: made }] = await su(`select private.generate_weekly_wraps()`);
+  const weekly = await su(`select id from public.wraps where user_id = $1 and range = 'week'`, [W]);
+  check("the weekly job wraps an active week", made >= 1 && weekly.length === 1, { made, weekly });
+  const notes = await su(`select * from public.notifications where user_id = $1 and kind = 'wrapped_ready' and entity_id = $2`, [W, weekly[0]?.id]);
+  check("and says it's ready", notes.length === 1, notes.length);
+  await su(`select private.generate_weekly_wraps()`);
+  const weeklyAgain = await su(`select id from public.wraps where user_id = $1 and range = 'week'`, [W]);
+  check("once a week", weeklyAgain.length === 1, weeklyAgain.length);
+});
+
+await step("home: matches, introductions and post audience", async () => {
+  const people = [];
+  for (const name of ["Hana", "Ivo", "Jae", "Kit", "Lu"]) {
+    const [{ id }] = await su(
+      `insert into auth.users (email, raw_user_meta_data) values ($1, $2) returning id`,
+      [`${name.toLowerCase()}@home.x`, JSON.stringify({ first_name: name })],
+    );
+    people.push(id);
+  }
+  const [H, I, J, K, L] = people;
+  const phases = (await su(`select label from public.chapter_phases where chapter_slug = 'career' order by sort_order`)).map((r) => r.label);
+  for (const [who, phase] of [[H, phases[0]], [I, phases[0]], [J, phases[1]], [K, phases[0]]]) {
+    await q(who, `select public.complete_onboarding($1::jsonb)`, [JSON.stringify([{ slug: "career", phase }])]);
+  }
+
+  // Matching
+  const matches = await q(H, `select * from public.potential_matches(12)`);
+  const ids = matches.map((m) => m.user_id);
+  check("matches share a space", [I, J, K].every((id) => ids.includes(id)) && !ids.includes(H), matches.length);
+  check("same stage ranks first", matches[0]?.same_phase === true, matches[0]);
+  await q(H, `select public.dismiss_match($1)`, [K]);
+  const afterDismiss = (await q(H, `select user_id from public.potential_matches(12)`)).map((m) => m.user_id);
+  check("Not relevant is never shown again", !afterDismiss.includes(K), afterDismiss);
+  check("dismissals are private", (await q(I, `select * from public.match_dismissals`)).length === 0);
+
+  // Preferences: filters are Season Pass, notifications are Free.
+  await su(`update public.subscriptions set status = 'none', trial_ends_at = null where user_id = any($1)`, [people]);
+  await fails(
+    "Free can't set match filters",
+    H,
+    `select public.save_match_preferences(array['career_pivot'], '{}', null, false)`,
+    [],
+    "Season Pass",
+  );
+  const [free] = await q(H, `select * from public.save_match_preferences('{}', '{}', null, true)`);
+  check("Free can turn on match notifications", free.notify_new_matches === true, free);
+  await su(`update public.subscriptions set status = 'active' where user_id = any($1)`, [[H, I]]);
+  await q(I, `select public.save_match_preferences('{}', array['accountability'], null, false)`);
+  await q(H, `select public.save_match_preferences(array['career_pivot'], array['accountability', 'quiet_checkins'], null, true)`);
+  const [ivo] = await q(H, `select * from public.potential_matches(12) where user_id = $1`, [I]);
+  check("shared looking-for explains the match", ivo?.shared_looking_for?.join() === "accountability", ivo);
+  await q(H, `select public.save_match_preferences(array['career_pivot'], array['accountability'], 25, true)`);
+  const far = await q(H, `select * from public.potential_matches(12)`);
+  check("a distance cap leaves out people with no region", far.length === 0, far.length);
+  await fails("unknown chips are refused", H, `select public.save_match_preferences(array['astronaut'], '{}', 25, true)`, [], "check");
+  await q(H, `select public.save_match_preferences(array['career_pivot'], array['accountability'], null, true)`);
+
+  // New-match notifications
+  await su(`update public.match_preferences set last_match_notified_at = now() - interval '4 days' where user_id = $1`, [H]);
+  await q(L, `select public.complete_onboarding($1::jsonb)`, [JSON.stringify([{ slug: "career", phase: phases[0] }])]);
+  await su(`update public.user_chapters set opened_at = now() + interval '1 minute' where user_id = $1`, [L]);
+  await su(`select private.send_match_notifications()`);
+  await su(`select private.send_match_notifications()`);
+  const told = await su(`select actor_id from public.notifications where user_id = $1 and kind = 'match_available'`, [H]);
+  check("someone new sends one match notification, unnamed", told.length === 1 && told[0].actor_id === null, told);
+
+  // Introductions
+  await fails("an introduction needs a note", H, `select public.introduce_yourself($1, '  ')`, [I], "note");
+  const [intro] = await q(H, `select * from public.introduce_yourself($1, 'Hi Ivo, saw we''re both pivoting', 'Share something similar')`, [I]);
+  check("an introduction is a pending request with its note", intro.status === "pending" && intro.intro_message.startsWith("Hi Ivo"), intro);
+  await fails("one introduction at a time", H, `select public.introduce_yourself($1, 'again')`, [I], "on its way");
+  const heard = await su(`select kind, actor_id from public.notifications where user_id = $1 and entity_id = $2`, [I, intro.id]);
+  check("the recipient hears about it", heard.length === 1 && heard[0].kind === "introduction_request", heard);
+  const [received] = await q(I, `select * from public.my_introductions()`);
+  check("the recipient reads the note", received?.direction === "received" && received.message.startsWith("Hi Ivo") && received.first_name === "Hana", received);
+  await fails("no chat before they accept", H, `select public.open_direct_conversation($1)`, [I], "circle");
+  check("no longer a match once introduced", !(await q(H, `select user_id from public.potential_matches(12)`)).some((m) => m.user_id === I));
+  await q(I, `select public.mark_introductions_seen()`);
+  const [sent] = await q(H, `select * from public.my_introductions()`);
+  check("the sender sees it was seen", sent?.direction === "sent" && sent.seen_at !== null, sent);
+  await q(I, `select public.respond_to_connection($1, true)`, [intro.id]);
+  const yes = await su(`select 1 from public.notifications where user_id = $1 and kind = 'introduction_accepted' and actor_id = $2`, [H, I]);
+  check("the sender hears yes", yes.length === 1);
+  const [{ open_direct_conversation: chat }] = await q(H, `select public.open_direct_conversation($1)`, [I]);
+  check("chat unlocks after acceptance", Boolean(chat));
+
+  const [second] = await q(H, `select * from public.introduce_yourself($1, 'Hello Jae')`, [J]);
+  await q(J, `select public.respond_to_connection($1, false)`, [second.id]);
+  const no = await su(`select 1 from public.notifications where user_id = $1 and kind = 'introduction_declined'`, [H]);
+  check("the sender hears not this time", no.length === 1);
+  await fails("a declined pair can't be re-introduced", H, `select public.introduce_yourself($1, 'Please?')`, [J], "not able");
+  const plain = await q(K, `select * from public.request_connection($1)`, [L]);
+  const plainNote = await su(`select kind from public.notifications where entity_id = $1`, [plain[0].id]);
+  check("a plain Connect is still a connection request", plainNote[0]?.kind === "connection_request", plainNote);
+
+  // Post audience. Hana and Ivo are bonded; Hana and Lu are only in each other's circle.
+  await su(`insert into public.bonds (inviter_id, invitee_id, status, accepted_at) values ($1, $2, 'active', now())`, [H, I]);
+  const [toLu] = await q(H, `select * from public.request_connection($1)`, [L]);
+  await q(L, `select public.respond_to_connection($1, true)`, [toLu.id]);
+
+  const [mine] = await q(H, `insert into public.posts (chapter_slug, kind, body, audience) values ('career', 'root', 'just for me', 'only_me') returning id`);
+  const [picked] = await q(H, `insert into public.posts (chapter_slug, kind, body, audience) values ('career', 'root', 'for Ivo', 'selected_bonds') returning id`);
+  const [open] = await q(H, `insert into public.posts (chapter_slug, kind, body) values ('career', 'root', 'for everyone') returning id`);
+  await fails("only bonds can be chosen", H, `select public.set_post_audience($1, array[$2]::uuid[])`, [picked.id, L], "bonds");
+  await fails("only the author chooses", I, `select public.set_post_audience($1, array[$2]::uuid[])`, [picked.id, I], "own posts");
+  const [{ set_post_audience: added }] = await q(H, `select public.set_post_audience($1, array[$2]::uuid[])`, [picked.id, I]);
+  check("the chosen bond is recorded", added === 1);
+
+  const ivoSees = (await q(I, `select id, audience from public.feed_posts('home')`)).map((r) => r.id);
+  const luSees = (await q(L, `select id from public.feed_posts('home')`)).map((r) => r.id);
+  const hanaSees = await q(H, `select id, audience from public.feed_posts('mine')`);
+  check("only me stays with its author", !ivoSees.includes(mine.id) && !luSees.includes(mine.id), { ivoSees, luSees });
+  check("selected bonds reach exactly them", ivoSees.includes(picked.id) && !luSees.includes(picked.id), { ivoSees, luSees });
+  check("everyone reaches the circle", ivoSees.includes(open.id) && luSees.includes(open.id));
+  check("the author sees all three with their audience", hanaSees.filter((r) => [mine.id, picked.id, open.id].includes(r.id)).length === 3 && hanaSees.find((r) => r.id === mine.id)?.audience === "only_me", hanaSees);
+  const direct = await q(L, `select id from public.posts where id = $1`, [mine.id]);
+  check("RLS hides a private post outright", direct.length === 0);
+  const audienceRows = await q(L, `select * from public.post_audience`);
+  check("the audience list isn't public", audienceRows.length === 0);
+  await fails(
+    "Open Grove is only for everyone",
+    H,
+    `insert into public.posts (chapter_slug, kind, body, audience, open_grove) values ('career', 'root', 'x', 'only_me', true)`,
+    [],
+    "posts_open_grove_is_public",
+  );
+
+  // Leave the later steps' counts as they were.
+  await su(`delete from auth.users where id = any($1)`, [people]);
+});
+
 await step("delete account", async () => {
   await su(`delete from auth.users where id = $1`, [A]);
   const posts = await su(`select count(*)::int n from public.posts`);
@@ -1245,6 +1780,239 @@ await step("delete account", async () => {
   check("ownership rows removed", owners[0].n === 0);
   const groups = await su(`select created_by from public.groups where id = $1`, [group]);
   check("group survives creator deletion", groups.length === 1 && groups[0].created_by === null);
+});
+
+// --- Bonds: invites, check-ins, release, Bond Log (workstream C) --------------
+{
+  const makeUser = async (email, name, verified) =>
+    (
+      await su(
+        `insert into auth.users (email, raw_user_meta_data, email_confirmed_at) values ($1, $2, $3) returning id`,
+        [email, JSON.stringify({ first_name: name }), verified ? new Date().toISOString() : null],
+      )
+    )[0].id;
+  const K1 = await makeUser("kai@x.com", "Kai", true);
+  const K2 = await makeUser("lu@x.com", "Lu", true);
+  const K3 = await makeUser("mo@x.com", "Mo", false);
+  const K4 = await makeUser("ned@x.com", "Ned", true);
+  await connect(K1, K2);
+  await connect(K1, K3);
+  let invite;
+
+  await step("bond invites need the pass, a goal and a circle", async () => {
+    await fails("free members can't invite", K3, `select public.invite_to_bond($1, 'Go')`, [K1], "Season Pass");
+    await fails("an invite needs a goal", K1, `select public.invite_to_bond($1, '  ')`, [K2], "working toward");
+    await fails("only people in your circle", K1, `select public.invite_to_bond($1, 'Go')`, [K4], "circle");
+    [{ invite_to_bond: invite }] = await q(K1, `select public.invite_to_bond($1, 'New city, together')`, [K2]);
+    const [row] = await su(`select status, origin, shared_goal from public.bonds where id = $1`, [invite]);
+    check("the invite is pending with its goal", row.status === "pending" && row.origin === "invite" && row.shared_goal === "New city, together", row);
+    await fails("one invite at a time", K1, `select public.invite_to_bond($1, 'Again')`, [K2], "already");
+    const incoming = await q(K2, `select * from public.bond_invites()`);
+    check("YOUR BOND INVITES lists it with the goal", incoming.length === 1 && incoming[0].shared_goal === "New city, together", incoming);
+    const note = await q(K2, `select data from public.notifications where kind = 'bond_invitation'`);
+    check("the invitee is notified", note.length === 1, note);
+    const [circleRow] = await q(K1, `select invite_id, invite_from_me from public.bonds_overview() where user_id = $1`, [K2]);
+    check("the circle row carries the invite in flight", circleRow?.invite_id === invite && circleRow?.invite_from_me === true, circleRow);
+  });
+
+  await step("accepting needs the pass on both sides; declining doesn't", async () => {
+    const [{ invite_to_bond: toFree }] = await q(K1, `select public.invite_to_bond($1, 'Weekly accountability')`, [K3]);
+    await fails("a free invitee can't accept", K3, `select public.respond_to_bond_invite($1, true)`, [toFree], "Season Pass");
+    await q(K3, `select public.respond_to_bond_invite($1, false)`, [toFree]);
+    const declined = await q(K1, `select 1 from public.notifications where kind = 'bond_declined'`);
+    check("the inviter hears it was declined", declined.length === 1, declined);
+
+    await q(K2, `select public.respond_to_bond_invite($1, true)`, [invite]);
+    const [row] = await su(`select status, accepted_at is not null as accepted from public.bonds where id = $1`, [invite]);
+    check("accepted invite is an active Bond", row.status === "active" && row.accepted, row);
+    const ranks = await su(`select user_id from public.bond_ranks where bond_id = $1`, [invite]);
+    check("both sides get a rank straight away", ranks.length === 2, ranks);
+    const accepted = await q(K1, `select 1 from public.notifications where kind = 'bond_accepted' and entity_id = $1`, [invite]);
+    check("the inviter hears it was accepted", accepted.length === 1, accepted);
+    const [overview] = await q(K1, `select relationship, bond_origin, shared_goal, depth_level from public.bonds_overview() where user_id = $1`, [K2]);
+    check(
+      "the Bonds screen shows the goal and a coarse depth",
+      overview?.relationship === "bond" && overview?.bond_origin === "invite" && overview?.shared_goal === "New city, together" && overview?.depth_level === 10,
+      overview,
+    );
+    await su(`select private.run_bond_engine()`);
+    const [still] = await su(`select status from public.bonds where id = $1`, [invite]);
+    check("the engine never releases an invited Bond", still.status === "active", still);
+  });
+
+  await step("goal, check-ins and details", async () => {
+    await q(K2, `select public.set_bond_goal($1, 'First year in a new city', 7::smallint)`, [invite]);
+    await q(K2, `select public.log_bond_checkin($1, 'in_person', 'Dinner downtown', current_date)`, [invite]);
+    await fails("check-ins need words", K1, `select public.log_bond_checkin($1, 'in_app', ' ', current_date)`, [invite], "what happened");
+    const seen = await q(K3, `select * from public.bond_checkins`);
+    check("nobody outside the Bond reads its check-ins", seen.length === 0, seen);
+    const [details] = await q(K1, `select * from public.bond_details($1)`, [invite]);
+    check(
+      "details carry goal, horizon and check-ins",
+      details?.shared_goal === "First year in a new city" && details?.goal_horizon_months === 7 && details?.checkin_count === 1,
+      details,
+    );
+    const outsider = await q(K3, `select * from public.bond_details($1)`, [invite]);
+    check("details are only for the pair", outsider.length === 0, outsider);
+  });
+
+  await step("bond log drafts stay private until shared", async () => {
+    const [weekly] = await su(`select id from public.bond_activities where bond_id = $1 and kind = 'weekly'`, [invite]);
+    check("every Bond opens with the weekly prompt", Boolean(weekly), weekly);
+    await q(K1, `select public.save_bond_response($1, 1, 'Unpacked the last box', false)`, [weekly.id]);
+    let [round] = await q(K2, `select * from public.bond_log($1)`, [invite]);
+    check("a draft is invisible to the other person", round?.their_body === null && round?.their_shared === false && round?.title, round);
+    const drafts = await q(K2, `select * from public.bond_log_responses`);
+    check("the table hides drafts too", drafts.length === 0, drafts);
+    await q(K1, `select public.save_bond_response($1, 1, 'Unpacked the last box', true)`, [weekly.id]);
+    [round] = await q(K2, `select * from public.bond_log($1)`, [invite]);
+    check("a shared answer reaches them", round?.their_body === "Unpacked the last box", round);
+    const [list] = await q(K2, `select * from public.my_bond_logs()`);
+    check("their list says there's something new", list?.waiting_on_me === true && list?.shared_count === 1, list);
+    await fails("shared answers are final", K1, `select public.save_bond_response($1, 1, 'Edit', false)`, [weekly.id], "already shared");
+    await fails("next week's prompt isn't open", K1, `select public.save_bond_response($1, 2, 'Early', false)`, [weekly.id], "isn't open");
+    await fails("free members can't write in a Bond Log", K3, `select public.save_bond_response($1, 1, 'x', true)`, [weekly.id], "Season Pass");
+
+    const [{ start_bond_activity: gratitude }] = await q(K2, `select public.start_bond_activity($1, 'gratitude')`, [invite]);
+    await fails("one challenge of a kind at a time", K1, `select public.start_bond_activity($1, 'gratitude')`, [invite], "already running");
+    await q(K2, `select public.save_bond_response($1, 1, 'Slow coffee', true)`, [gratitude]);
+    await q(K1, `select public.end_bond_activity($1)`, [gratitude]);
+    await fails("an ended challenge is read-only", K2, `select public.save_bond_response($1, 1, 'Again', true)`, [gratitude], "read-only");
+  });
+
+  await step("end bond: read-only record, and the engine stands back", async () => {
+    await fails("outsiders can't end it", K3, `select public.end_bond($1)`, [invite], "not active");
+    await q(K2, `select public.end_bond($1)`, [invite]);
+    const [row] = await su(`select status, ended_by from public.bonds where id = $1`, [invite]);
+    check("ending releases it and remembers who", row.status === "released" && row.ended_by === K2, row);
+    const told = await q(K1, `select 1 from public.notifications where kind = 'bond_released'`);
+    check("the other person is told", told.length === 1, told);
+    const log = await q(K1, `select * from public.bond_log($1)`, [invite]);
+    check("the log stays readable", log.some((r) => r.their_body === "Slow coffee"), log);
+    const [weekly] = await su(`select id from public.bond_activities where bond_id = $1 and kind = 'weekly'`, [invite]);
+    await fails("but nothing new can be added", K2, `select public.save_bond_response($1, 1, 'Late', true)`, [weekly.id], "read-only");
+
+    await su(
+      `insert into private.interactions (user_a, user_b, type, weight, created_at)
+       select case when g % 2 = 0 then $1::uuid else $2::uuid end, case when g % 2 = 0 then $2::uuid else $1::uuid end,
+              'message_reply', 5, now() - interval '1 day'
+       from generate_series(1, 120) g`,
+      [K1, K2],
+    );
+    await su(`select private.run_bond_engine()`);
+    const reformed = await su(
+      `select 1 from public.bonds where status = 'active' and user_low = least($1::uuid, $2::uuid) and user_high = greatest($1::uuid, $2::uuid)`,
+      [K1, K2],
+    );
+    check("the engine doesn't re-form a Bond someone just ended", reformed.length === 0, reformed);
+  });
+
+  await step("a moment's own audience, and Everyone", async () => {
+    const [{ id: kc }] = await su(
+      `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'career', 'Growing a team') returning id`,
+      [K1],
+    );
+    await su(`insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'career', 'Starting over')`, [K4]);
+    const [{ id: entry }] = await q(K1, `insert into public.log_entries (user_chapter_id, body) values ($1, 'Shipped it') returning id`, [kc]);
+    let seen = await q(K4, `select id from public.log_entries where id = $1`, [entry]);
+    check("a stranger in the space can't see a circle log", seen.length === 0, seen);
+    await q(K1, `update public.log_entries set visibility = 'everyone' where id = $1`, [entry]);
+    seen = await q(K4, `select id from public.log_entries where id = $1`, [entry]);
+    check("Everyone opens it to people in the same space", seen.length === 1, seen);
+    await q(K1, `update public.log_entries set visibility = 'only_me' where id = $1`, [entry]);
+    seen = await q(K2, `select id from public.log_entries where id = $1`, [entry]);
+    check("a private moment stays private from the circle", seen.length === 0, seen);
+  });
+}
+
+// --- Spaces: chapter invitations; Chapter Groups: pass gate and outcomes ------
+await step("chapter invitations", async () => {
+  const Am = await person("Amara", [{ slug: "career", phase: "Starting over" }]);
+  const Za = await person("Zainab", [{ slug: "health", phase: "Building a habit" }]);
+  const St = await person("Stranger", [{ slug: "wealth", phase: "Learning the basics" }]);
+  const Li = await person("Linky", [{ slug: "health", phase: "Starting over" }]);
+  await connect(Am, Za);
+  const [{ id: uc }] = await su(`select id from public.user_chapters where user_id = $1 and chapter_slug = 'career'`, [Am]);
+
+  await fails("strangers can't be invited directly", Am, `select * from public.create_chapter_invite($1, 'New City', null, '{}', array[$2]::uuid[])`, [uc, St], "circle or this Space");
+  await fails("photos must be yours", Am, `select * from public.create_chapter_invite($1, 'New City', null, array['someone/x.jpg'], '{}')`, [uc], "uploading");
+  await fails("only chapters you hold", Za, `select * from public.create_chapter_invite($1, 'New City')`, [uc], "chapter you hold");
+  const [invite] = await q(
+    Am,
+    `select * from public.create_chapter_invite($1, ' New City ', 'Come along', array[$2 || '/c.jpg'], array[$3]::uuid[])`,
+    [uc, Am, Za],
+  );
+  check("an invitation gets a link token", typeof invite?.token === "string" && invite.token.length === 20, invite);
+  const notes = await q(Za, `select * from public.notifications where kind = 'chapter_invite'`);
+  check("the recipient is notified", notes.length === 1 && notes[0].data.token === invite.token, notes);
+  const [mine] = await q(Za, `select * from public.my_chapter_invitations()`);
+  check("it waits in INVITATIONS", mine?.title === "New City" && mine.sender_name === "Amara", mine);
+  const peek = await q(St, `select * from public.chapter_invites`);
+  check("others can't read invitations", peek.length === 0, peek.length);
+
+  const anonCard = await db.transaction(async (tx) => {
+    await tx.exec("set local role anon");
+    return (await tx.query(`select * from public.chapter_invite_card($1)`, [invite.token])).rows;
+  });
+  check("the link card opens signed out", anonCard.length === 1 && anonCard[0].note === "Come along", anonCard);
+
+  await fails("the sender can't accept their own", Am, `select public.respond_chapter_invite($1, true, 'Starting over')`, [invite.token], "your own");
+  await fails("joining a Space you don't hold needs a stage", Za, `select public.respond_chapter_invite($1, true)`, [invite.token], "Pick where");
+  const [{ respond_chapter_invite: joined }] = await q(Za, `select public.respond_chapter_invite($1, true, 'Starting over')`, [invite.token]);
+  const held = await su(`select 1 from public.user_chapters where user_id = $1 and chapter_slug = 'career' and status = 'open'`, [Za]);
+  check("accepting opens the chapter's Space", joined === "joined" && held.length === 1, { joined, held });
+  const accepted = await q(Am, `select * from public.notifications where kind = 'chapter_invite_accepted'`);
+  check("the sender hears they joined", accepted.length === 1, accepted.length);
+  const left = await q(Za, `select * from public.notifications where kind = 'chapter_invite'`);
+  check("the invitation notice clears", left.length === 0, left.length);
+  await fails("an answer is final", Za, `select public.respond_chapter_invite($1, false)`, [invite.token], "already answered");
+
+  // A link recipient: not invited directly, arrives by the token.
+  const [{ respond_chapter_invite: linkJoin }] = await q(Li, `select public.respond_chapter_invite($1, true, 'Growing a team')`, [invite.token]);
+  const [conn] = await su(
+    `select status from public.connections where user_low = least($1::uuid, $2::uuid) and user_high = greatest($1::uuid, $2::uuid)`,
+    [Am, Li],
+  );
+  check("a link accept connects you with the sender", linkJoin === "joined" && conn?.status === "accepted", { linkJoin, conn });
+  const stray = await q(Li, `select * from public.notifications where kind = 'connection_request'`);
+  check("with no request left to answer", stray.length === 0, stray.length);
+
+  const [second] = await q(Am, `select * from public.create_chapter_invite($1, 'Round two', null, '{}', array[$2]::uuid[])`, [uc, Za]);
+  const [{ respond_chapter_invite: declined }] = await q(Za, `select public.respond_chapter_invite($1, false)`, [second.token]);
+  const waiting = await q(Za, `select * from public.my_chapter_invitations()`);
+  check("declining clears it quietly", declined === "declined" && waiting.length === 0, { declined, waiting });
+
+  // Full on Free: the Space limit still applies to invitations.
+  await su(`update public.subscriptions set status = 'none', trial_ends_at = null, current_period_end = null where user_id = $1`, [St]);
+  for (const [slug, phase] of [
+    ["health", "Starting over"],
+    ["creative", "Mid-project"],
+    ["learning", "Day one"],
+  ]) {
+    await su(`insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, $2, $3)`, [St, slug, phase]);
+  }
+  await fails("a full Free member hits the Space limit", St, `select public.respond_chapter_invite($1, true, 'Starting over')`, [invite.token], "4 chapters");
+});
+
+await step("chapter groups: pass gate and outcomes", async () => {
+  const Ad = await person("Adah", [{ slug: "career", phase: "Starting over" }]);
+  const Rq = await person("Req", [{ slug: "career", phase: "Growing a team" }]);
+  await su(`update public.subscriptions set status = 'none', trial_ends_at = null, current_period_end = null where user_id = any($1)`, [[Ad, Rq]]);
+  await fails("Free can't start a group", Ad, `insert into public.groups (title) values ('Founders')`, [], "Season Pass");
+  const [{ id: g }] = await withPass(Ad, () => q(Ad, `insert into public.groups (title) values ('Founders') returning id`));
+  const [{ id: r1 }] = await q(Rq, `insert into public.group_join_requests (group_id) values ($1) returning id`, [g]);
+  const [pending] = await q(Ad, `select * from public.admin_pending_requests()`);
+  check("admin mode counts waiting requests", pending?.group_id === g && pending.pending === 1, pending);
+  await q(Ad, `select public.review_join_request($1, false)`, [r1]);
+  let [{ group_request_outcome: outcome }] = await q(Rq, `select public.group_request_outcome($1)`, [g]);
+  check("a Free admin still reviews, and the requester learns it was declined", outcome === "declined", outcome);
+  await q(Rq, `select public.acknowledge_group_request($1)`, [g]);
+  [{ group_request_outcome: outcome }] = await q(Rq, `select public.group_request_outcome($1)`, [g]);
+  check("once", outcome === null, outcome);
+  const [{ id: r2 }] = await q(Rq, `insert into public.group_join_requests (group_id) values ($1) returning id`, [g]);
+  await q(Ad, `select public.review_join_request($1, true)`, [r2]);
+  [{ group_request_outcome: outcome }] = await q(Rq, `select public.group_request_outcome($1)`, [g]);
+  check("and that a new request was accepted", outcome === "approved", outcome);
 });
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

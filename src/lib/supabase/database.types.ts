@@ -18,11 +18,14 @@ export type Json =
 
 type Aura = "reflective" | "open_to_connect" | "deep_focus" | "in_transition" | "active_nearby";
 type ThemePreference = "light" | "dark";
-type LogVisibility = "circle" | "bonds" | "only_me";
+type LogVisibility = "circle" | "bonds" | "only_me" | "everyone";
 type ChapterStatus = "open" | "closed";
 type SubscriptionStatus = "none" | "trialing" | "active" | "past_due" | "canceled" | "expired";
 type FocusDuration = "until_evening" | "until_tomorrow_morning" | "three_days" | "one_week";
 type BondStatus = "pending" | "active" | "declined" | "released";
+type BondOrigin = "engine" | "invite";
+type CheckinMode = "in_app" | "in_person";
+type BondActivityKind = "weekly" | "gratitude" | "something_new";
 type ConnectionStatus = "pending" | "accepted" | "declined";
 type PostKind = "root" | "grouv";
 type PostProgress =
@@ -59,6 +62,9 @@ type NotificationKind =
   | "connection_accepted"
   | "bond_invitation"
   | "bond_accepted"
+  | "bond_declined"
+  | "bond_released"
+  | "bond_log_shared"
   | "post_rooted"
   | "post_commented"
   | "group_join_request"
@@ -72,7 +78,26 @@ type NotificationKind =
   | "dormancy_nudge"
   | "chapter_closing_suggested"
   | "introduction_suggested"
-  | "introduction_received";
+  | "introduction_received"
+  | "trial_ending"
+  | "spaces_paused"
+  | "referral_joined"
+  | "referral_reward_earned"
+  | "referral_nudge"
+  | "report_reviewed"
+  | "wrapped_ready"
+  | "introduction_request"
+  | "introduction_accepted"
+  | "introduction_declined"
+  | "match_available"
+  | "chapter_invite"
+  | "chapter_invite_accepted";
+/** A chapter invitation recipient's answer. */
+type InviteResponse = "pending" | "accepted" | "declined";
+/** Who a post is for (composer "Visible to"). */
+type Audience = "everyone" | "selected_bonds" | "only_me";
+type WrapRange = "week" | "month" | "chapter";
+type ReferralStatus = "joined" | "qualified" | "applied";
 
 type ReadOnlyTable<Row> = { Row: Row; Insert: never; Update: never; Relationships: [] };
 
@@ -92,6 +117,9 @@ type ConnectionRow = {
   chapter_slug: string | null;
   created_at: string;
   responded_at: string | null;
+  intro_message: string | null;
+  intro_prompt: string | null;
+  intro_seen_at: string | null;
 };
 
 type BondRow = {
@@ -103,6 +131,11 @@ type BondRow = {
   created_at: string;
   accepted_at: string | null;
   released_at: string | null;
+  origin: BondOrigin;
+  shared_goal: string | null;
+  goal_horizon_months: number | null;
+  ended_by: string | null;
+  responded_at: string | null;
 };
 
 export type Database = {
@@ -194,6 +227,7 @@ export type Database = {
           onboarded_at: string | null;
           created_at: string;
           updated_at: string;
+          username: string | null;
         };
         Insert: never;
         Update: {
@@ -203,6 +237,7 @@ export type Database = {
           aura?: Aura;
           theme?: ThemePreference;
           log_visibility?: LogVisibility;
+          username?: string | null;
         };
         Relationships: [];
       };
@@ -237,6 +272,8 @@ export type Database = {
           opened_at: string;
           closed_at: string | null;
           is_primary: boolean;
+          /** Season Pass ended with more than four open: held but read-only. */
+          paused_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -304,7 +341,22 @@ export type Database = {
         management_url: string | null;
         billing_synced_at: string | null;
         cancel_at_period_end: boolean;
+        /** Season Pass granted outside billing (referral rewards). */
+        bonus_until: string | null;
+        spaces_review_due: boolean;
+        trial_reminded_at: string | null;
         updated_at: string;
+      }>;
+      referral_codes: ReadOnlyTable<{ user_id: string; code: string; created_at: string }>;
+      referrals: ReadOnlyTable<{
+        id: string;
+        referrer_id: string;
+        invitee_id: string;
+        status: ReferralStatus;
+        joined_at: string;
+        qualified_at: string | null;
+        applied_at: string | null;
+        nudged_at: string | null;
       }>;
       calls: ReadOnlyTable<{
         id: string;
@@ -324,9 +376,16 @@ export type Database = {
           started_at: string;
           ends_at: string;
           ended_early_at: string | null;
+          digest_seen_at: string | null;
         };
         Insert: { user_id: string; duration: FocusDuration; ends_at: string };
-        Update: { ended_early_at?: string | null };
+        Update: { ended_early_at?: string | null; digest_seen_at?: string | null };
+        Relationships: [];
+      };
+      privacy_settings: {
+        Row: { user_id: string; discoverable: boolean; activity_matching: boolean; updated_at: string };
+        Insert: { user_id: string; discoverable?: boolean; activity_matching?: boolean };
+        Update: { discoverable?: boolean; activity_matching?: boolean };
         Relationships: [];
       };
       bonds: {
@@ -338,6 +397,15 @@ export type Database = {
           ProfilesFk<"bonds_invitee_id_fkey", "invitee_id">,
         ];
       };
+      bond_checkins: ReadOnlyTable<{
+        id: string;
+        bond_id: string;
+        author_id: string;
+        mode: CheckinMode;
+        body: string;
+        happened_on: string;
+        created_at: string;
+      }>;
       connections: {
         Row: {
           id: string;
@@ -347,6 +415,9 @@ export type Database = {
           chapter_slug: string | null;
           created_at: string;
           responded_at: string | null;
+          intro_message: string | null;
+          intro_prompt: string | null;
+          intro_seen_at: string | null;
         };
         Insert: never;
         Update: never;
@@ -380,6 +451,7 @@ export type Database = {
           body: string | null;
           is_anonymous: boolean;
           open_grove: boolean;
+          audience: Audience;
           roots_count: number;
           comments_count: number;
           created_at: string;
@@ -393,10 +465,27 @@ export type Database = {
           body?: string | null;
           is_anonymous?: boolean;
           open_grove?: boolean;
+          audience?: Audience;
         };
         Update: { title?: string | null; progress?: PostProgress | null; body?: string | null };
         Relationships: [];
       };
+      post_audience: {
+        Row: { post_id: string; user_id: string; created_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      match_preferences: ReadOnlyTable<{
+        user_id: string;
+        life_stages: string[];
+        looking_for: string[];
+        distance_km: number | null;
+        notify_new_matches: boolean;
+        last_match_notified_at: string | null;
+        updated_at: string;
+      }>;
+      match_dismissals: ReadOnlyTable<{ user_id: string; other_id: string; created_at: string }>;
       post_media: {
         Row: {
           id: string;
@@ -531,6 +620,7 @@ export type Database = {
           entry_date: string;
           scope: LogScope;
           bond_id: string | null;
+          visibility: LogVisibility | null;
           created_at: string;
           updated_at: string;
         };
@@ -543,7 +633,7 @@ export type Database = {
           scope?: LogScope;
           bond_id?: string | null;
         };
-        Update: { body?: string | null; photo_path?: string | null };
+        Update: { body?: string | null; photo_path?: string | null; visibility?: LogVisibility | null };
         Relationships: [
           {
             foreignKeyName: "log_entries_user_chapter_id_fkey";
@@ -606,11 +696,31 @@ export type Database = {
           created_at: string;
           reviewed_by: string | null;
           reviewed_at: string | null;
+          requester_seen_at: string | null;
         };
         Insert: { group_id: string; message?: string | null };
         Update: never;
         Relationships: [ProfilesFk<"group_join_requests_user_id_fkey", "user_id">];
       };
+      chapter_invites: ReadOnlyTable<{
+        id: string;
+        sender_id: string;
+        user_chapter_id: string;
+        chapter_slug: string;
+        title: string;
+        note: string | null;
+        photo_paths: string[];
+        token: string;
+        created_at: string;
+        revoked_at: string | null;
+      }>;
+      chapter_invite_recipients: ReadOnlyTable<{
+        invite_id: string;
+        recipient_id: string;
+        status: InviteResponse;
+        created_at: string;
+        responded_at: string | null;
+      }>;
       truths: {
         Row: { id: string; group_id: string; body: string; felt_count: number; created_at: string };
         Insert: { group_id: string; body: string };
@@ -732,9 +842,100 @@ export type Database = {
         served_on: string;
         expires_at: string;
       }>;
+      wraps: ReadOnlyTable<{
+        id: string;
+        user_id: string;
+        range: WrapRange;
+        user_chapter_id: string | null;
+        source_chapter_ids: string[];
+        starts_on: string;
+        ends_on: string;
+        title: string;
+        created_at: string;
+      }>;
+      wrap_moments: {
+        Row: {
+          id: string;
+          wrap_id: string;
+          position: number;
+          log_entry_id: string | null;
+          body: string | null;
+          photo_path: string | null;
+          moment_date: string;
+          edited_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "wrap_moments_wrap_id_fkey";
+            columns: ["wrap_id"];
+            isOneToOne: false;
+            referencedRelation: "wraps";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wrap_moments_log_entry_id_fkey";
+            columns: ["log_entry_id"];
+            isOneToOne: false;
+            referencedRelation: "log_entries";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      wrap_shares: ReadOnlyTable<{
+        id: string;
+        token: string;
+        user_id: string;
+        wrap_id: string;
+        moment_id: string | null;
+        sharer_name: string | null;
+        range: WrapRange;
+        starts_on: string;
+        ends_on: string;
+        body: string | null;
+        photo_path: string | null;
+        moment_date: string;
+        hide_names: boolean;
+        hide_photos: boolean;
+        created_at: string;
+        revoked_at: string | null;
+      }>;
     };
     Views: { [_ in never]: never };
     Functions: {
+      generate_wrap: {
+        Args: {
+          p_range: WrapRange;
+          p_source_chapter_ids?: string[];
+          p_user_chapter_id?: string | null;
+          p_today?: string | null;
+        };
+        Returns: string;
+      };
+      update_wrap_moment: {
+        Args: { p_moment_id: string; p_body: string; p_update_source?: boolean };
+        Returns: boolean;
+      };
+      create_wrap_share: {
+        Args: { p_moment_id: string; p_hide_names?: boolean; p_hide_photos?: boolean };
+        Returns: { id: string; token: string }[];
+      };
+      revoke_wrap_share: { Args: { p_share_id: string }; Returns: undefined };
+      wrap_share_preview: { Args: { p_moment_id: string; p_hide_names?: boolean }; Returns: string | null };
+      shared_wrap_card: {
+        Args: { p_token: string };
+        Returns: {
+          sharer_name: string | null;
+          range: WrapRange;
+          starts_on: string;
+          ends_on: string;
+          body: string | null;
+          photo_path: string | null;
+          moment_date: string;
+        }[];
+      };
+      reopen_chapter: { Args: { p_user_chapter_id: string }; Returns: undefined };
       bonds_overview: {
         Args: Record<string, never>;
         Returns: {
@@ -748,12 +949,107 @@ export type Database = {
           bond_id: string | null;
           together_since: string;
           bond_rank: number | null;
+          bond_origin: BondOrigin | null;
+          shared_goal: string | null;
+          goal_horizon_months: number | null;
+          checkin_count: number;
+          depth_level: number | null;
+          invite_id: string | null;
+          invite_from_me: boolean | null;
+          invite_goal: string | null;
           conversation_id: string | null;
           last_message_body: string | null;
           last_message_kind: MessageKind | null;
           last_message_at: string | null;
           last_message_from_me: boolean | null;
           unread_count: number;
+        }[];
+      };
+      invite_to_bond: { Args: { p_other: string; p_goal: string }; Returns: string };
+      respond_to_bond_invite: { Args: { p_bond_id: string; p_accept: boolean }; Returns: undefined };
+      withdraw_bond_invite: { Args: { p_bond_id: string }; Returns: undefined };
+      end_bond: { Args: { p_bond_id: string }; Returns: undefined };
+      set_bond_goal: {
+        Args: { p_bond_id: string; p_goal: string; p_horizon_months?: number | null };
+        Returns: undefined;
+      };
+      log_bond_checkin: {
+        Args: { p_bond_id: string; p_mode: CheckinMode; p_body: string; p_happened_on?: string };
+        Returns: string;
+      };
+      start_bond_activity: { Args: { p_bond_id: string; p_kind: BondActivityKind }; Returns: string };
+      end_bond_activity: { Args: { p_activity_id: string }; Returns: undefined };
+      save_bond_response: {
+        Args: { p_activity_id: string; p_round: number; p_body: string; p_share: boolean };
+        Returns: undefined;
+      };
+      bond_log: {
+        Args: { p_bond_id: string };
+        Returns: {
+          activity_id: string;
+          kind: BondActivityKind;
+          activity_started_at: string;
+          activity_ended: boolean;
+          round: number;
+          opens_on: string;
+          title: string | null;
+          subtitle: string | null;
+          my_body: string | null;
+          my_shared: boolean;
+          their_body: string | null;
+          their_shared: boolean;
+        }[];
+      };
+      my_bond_logs: {
+        Args: Record<string, never>;
+        Returns: {
+          bond_id: string;
+          user_id: string;
+          first_name: string;
+          avatar_url: string | null;
+          chapter_slug: string | null;
+          phase: string | null;
+          status: BondStatus;
+          since: string;
+          released_at: string | null;
+          shared_count: number;
+          waiting_on_me: boolean;
+        }[];
+      };
+      bond_invites: {
+        Args: Record<string, never>;
+        Returns: {
+          bond_id: string;
+          user_id: string;
+          first_name: string;
+          avatar_url: string | null;
+          chapter_slug: string | null;
+          phase: string | null;
+          shared_goal: string | null;
+          created_at: string;
+        }[];
+      };
+      bond_details: {
+        Args: { p_bond_id: string };
+        Returns: {
+          bond_id: string;
+          user_id: string;
+          first_name: string;
+          avatar_url: string | null;
+          aura: Aura;
+          chapter_slug: string | null;
+          phase: string | null;
+          origin: BondOrigin;
+          status: BondStatus;
+          shared_goal: string | null;
+          goal_horizon_months: number | null;
+          since: string;
+          released_at: string | null;
+          ended_by_me: boolean | null;
+          depth_level: number | null;
+          checkin_count: number;
+          first_checkin_on: string | null;
+          log_count: number;
         }[];
       };
       pending_requests: {
@@ -789,6 +1085,57 @@ export type Database = {
         Args: { p_connection_id: string; p_accept: boolean };
         Returns: ConnectionRow;
       };
+      introduce_yourself: {
+        Args: { p_other: string; p_message: string; p_prompt?: string | null; p_chapter_slug?: string | null };
+        Returns: ConnectionRow;
+      };
+      my_introductions: {
+        Args: { p_limit?: number };
+        Returns: {
+          connection_id: string;
+          direction: "sent" | "received";
+          other_id: string;
+          first_name: string;
+          avatar_url: string | null;
+          status: ConnectionStatus;
+          message: string | null;
+          prompt: string | null;
+          chapter_slug: string | null;
+          phase: string | null;
+          seen_at: string | null;
+          created_at: string;
+          responded_at: string | null;
+        }[];
+      };
+      mark_introductions_seen: { Args: Record<string, never>; Returns: number };
+      potential_matches: {
+        Args: { p_limit?: number };
+        Returns: {
+          user_id: string;
+          first_name: string;
+          avatar_url: string | null;
+          chapter_slug: string;
+          phase: string;
+          same_phase: boolean;
+          looking_for: string[];
+          shared_looking_for: string[];
+          shared_life_stages: string[];
+        }[];
+      };
+      dismiss_match: { Args: { p_other: string }; Returns: undefined };
+      save_match_preferences: {
+        Args: { p_life_stages: string[]; p_looking_for: string[]; p_distance_km: number | null; p_notify: boolean };
+        Returns: {
+          user_id: string;
+          life_stages: string[];
+          looking_for: string[];
+          distance_km: number | null;
+          notify_new_matches: boolean;
+          last_match_notified_at: string | null;
+          updated_at: string;
+        };
+      };
+      set_post_audience: { Args: { p_post_id: string; p_user_ids: string[] }; Returns: number };
       complete_onboarding: {
         Args: {
           p_chapters: Json;
@@ -802,6 +1149,82 @@ export type Database = {
         Args: Record<string, never>;
         Returns: Database["public"]["Tables"]["subscriptions"]["Row"];
       };
+      has_pass: { Args: Record<string, never>; Returns: boolean };
+      create_chapter_invite: {
+        Args: {
+          p_user_chapter_id: string;
+          p_title: string;
+          p_note?: string | null;
+          p_photo_paths?: string[];
+          p_recipients?: string[];
+        };
+        Returns: { id: string; token: string }[];
+      };
+      chapter_invite_card: {
+        Args: { p_token: string };
+        Returns: {
+          id: string;
+          sender_id: string;
+          sender_name: string;
+          sender_avatar: string | null;
+          chapter_slug: string;
+          title: string;
+          note: string | null;
+          photo_paths: string[];
+          is_sender: boolean;
+          my_status: InviteResponse | null;
+          holds_chapter: boolean;
+        }[];
+      };
+      respond_chapter_invite: {
+        Args: { p_token: string; p_accept: boolean; p_phase?: string | null };
+        Returns: "joined" | "declined";
+      };
+      my_chapter_invitations: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          token: string;
+          title: string;
+          chapter_slug: string;
+          sender_id: string;
+          sender_name: string;
+          sender_avatar: string | null;
+          created_at: string;
+        }[];
+      };
+      group_request_outcome: { Args: { p_group_id: string }; Returns: RequestStatus | null };
+      acknowledge_group_request: { Args: { p_group_id: string }; Returns: undefined };
+      admin_pending_requests: {
+        Args: Record<string, never>;
+        Returns: { group_id: string; pending: number }[];
+      };
+      sync_my_spaces: { Args: Record<string, never>; Returns: undefined };
+      choose_active_spaces: { Args: { p_user_chapter_ids: string[] }; Returns: undefined };
+      resume_space: { Args: { p_user_chapter_id: string }; Returns: undefined };
+      my_referral: {
+        Args: Record<string, never>;
+        Returns: { code: string; invites_sent: number; friends_joined: number; rewards_earned: number }[];
+      };
+      my_referrals: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          invitee_id: string;
+          first_name: string;
+          avatar_url: string | null;
+          status: ReferralStatus;
+          joined_at: string;
+          qualified_at: string | null;
+          applied_at: string | null;
+          nudged_at: string | null;
+        }[];
+      };
+      referral_inviter: { Args: { p_code: string }; Returns: { first_name: string; avatar_url: string | null }[] };
+      claim_referral: { Args: { p_code: string }; Returns: boolean };
+      record_referral_invite: { Args: { p_channel: "email" | "message" | "share" }; Returns: undefined };
+      nudge_referral: { Args: { p_referral_id: string }; Returns: undefined };
+      claim_referral_reward: { Args: { p_referral_id: string }; Returns: string };
       close_chapter: {
         Args: {
           p_user_chapter_id: string;
@@ -857,6 +1280,7 @@ export type Database = {
             width: number | null;
             height: number | null;
           }[];
+          audience: Audience;
         }[];
       };
       space_members: {
@@ -1053,6 +1477,8 @@ export type Database = {
           p_trial_end: string | null;
           p_cancel_at_period_end: boolean;
           p_management_url: string | null;
+          /** RevenueCat product id of the running plan. */
+          p_plan?: string | null;
         };
         Returns: undefined;
       };
@@ -1102,6 +1528,35 @@ export type Database = {
       moderate_target: {
         Args: { p_target_type: ReportTarget; p_target_id: string; p_action: "dismiss" | "remove"; p_note?: string | null };
         Returns: number;
+      };
+      username_available: { Args: { p_username: string }; Returns: boolean };
+      my_report: {
+        Args: { p_report_id: string };
+        Returns: {
+          id: string;
+          target_type: ReportTarget;
+          reason: ReportReason;
+          status: "open" | "reviewing" | "actioned" | "dismissed";
+          created_at: string;
+          reviewed_at: string | null;
+          subject: string | null;
+        }[];
+      };
+      export_my_data: { Args: Record<string, never>; Returns: Json };
+      focus_digest: {
+        Args: Record<string, never>;
+        Returns: {
+          started_at: string;
+          ended_at: string;
+          new_matches: number;
+          bond_messages: number;
+          bond_sender: string | null;
+          other_messages: number;
+          other_sender: string | null;
+          group_replies: number;
+          group_title: string | null;
+          post_comments: number;
+        }[];
       };
       claim_notification_emails: {
         Args: { p_limit?: number };
@@ -1180,6 +1635,9 @@ export type Database = {
       subscription_status: SubscriptionStatus;
       focus_duration: FocusDuration;
       bond_status: BondStatus;
+      bond_origin: BondOrigin;
+      checkin_mode: CheckinMode;
+      bond_activity_kind: BondActivityKind;
       connection_status: ConnectionStatus;
       post_kind: PostKind;
       post_progress: PostProgress;
@@ -1188,6 +1646,9 @@ export type Database = {
       card_kind: CardKind;
       proximity_mode: ProximityMode;
       notification_kind: NotificationKind;
+      invite_response: InviteResponse;
+      wrap_range: WrapRange;
+      audience: Audience;
     };
     CompositeTypes: { [_ in never]: never };
   };

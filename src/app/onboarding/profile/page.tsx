@@ -54,7 +54,8 @@ export default function ProfilePage() {
   return (
     <OnboardingShell step={3} totalSteps={3}>
       <form
-        className="mx-auto flex min-h-0 w-full max-w-[663px] flex-1 flex-col justify-center gap-4 lg:gap-6"
+        // Phone (599:22169) starts right under the header; desktop centres.
+        className="mx-auto flex min-h-0 w-full max-w-[663px] flex-1 flex-col justify-start gap-4 pt-4 lg:justify-center lg:gap-6 lg:pt-0"
         onSubmit={(e) => {
           e.preventDefault();
           finish(true);
