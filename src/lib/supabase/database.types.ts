@@ -1245,7 +1245,7 @@ export type Database = {
       };
       feed_posts: {
         Args: {
-          p_scope?: "home" | "all" | "roots" | "open" | "mine";
+          p_scope?: "home" | "all" | "roots" | "open" | "mine" | "person";
           p_chapter_slug?: string | null;
           p_from?: string | null;
           p_to?: string | null;
@@ -1254,6 +1254,7 @@ export type Database = {
           p_limit?: number;
           p_post_id?: string | null;
           p_within_km?: number | null;
+          p_author_id?: string | null;
         };
         Returns: {
           id: string;

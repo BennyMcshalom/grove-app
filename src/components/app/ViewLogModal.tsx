@@ -44,7 +44,7 @@ export function ViewLogModal({
                 className="absolute inset-0 rounded-full bg-[#F0B231]"
                 style={{ boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" }}
               />
-              <Avatar src={log.avatarUrl} name={log.name} sizes="48px" className="relative size-12" />
+              <Avatar src={log.avatarUrl} name={log.name} userId={log.userId} sizes="48px" className="relative size-12" />
               {online && (
                 <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
               )}

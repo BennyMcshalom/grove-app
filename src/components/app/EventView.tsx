@@ -294,7 +294,7 @@ function EventDetails({
           <ul className={cn("flex flex-col", card)}>
             {attendees.map((person) => (
               <li key={person.userId} className="flex items-center gap-3 px-1 py-2">
-                <Avatar src={person.avatarUrl} name={person.name} sizes="32px" className="size-8" />
+                <Avatar src={person.avatarUrl} name={person.name} userId={person.userId} sizes="32px" className="size-8" />
                 <span className="font-sans text-sm font-medium text-ink-400">
                   {person.name}
                 </span>

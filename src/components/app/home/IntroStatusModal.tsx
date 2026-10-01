@@ -54,7 +54,7 @@ export function IntroStatusModal({
     const space = intro.chapterSlug ? getChapter(intro.chapterSlug)?.name : undefined;
     body = (
       <div className="flex flex-col items-center gap-4 py-2 text-center">
-        <Avatar src={intro.avatarUrl} name={intro.name} sizes="64px" className="size-16" />
+        <Avatar src={intro.avatarUrl} name={intro.name} userId={intro.userId} sizes="64px" className="size-16" />
         <h2 className="font-display text-2xl font-semibold text-ink-800">{intro.name} introduced themselves</h2>
         {(space || intro.phase) && (
           <span className="rounded-full bg-primary-50 px-3 py-1 font-sans text-sm text-primary-600">

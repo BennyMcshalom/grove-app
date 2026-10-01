@@ -458,7 +458,7 @@ function PeopleList({
                   onClick={() => onSelect(person)}
                   className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 >
-                  <Avatar src={person.avatarUrl} name={person.name} sizes="40px" className="size-10" />
+                  <Avatar src={person.avatarUrl} name={person.name} userId={person.userId} sizes="40px" className="size-10" />
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate font-sans text-sm font-semibold text-ink-700">
                       {person.name}

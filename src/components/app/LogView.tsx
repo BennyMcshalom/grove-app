@@ -204,7 +204,7 @@ export function LogView({
                       className="flex flex-col gap-2 rounded-3xl bg-surface px-4 py-3"
                     >
                       <div className="flex items-center gap-6 p-2">
-                        <Avatar src={member.avatarUrl} name={member.name} sizes="48px" className="size-12" />
+                        <Avatar src={member.avatarUrl} name={member.name} userId={member.userId} sizes="48px" className="size-12" />
                         <span className="flex min-w-0 flex-col gap-0.5">
                           <span className="truncate font-sans text-base font-semibold text-ink-700">
                             {member.name}

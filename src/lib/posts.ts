@@ -120,7 +120,7 @@ export interface FeedCursor {
  *
  * home and roots end: 48 hours, no next page, no ranking of any kind.
  */
-export type FeedScope = "home" | "all" | "roots" | "open" | "mine";
+export type FeedScope = "home" | "all" | "roots" | "open" | "mine" | "person";
 
 /** Scopes that stop at 48 hours and never load more. */
 export const ENDING_SCOPES: FeedScope[] = ["home", "roots"];
@@ -133,6 +133,8 @@ export interface FeedQuery {
   to?: string | null;
   /** Scope "open" only: people whose region is within this many km. */
   withinKm?: number | null;
+  /** Scope "person" only: whose Grouv page this is. */
+  authorId?: string | null;
   cursor?: FeedCursor | null;
 }
 

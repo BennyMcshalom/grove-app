@@ -9,6 +9,8 @@ export interface InboxItem {
   href: string;
   actorName: string | null;
   actorAvatar: string | null;
+  /** Whoever caused it, so their photo can open their Grouv. */
+  actorId: string | null;
   createdAt: string;
   read: boolean;
   /**
@@ -42,6 +44,7 @@ export function toInboxItem(row: NotificationRow): InboxItem {
     kind: row.kind,
     actorName: row.actor_name,
     actorAvatar: row.actor_avatar,
+    actorId: row.actor_id,
     createdAt: row.created_at,
     read: row.read_at !== null,
   };

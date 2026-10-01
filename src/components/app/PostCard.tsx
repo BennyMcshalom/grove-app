@@ -63,13 +63,13 @@ export function PostCard({ post: initial }: { post: Post }) {
           header so text and media get the card's full width (as X and
           LinkedIn do). */}
       <span className="hidden shrink-0 sm:block">
-        <Avatar src={post.avatar} name={post.author} className="size-10" />
+        <Avatar src={post.avatar} name={post.author} userId={post.anonymous ? null : post.authorId} className="size-10" />
       </span>
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <header className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
-          <Avatar src={post.avatar} name={post.author} className="size-10 shrink-0 sm:hidden" />
+          <Avatar src={post.avatar} name={post.author} userId={post.anonymous ? null : post.authorId} className="size-10 shrink-0 sm:hidden" />
           <div className="flex min-w-0 flex-col justify-center">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-sans text-lg font-semibold text-ink-700">

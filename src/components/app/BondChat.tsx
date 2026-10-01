@@ -434,7 +434,7 @@ function Bubble({
   return (
     <div className={cn("flex gap-2", mine ? "justify-end" : "justify-start")}>
       {!mine && (
-        <Avatar src={person.avatarUrl} name={person.name} className="size-10 self-end" />
+        <Avatar src={person.avatarUrl} name={person.name} userId={person.userId} className="size-10 self-end" />
       )}
 
       <div className={cn("flex max-w-[334px] flex-col gap-1", mine && "items-end")}>

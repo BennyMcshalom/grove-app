@@ -64,7 +64,7 @@ export function ProximityCard({
                     boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)",
                   }}
                 />
-                <Avatar src={person.avatarUrl} name={person.name} sizes="48px" className="relative size-12" />
+                <Avatar src={person.avatarUrl} name={person.name} userId={person.userId} sizes="48px" className="relative size-12" />
                 <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
               </span>
 

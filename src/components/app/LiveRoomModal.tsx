@@ -122,7 +122,7 @@ export function LiveRoomModal({
                       <span
                         className="absolute inset-0 rounded-full bg-warning-40 shadow-[0px_2px_9px_9px] shadow-primary-400/45"
                       />
-                      <Avatar src={person.avatarUrl} name={person.name} sizes="48px" className="relative size-12" />
+                      <Avatar src={person.avatarUrl} name={person.name} userId={person.userId} sizes="48px" className="relative size-12" />
                       <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
                     </span>
                     <div className="flex min-w-0 flex-col gap-0.5">

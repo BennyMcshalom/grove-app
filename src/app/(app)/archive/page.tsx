@@ -121,7 +121,7 @@ export default async function ArchivePage() {
                               className="rounded-full border-2 border-surface"
                               style={{ marginLeft: i === 0 ? 0 : -8 }}
                             >
-                              <Avatar src={person.avatarUrl} name={person.name} sizes="24px" className="size-6" />
+                              <Avatar src={person.avatarUrl} name={person.name} userId={person.id} sizes="24px" className="size-6" />
                             </span>
                           ))}
                         </span>

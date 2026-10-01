@@ -117,7 +117,7 @@ export function RightRail({
                     href={variant === "space" ? "/spaces" : `/bonds?with=${p.userId}`}
                     className="flex items-center gap-6 rounded-lg p-2 transition-colors hover:bg-ivory-100"
                   >
-                    <AuraAvatar src={p.avatarUrl} name={p.name} aura={p.aura ?? "in_transition"} />
+                    <AuraAvatar userId={p.userId} src={p.avatarUrl} name={p.name} aura={p.aura ?? "in_transition"} />
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="truncate font-sans text-base font-medium text-ink-700">
                         {p.name}
@@ -209,7 +209,7 @@ export function RightRail({
                     <span className="flex min-w-[100px] flex-1 items-center gap-4">
                       {/* Avatar 5 (94:3417) — 40px on a 5px white ring. */}
                       <span className="shrink-0 rounded-full ring-[5px] ring-white">
-                        <Avatar src={p.avatarUrl} name={p.name} className="size-10" />
+                        <Avatar src={p.avatarUrl} name={p.name} userId={p.userId} className="size-10" />
                       </span>
                       <span className="flex min-w-0 flex-col gap-0.5">
                         <span className="truncate font-sans text-base font-medium text-ink-700">
@@ -352,7 +352,7 @@ function BondAvatar({ userId, src, name }: { userId: string; src: string | null;
   const online = useIsOnline(userId);
   return (
     <span className="relative size-12 shrink-0">
-      <Avatar src={src} name={name} sizes="48px" className="size-12" />
+      <Avatar src={src} name={name} userId={userId} sizes="48px" className="size-12" />
       <span className="pointer-events-none absolute inset-0 rounded-full ring-[6px] ring-white ring-inset" />
       {/* _AvatarIndicator 94:2873 — Success/50 at 36,36. */}
       {online && (
@@ -363,7 +363,7 @@ function BondAvatar({ userId, src, name }: { userId: string; src: string | null;
 }
 
 /** Frames 100:1117 … — a 48px portrait over its owner's coloured aura. */
-function AuraAvatar({ src, name, aura }: { src: string | null; name: string; aura: Aura }) {
+function AuraAvatar({ userId, src, name, aura }: { userId: string; src: string | null; name: string; aura: Aura }) {
   const ring = AURA_RING[aura];
   return (
     <span className="relative size-12 shrink-0">
@@ -378,7 +378,7 @@ function AuraAvatar({ src, name, aura }: { src: string | null; name: string; aur
           style={{ backgroundColor: ring.color, boxShadow: ring.glow }}
         />
       )}
-      <Avatar src={src} name={name} sizes="48px" className="relative size-12" />
+      <Avatar src={src} name={name} userId={userId} sizes="48px" className="relative size-12" />
     </span>
   );
 }

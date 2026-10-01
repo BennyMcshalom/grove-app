@@ -170,7 +170,7 @@ function CommentRow({
 }) {
   return (
     <div className="flex gap-3 sm:gap-4">
-      <Avatar src={comment.avatar} name={comment.author} sizes="40px" className="size-9 sm:size-10" />
+      <Avatar src={comment.avatar} name={comment.author} userId={comment.authorId} sizes="40px" className="size-9 sm:size-10" />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-col gap-1 rounded-lg bg-ivory-100 px-3 py-2.5 sm:px-4">
           <div className="flex items-baseline gap-2">

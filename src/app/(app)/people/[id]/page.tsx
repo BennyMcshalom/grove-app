@@ -1,10 +1,16 @@
 import { notFound, redirect } from "next/navigation";
 import { PersonView, type Person } from "@/components/app/PersonView";
 import { getShellViewer } from "@/lib/auth/viewer";
+import { loadFeed } from "@/lib/feed";
+import { loadMyLogEntries } from "@/lib/log-server";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Someone's profile — where search results and moderation point. Figma has no
+ * Someone's Grouv — where tapping their photo anywhere leads, as well as
+ * search results and moderation. The profile card, then (like Your Grouv)
+ * their posts and logged moments as grids, limited by RLS to what the viewer
+ * may see: audience and circle rules for posts, their log visibility for
+ * moments. Figma has no
  * frame for it; it's Settings' profile banner for another person. Their open
  * spaces are public to signed-in users; the three prompts show only to bonds
  * (RLS on profile_prompts).
@@ -59,6 +65,15 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
 
   const held = new Set(viewer.chapters.map((c) => c.slug));
 
+  // Nothing of theirs shows while you've blocked them.
+  const [posts, logs] = block
+    ? [{ posts: [], nextCursor: null }, []]
+    : await Promise.all([
+        loadFeed({ scope: "person", authorId: id }, viewer.firstName),
+        // Solo moments only: Bond Logs belong inside the Bond.
+        loadMyLogEntries(id, { limit: 60 }).then((entries) => entries.filter((e) => e.scope === "solo")),
+      ]);
+
   return (
     <PersonView
       person={{
@@ -75,6 +90,8 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
           ? { honestTension: prompts.honest_tension, sittingWith: prompts.sitting_with, openTo: prompts.open_to }
           : null,
       }}
+      posts={posts}
+      logs={logs}
     />
   );
 }

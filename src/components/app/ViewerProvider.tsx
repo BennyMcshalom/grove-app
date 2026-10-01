@@ -52,6 +52,11 @@ export interface ShellViewer {
 
 const ViewerContext = createContext<ShellViewer | null>(null);
 
+/** The viewer when inside the (app) shell, null on public pages (/w, /i, /r…). */
+export function useOptionalViewer() {
+  return useContext(ViewerContext);
+}
+
 export function useViewer() {
   const viewer = useContext(ViewerContext);
   if (!viewer) throw new Error("useViewer must be used inside the (app) layout");

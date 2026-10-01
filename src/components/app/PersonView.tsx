@@ -2,7 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
+import { FeedList } from "@/components/app/FeedList";
+import { MomentViewer } from "@/components/app/LogCoverflow";
 import { ReportPostModal } from "@/components/app/PostModals";
+import { PostTile } from "@/components/app/PostTile";
+import { LogTile } from "@/components/app/YourGrouvView";
 import { TopBar } from "@/components/app/TopBar";
 import { useToast } from "@/components/app/ToastProvider";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +20,8 @@ import {
 } from "@/lib/bond-actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import type { LogEntry } from "@/lib/log";
+import type { FeedPage } from "@/lib/posts";
 import { AURAS, auraLabel, type Aura } from "@/lib/profile";
 
 export interface Person {
@@ -71,12 +77,14 @@ const RELATIONSHIP_LABEL: Record<Person["relationship"], string | null> = {
   none: null,
 };
 
-export function PersonView({ person }: { person: Person }) {
+export function PersonView({ person, posts, logs }: { person: Person; posts: FeedPage; logs: LogEntry[] }) {
   const toast = useToast();
   const [relationship, setRelationship] = useState(person.relationship);
   const [blocked, setBlocked] = useState(person.blocked);
   const [confirming, setConfirming] = useState<"remove" | "block" | null>(null);
   const [reporting, setReporting] = useState(false);
+  const [tab, setTab] = useState<"posts" | "logs">("posts");
+  const [opened, setOpened] = useState<LogEntry | null>(null);
   const [pending, startTransition] = useTransition();
   const aura = AURAS.find((a) => a.value === person.aura);
   const label = RELATIONSHIP_LABEL[relationship];
@@ -137,7 +145,8 @@ export function PersonView({ person }: { person: Person }) {
       <TopBar title={person.name} back="/search" />
 
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-[724px] flex-col gap-6 pb-10">
+        <div className="mx-auto flex w-full max-w-[1096px] flex-col gap-6 pb-10">
+          <div className="mx-auto flex w-full max-w-[724px] flex-col gap-6">
           <section className="w-full overflow-hidden rounded-lg bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
             <div className="h-20" style={{ backgroundImage: "var(--wash-banner)" }} />
             <div className="flex flex-col gap-4 px-5 pb-6 sm:px-8">
@@ -252,6 +261,57 @@ export function PersonView({ person }: { person: Person }) {
               ))}
             </section>
           )}
+          </div>
+
+          {/* Their Grouv, as Your Grouv shows yours (417:16407 / 435:18506):
+              two tabs, each a 3-across grid of 9:16 tiles, newest first. */}
+          {!blocked && (
+            <section className="flex flex-col gap-6" aria-label={`${person.name}'s Grouv`}>
+              <div role="tablist" className="mx-auto flex w-full max-w-[724px]">
+                {(
+                  [
+                    ["posts", "Posts"],
+                    ["logs", "Grouv Logs"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === value}
+                    onClick={() => setTab(value)}
+                    className={cn(
+                      "h-10 flex-1 border-b-2 px-4 py-2 font-sans text-sm font-medium text-ink-500 transition-colors",
+                      tab === value ? "border-primary-600" : "border-ivory-600 hover:border-ivory-700",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {tab === "posts" ? (
+                <FeedList
+                  query={{ scope: "person", authorId: person.id }}
+                  initial={posts}
+                  layout="grid"
+                  empty={<GridEmpty>{person.name} hasn&rsquo;t shared any posts with you yet.</GridEmpty>}
+                  renderPost={(post) => <PostTile key={post.id} post={post} />}
+                />
+              ) : logs.length === 0 ? (
+                <GridEmpty>{person.name}&rsquo;s logged moments aren&rsquo;t shared with you yet.</GridEmpty>
+              ) : (
+                <ul className="mx-auto grid w-full max-w-[720px] grid-cols-3 gap-1 sm:gap-2">
+                  {logs.map((entry) => (
+                    <li key={entry.id}>
+                      <LogTile entry={entry} onOpen={() => setOpened(entry)} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {opened && <MomentViewer entry={opened} onClose={() => setOpened(null)} />}
+            </section>
+          )}
         </div>
       </div>
 
@@ -264,5 +324,13 @@ export function PersonView({ person }: { person: Person }) {
         />
       )}
     </div>
+  );
+}
+
+function GridEmpty({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mx-auto w-full max-w-[720px] rounded-3xl bg-surface px-4 py-10 text-center font-sans text-sm text-ink-300">
+      {children}
+    </p>
   );
 }

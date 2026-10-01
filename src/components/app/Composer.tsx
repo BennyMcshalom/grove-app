@@ -477,6 +477,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
             <Avatar
               src={viewer.avatarUrl}
               name={viewer.firstName}
+              userId={viewer.id}
               sizes="48px"
               className="size-12 border-[1.5px] border-surface"
             />

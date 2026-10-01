@@ -157,7 +157,7 @@ export function SpaceView({
                           className="rounded-full border-2 border-surface"
                           style={{ marginLeft: i === 0 ? 0 : -6 }}
                         >
-                          <Avatar src={m.avatarUrl} name={m.name} sizes="24px" className="size-5" />
+                          <Avatar src={m.avatarUrl} name={m.name} userId={m.userId} sizes="24px" className="size-5" />
                         </span>
                       ))}
                     </span>
@@ -447,7 +447,7 @@ function OpenPost({
     <article className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="flex min-w-0 flex-wrap items-center gap-2">
-          <Avatar src={post.avatar} name={post.author} className="size-10" />
+          <Avatar src={post.avatar} name={post.author} userId={post.anonymous ? null : post.authorId} className="size-10" />
           <span className="font-sans text-lg font-semibold text-ink-700">{post.author}</span>
           {post.authorPhase && (
             <span className="rounded-full bg-ivory-500 px-2 py-1 font-sans text-xs font-medium text-ink-400">

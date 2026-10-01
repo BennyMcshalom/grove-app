@@ -366,7 +366,7 @@ function JoinRequests({ requests }: { requests: JoinRequest[] }) {
         {requests.map((request) => (
           <li key={request.id} className="flex flex-wrap items-center justify-between gap-3">
             <span className="flex items-center gap-3">
-              <Avatar src={request.avatarUrl} name={request.name} className="size-10" />
+              <Avatar src={request.avatarUrl} name={request.name} userId={request.userId} className="size-10" />
               <span className="flex flex-col">
                 <span className="font-sans text-base font-medium text-ink-700">{request.name}</span>
                 <span className="font-sans text-xs text-ink-300" suppressHydrationWarning>

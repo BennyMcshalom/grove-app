@@ -23,11 +23,12 @@ type Result = { error?: string };
 const progressValues = PROGRESS.map((p) => p.value) as [PostProgress, ...PostProgress[]];
 
 const FeedQuerySchema = z.object({
-  scope: z.enum(["home", "all", "roots", "open", "mine"]),
+  scope: z.enum(["home", "all", "roots", "open", "mine", "person"]),
   chapterSlug: z.string().nullish(),
   from: z.string().nullish(),
   to: z.string().nullish(),
   withinKm: z.number().positive().max(20000).nullish(),
+  authorId: z.uuid().nullish(),
   cursor: z.object({ before: z.string(), beforeId: z.uuid() }).nullish(),
 });
 

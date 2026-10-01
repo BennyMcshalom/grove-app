@@ -24,7 +24,7 @@ import type { FeedPage } from "@/lib/posts";
 const TABS = ["Your Posts", "Your Grouv Logs"];
 
 /** A logged moment as a 9:16 tile: its photo, or its words on a warm card. */
-function LogTile({ entry, onOpen }: { entry: LogEntry; onOpen: () => void }) {
+export function LogTile({ entry, onOpen }: { entry: LogEntry; onOpen: () => void }) {
   const [loaded, setLoaded] = useState(false);
   return (
     <button

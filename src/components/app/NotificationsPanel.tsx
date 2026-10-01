@@ -119,7 +119,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
                   )}
                 >
                   {item.actorName ? (
-                    <Avatar src={item.actorAvatar} name={item.actorName} className="size-10" />
+                    <Avatar src={item.actorAvatar} name={item.actorName} userId={item.actorId} className="size-10" />
                   ) : item.kind === "report_reviewed" ? (
                     // The orange info mark from the "Update on your report" alert.
                     <span className="grid size-10 shrink-0 place-items-center">

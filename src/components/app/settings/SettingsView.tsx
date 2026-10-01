@@ -359,6 +359,7 @@ function ProfileIdentity() {
         <Avatar
           src={viewer.avatarUrl}
           name={viewer.firstName}
+          userId={viewer.id}
           sizes="64px"
           className="size-full"
         />

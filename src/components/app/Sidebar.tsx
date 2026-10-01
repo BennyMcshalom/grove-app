@@ -286,6 +286,7 @@ function CurrentUser({ collapsed = false }: { collapsed?: boolean }) {
         <Avatar
           src={viewer.avatarUrl}
           name={viewer.firstName}
+          userId={viewer.id}
           className="size-10 border-[1.5px] border-surface"
         />
         <span className="absolute right-0 bottom-0 size-2.5 rounded-full border border-surface bg-[#04802E]" />

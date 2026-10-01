@@ -188,7 +188,7 @@ function MatchCard({
   const space = getChapter(match.chapterSlug)?.name ?? "";
   return (
     <article className="flex h-full gap-3 rounded-2xl bg-surface p-4">
-      <Avatar src={match.avatarUrl} name={match.name} sizes="32px" className="size-8" />
+      <Avatar src={match.avatarUrl} name={match.name} userId={match.userId} sizes="32px" className="size-8" />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <h3 className="font-sans text-lg font-medium text-ink-800">{match.name}</h3>
         <span className="flex w-fit items-center gap-2 rounded-full bg-primary-50 px-3 py-1 font-sans text-xs font-medium text-primary-600">
