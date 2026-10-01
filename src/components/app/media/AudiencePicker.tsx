@@ -25,7 +25,10 @@ export function AudiencePicker({
   audience,
   selected,
   onChange,
+  row = false,
 }: {
+  /** The composer's settings panel: "Who can see this" + hint on the left, pill on the right. */
+  row?: boolean;
   audience: PostAudience;
   /** User ids, for "selected_bonds". */
   selected: string[];
@@ -72,9 +75,20 @@ export function AudiencePicker({
   const chosen = (bonds ?? []).filter((b) => selected.includes(b.userId));
 
   return (
-    <div ref={box} className="relative flex flex-col items-end gap-3">
-      <div className="flex items-center gap-2">
-        <span className="font-sans text-sm text-ink-500">Public visible to:</span>
+    <div ref={box} className={cn("relative flex flex-col gap-3", !row && "items-end")}>
+      <div className={cn("flex items-center gap-2", row && "justify-between gap-4")}>
+        {row ? (
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="font-sans text-sm font-medium text-ink-700">Who can see this</span>
+            <span className="font-sans text-xs text-ink-300">
+              {audience === "selected_bonds" && chosen.length > 0
+                ? `${chosen.length} ${chosen.length === 1 ? "Bond" : "Bonds"} you chose`
+                : AUDIENCES.find((a) => a.value === audience)?.hint}
+            </span>
+          </span>
+        ) : (
+          <span className="font-sans text-sm text-ink-500">Public visible to:</span>
+        )}
         <button
           type="button"
           aria-haspopup="menu"
@@ -83,7 +97,7 @@ export function AudiencePicker({
             setPicking(selected);
             setOpen(open ? null : "menu");
           }}
-          className="flex items-center gap-2 rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm font-medium text-ink-700 transition-colors hover:bg-primary-100"
+          className="flex shrink-0 items-center gap-2 rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm font-medium text-ink-700 transition-colors hover:bg-primary-100"
         >
           {audience === "selected_bonds" ? "Selected Bond" : audienceLabel(audience)}
           <svg viewBox="0 0 16 16" fill="none" className="size-4" aria-hidden="true">
@@ -213,9 +227,9 @@ export function AudiencePicker({
       )}
 
       {audience === "selected_bonds" && chosen.length > 0 && (
-        <div className="flex flex-col items-end gap-2">
+        <div className={cn("flex flex-col gap-2", !row && "items-end")}>
           <span className="font-sans text-xs text-ink-300">This post will be visible to:</span>
-          <ul className="flex flex-wrap justify-end gap-3">
+          <ul className={cn("flex flex-wrap gap-3", !row && "justify-end")}>
             {chosen.map((b) => (
               <li key={b.userId} className="flex w-14 flex-col items-center gap-1">
                 <Avatar src={b.avatarUrl} name={b.name} sizes="32px" className="size-8" />
@@ -225,7 +239,7 @@ export function AudiencePicker({
           </ul>
         </div>
       )}
-      {audience === "only_me" && (
+      {audience === "only_me" && !row && (
         <span className="font-sans text-xs text-ink-300">Only you will see this. It’s saved privately.</span>
       )}
     </div>

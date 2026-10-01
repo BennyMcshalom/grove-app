@@ -3,11 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { PostingToMenu } from "@/components/app/PostMenu";
+import { Toggle } from "@/components/app/settings/SettingsView";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
-import { Checkbox } from "@/components/ui/Checkbox";
 import { createPost, openGroveAvailable } from "@/lib/post-actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
@@ -397,6 +397,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
 
   const audiencePicker = (
     <AudiencePicker
+      row
       audience={audience}
       selected={audienceIds}
       onChange={(next, ids) => {
@@ -405,6 +406,37 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         if (next !== "everyone") setOpenGrove(false);
       }}
     />
+  );
+
+  // Who sees it, anonymity and Open Grove as one settings panel: a row each,
+  // the control on the right. Media can identify someone even without a name,
+  // so Just Grouv always carries the warning; Root shows it once anonymous.
+  const postSettings = (warnAlways: boolean) => (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col divide-y divide-ink-50 rounded-xl border border-ink-50 px-4">
+        <div className="py-3">{audiencePicker}</div>
+        <SettingRow
+          title="Post anonymously"
+          hint="Your name and photo won't show on this post."
+          on={anonymous}
+          onChange={() => setAnonymous(!anonymous)}
+        />
+        {groveAvailable && !anonymous && audience === "everyone" && (
+          <SettingRow
+            title="Share to Open Grove"
+            hint="Reach people at your stage beyond your circle. Once a month per Space."
+            on={openGrove}
+            onChange={() => setOpenGrove(!openGrove)}
+          />
+        )}
+      </div>
+      {(warnAlways || anonymous) && (
+        <p className="flex items-start gap-2 font-sans text-xs text-ink-300">
+          <InfoIcon className="mt-px size-3.5 shrink-0" />
+          {ANONYMITY_WARNING}
+        </p>
+      )}
+    </div>
   );
 
   return (
@@ -580,27 +612,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
             />
           </div>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex flex-col gap-3">
-                <Checkbox
-                  label="Post anonymously"
-                  checked={anonymous}
-                  onChange={(e) => setAnonymous(e.target.checked)}
-                />
-                {groveAvailable && !anonymous && audience === "everyone" && (
-                  <Checkbox
-                    label="Share to Open Grove, beyond your circle"
-                    checked={openGrove}
-                    onChange={(e) => setOpenGrove(e.target.checked)}
-                  />
-                )}
-              </div>
-              {audiencePicker}
-            </div>
-            {/* Figma h14/h23: Just Grouv is media, so the warning always shows. */}
-            <p className="font-sans text-xs text-ink-300">{ANONYMITY_WARNING}</p>
-          </div>
+          {postSettings(true)}
 
           <FormError message={error} />
 
@@ -659,25 +671,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
           />
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-3">
-            <Checkbox
-              label="Post anonymously"
-              checked={anonymous}
-              onChange={(e) => setAnonymous(e.target.checked)}
-            />
-            {/* Figma h06: the warning appears with the tick. */}
-            {anonymous && <p className="max-w-[340px] pl-6 font-sans text-xs text-ink-300">{ANONYMITY_WARNING}</p>}
-            {groveAvailable && !anonymous && audience === "everyone" && (
-              <Checkbox
-                label="Share to Open Grove, beyond your circle"
-                checked={openGrove}
-                onChange={(e) => setOpenGrove(e.target.checked)}
-              />
-            )}
-          </div>
-          {audiencePicker}
-        </div>
+        {postSettings(false)}
       </div>
 
       {attachmentRow}
@@ -904,6 +898,38 @@ function VideoIcon({ className }: { className?: string }) {
         strokeWidth="1.3"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+/** One line of the post settings panel: title and hint, switch on the right. */
+function SettingRow({
+  title,
+  hint,
+  on,
+  onChange,
+}: {
+  title: string;
+  hint: string;
+  on: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="font-sans text-sm font-medium text-ink-700">{title}</span>
+        <span className="font-sans text-xs text-ink-300">{hint}</span>
+      </span>
+      <Toggle label={title} on={on} onChange={onChange} />
+    </div>
+  );
+}
+
+function InfoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className={className} aria-hidden="true">
+      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M8 7.25v3.5M8 5.25v.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }
