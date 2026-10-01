@@ -1,20 +1,19 @@
 "use client";
 
-import { Photo } from "@/components/ui/Media";
-import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
+import { LogCoverflow } from "@/components/app/LogCoverflow";
 import { useIsOnline } from "@/components/app/Presence";
 import { Button } from "@/components/ui/Button";
 import { getChapter } from "@/lib/chapters";
-import { logDateLabel, type CircleLog } from "@/lib/log";
+import type { CircleLog } from "@/lib/log";
 import { timeAgo } from "@/lib/time";
 
 /**
  * View log — Figma frame 246:7102.
  *
  * A 660px card: the member's glowing portrait beside "<Name>'s Log" and its
- * chapter badge, then one entry at a time on an ivory tray with a scrubber at
- * each end, and "Let's Grouv" below a rule.
+ * chapter badge, then their moments in the same cover-flow as Log Memories
+ * (drag, flick, arrows; tap the front card to open it), and "Let's Grouv".
  */
 export function ViewLogModal({
   log,
@@ -23,13 +22,8 @@ export function ViewLogModal({
   log: CircleLog;
   onClose: () => void;
 }) {
-  const [index, setIndex] = useState(0);
   const online = useIsOnline(log.userId);
-  const entries = log.entries;
-  const entry = entries[index];
-  const chapter = getChapter(entry?.chapterSlug ?? log.chapterSlug);
-  const step = (dir: number) =>
-    setIndex((i) => (i + dir + entries.length) % entries.length);
+  const chapter = getChapter(log.chapterSlug);
 
   return (
     <div
@@ -68,7 +62,7 @@ export function ViewLogModal({
                       style={{ backgroundImage: `url(${chapter.icon})` }}
                     />
                   )}
-                  <span className="font-sans text-xs text-ink-500">{entry?.phase ?? log.phase}</span>
+                  <span className="font-sans text-xs text-ink-500">{log.phase}</span>
                 </span>
                 <span className="size-1 rounded-full bg-ink-100" />
                 <span className="font-sans text-xs text-ink-400" suppressHydrationWarning>
@@ -88,34 +82,7 @@ export function ViewLogModal({
           </button>
         </header>
 
-        {/* Frame 249:12878 — one entry centred on an ivory tray. */}
-        {entry && (
-          <div className="relative flex items-center justify-center rounded-lg bg-ivory-100 px-4 py-12">
-            {entries.length > 1 && <Scrubber side="left" onClick={() => step(-1)} />}
-
-            <figure className="flex w-full max-w-[368px] flex-col gap-3 rounded-lg bg-surface p-2 pb-4 shadow-[0px_4px_16px_0px_rgba(0,0,0,0.1)]">
-              {entry.photoUrl && (
-                <div className="relative h-[252px] w-full overflow-hidden rounded-lg bg-ivory-200">
-                  <Photo src={entry.photoUrl} alt="" fill unoptimized className="object-cover" />
-                </div>
-              )}
-              <figcaption className="flex flex-col px-2">
-                <span className="flex items-center gap-2 font-sans text-xs font-medium text-ink-200 uppercase">
-                  Day {entry.dayNumber}
-                  <span className="size-1 rounded-full bg-ink-300" />
-                  {logDateLabel(entry.entryDate)}
-                </span>
-                {entry.body && (
-                  <span className="font-sans text-lg font-semibold whitespace-pre-line text-ink-700">
-                    {entry.body}
-                  </span>
-                )}
-              </figcaption>
-            </figure>
-
-            {entries.length > 1 && <Scrubber side="right" onClick={() => step(1)} />}
-          </div>
-        )}
+        {log.entries.length > 0 && <LogCoverflow entries={log.entries} />}
 
         <div className="pt-6">
           <Button size="sm" fullWidth href={`/bonds?with=${log.userId}`}>
@@ -124,39 +91,6 @@ export function ViewLogModal({
         </div>
       </div>
     </div>
-  );
-}
-
-/** The 40px glassy scrubbers at each end (249:12899 / 252:12904). */
-function Scrubber({
-  side,
-  onClick,
-}: {
-  side: "left" | "right";
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={side === "left" ? "Previous entry" : "Next entry"}
-      className="absolute top-1/2 z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-surface/40 text-white backdrop-blur-[20px]"
-      style={{
-        [side]: "24px",
-        backgroundImage:
-          "linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 100%)",
-      }}
-    >
-      <svg viewBox="0 0 24 24" fill="none" className="size-5" aria-hidden="true">
-        <path
-          d={side === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"}
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </button>
   );
 }
 
