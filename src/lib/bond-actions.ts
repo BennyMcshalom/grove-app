@@ -174,7 +174,7 @@ type MessageRow = {
 };
 
 async function toChatMessages(rows: MessageRow[], viewerId: string): Promise<ChatMessage[]> {
-  const signed = await signPaths("chat", rows.map((row) => row.media_path));
+  const signed = await signPaths("chat", rows.map((row) => row.media_path), { width: 1080 });
   return rows.map((row) => toChatMessage(row, viewerId, signed));
 }
 

@@ -42,7 +42,7 @@ export async function loadWrap(wrapId: string): Promise<Wrap | null> {
   if (!wrap) return null;
 
   const rows = moments ?? [];
-  const signed = await signPaths("media", rows.map((m) => m.photo_path));
+  const signed = await signPaths("media", rows.map((m) => m.photo_path), { width: 1080 });
   return {
     ...toSummary(wrap),
     moments: rows.map((m) => ({

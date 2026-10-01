@@ -82,7 +82,16 @@ export function ViewLogModal({
           </button>
         </header>
 
-        {log.entries.length > 0 && <LogCoverflow entries={log.entries} />}
+        {/* Same warm panel as Log Memories: the cover-flow fills its parent, so
+            the panel sets the height. */}
+        {log.entries.length > 0 && (
+          <div
+            className="relative h-[340px] w-full overflow-hidden rounded-2xl sm:h-[420px]"
+            style={{ backgroundImage: "linear-gradient(195deg, rgba(232,163,118,0.8) 0%, rgba(243,163,111,1) 36%)" }}
+          >
+            <LogCoverflow entries={log.entries} />
+          </div>
+        )}
 
         <div className="pt-6">
           <Button size="sm" fullWidth href={`/bonds?with=${log.userId}`}>

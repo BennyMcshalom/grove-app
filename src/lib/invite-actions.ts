@@ -142,7 +142,7 @@ export async function loadInvitation(token: string) {
   const { data } = await supabase.rpc("chapter_invite_card", { p_token: token });
   const row = data?.[0];
   if (!row) return null;
-  const signed = await signPaths("media", row.photo_paths);
+  const signed = await signPaths("media", row.photo_paths, { width: 1080 });
   return {
     id: row.id,
     token,

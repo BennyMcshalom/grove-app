@@ -33,7 +33,7 @@ export async function loadMyLogEntries(
   if (error) console.error("[log] loading my entries failed", error);
 
   const rows = data ?? [];
-  const signed = await signPaths("media", rows.map((r) => r.photo_path));
+  const signed = await signPaths("media", rows.map((r) => r.photo_path), { width: 900 });
   return rows.map((row) => ({
     id: row.id,
     body: row.body,
@@ -53,7 +53,7 @@ export async function loadCircleLogs(scope: "solo" | "bond"): Promise<CircleLog[
   if (error) console.error("[log] circle_logs failed", error);
 
   const rows = data ?? [];
-  const signed = await signPaths("media", rows.flatMap((r) => r.entries.map((e) => e.photo_path)));
+  const signed = await signPaths("media", rows.flatMap((r) => r.entries.map((e) => e.photo_path)), { width: 900 });
   return rows.map((row) => ({
     userId: row.user_id,
     name: row.first_name,

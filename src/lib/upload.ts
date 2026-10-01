@@ -57,6 +57,50 @@ function extensionFor(file: Blob, fallback: string) {
   return fromName || fallback;
 }
 
+/** Upload paths are random and never reused, so a file can be cached for good. */
+const CACHE_FOREVER = "31536000";
+
+/** Longest side a stored photo keeps — sharp on any screen, a fraction of a phone original. */
+const MAX_PHOTO_SIDE = 2560;
+const SHRINK_OVER_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Phone photos arrive at 4000px+ and several MB. Anything bigger than we'll
+ * ever show is redrawn at 2560px before it uploads: JPEGs stay JPEG
+ * (quality 0.85), PNG/WebP become WebP so transparency survives. GIFs, HEIC
+ * and anything the browser can't decode go up untouched, as does a result
+ * that wouldn't actually be smaller.
+ */
+export async function shrinkPhoto(file: Blob): Promise<Blob> {
+  const type = file.type.split(";")[0];
+  if (!["image/jpeg", "image/png", "image/webp"].includes(type)) return file;
+  if (typeof createImageBitmap !== "function") return file;
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const longest = Math.max(bitmap.width, bitmap.height);
+    if (longest <= MAX_PHOTO_SIDE && file.size <= SHRINK_OVER_BYTES) {
+      bitmap.close();
+      return file;
+    }
+    const scale = Math.min(1, MAX_PHOTO_SIDE / longest);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const target = type === "image/jpeg" ? "image/jpeg" : "image/webp";
+    const out = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, target, 0.85));
+    // Some browsers can't encode WebP and quietly hand back a PNG instead.
+    if (!out || out.type !== target || out.size >= file.size) return file;
+    return out;
+  } catch {
+    return file;
+  }
+}
+
 /**
  * Uploads straight from the browser. `folder` must match the bucket policy:
  * `<user id>` for media, `<conversation id>/<user id>` for chat.
@@ -68,9 +112,10 @@ export async function uploadFile(
   { prefix = "", fallbackExtension = "bin" }: { prefix?: string; fallbackExtension?: string } = {},
 ): Promise<{ path: string } | { error: string }> {
   const path = `${folder}/${prefix}${crypto.randomUUID()}.${extensionFor(file, fallbackExtension)}`;
+  const body = await shrinkPhoto(file);
   const { error } = await createClient()
     .storage.from(bucket)
-    .upload(path, file, { contentType: file.type || undefined });
+    .upload(path, body, { contentType: body.type || undefined, cacheControl: CACHE_FOREVER });
 
   if (error) {
     console.error(`[upload] ${bucket} upload failed`, error);
@@ -117,6 +162,7 @@ export async function uploadWithProgress(
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) return { error: "You're signed out. Sign in and try again." };
+  const body = await shrinkPhoto(file);
 
   return new Promise((resolve) => {
     const request = new XMLHttpRequest();
@@ -124,8 +170,8 @@ export async function uploadWithProgress(
     request.setRequestHeader("Authorization", `Bearer ${token}`);
     request.setRequestHeader("apikey", supabasePublishableKey());
     request.setRequestHeader("x-upsert", "false");
-    request.setRequestHeader("cache-control", "max-age=3600");
-    if (file.type) request.setRequestHeader("Content-Type", file.type);
+    request.setRequestHeader("cache-control", `max-age=${CACHE_FOREVER}`);
+    if (body.type) request.setRequestHeader("Content-Type", body.type);
 
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -142,7 +188,7 @@ export async function uploadWithProgress(
     request.onerror = () => resolve({ error: "The upload was interrupted. Check your connection and retry." });
     request.onabort = () => resolve({ error: "Upload cancelled." });
     signal?.addEventListener("abort", () => request.abort());
-    request.send(file);
+    request.send(body);
   });
 }
 

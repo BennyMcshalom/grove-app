@@ -54,7 +54,7 @@ export async function loadPost(postId: string, viewerName: string): Promise<Post
 }
 
 async function toPosts(rows: FeedRow[], viewerName: string): Promise<Post[]> {
-  const signed = await signPaths("media", rows.flatMap((row) => row.media.map((m) => m.path)));
+  const signed = await signPaths("media", rows.flatMap((row) => row.media.map((m) => m.path)), { width: 1280 });
   const now = Date.now();
   return rows.map((row) => ({
     id: row.id,
