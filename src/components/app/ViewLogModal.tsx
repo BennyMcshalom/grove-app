@@ -82,14 +82,12 @@ export function ViewLogModal({
           </button>
         </header>
 
-        {/* Same warm panel as Log Memories: the cover-flow fills its parent, so
-            the panel sets the height. */}
+        {/* The Log Memories cover-flow on a quiet ivory tray, so someone else's
+            moments read as a keepsake rather than your own orange Log panel.
+            The cover-flow fills its parent, so the tray sets the height. */}
         {log.entries.length > 0 && (
-          <div
-            className="relative h-[340px] w-full overflow-hidden rounded-2xl sm:h-[420px]"
-            style={{ backgroundImage: "linear-gradient(195deg, rgba(232,163,118,0.8) 0%, rgba(243,163,111,1) 36%)" }}
-          >
-            <LogCoverflow entries={log.entries} />
+          <div className="relative h-[340px] w-full overflow-hidden rounded-2xl border border-ink-50 bg-ivory-100 sm:h-[420px]">
+            <LogCoverflow entries={log.entries} tone="plain" />
           </div>
         )}
 
