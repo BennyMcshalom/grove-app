@@ -16,10 +16,13 @@ import type { PendingInvitation } from "@/lib/invites";
  */
 export function InvitationsList({
   heading,
+  titled = false,
   className,
 }: {
-  /** Wraps the rows with the rail's section title (and rule after). */
+  /** Wraps the rows with the rail's section title (and rule after). Client callers only. */
   heading?: (rows: React.ReactNode) => React.ReactNode;
+  /** Server pages can't pass `heading` (a function); this adds the INVITATIONS title instead. */
+  titled?: boolean;
   className?: string;
 }) {
   const [invitations, setInvitations] = useState<PendingInvitation[] | null>(null);
@@ -35,7 +38,7 @@ export function InvitationsList({
     };
   }, []);
 
-  if (invitations === null) return heading ? null : <PersonRowsSkeleton count={1} label="Loading invitations" />;
+  if (invitations === null) return heading || titled ? null : <PersonRowsSkeleton count={1} label="Loading invitations" />;
   if (invitations.length === 0) return null;
 
   const rows = (
@@ -66,7 +69,16 @@ export function InvitationsList({
 
   return (
     <>
-      {heading ? heading(rows) : rows}
+      {heading ? (
+        heading(rows)
+      ) : titled ? (
+        <section className="flex flex-col gap-4">
+          <h2 className="font-sans text-base font-medium tracking-wide text-ink-700 uppercase">Invitations</h2>
+          {rows}
+        </section>
+      ) : (
+        rows
+      )}
       {open && (
         <InvitationModal
           token={open}

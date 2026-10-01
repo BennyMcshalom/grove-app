@@ -204,8 +204,9 @@ export function RightRail({
               {rail.suggestions.map((p, i) => (
                 <li key={p.userId} className="flex flex-col gap-4">
                   {i > 0 && <hr className="border-ink-50" />}
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="flex min-w-0 items-center gap-4">
+                  {/* The pill drops under the name when the 300px rail can't fit both. */}
+                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                    <span className="flex min-w-[100px] flex-1 items-center gap-4">
                       {/* Avatar 5 (94:3417) — 40px on a 5px white ring. */}
                       <span className="shrink-0 rounded-full ring-[5px] ring-white">
                         <Avatar src={p.avatarUrl} name={p.name} className="size-10" />
@@ -308,7 +309,7 @@ function IntroduceButton({ suggestion }: { suggestion: Suggestion }) {
       onClick={state === "invited" ? revoke : invite}
       disabled={state === "busy" || state === "connected"}
       title={state === "invited" ? "Cancel this invite" : undefined}
-      className="group flex shrink-0 items-center gap-2 rounded-full bg-primary-100 px-3 py-2 font-ui text-sm font-medium text-primary-600 transition-colors hover:bg-primary-200 disabled:bg-transparent disabled:text-ink-300"
+      className="group flex shrink-0 items-center gap-2 rounded-full bg-primary-100 px-3 py-1.5 font-ui text-xs font-medium text-primary-600 transition-colors hover:bg-primary-200 disabled:bg-transparent disabled:text-ink-300"
     >
       {state === "invited" ? (
         <>

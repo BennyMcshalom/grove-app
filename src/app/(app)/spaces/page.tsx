@@ -53,14 +53,7 @@ export default async function SpacesPage({ searchParams }: PageProps<"/spaces">)
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-8 pb-10">
             {/* Below the rail breakpoint the INVITATIONS rail section leads the page. */}
             <div className="rail:hidden">
-              <InvitationsList
-                heading={(rows) => (
-                  <section className="flex flex-col gap-4">
-                    <h2 className="font-sans text-base font-medium tracking-wide text-ink-700 uppercase">Invitations</h2>
-                    {rows}
-                  </section>
-                )}
-              />
+              <InvitationsList titled />
             </div>
 
             <section className="flex flex-col gap-6">
