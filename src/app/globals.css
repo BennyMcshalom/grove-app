@@ -83,6 +83,26 @@
      text and marks that sit on an accent colour. */
   --color-surface: #ffffff;
 
+  /* Share sheet brand marks (ShareSheet.tsx). A brand's colour is its own in
+     both themes, with a white glyph on top, so the dark block leaves these. */
+  --color-brand-whatsapp: #25d366;
+  --color-brand-instagram: #e1306c;
+  --color-brand-facebook: #1877f2;
+  --color-brand-linkedin: #0a66c2;
+  --color-brand-telegram: #229ed9;
+
+  /* A light wash per Space behind its post and Curio cards, so a scroll
+     shows where each post is from without reading. Mapped from a Space's
+     slug in src/lib/chapters.ts (cardClass). */
+  --color-space-career: #fff3eb;
+  --color-space-spiritual: #f1fbfd;
+  --color-space-wealth: #f0fcf4;
+  --color-space-adventure: #eff8fe;
+  --color-space-health: #fffcee;
+  --color-space-creative: #f8f2fe;
+  --color-space-learning: #f4fcf4;
+  --color-space-relationships: #fef2f8;
+
   /* Type. Outfit = display, Figtree = body, Lato = buttons/labels. */
   --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
@@ -96,6 +116,19 @@
 
   /* The pill radius used across buttons, avatars and chips. */
   --radius-pill: 9999px;
+
+  /* In-app notification popups drop in from the top of the screen. */
+  --animate-drop-in: drop-in 220ms ease-out;
+  @keyframes drop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @layer base {
@@ -119,6 +152,13 @@
     --wash-banner: linear-gradient(0deg, #ffdfcf 0%, #ffece4 87%);
     --wash-warm: linear-gradient(-7deg, rgba(254, 230, 215, 1) 0%, rgba(254, 251, 249, 1) 100%);
     --wash-pink: linear-gradient(135deg, rgba(250, 231, 237, 1) 0%, rgba(240, 221, 221, 1) 100%);
+
+    /* Line-art on content colours (group cards, profile banners). Those solid
+       colours are the content's own in both themes, so the ink and paper
+       drawn on them are the same in the dark block. Plain variables, not
+       @theme ones, so they exist even though no utility class uses them. */
+    --color-art-ink: #1c1917;
+    --color-art-paper: #ffffff;
   }
 
   /**
@@ -140,8 +180,21 @@
     --wash-banner: linear-gradient(0deg, #3a2415 0%, #241b19 87%);
     --wash-warm: linear-gradient(-7deg, #2e221c 0%, #211f26 100%);
     --wash-pink: linear-gradient(135deg, #2d2027 0%, #262023 100%);
+    --color-art-ink: #1c1917;
+    --color-art-paper: #ffffff;
 
     --color-surface: #201f25;
+
+    /* The Space washes: deep, low-saturation tints of the same hues, a step
+       off the surface so light text keeps its contrast. */
+    --color-space-career: #2b221d;
+    --color-space-spiritual: #1c262a;
+    --color-space-wealth: #1d2620;
+    --color-space-adventure: #1d232b;
+    --color-space-health: #29271c;
+    --color-space-creative: #261f2e;
+    --color-space-learning: #1f271f;
+    --color-space-relationships: #2b1f26;
 
     /* Backgrounds, darkest (the page) to lightest (borders, scrollbars). */
     --color-ivory-50: #1b1a1f;

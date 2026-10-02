@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { TopBar } from "@/components/app/TopBar";
 import { Avatar } from "@/components/app/Avatar";
+import { ProfileBanner as BannerStrip } from "@/components/app/ProfileBanner";
+import { BannerPicker } from "@/components/app/settings/BannerPicker";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
+import { Switch } from "@/components/ui/Switch";
 import {
   changePassword,
   changePasswordWithCode,
@@ -307,32 +310,31 @@ export function SettingsView({
 /**
  * Figma 404:15075 (desktop) / 643:31506 (phone).
  *
- * Desktop hangs the avatar off a 107px gradient strip with the actions to its
- * right. The phone frame instead puts the whole identity block inside the
- * gradient and drops the actions onto the white below it.
+ * The avatar hangs off the banner strip — the person's chosen colour or
+ * drawn wallpaper (testing feedback, 2 Oct 2026; it was a peach gradient) —
+ * with the name and chips below its edge, so they never sit on the art, and
+ * the actions to the right on desktop. "Change banner" sits on the strip.
  */
 function ProfileBanner() {
+  const viewer = useViewer();
+  const [picking, setPicking] = useState(false);
+
   return (
     <section className="relative w-full overflow-hidden rounded-lg bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
-      {/* On a phone this band wraps the identity block; on desktop it is the
-          bare strip the avatar overlaps. */}
-      <div
-        className="px-5 py-4 lg:h-[107px] lg:px-0 lg:py-0"
-        style={{
-          backgroundImage:
-            "var(--wash-banner)",
-        }}
+      <BannerStrip banner={viewer.banner} seed={viewer.id} className="h-20 lg:h-[107px]" />
+      <button
+        type="button"
+        onClick={() => setPicking(true)}
+        className="absolute top-3 right-3 rounded-full bg-surface/90 px-3 py-1.5 font-sans text-xs font-medium text-ink-700 shadow-sm transition-colors hover:bg-surface"
       >
-        <div className="flex items-center gap-4 lg:hidden">
-          <ProfileIdentity />
-        </div>
-      </div>
-      <div className="flex flex-col gap-4 px-5 pt-4 pb-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:pt-0">
-        <div className="-mt-10 hidden items-center gap-4 lg:flex">
+        Change banner
+      </button>
+      <div className="flex flex-col gap-4 px-5 pb-6 lg:flex-row lg:items-start lg:justify-between lg:px-8">
+        <div className="flex min-w-0 items-start gap-4">
           <ProfileIdentity />
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4 lg:pt-4">
           <Button size="sm" href="/settings/your-grouv">
             Enter my Grouv
           </Button>
@@ -341,6 +343,7 @@ function ProfileBanner() {
           </Button>
         </div>
       </div>
+      {picking && <BannerPicker banner={viewer.banner} seed={viewer.id} onClose={() => setPicking(false)} />}
     </section>
   );
 }
@@ -352,26 +355,24 @@ function ProfileIdentity() {
 
   return (
     <>
-      <span
-        className="relative size-16 shrink-0 rounded-full border-4 border-surface"
-        style={{ boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" }}
-      >
+      <span className="relative -mt-8 size-16 shrink-0 rounded-full">
         <Avatar
           src={viewer.avatarUrl}
           name={viewer.firstName}
           userId={viewer.id}
+          aura={viewer.aura}
           sizes="64px"
           className="size-full"
         />
         <span className="absolute right-0 bottom-0 size-4 rounded-full border-[1.5px] border-surface bg-success-60" />
       </span>
-      <div className="flex min-w-0 flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3 pt-3">
         <span className="font-sans text-base font-semibold text-ink-800">
           {viewer.firstName}
         </span>
         <div className="flex flex-wrap gap-4">
           {viewer.chapters[0] && <Chip>{viewer.chapters[0].phase}</Chip>}
-          <Chip dot={aura?.dot === "bg-surface" ? "bg-primary-600" : aura?.dot}>
+          <Chip dot={aura?.dot}>
             {auraLabel(viewer.aura)}
           </Chip>
         </div>
@@ -839,7 +840,7 @@ export function Row({
   return <div className={className}>{content}</div>;
 }
 
-/** Toggle Only — Figma component set 177:4264. 44x24, 2px padding. */
+/** Toggle Only — Figma component set 177:4264, now the shared ui/Switch. */
 export function Toggle({
   label,
   on,
@@ -851,22 +852,7 @@ export function Toggle({
   onChange?: () => void;
   disabled?: boolean;
 }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-label={label}
-      aria-checked={on}
-      onClick={onChange}
-      disabled={disabled}
-      className={cn(
-        "flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-        on ? "justify-end bg-primary-600" : "justify-start bg-ink-50",
-      )}
-    >
-      <span className="size-5 rounded-full bg-white shadow-sm" />
-    </button>
-  );
+  return <Switch label={label} checked={on} onChange={onChange && (() => onChange())} disabled={disabled} />;
 }
 
 function Chip({

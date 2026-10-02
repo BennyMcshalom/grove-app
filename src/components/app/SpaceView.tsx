@@ -15,6 +15,7 @@ import { useToast } from "@/components/app/ToastProvider";
 import { FormError } from "@/components/auth/FormError";
 import { ArrowRight } from "@/components/ui/ArrowRight";
 import { Button } from "@/components/ui/Button";
+import { Switch } from "@/components/ui/Switch";
 import {
   askSpace,
   connectWithMember,
@@ -221,19 +222,11 @@ export function SpaceView({
                   </div>
                   {hasRegion ? (
                     /* 172:4641 draws a switch here. */
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={acrossRegions}
-                      aria-label="Search across regions"
-                      onClick={() => setAcrossRegions((v) => !v)}
-                      className={cn(
-                        "flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors",
-                        acrossRegions ? "justify-end bg-primary-600" : "justify-start bg-ink-50",
-                      )}
-                    >
-                      <span className="size-5 rounded-full bg-white shadow-sm" />
-                    </button>
+                    <Switch
+                      label="Search across regions"
+                      checked={acrossRegions}
+                      onChange={setAcrossRegions}
+                    />
                   ) : (
                     <Button variant="secondary" size="sm" href="/settings/edit-profile">
                       Add location
@@ -252,8 +245,8 @@ export function SpaceView({
                   empty={
                     <p className="py-6 text-center font-sans text-sm text-ink-300">
                       {acrossRegions
-                        ? "No one at your stage has shared to Open Grove this month yet."
-                        : "No one near you has shared to Open Grove this month. Try searching across regions."}
+                        ? "No one at your stage has shared to Open Grouv lately."
+                        : "No one near you has shared to Open Grouv lately. Try searching across regions."}
                     </p>
                   }
                   renderPost={(post) => (

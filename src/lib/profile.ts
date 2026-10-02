@@ -5,14 +5,19 @@
 
 /** Edit Profile → "Your aura, how your circle reads you" (Figma 404:15157). */
 export const AURAS = [
-  { value: "reflective", label: "Reflective", dot: "bg-success-50" },
-  { value: "open_to_connect", label: "Open to connect", dot: "bg-destructive-50" },
-  { value: "deep_focus", label: "Deep Focus", dot: "bg-warning-40" },
-  { value: "in_transition", label: "In transition", dot: "bg-surface" },
-  { value: "active_nearby", label: "Active nearby", dot: "bg-primary-600" },
+  { value: "reflective", label: "Reflective", dot: "bg-success-50", ring: "var(--color-success-50)" },
+  { value: "open_to_connect", label: "Open to connect", dot: "bg-destructive-50", ring: "var(--color-destructive-50)" },
+  { value: "deep_focus", label: "Deep Focus", dot: "bg-warning-40", ring: "var(--color-warning-40)" },
+  { value: "in_transition", label: "In transition", dot: "bg-primary-300", ring: "var(--color-primary-300)" },
+  { value: "active_nearby", label: "Active nearby", dot: "bg-primary-600", ring: "var(--color-primary-600)" },
 ] as const;
 
 export type Aura = (typeof AURAS)[number]["value"];
+
+/** The thin status ring drawn around someone’s photo — same colour as their aura dot. */
+export function auraRing(aura: Aura) {
+  return AURAS.find((a) => a.value === aura)?.ring ?? "var(--color-primary-300)";
+}
 
 export function auraLabel(aura: Aura) {
   return AURAS.find((a) => a.value === aura)?.label ?? "In transition";

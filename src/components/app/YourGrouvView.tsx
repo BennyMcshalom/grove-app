@@ -7,6 +7,9 @@ import { FeedList } from "@/components/app/FeedList";
 import { MomentViewer } from "@/components/app/LogCoverflow";
 import { PostTile } from "@/components/app/PostTile";
 import { GrouvRings, type RingPerson, type RingPrompts } from "@/components/app/GrouvRings";
+import { ProfileBanner } from "@/components/app/ProfileBanner";
+import { BannerPicker } from "@/components/app/settings/BannerPicker";
+import { useViewer } from "@/components/app/ViewerProvider";
 import { TopBar } from "@/components/app/TopBar";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -83,6 +86,8 @@ export function YourGrouvView({
 }) {
   const [tab, setTab] = useState(TABS[0]);
   const [opened, setOpened] = useState<LogEntry | null>(null);
+  const [pickingBanner, setPickingBanner] = useState(false);
+  const viewer = useViewer();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -90,7 +95,21 @@ export function YourGrouvView({
 
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[1096px] flex-col gap-10 pb-10">
-          <GrouvRings people={people} prompts={prompts} />
+          {/* Your banner tops the rings card, as it does your profile card. */}
+          <div className="relative overflow-hidden rounded-2xl bg-surface">
+            <ProfileBanner banner={viewer.banner} seed={viewer.id} className="h-16 sm:h-20" />
+            <button
+              type="button"
+              onClick={() => setPickingBanner(true)}
+              className="absolute top-3 right-3 rounded-full bg-surface/90 px-3 py-1.5 font-sans text-xs font-medium text-ink-700 shadow-sm transition-colors hover:bg-surface"
+            >
+              Change banner
+            </button>
+            <GrouvRings people={people} prompts={prompts} />
+          </div>
+          {pickingBanner && (
+            <BannerPicker banner={viewer.banner} seed={viewer.id} onClose={() => setPickingBanner(false)} />
+          )}
 
           <div className="flex flex-col gap-6">
             {/* Tab Group 71:5396 — bottom border, primary-600 when active. */}

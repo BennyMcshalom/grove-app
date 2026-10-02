@@ -107,12 +107,60 @@ export function matchReason(row: {
   return extras.length ? `${where} and ${extras.join(", ")}.` : `${where}.`;
 }
 
+/** A starter prompt chip and the opener it writes into "Your message". */
+export interface StarterPrompt {
+  /** The chip, also saved with the introduction. */
+  label: string;
+  /** A first-person opener in the sender's voice, left open so they keep typing. */
+  opener: (senderFirstName: string) => string;
+}
+
+/** "…one thing that helped me a lot early in my career was…", per Space. */
+const HELPED_IN: Record<string, string> = {
+  career: "early in my career",
+  spiritual: "in my spiritual life",
+  wealth: "with my money",
+  adventure: "when it comes to getting out there",
+  health: "with my health",
+  creative: "with my creative work",
+  learning: "when I'm learning something new",
+  relationships: "in my relationships",
+};
+
 /** Starter prompts for "Introduce yourself" (Figma 980:20547). */
-export function starterPrompts(match: { chapterSlug: string | null; phase: string | null }) {
+export function starterPrompts(match: {
+  name: string;
+  chapterSlug: string | null;
+  phase: string | null;
+}): StarterPrompt[] {
   const space = match.chapterSlug ? getChapter(match.chapterSlug)?.name : undefined;
+  const them = match.name.trim().split(/\s+/)[0] || match.name;
+  const stage = match.phase?.toLowerCase();
+  const hey = (me: string) => (me ? `Hey ${them}, I'm ${me}.` : `Hey ${them}!`);
+  const helped = match.chapterSlug ? HELPED_IN[match.chapterSlug] : undefined;
   return [
-    match.phase ? `Ask how ${match.phase.toLowerCase()} is going` : "Ask what they're working through",
-    "Share something similar you went through",
-    space ? `Swap one thing that's helped in ${space}` : "Swap one thing that's helped lately",
+    stage
+      ? {
+          label: `Ask how ${stage} is going`,
+          opener: (me) =>
+            `${hey(me)} I see you're at ${stage}${space ? ` in ${space}` : ""} right now… how's it coming along?`,
+        }
+      : {
+          label: "Ask what they're working through",
+          opener: (me) => `${hey(me)} What are you working through at the moment? I'd love to hear how it's going…`,
+        },
+    {
+      label: "Share something similar you went through",
+      opener: (me) => `${hey(me)} I went through something similar to the stage you're in right now. I remember…`,
+    },
+    space
+      ? {
+          label: `Swap one thing that's helped in ${space}`,
+          opener: (me) => `${hey(me)} Happy to swap notes — one thing that helped me a lot ${helped ?? `in ${space}`} was…`,
+        }
+      : {
+          label: "Swap one thing that's helped lately",
+          opener: (me) => `${hey(me)} Happy to swap notes — one thing that's really helped me lately is…`,
+        },
   ];
 }

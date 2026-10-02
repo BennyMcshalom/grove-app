@@ -173,9 +173,8 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
           )}
           {state === "trial" && info.trialEndsAt && (
             <Banner tone="primary" title={`Your Season Pass trial ends on ${longDate(info.trialEndsAt)}`}>
-              {daysLeft(info.trialEndsAt)} {daysLeft(info.trialEndsAt) === 1 ? "day" : "days"} left. You won&rsquo;t be
-              charged — after that you&rsquo;ll move to Free, with four active Spaces and everything you&rsquo;ve made
-              kept.
+              {daysLeft(info.trialEndsAt)} {daysLeft(info.trialEndsAt) === 1 ? "day" : "days"} left. All eight Spaces,
+              Bonds, Bond Log and Life Wrapped are open to you — choose a plan to keep them going.
             </Banner>
           )}
           {state === "bonus" && info.bonusUntil && (
@@ -291,7 +290,8 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
                 <Button size="md" fullWidth onClick={() => paywall("general")}>
                   Resubscribe to Season Pass
                 </Button>
-                {paused > 0 && (
+                {/* Once locked in, the four can't be swapped on Free. */}
+                {paused > 0 && !viewer.spacesLocked && (
                   <Button variant="secondary" size="md" fullWidth onClick={() => chooseSpaces()}>
                     Choose which Spaces stay active
                   </Button>

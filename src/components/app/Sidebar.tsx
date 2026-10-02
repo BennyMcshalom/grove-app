@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "@/components/ui/Logo";
+import { SwitchTrack } from "@/components/ui/Switch";
 import { Avatar } from "@/components/app/Avatar";
 import { useSidebar } from "@/components/app/SidebarProvider";
 import { useToast } from "@/components/app/ToastProvider";
@@ -180,14 +181,7 @@ export function Sidebar({ className }: { className?: string }) {
                   <>
                     <span className="flex-1 text-left">Dark mode</span>
                     {/* The same switch as Settings > Appearance, at rail size. */}
-                    <span
-                      className={cn(
-                        "flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors",
-                        dark ? "justify-end bg-primary-600" : "justify-start bg-ink-50",
-                      )}
-                    >
-                      <span className="size-4 rounded-full bg-white shadow-sm" />
-                    </span>
+                    <SwitchTrack on={dark} size="sm" />
                   </>
                 )}
               </button>
@@ -287,7 +281,8 @@ function CurrentUser({ collapsed = false }: { collapsed?: boolean }) {
           src={viewer.avatarUrl}
           name={viewer.firstName}
           userId={viewer.id}
-          className="size-10 border-[1.5px] border-surface"
+          aura={viewer.aura}
+          className="size-10"
         />
         <span className="absolute right-0 bottom-0 size-2.5 rounded-full border border-surface bg-[#04802E]" />
       </span>

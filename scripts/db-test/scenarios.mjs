@@ -241,7 +241,8 @@ await step("feed reads", async () => {
   const bRoots = await q(B, `select id from public.feed_posts('roots', 'career')`);
   check("roots: non-connections stay out, anonymous or not", bRoots.length === 0, bRoots);
 
-  // Open Grove: the one post a month that reaches past your connections.
+  // Open Grouv: posts that reach past your connections, as often as you like
+  // (no longer once a month — see 20261002100100).
   const [{ open_grove_available: before }] = await q(A, `select public.open_grove_available('career')`);
   check("open grove available at first", before === true, before);
   const [{ id: openPost }] = await q(
@@ -249,14 +250,7 @@ await step("feed reads", async () => {
     `insert into public.posts (chapter_slug, body, open_grove) values ('career', 'Open to anyone at my stage', true) returning id`,
   );
   const [{ open_grove_available: after }] = await q(A, `select public.open_grove_available('career')`);
-  check("open grove used for the month", after === false, after);
-  await fails(
-    "second open grove post this month blocked",
-    A,
-    `insert into public.posts (chapter_slug, body, open_grove) values ('career', 'Again', true)`,
-    [],
-    "this month",
-  );
+  check("open grouv still available after sharing", after === true, after);
   await fails(
     "open grove posts are named",
     A,
@@ -428,7 +422,7 @@ await step("groups", async () => {
 });
 await fails("can't self-join approval group", C, `insert into public.group_members (group_id, user_id) values ($1, $2)`, [group, C], "row-level security");
 await withPass(A, () =>
-  fails("bad group color rejected", A, `insert into public.groups (title, color) values ('x', '#000000')`, [], "check"),
+  fails("bad group color rejected", A, `insert into public.groups (title, color) values ('x', 'pink')`, [], "check"),
 );
 
 // --- events --------------------------------------------------------------------
@@ -571,8 +565,8 @@ await step("group cards, truths and admins", async () => {
   const [{ id: healthGroup }] = await withPass(C, () =>
     q(C, `insert into public.groups (title, chapter_slug) values ('Recovery circle', 'health') returning id`),
   );
-  const suggested = await q(A, `select slug from public.group_cards(null, null, true)`);
-  check("suggests groups in the viewer's chapters", suggested.length === 1, suggested);
+  const suggested = await q(A, `select id from public.group_cards(null, null, true)`);
+  check("suggests groups in the viewer's chapters, unjoined first", suggested[0]?.id === healthGroup, suggested);
 
   await q(C, `update public.groups set join_policy = 'open' where id = $1`, [healthGroup]);
   await q(A, `insert into public.group_members (group_id, user_id) values ($1, $2)`, [healthGroup, A]);
@@ -1307,8 +1301,15 @@ await step("season pass holds eight spaces, free keeps four", async () => {
   const active = rows.filter((r) => !r.paused).map((r) => r.chapter_slug);
   check("trial end keeps four active", active.length === 4 && rows.length === 6, rows);
   check("the last used stay active", active.includes("career") && active.includes("health"), active);
-  const [{ status, spaces_review_due }] = await su(`select status, spaces_review_due from public.subscriptions where user_id = $1`, [passT]);
-  check("trial expired and a choice is due", status === "expired" && spaces_review_due === true, { status, spaces_review_due });
+  const [{ status, spaces_review_due, spaces_locked_at }] = await su(
+    `select status, spaces_review_due, spaces_locked_at from public.subscriptions where user_id = $1`,
+    [passT],
+  );
+  check(
+    "trial expired and the default four are locked in",
+    status === "expired" && spaces_review_due === false && spaces_locked_at !== null,
+    { status, spaces_review_due, spaces_locked_at },
+  );
   const note = await su(`select 1 from public.notifications where user_id = $1 and kind = 'spaces_paused'`, [passT]);
   check("the member is told Spaces paused", note.length === 1, note.length);
 
@@ -1318,7 +1319,7 @@ await step("season pass holds eight spaces, free keeps four", async () => {
   await fails("no log entries into a paused Space", passT, `insert into public.log_entries (user_chapter_id, body) values ($1, 'x')`, [pausedRow.id], "paused");
   const visible = await q(passT, `select 1 from public.user_chapters where id = $1`, [pausedRow.id]);
   check("a paused Space stays visible", visible.length === 1);
-  await fails("reactivating needs room on Free", passT, `select public.resume_space($1)`, [pausedRow.id], "4 chapters");
+  await fails("a locked choice can't reactivate on Free", passT, `select public.resume_space($1)`, [pausedRow.id], "locked in");
   await fails(
     "a fifth active Space on Free is refused",
     passT,
@@ -1328,13 +1329,10 @@ await step("season pass holds eight spaces, free keeps four", async () => {
   );
 
   const ids = (await su(`select id, chapter_slug from public.user_chapters where user_id = $1 and status = 'open' order by chapter_slug`, [passT]));
-  await fails("choose at most four", passT, `select public.choose_active_spaces($1::uuid[])`, [ids.slice(0, 5).map((r) => r.id)], "four");
   const pick = ids.filter((r) => ["creative", "learning", "spiritual", "wealth"].includes(r.chapter_slug)).map((r) => r.id);
-  await q(passT, `select public.choose_active_spaces($1::uuid[])`, [pick]);
-  const chosen = await su(`select chapter_slug from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null order by 1`, [passT]);
-  check("the chosen four are active", chosen.map((r) => r.chapter_slug).join() === "creative,learning,spiritual,wealth", chosen);
-  const [{ spaces_review_due: due }] = await su(`select spaces_review_due from public.subscriptions where user_id = $1`, [passT]);
-  check("choosing clears the prompt", due === false);
+  await fails("the locked default can't be swapped on Free", passT, `select public.choose_active_spaces($1::uuid[])`, [pick], "locked in");
+  const kept = await su(`select chapter_slug from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null`, [passT]);
+  check("the default four stay active", kept.length === 4 && kept.some((r) => r.chapter_slug === "career"), kept);
 
   await su(
     `select public.sync_billing($1, 'active', 'rc_billing', now() + interval '1 year', null, false, null, 'grouv_founding_annual')`,
@@ -1342,6 +1340,8 @@ await step("season pass holds eight spaces, free keeps four", async () => {
   );
   const all = await su(`select count(*)::int n from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null`, [passT]);
   check("subscribing restores every paused Space", all[0].n === 6, all[0].n);
+  const [{ spaces_locked_at: unlocked }] = await su(`select spaces_locked_at from public.subscriptions where user_id = $1`, [passT]);
+  check("subscribing clears the lock", unlocked === null, unlocked);
   const [{ plan }] = await su(`select plan from public.subscriptions where user_id = $1`, [passT]);
   check("the plan's product is recorded", plan === "grouv_founding_annual", plan);
   await q(passT, `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'adventure', 'Planning the leap')`, [passT]);
@@ -1355,6 +1355,58 @@ await step("season pass holds eight spaces, free keeps four", async () => {
   check("then Free's four apply", ended[0].n === 4, ended[0].n);
   // Leave the post counts the later steps check as they were.
   await su(`delete from public.posts where author_id = $1`, [passT]);
+});
+
+await step("choosing four before the trial ends locks them in", async () => {
+  const [{ id: L }] = await su(
+    `insert into auth.users (email, raw_user_meta_data, email_confirmed_at) values ('lola@x.com', '{"first_name":"Lola"}', now()) returning id`,
+  );
+  await q(L, `select public.complete_onboarding($1::jsonb)`, [
+    JSON.stringify([
+      { slug: "career", phase: "Growing a team" },
+      { slug: "health", phase: "Building a habit" },
+      { slug: "wealth", phase: "Investing seriously" },
+      { slug: "creative", phase: "Mid-project" },
+      { slug: "learning", phase: "Day one" },
+      { slug: "spiritual", phase: "Newly questioning" },
+    ]),
+  ]);
+  await su(`update public.subscriptions set trial_ends_at = now() + interval '2 days' where user_id = $1`, [L]);
+  const rows = await su(`select id, chapter_slug from public.user_chapters where user_id = $1 and status = 'open'`, [L]);
+  const pick = rows.filter((r) => ["creative", "learning", "spiritual", "wealth"].includes(r.chapter_slug)).map((r) => r.id);
+  await fails("choose at most four", L, `select public.choose_active_spaces($1::uuid[])`, [rows.slice(0, 5).map((r) => r.id)], "four");
+  await q(L, `select public.choose_active_spaces($1::uuid[])`, [pick]);
+  const open = await su(`select count(*)::int n from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null`, [L]);
+  check("the trial keeps all six open after choosing", open[0].n === 6, open[0].n);
+  const [sub] = await su(`select spaces_locked_at, locked_space_ids from public.subscriptions where user_id = $1`, [L]);
+  check("the choice is recorded and locked", sub.spaces_locked_at !== null && sub.locked_space_ids.length === 4, sub);
+  await q(L, `select public.sync_my_spaces()`);
+  const [still] = await su(`select spaces_locked_at from public.subscriptions where user_id = $1`, [L]);
+  check("a trial-time lock survives a sync", still.spaces_locked_at !== null, still);
+  const other = rows.filter((r) => ["career", "health", "wealth", "creative"].includes(r.chapter_slug)).map((r) => r.id);
+  await fails("a locked choice can't be changed", L, `select public.choose_active_spaces($1::uuid[])`, [other], "locked in");
+
+  await su(`update public.subscriptions set trial_ends_at = now() - interval '1 minute' where user_id = $1`, [L]);
+  await su(`select private.expire_trials()`);
+  const active = await su(
+    `select chapter_slug from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null order by 1`,
+    [L],
+  );
+  check("at expiry the chosen four stay active", active.map((r) => r.chapter_slug).join() === "creative,learning,spiritual,wealth", active);
+  const [paused] = await su(`select id from public.user_chapters where user_id = $1 and chapter_slug = 'career'`, [L]);
+  await fails("Reactivate is refused once locked", L, `select public.resume_space($1)`, [paused.id], "locked in");
+  await fails(
+    "a fifth active Space still needs Season Pass",
+    L,
+    `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'adventure', 'Planning the leap')`,
+    [L],
+    "4 chapters",
+  );
+
+  await su(`update public.subscriptions set bonus_until = now() + interval '30 days' where user_id = $1`, [L]);
+  const back = await su(`select count(*)::int n from public.user_chapters where user_id = $1 and status = 'open' and paused_at is null`, [L]);
+  const [cleared] = await su(`select spaces_locked_at from public.subscriptions where user_id = $1`, [L]);
+  check("a bonus month reactivates all and clears the lock", back[0].n === 6 && cleared.spaces_locked_at === null, { n: back[0].n, cleared });
 });
 
 await step("trial reminder", async () => {
@@ -2013,6 +2065,114 @@ await step("chapter groups: pass gate and outcomes", async () => {
   await q(Ad, `select public.review_join_request($1, true)`, [r2]);
   [{ group_request_outcome: outcome }] = await q(Rq, `select public.group_request_outcome($1)`, [g]);
   check("and that a new request was accepted", outcome === "approved", outcome);
+});
+
+await step("open grouv: no monthly limit", async () => {
+  const Og = await person("Ogo", [{ slug: "career", phase: "Starting over" }]);
+  for (const body of ["First", "Second", "Third"]) {
+    await q(Og, `insert into public.posts (chapter_slug, body, open_grove) values ('career', $1, true)`, [body]);
+  }
+  const [{ n }] = await q(Og, `select count(*)::int as n from public.posts where author_id = $1 and open_grove`, [Og]);
+  check("open grouv on every post in the same space", n === 3, n);
+  const [{ open_grove_available: still }] = await q(Og, `select public.open_grove_available('career')`);
+  check("open grouv stays available", still === true, still);
+  const [{ open_grove_available: other }] = await q(Og, `select public.open_grove_available('wealth')`);
+  check("but only in spaces you hold", other === false, other);
+  await fails(
+    "open grouv posts are still named",
+    Og,
+    `insert into public.posts (chapter_slug, body, open_grove, is_anonymous) values ('career', 'x', true, true)`,
+    [],
+    "posts_open_grove_is_named",
+  );
+});
+
+await step("chapter groups: everyone holding the Space sees the group", async () => {
+  // Two accounts in Career + Wealth; one starts a Wealth group (approval, the default).
+  const spaces = [
+    { slug: "career", phase: "Starting over" },
+    { slug: "wealth", phase: "Learning the basics" },
+  ];
+  const Ro = await person("Rox", spaces);
+  const Sa = await person("Sal", spaces);
+  const Ty = await person("Tyr", [{ slug: "health", phase: "Starting over" }]);
+  const [{ id: g }] = await withPass(Ro, () =>
+    q(Ro, `insert into public.groups (title, label, chapter_slug) values ('Rebuilding My Finances', 'The Reset', 'wealth') returning id`),
+  );
+  const ids = async (uid) => (await q(uid, `select id from public.group_cards(null, null, true, 20)`)).map((r) => r.id);
+  check("the other account in the Space is offered it", (await ids(Sa)).includes(g), await ids(Sa));
+  check("its creator still sees it in the rail", (await ids(Ro)).includes(g), await ids(Ro));
+  await q(Sa, `insert into public.group_join_requests (group_id) values ($1)`, [g]);
+  check("asking to join doesn't hide it", (await ids(Sa)).includes(g), await ids(Sa));
+  check("someone outside the Space isn't offered it", !(await ids(Ty)).includes(g), await ids(Ty));
+  const [{ id: anySpace }] = await withPass(Ro, () =>
+    q(Ro, `insert into public.groups (title) values ('Any space circle') returning id`),
+  );
+  check("an Any-space group is offered to everyone", (await ids(Ty)).includes(anySpace), await ids(Ty));
+
+  const [card] = await q(Sa, `select art, color from public.group_cards(null, null, true) where id = $1`, [g]);
+  check("cards carry art and a solid colour", card?.art === "sprout" && /^#[0-9A-F]{6}$/i.test(card?.color), card);
+  await q(Ro, `update public.groups set art = 'piggy-bank', color = '#2BB3A3' where id = $1`, [g]);
+  const [after] = await su(`select art, color from public.groups where id = $1`, [g]);
+  check("admins change the look", after.art === "piggy-bank" && after.color === "#2BB3A3", after);
+  await q(Sa, `update public.groups set art = 'plane' where id = $1`, [g]);
+  const [still] = await su(`select art from public.groups where id = $1`, [g]);
+  check("non-admins can't", still.art === "piggy-bank", still);
+  await withPass(Ro, () =>
+    fails("unknown art rejected", Ro, `insert into public.groups (title, art) values ('x', 'unicorn')`, [], "check"),
+  );
+});
+
+await step("profile banner", async () => {
+  const Ub = await person("Ubi", [{ slug: "career", phase: "Starting over" }]);
+  await q(Ub, `update public.profiles set banner = 'art:career-desk' where id = $1`, [Ub]);
+  const [{ banner }] = await su(`select banner from public.profiles where id = $1`, [Ub]);
+  check("banner saved", banner === "art:career-desk", banner);
+  await fails("banner must be a key", Ub, `update public.profiles set banner = 'https://x/y.png' where id = $1`, [Ub], "check");
+});
+
+await step("pending requests carry the introduction; Bond Log photos", async () => {
+  const career = [{ slug: "career", phase: "Side hustle, building something" }];
+  const Pa = await person("Pia", career);
+  const Pb = await person("Pax", career);
+  const Pc = await person("Pru", career);
+  await q(Pc, `select * from public.introduce_yourself($1, 'Hey Pia, I''m Pru. How''s it coming?', 'Ask how side hustle is going')`, [Pa]);
+  await q(Pb, `select public.request_connection($1)`, [Pa]);
+  const pending = await q(Pa, `select user_id, message, prompt from public.pending_requests()`);
+  const fromPc = pending.find((p) => p.user_id === Pc);
+  const fromPb = pending.find((p) => p.user_id === Pb);
+  check(
+    "a pending introduction shows its note and starter prompt",
+    fromPc?.message?.startsWith("Hey Pia") && fromPc?.prompt === "Ask how side hustle is going",
+    pending,
+  );
+  check("a plain request has no note", fromPb && fromPb.message === null && fromPb.prompt === null, pending);
+
+  await q(Pa, `select public.request_connection($1)`, [Pb]);
+  await su(`update public.subscriptions set status = 'active' where user_id in ($1, $2)`, [Pa, Pb]);
+  const [{ invite_to_bond: bond }] = await q(Pa, `select public.invite_to_bond($1, 'Ship the thing')`, [Pb]);
+  await q(Pb, `select public.respond_to_bond_invite($1, true)`, [bond]);
+  const [weekly] = await su(`select id from public.bond_activities where bond_id = $1 and kind = 'weekly'`, [bond]);
+
+  await fails("nothing to save", Pa, `select public.save_bond_response($1, 1, ' ', false, null)`, [weekly.id], "add a photo");
+  await fails("only your own uploads", Pa, `select public.save_bond_response($1, 1, 'x', false, $2)`, [weekly.id, `${Pb}/log-a.jpg`], "can't be used");
+  await q(Pa, `select public.save_bond_response($1, 1, 'Late night build', false, $2)`, [weekly.id, `${Pa}/log-a.jpg`]);
+  let [mine] = await q(Pa, `select * from public.bond_log($1)`, [bond]);
+  check("your draft keeps its photo", mine?.my_saved && mine.my_photo_path === `${Pa}/log-a.jpg` && !mine.my_shared, mine);
+  let [theirs] = await q(Pb, `select * from public.bond_log($1)`, [bond]);
+  check("a draft's photo stays private", theirs?.their_photo_path === null && theirs?.their_body === null, theirs);
+
+  await q(Pa, `select public.save_bond_response($1, 1, '', true, $2)`, [weekly.id, `${Pa}/log-b.jpg`]);
+  [theirs] = await q(Pb, `select * from public.bond_log($1)`, [bond]);
+  check(
+    "a photo-only response reaches them once shared",
+    theirs?.their_shared && theirs.their_photo_path === `${Pa}/log-b.jpg` && theirs.their_body === null,
+    theirs,
+  );
+  [mine] = await q(Pb, `select my_saved from public.bond_log($1)`, [bond]);
+  check("nothing saved reads as nothing saved", mine?.my_saved === false, mine);
+  const old = await q(Pb, `select public.save_bond_response($1, 1, 'Words only', true)`, [weekly.id]);
+  check("words alone still work", old.length === 1);
 });
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

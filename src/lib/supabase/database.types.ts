@@ -228,6 +228,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           username: string | null;
+          banner: string | null;
         };
         Insert: never;
         Update: {
@@ -238,6 +239,7 @@ export type Database = {
           theme?: ThemePreference;
           log_visibility?: LogVisibility;
           username?: string | null;
+          banner?: string | null;
         };
         Relationships: [];
       };
@@ -345,6 +347,9 @@ export type Database = {
         bonus_until: string | null;
         spaces_review_due: boolean;
         trial_reminded_at: string | null;
+        /** Free's four were locked in (chosen, or the default at expiry). */
+        spaces_locked_at: string | null;
+        locked_space_ids: string[] | null;
         updated_at: string;
       }>;
       referral_codes: ReadOnlyTable<{ user_id: string; code: string; created_at: string }>;
@@ -654,6 +659,7 @@ export type Database = {
           description: string | null;
           icon: string;
           color: string;
+          art: string;
           join_policy: JoinPolicy;
           created_by: string | null;
           conversation_id: string;
@@ -667,6 +673,7 @@ export type Database = {
           description?: string | null;
           icon?: string;
           color?: string;
+          art?: string;
           chapter_slug?: string | null;
         };
         Update: {
@@ -675,6 +682,7 @@ export type Database = {
           description?: string | null;
           icon?: string;
           color?: string;
+          art?: string;
           join_policy?: JoinPolicy;
           chapter_slug?: string | null;
         };
@@ -980,7 +988,7 @@ export type Database = {
       start_bond_activity: { Args: { p_bond_id: string; p_kind: BondActivityKind }; Returns: string };
       end_bond_activity: { Args: { p_activity_id: string }; Returns: undefined };
       save_bond_response: {
-        Args: { p_activity_id: string; p_round: number; p_body: string; p_share: boolean };
+        Args: { p_activity_id: string; p_round: number; p_body: string; p_share: boolean; p_photo_path?: string | null };
         Returns: undefined;
       };
       bond_log: {
@@ -998,6 +1006,9 @@ export type Database = {
           my_shared: boolean;
           their_body: string | null;
           their_shared: boolean;
+          my_photo_path: string | null;
+          their_photo_path: string | null;
+          my_saved: boolean;
         }[];
       };
       my_bond_logs: {
@@ -1063,6 +1074,8 @@ export type Database = {
           chapter_slug: string | null;
           phase: string | null;
           created_at: string;
+          message: string | null;
+          prompt: string | null;
         }[];
       };
       people_you_may_know: {
@@ -1345,6 +1358,7 @@ export type Database = {
           description: string | null;
           icon: string;
           color: string;
+          art: string;
           chapter_slug: string | null;
           join_policy: JoinPolicy;
           member_count: number;

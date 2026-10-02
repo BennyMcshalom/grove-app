@@ -1,3 +1,5 @@
+import type { Aura } from "@/lib/profile";
+
 /** Event and Meet & Greet shapes, built on the server. */
 
 export interface EventCard {
@@ -75,6 +77,8 @@ export interface RoomPerson {
   userId: string;
   name: string;
   avatarUrl: string | null;
+  /** For the status ring; unset when unknown. */
+  aura?: Aura;
   chapterSlug: string | null;
   phase: string | null;
   isMe: boolean;

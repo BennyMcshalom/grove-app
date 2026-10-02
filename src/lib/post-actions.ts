@@ -47,7 +47,7 @@ const CreatePostSchema = z.object({
   progress: z.enum(progressValues).nullable(),
   body: z.string().trim().max(4000),
   anonymous: z.boolean(),
-  /** Share to Open Grove: once per space per calendar month. */
+  /** Share to Open Grouv: reaches people at the same stage beyond the circle. */
   openGrove: z.boolean().default(false),
   /** Everyone (the circle), exactly the chosen bonds, or only the author. */
   audience: z.enum(["everyone", "selected_bonds", "only_me"]).default("everyone"),
@@ -112,7 +112,6 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
     if (error?.code === "42501") return { error: "You can only post into chapters you hold." };
     console.error("[posts] createPost failed", error);
     if (error?.hint === "rate_limited" || error?.hint === "space_paused") return { error: error.message };
-    if (error?.hint === "open_grove_used") return { error: "Open Grove is already used in this space this month." };
     return { error: "We couldn't post that. Try again." };
   }
 
@@ -170,19 +169,7 @@ export async function listAudienceBonds(): Promise<
     .map(({ userId, name, avatarUrl, phase }) => ({ userId, name, avatarUrl, phase }));
 }
 
-/**
- * Whether the composer offers Open Grove for this space. When it's used for
- * the month the option simply isn't there; nothing explains why.
- */
-export async function openGroveAvailable(chapterSlug: string): Promise<boolean> {
-  await requireOnboardedViewer();
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("open_grove_available", { p_chapter_slug: chapterSlug });
-  if (error) console.error("[posts] open_grove_available failed", error);
-  return data === true;
-}
-
-/** "I see you" on / off (stored as a root). The card updates optimistically and reverts on error. */
+/** "Root" on / off (stored as a root). The card updates optimistically and reverts on error. */
 export async function setRooted(postId: string, rooted: boolean): Promise<Result> {
   const viewer = await requireOnboardedViewer();
   const supabase = await createClient();

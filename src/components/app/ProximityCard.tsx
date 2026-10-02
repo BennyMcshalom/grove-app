@@ -10,7 +10,7 @@ import { auraLabel } from "@/lib/profile";
 /**
  * Proximity card — Figma frame 481:15568.
  *
- * A 383px white card: the person's glowing portrait, their distance, their
+ * A 383px white card: the person's portrait in its aura ring, their distance, their
  * chapter chips and aura, and a full-width Connect button.
  */
 export function ProximityCard({
@@ -58,13 +58,14 @@ export function ProximityCard({
           <div className="flex flex-col justify-center gap-6 py-2 pl-2">
             <div className="flex items-center gap-6">
               <span className="relative size-12 shrink-0">
-                <span
-                  className="absolute inset-0 rounded-full bg-[#F0B231]"
-                  style={{
-                    boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)",
-                  }}
+                <Avatar
+                  src={person.avatarUrl}
+                  name={person.name}
+                  userId={person.userId}
+                  aura={person.aura}
+                  sizes="48px"
+                  className="relative size-12"
                 />
-                <Avatar src={person.avatarUrl} name={person.name} userId={person.userId} sizes="48px" className="relative size-12" />
                 <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
               </span>
 

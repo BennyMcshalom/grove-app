@@ -12,9 +12,11 @@ import {
   ReportPostModal,
 } from "@/components/app/PostModals";
 import { SendToBondModal } from "@/components/app/SendToBondModal";
+import { ShareSheet } from "@/components/app/ShareSheet";
 import { useToast } from "@/components/app/ToastProvider";
 import { setRooted } from "@/lib/post-actions";
 import { progressLabel, type Post } from "@/lib/posts";
+import { spaceCardClass } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
 
 /**
@@ -27,9 +29,9 @@ export function PostCard({ post: initial }: { post: Post }) {
   const [post, setPost] = useState(initial);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rooted, setRootedState] = useState(initial.rooted);
+  const [roots, setRoots] = useState(initial.roots);
   const [comments, setComments] = useState(initial.comments);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [shared, setShared] = useState(false);
   // Figma pairs each menu item with a modal and a confirming alert.
   const [dialog, setDialog] = useState<PostMenuAction | null>(null);
   const [deleted, setDeleted] = useState(false);
@@ -45,11 +47,12 @@ export function PostCard({ post: initial }: { post: Post }) {
     const next = !rooted;
     // Optimistic, then put it back if the server says no.
     setRootedState(next);
-    if (next) toast({ title: "Only they'll know you saw it." });
+    setRoots((n) => Math.max(0, n + (next ? 1 : -1)));
 
     const result = await setRooted(post.id, next);
     if (result.error) {
       setRootedState(!next);
+      setRoots((n) => Math.max(0, n + (next ? -1 : 1)));
       toast({ title: result.error, tone: "danger" });
     }
   };
@@ -57,7 +60,11 @@ export function PostCard({ post: initial }: { post: Post }) {
   return (
     <article
       id={`post-${post.id}`}
-      className="flex gap-4 rounded-2xl bg-surface p-4 sm:p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]"
+      // Each Space has its own wash, so a scroll shows where a post is from.
+      className={cn(
+        "flex gap-4 rounded-2xl p-4 sm:p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]",
+        spaceCardClass(post.chapterSlug),
+      )}
     >
       {/* Beside the post on wider screens; on phones it moves into the
           header so text and media get the card's full width (as X and
@@ -145,9 +152,9 @@ export function PostCard({ post: initial }: { post: Post }) {
         <footer className="flex flex-wrap gap-5 py-3">
           <Action
             icon={<PlantIcon className="size-6" />}
-            // "I see you": a private signal to the poster. Never a count,
-            // and it never changes what anyone's feed shows.
-            label={rooted ? "Seen" : "I see you"}
+            // "Root 22", as comments show it. It never changes what
+            // anyone's feed shows.
+            label={<>Root {roots}</>}
             tone="root"
             active={rooted}
             onClick={toggleRoot}
@@ -164,17 +171,12 @@ export function PostCard({ post: initial }: { post: Post }) {
             active={commentsOpen}
             onClick={() => setCommentsOpen((v) => !v)}
           />
-          <Action
-            icon={<ShareIcon className="size-6" />}
-            label={shared ? "Copied" : "Share"}
-            tone="outline"
-            onClick={() => {
-              navigator.clipboard?.writeText(
-                `${window.location.origin}/posts/${post.id}`,
-              );
-              setShared(true);
-              setTimeout(() => setShared(false), 2000);
-            }}
+          <ShareSheet
+            url={`${typeof window === "undefined" ? "" : window.location.origin}/posts/${post.id}`}
+            title="A post on Grouv"
+            trigger={(open) => (
+              <Action icon={<ShareIcon className="size-6" />} label="Share" tone="outline" onClick={open} />
+            )}
           />
         </footer>
 

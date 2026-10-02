@@ -159,9 +159,8 @@ export function toInboxItem(row: NotificationRow): InboxItem {
         href: chapter ? `/spaces/${chapter.slug}` : "/spaces",
       };
     }
-    // "I see you": a private signal, never a count.
     case "post_rooted":
-      return { ...base, title: `${who} sees you`, body: "They saw your post.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
+      return { ...base, title: `${who} rooted your post`, body: "Your post took root with them.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
     case "post_commented":
       return { ...base, title: `${who} commented on your post`, body: "See what they said.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
     case "group_join_request":

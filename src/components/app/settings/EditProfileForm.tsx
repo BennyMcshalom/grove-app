@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { ImageCropper } from "@/components/app/media/ImageCropper";
 import { TopBar } from "@/components/app/TopBar";
 import { Avatar } from "@/components/app/Avatar";
+import { ProfileBanner } from "@/components/app/ProfileBanner";
+import { BannerPicker } from "@/components/app/settings/BannerPicker";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
@@ -63,6 +65,7 @@ export function EditProfileForm({
   const [uploading, setUploading] = useState(false);
   const [cropping, setCropping] = useState<{ name: string; previewUrl: string } | null>(null);
   const [locating, setLocating] = useState(false);
+  const [pickingBanner, setPickingBanner] = useState(false);
   const [saving, startSaving] = useTransition();
 
   // Checked as it's typed, once they pause; the save checks again.
@@ -215,13 +218,11 @@ export function EditProfileForm({
           <div className="flex flex-col gap-6">
             <Card label="Update profile">
               <div className="relative size-20">
-                <span
-                  className="absolute inset-2 rounded-full"
-                  style={{ boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" }}
-                />
+                {/* Previews the aura picked below as the ring around the photo. */}
                 <Avatar
                   src={avatarUrl}
                   name={name || viewer.firstName}
+                  aura={aura}
                   sizes="64px"
                   className={cn(
                     "absolute inset-2 size-16 transition-opacity",
@@ -305,6 +306,19 @@ export function EditProfileForm({
                   </div>
                 </Labelled>
               </div>
+            </Card>
+
+            {/* Saved straight away from the picker, like the photo. */}
+            <Card label="Profile banner">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <ProfileBanner banner={viewer.banner} seed={viewer.id} className="h-16 flex-1 rounded-lg" />
+                <Button type="button" variant="secondary" size="sm" onClick={() => setPickingBanner(true)}>
+                  Change banner
+                </Button>
+              </div>
+              {pickingBanner && (
+                <BannerPicker banner={viewer.banner} seed={viewer.id} onClose={() => setPickingBanner(false)} />
+              )}
             </Card>
 
             <Card label="Your aura, how your circle reads you">

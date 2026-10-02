@@ -6,6 +6,7 @@ import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { getChapter } from "@/lib/chapters";
 import type { LiveRoom, RoomPerson } from "@/lib/events";
 import { loadLiveRooms } from "@/lib/events-server";
+import { loadAuras } from "@/lib/auras-server";
 import { geocode } from "@/lib/geocode";
 import { PICKER_ICONS } from "@/lib/icons";
 import { createClient } from "@/lib/supabase/server";
@@ -153,10 +154,12 @@ export async function loadRoomPeople(roomId: string): Promise<RoomPerson[]> {
   const { data, error } = await supabase.rpc("live_room_people", { p_room_id: roomId });
   if (error) console.error("[events] live_room_people failed", error);
 
+  const auras = await loadAuras((data ?? []).map((p) => p.user_id));
   return (data ?? []).map((p) => ({
     userId: p.user_id,
     name: p.first_name,
     avatarUrl: p.avatar_url,
+    aura: auras.get(p.user_id),
     chapterSlug: p.chapter_slug,
     phase: p.phase,
     isMe: p.is_me,

@@ -16,18 +16,6 @@ import { getChapter } from "@/lib/chapters";
 import type { Group } from "@/lib/groups";
 import type { Aura } from "@/lib/profile";
 
-/**
- * Figma draws four aura rings (amber, dashed purple, lime, amber) without
- * naming them; each aura gets one of those treatments, plus two more.
- */
-const AURA_RING: Record<Aura, { color?: string; dashed?: string; glow: string }> = {
-  in_transition: { color: "#F0B231", glow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" },
-  open_to_connect: { dashed: "#6C35D1", glow: "0px 4px 5px 15px rgba(108, 2, 238, 0.3)" },
-  reflective: { color: "#C0CA1E", glow: "0px 2px 9px 9px rgba(120, 238, 2, 0.45)" },
-  deep_focus: { color: "#02D6EE", glow: "0px 2px 9px 9px rgba(2, 214, 238, 0.35)" },
-  active_nearby: { color: "#F57E16", glow: "0px 2px 9px 9px rgba(245, 126, 22, 0.45)" },
-};
-
 export interface RailMember {
   userId: string;
   name: string;
@@ -117,7 +105,14 @@ export function RightRail({
                     href={variant === "space" ? "/spaces" : `/bonds?with=${p.userId}`}
                     className="flex items-center gap-6 rounded-lg p-2 transition-colors hover:bg-ivory-100"
                   >
-                    <AuraAvatar userId={p.userId} src={p.avatarUrl} name={p.name} aura={p.aura ?? "in_transition"} />
+                    <Avatar
+                      userId={p.userId}
+                      src={p.avatarUrl}
+                      name={p.name}
+                      aura={p.aura}
+                      sizes="48px"
+                      className="size-12"
+                    />
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="truncate font-sans text-base font-medium text-ink-700">
                         {p.name}
@@ -147,7 +142,7 @@ export function RightRail({
                     href={`/bonds?with=${p.userId}`}
                     className="flex items-center gap-4 rounded-lg transition-colors hover:bg-ivory-100"
                   >
-                    <BondAvatar userId={p.userId} src={p.avatarUrl} name={p.name} />
+                    <BondAvatar userId={p.userId} src={p.avatarUrl} name={p.name} aura={p.aura} />
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="truncate font-sans text-base font-medium text-ink-700">
                         {p.name}
@@ -173,7 +168,7 @@ export function RightRail({
             <Empty>Groups in your chapters show up here.</Empty>
           ) : (
             <ul className="flex flex-col gap-2">
-              {groups.map((g, i) => (
+              {groups.map((g) => (
                 <li key={g.id}>
                   <ChapterGroupCard
                     title={g.title}
@@ -181,7 +176,8 @@ export function RightRail({
                     href={`/groups/${g.slug}`}
                     avatars={g.memberAvatars}
                     memberCount={g.memberCount}
-                    gradient={i === 0 ? GROUP_GRADIENT.orange : GROUP_GRADIENT.pink}
+                    color={g.color}
+                    art={g.art}
                   />
                 </li>
               ))}
@@ -348,37 +344,15 @@ function EmptyCircle() {
   );
 }
 
-function BondAvatar({ userId, src, name }: { userId: string; src: string | null; name: string }) {
+function BondAvatar({ userId, src, name, aura }: { userId: string; src: string | null; name: string; aura: Aura }) {
   const online = useIsOnline(userId);
   return (
     <span className="relative size-12 shrink-0">
-      <Avatar src={src} name={name} userId={userId} sizes="48px" className="size-12" />
-      <span className="pointer-events-none absolute inset-0 rounded-full ring-[6px] ring-white ring-inset" />
+      <Avatar src={src} name={name} userId={userId} aura={aura} sizes="48px" className="size-12" />
       {/* _AvatarIndicator 94:2873 — Success/50 at 36,36. */}
       {online && (
         <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-50" />
       )}
-    </span>
-  );
-}
-
-/** Frames 100:1117 … — a 48px portrait over its owner's coloured aura. */
-function AuraAvatar({ userId, src, name, aura }: { userId: string; src: string | null; name: string; aura: Aura }) {
-  const ring = AURA_RING[aura];
-  return (
-    <span className="relative size-12 shrink-0">
-      {ring.dashed ? (
-        <span
-          className="absolute -inset-1 rounded-full border border-dashed"
-          style={{ borderColor: ring.dashed, boxShadow: ring.glow }}
-        />
-      ) : (
-        <span
-          className="absolute inset-0 rounded-full"
-          style={{ backgroundColor: ring.color, boxShadow: ring.glow }}
-        />
-      )}
-      <Avatar src={src} name={name} userId={userId} sizes="48px" className="relative size-12" />
     </span>
   );
 }

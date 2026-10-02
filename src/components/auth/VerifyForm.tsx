@@ -19,6 +19,7 @@ export function VerifyForm({ email }: { email: string }) {
   const [notice, setNotice] = useState<string>();
   const [verifying, startVerify] = useTransition();
   const [resending, startResend] = useTransition();
+  const [leaving, startLeaving] = useTransition();
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -114,13 +115,15 @@ export function VerifyForm({ email }: { email: string }) {
           >
             Resend
           </Button>
+          {/* A plain click, not a formAction: the form's onSubmit calls
+              preventDefault, which made React skip the action entirely. */}
           <Button
-            type="submit"
-            formAction={abandonVerification}
-            formNoValidate
+            type="button"
             variant="tertiary"
             size="md"
             fullWidth
+            loading={leaving}
+            onClick={() => startLeaving(() => abandonVerification())}
           >
             Wrong email? Go back
           </Button>

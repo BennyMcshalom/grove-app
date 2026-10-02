@@ -31,7 +31,7 @@ export async function restorePurchase(): Promise<PassActionResult & { restored?:
   }
 }
 
-/** "Choose which 4 Spaces stay active" → Keep these active. */
+/** "Choose which 4 Spaces stay active" → Lock in. Final on Free until Season Pass. */
 export async function chooseActiveSpaces(userChapterIds: string[]): Promise<PassActionResult> {
   await requireOnboardedViewer();
   const ids = z.array(z.uuid()).min(1).max(4).safeParse(userChapterIds);
@@ -41,7 +41,7 @@ export async function chooseActiveSpaces(userChapterIds: string[]): Promise<Pass
   const { error } = await supabase.rpc("choose_active_spaces", { p_user_chapter_ids: ids.data });
   if (error) {
     console.error("[pass] choose_active_spaces failed", error);
-    if (error.hint === "chapter_limit") return { error: error.message };
+    if (error.hint === "chapter_limit" || error.hint === "spaces_locked") return { error: error.message };
     return { error: "We couldn't save your choice. Try again." };
   }
   refresh();
@@ -50,13 +50,17 @@ export async function chooseActiveSpaces(userChapterIds: string[]): Promise<Pass
 
 /**
  * A paused Space's "Reactivate". `full` means Free's four are taken: the
- * client offers the chooser (swap one out) or the paywall instead.
+ * client offers the chooser (swap one out). `locked` means the four are
+ * locked in on Free: only the paywall can help.
  */
-export async function resumeSpace(userChapterId: string): Promise<PassActionResult & { full?: boolean }> {
+export async function resumeSpace(
+  userChapterId: string,
+): Promise<PassActionResult & { full?: boolean; locked?: boolean }> {
   await requireOnboardedViewer();
   const supabase = await createClient();
   const { error } = await supabase.rpc("resume_space", { p_user_chapter_id: userChapterId });
   if (error) {
+    if (error.hint === "spaces_locked") return { locked: true };
     if (error.hint === "chapter_limit") return { full: true };
     console.error("[pass] resume_space failed", error);
     return { error: "We couldn't reactivate that Space. Try again." };

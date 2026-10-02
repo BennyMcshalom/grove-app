@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
+import { GroupArt } from "@/components/app/GroupArt";
+import { GroupLookModal } from "@/components/app/GroupLookPicker";
 import { RoomComposer, RoomMessageList, useRoomMessages } from "@/components/app/RoomChat";
 import { SuggestedRail } from "@/components/app/SuggestedRail";
 import { useToast } from "@/components/app/ToastProvider";
@@ -25,6 +27,7 @@ import {
 } from "@/app/(app)/groups/actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import { inkOn } from "@/lib/group-look";
 import type { Group, JoinRequest, Truth, VideoTruth } from "@/lib/groups";
 import { timeAgo } from "@/lib/time";
 import { mediaDuration, removeUploads, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
@@ -58,6 +61,7 @@ export function GroupView({
   const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0]);
   const [requested, setRequested] = useState(group.requestPending);
   const [joining, startJoining] = useTransition();
+  const [editingLook, setEditingLook] = useState(false);
   const member = group.myRole !== null;
   const admin = group.myRole === "admin";
   const chat = useRoomMessages(group.conversationId, member);
@@ -65,7 +69,8 @@ export function GroupView({
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Frame 205:8480 — the glyph beside the group name. */}
+        {/* Frame 205:8480 — the group's art tile (its colour and line-art,
+            since 2 Oct 2026) beside the group name. */}
         <header className="flex shrink-0 items-center gap-2 bg-surface px-6 py-6 lg:px-8">
           {/* The phone frame (631:14497) leads with a back arrow. */}
           <Link
@@ -84,10 +89,10 @@ export function GroupView({
             </svg>
           </Link>
           <span
-            className="grid size-8 shrink-0 place-items-center rounded-full text-primary-600"
+            className="grid size-12 shrink-0 place-items-center rounded-xl p-1.5"
             style={{ backgroundColor: group.color }}
           >
-            <Glyph icon={group.icon} className="size-5" />
+            <GroupArt art={group.art} {...inkOn(group.color)} className="size-full" />
           </span>
           <h1 className="min-w-0 flex-1 truncate font-display text-2xl font-semibold text-ink-800">
             {group.title}
@@ -148,6 +153,13 @@ export function GroupView({
                         You&rsquo;re joined to this conversation as an admin.
                         Full conversation below
                       </p>
+                      <button
+                        type="button"
+                        onClick={() => setEditingLook(true)}
+                        className="w-fit font-sans text-sm font-medium text-primary-600 underline-offset-2 hover:underline"
+                      >
+                        Change the group&rsquo;s art and colour
+                      </button>
                     </div>
                   </div>
                   {requests.length > 0 && <JoinRequests requests={requests} />}
@@ -258,6 +270,7 @@ export function GroupView({
       <SuggestedRail />
 
       {outcome && <RequestOutcome group={group} outcome={outcome} />}
+      {editingLook && <GroupLookModal group={group} onClose={() => setEditingLook(false)} />}
     </div>
   );
 }
@@ -645,24 +658,6 @@ function VideoTruths({ groupId, videos: initial }: { groupId: string; videos: Vi
         />
       )}
     </div>
-  );
-}
-
-function Glyph({ icon, className }: { icon: string; className?: string }) {
-  return (
-    <span
-      className={cn("bg-current", className)}
-      style={{
-        maskImage: `url(/icons/events/${icon}.svg)`,
-        WebkitMaskImage: `url(/icons/events/${icon}.svg)`,
-        maskSize: "contain",
-        WebkitMaskSize: "contain",
-        maskRepeat: "no-repeat",
-        WebkitMaskRepeat: "no-repeat",
-        maskPosition: "center",
-        WebkitMaskPosition: "center",
-      }}
-    />
   );
 }
 

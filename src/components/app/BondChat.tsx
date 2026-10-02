@@ -25,6 +25,7 @@ import {
 import { bondDuration, messagePreview, type BondPerson, type ChatMessage } from "@/lib/bonds";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import type { Aura } from "@/lib/profile";
 import { DOCUMENT_TYPES, formatBytes, isDocument, mediaDuration, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
 import { useRealtimeChannel } from "@/lib/supabase/use-channel";
 
@@ -255,7 +256,7 @@ export function BondChat({
             </button>
           )}
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <GlowAvatar src={person.avatarUrl} name={person.name} online={online} />
+            <GlowAvatar src={person.avatarUrl} name={person.name} online={online} aura={person.aura} />
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="truncate font-sans text-base font-medium text-ink-700">
                 {person.name}
@@ -608,28 +609,26 @@ export function ChapterBadge({
   );
 }
 
-/** Avatar with the amber ring + glow Figma gives bond members. */
+/**
+ * A bond member’s photo with their online dot. Natural (no glow); when their
+ * aura is known it wears the aura status ring.
+ */
 export function GlowAvatar({
   src,
   name,
   online = false,
   size = 40,
+  aura,
 }: {
   src: string | null;
   name: string;
   online?: boolean;
   size?: number;
+  aura?: Aura | null;
 }) {
   return (
-    <span
-      className="relative shrink-0 rounded-full"
-      style={{
-        width: size,
-        height: size,
-        boxShadow: "0px 2px 6px 5px rgba(251, 148, 31, 0.4)",
-      }}
-    >
-      <Avatar src={src} name={name} sizes={`${size}px`} className="size-full" />
+    <span className="relative shrink-0 rounded-full" style={{ width: size, height: size }}>
+      <Avatar src={src} name={name} aura={aura} sizes={`${size}px`} className="size-full" />
       {online && (
         <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
       )}

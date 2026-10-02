@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- local previews of picked photos */
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
+import { ShareSheet } from "@/components/app/ShareSheet";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { InvitationCard } from "@/components/app/invite/InvitationCard";
@@ -399,10 +400,9 @@ function PeopleGroup({
   );
 }
 
-/** The link, Copy, and the system share sheet where there is one. */
+/** The link, Copy, and Share (the phone's sheet, or Grouv's own on desktop). */
 function ShareLink({ link, title }: { link: string; title: string }) {
   const toast = useToast();
-  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   return (
     <div className="flex flex-col gap-3">
@@ -423,16 +423,16 @@ function ShareLink({ link, title }: { link: string; title: string }) {
           Copy
         </button>
       </div>
-      {canShare && (
-        <Button
-          fullWidth
-          onClick={() => {
-            navigator.share({ title: "Join my chapter on Grouv", text: title, url: link }).catch(() => {});
-          }}
-        >
-          Share
-        </Button>
-      )}
+      <ShareSheet
+        url={link}
+        title="Join my chapter on Grouv"
+        text={title}
+        trigger={(open) => (
+          <Button fullWidth onClick={open}>
+            Share
+          </Button>
+        )}
+      />
     </div>
   );
 }

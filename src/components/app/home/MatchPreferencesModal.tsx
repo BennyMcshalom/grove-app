@@ -8,6 +8,7 @@ import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
+import { Switch } from "@/components/ui/Switch";
 import { loadMatchPreferences, saveMatchPreferences } from "@/lib/match-actions";
 import { DISTANCE, LIFE_STAGES, LOOKING_FOR, type MatchPreferences } from "@/lib/matches";
 import { cn } from "@/lib/cn";
@@ -151,19 +152,11 @@ export function MatchPreferencesModal({ onClose, onSaved }: { onClose: () => voi
                 <span className="font-sans text-lg font-medium text-ink-700">Notify me about new matches</span>
                 <span className="font-sans text-sm text-ink-300">We’ll let you know as soon as someone new fits</span>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-label="Notify me about new matches"
-                aria-checked={prefs.notify}
-                onClick={() => setPrefs({ ...prefs, notify: !prefs.notify })}
-                className={cn(
-                  "flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors",
-                  prefs.notify ? "justify-end bg-primary-600" : "justify-start bg-ink-50",
-                )}
-              >
-                <span className="size-5 rounded-full bg-white shadow-sm" />
-              </button>
+              <Switch
+                label="Notify me about new matches"
+                checked={prefs.notify}
+                onChange={(notify) => setPrefs({ ...prefs, notify })}
+              />
             </div>
           </section>
 

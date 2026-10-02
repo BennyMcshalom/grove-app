@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { Avatar } from "@/components/app/Avatar";
+import { GroupArt } from "@/components/app/GroupArt";
+import { inkOn, type GroupArtKey } from "@/lib/group-look";
 
 /**
- * Chapter group card — Figma frame 575:17916 (Card).
- *
- * Column, 16px padding, 8px radius: the title over a row holding the member
- * stack — up to four 32px photos overlapping by 8px, then a count avatar — and
- * the blurb. The first card in a rail takes the warm wash, the rest the pink.
+ * Chapter group card — Figma frame 575:17916 (Card), restyled after testing
+ * (2 Oct 2026): a flat card in the group's own colour with its line-art up
+ * top-right, the title bold beside it, then the member stack (up to four
+ * photos overlapping by 8px and a count) and the blurb. Text and art switch
+ * to white on dark colours.
  */
 export const GROUP_GRADIENT = {
-  orange:
-    "var(--wash-warm)",
+  orange: "var(--wash-warm)",
   pink: "var(--wash-pink)",
 };
 
@@ -20,52 +21,55 @@ export function ChapterGroupCard({
   href,
   avatars,
   memberCount,
-  gradient = GROUP_GRADIENT.pink,
+  color,
+  art,
 }: {
   title: string;
   blurb: string | null;
   href: string;
   avatars: string[];
   memberCount: number;
-  gradient?: string;
+  /** The group's flat colour. */
+  color: string;
+  art: GroupArtKey;
 }) {
   const extra = memberCount - avatars.length;
+  const { ink, paper, muted } = inkOn(color);
 
   return (
     <Link
       href={href}
-      className="flex flex-col gap-2 rounded-lg p-4 transition-opacity hover:opacity-90"
-      style={{ backgroundImage: gradient }}
+      className="flex flex-col gap-3 rounded-xl p-4 transition-opacity hover:opacity-90"
+      style={{ backgroundColor: color, color: ink }}
     >
-      <span className="font-display text-[13.8px] leading-[1.26] font-semibold text-ink-500">
-        {title}
-      </span>
+      <div className="flex items-start justify-between gap-3">
+        <span className="min-w-0 pt-1 font-display text-base leading-tight font-bold">{title}</span>
+        <GroupArt art={art} ink={ink} paper={paper} className="size-14" />
+      </div>
 
       <div className="flex items-center gap-3">
         <span className="flex shrink-0">
           {avatars.map((src, i) => (
             <span
               key={`${src}-${i}`}
-              className="rounded-full border-2 border-surface"
-              style={{ marginLeft: i === 0 ? 0 : -8 }}
+              className="rounded-full border-2"
+              style={{ marginLeft: i === 0 ? 0 : -8, borderColor: color }}
             >
               <Avatar src={src} name="" sizes="32px" className="size-7" />
             </span>
           ))}
           {(extra > 0 || avatars.length === 0) && (
             <span
-              className="grid size-8 shrink-0 place-items-center rounded-full border-2 border-surface bg-primary-50 font-ui text-xs font-extrabold text-primary-600"
-              style={{ marginLeft: avatars.length ? -8 : 0 }}
+              className="grid size-8 shrink-0 place-items-center rounded-full border-2 font-ui text-xs font-extrabold"
+              style={{ marginLeft: avatars.length ? -8 : 0, borderColor: color, backgroundColor: paper, color: ink }}
             >
               {avatars.length === 0 ? memberCount : `+${extra}`}
             </span>
           )}
         </span>
-        {/* Figma's line-height here is 18px, not Tailwind's 16px. The blurb
-            wraps rather than running past the card: our Figtree renders ~2px
-            wider than Figma's, so forcing one line overflowed the edge. */}
+        {/* The blurb wraps rather than running past the card. */}
         {blurb && (
-          <span className="min-w-0 font-sans text-xs leading-[18px] text-ink-400">
+          <span className="min-w-0 font-sans text-xs leading-[18px] font-medium" style={{ color: muted }}>
             {blurb}
           </span>
         )}

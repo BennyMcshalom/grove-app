@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { cn } from "@/lib/cn";
-import { auraLabel, AURAS } from "@/lib/profile";
+import { auraLabel, AURAS, type Aura } from "@/lib/profile";
 
 /**
  * Your Grouv rings — Figma component 489:17418 (used in frames 417:16407 and
@@ -32,6 +32,7 @@ export interface RingPerson {
   name: string;
   avatarUrl: string | null;
   relationship: "bond" | "circle";
+  aura?: Aura;
 }
 
 export type RingPrompts = Record<Layer, string | null>;
@@ -71,12 +72,15 @@ const BADGES: { id: Layer; label: string; left: number; top: number; className: 
   },
 ];
 
-/** The four 40px member spots — frames 1618868318 / 19 / 23 / 22. */
-const SPOTS: { left: number; top: number; tint: string }[] = [
-  { left: 21, top: 161, tint: "bg-success-10" },
-  { left: 314, top: 125, tint: "bg-warning-10" },
-  { left: 310, top: 269, tint: "bg-[#E4F7FF]" },
-  { left: 111, top: 342, tint: "bg-destructive-10" },
+/**
+ * The four 40px member spots — frames 1618868318 / 19 / 23 / 22. Figma sat
+ * each on a tinted disc; photos are natural now, ringed by their aura.
+ */
+const SPOTS: { left: number; top: number }[] = [
+  { left: 21, top: 161 },
+  { left: 314, top: 125 },
+  { left: 310, top: 269 },
+  { left: 111, top: 342 },
 ];
 
 export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts: RingPrompts }) {
@@ -119,6 +123,7 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
             <Avatar
               src={viewer.avatarUrl}
               name={viewer.firstName}
+              aura={viewer.aura}
               sizes="40px"
               className="relative size-full"
             />
@@ -131,13 +136,10 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
                 key={person.userId}
                 href={`/bonds?with=${person.userId}`}
                 title={person.name}
-                className={cn(
-                  "absolute grid place-items-center rounded-full p-1 transition-transform hover:scale-110",
-                  spot.tint,
-                )}
+                className="absolute grid place-items-center rounded-full transition-transform hover:scale-110"
                 style={{ left: x(spot.left), top: y(spot.top), width: w(40), aspectRatio: "1" }}
               >
-                <Avatar src={person.avatarUrl} name={person.name} sizes="40px" className="size-full" />
+                <Avatar src={person.avatarUrl} name={person.name} aura={person.aura} sizes="40px" className="size-full" />
                 <span className="sr-only">{person.name}</span>
               </Link>
             );
@@ -180,7 +182,7 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
               </span>
             )}
             <span className="flex items-center gap-1 rounded-full bg-ivory-500 px-2 py-1 font-sans text-xs font-medium text-ink-400">
-              <span className={cn("size-1.5 rounded-full", aura?.dot === "bg-surface" ? "bg-primary-600" : aura?.dot)} />
+              <span className={cn("size-1.5 rounded-full", aura?.dot)} />
               {auraLabel(viewer.aura)}
             </span>
           </div>

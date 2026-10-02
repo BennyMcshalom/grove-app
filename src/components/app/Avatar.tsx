@@ -5,10 +5,30 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useOptionalViewer } from "@/components/app/ViewerProvider";
 import { cn } from "@/lib/cn";
+import { auraLabel, auraRing, type Aura } from "@/lib/profile";
 
 /** Where someone's photo leads: their Grouv, or Your Grouv for yourself. */
 export function grouvHref(userId: string, viewerId?: string | null) {
   return userId === viewerId ? "/settings/your-grouv" : `/people/${userId}`;
+}
+
+/**
+ * The aura status ring: a thin solid ring in the aura colour, held off the
+ * photo by a surface-coloured gap, over a soft drop shadow. Drawn as stacked
+ * box-shadows so it never changes the avatar’s layout box. Thickness
+ * follows the rendered size (from `sizes`) so small and large photos match.
+ */
+function auraStyle(aura: Aura, sizes: string): React.CSSProperties {
+  const px = Number.parseInt(sizes, 10) || 40;
+  const ring = px >= 96 ? 3 : px >= 32 ? 2 : 1.5;
+  const gap = px >= 96 ? 3 : 2;
+  return {
+    boxShadow: [
+      `0 0 0 ${gap}px var(--color-surface)`,
+      `0 0 0 ${gap + ring}px ${auraRing(aura)}`,
+      `0 ${Math.round(px / 16) + 2}px ${Math.round(px / 6) + 6}px -2px rgb(23 23 23 / 0.22)`,
+    ].join(", "),
+  };
 }
 
 /**
@@ -21,6 +41,9 @@ export function grouvHref(userId: string, viewerId?: string | null) {
  * often sit inside a row that's already a button (a chat, a notification),
  * so this navigates itself and stops the tap from reaching the row, rather
  * than nesting a link inside a button.
+ *
+ * With `aura`, the photo wears that person’s status ring (see auraStyle).
+ * Leave it out when their aura isn’t known — the photo then stays natural.
  */
 export function Avatar({
   src,
@@ -28,6 +51,7 @@ export function Avatar({
   sizes = "40px",
   className,
   userId,
+  aura,
 }: {
   src: string | null;
   name: string;
@@ -36,6 +60,8 @@ export function Avatar({
   className?: string;
   /** Makes the photo open this person's Grouv page. */
   userId?: string | null;
+  /** Draws the aura status ring around the photo. */
+  aura?: Aura | null;
 }) {
   const [failed, setFailed] = useState(false);
   const router = useRouter();
@@ -59,11 +85,20 @@ export function Avatar({
         },
       }
     : {};
-  const linkClass = href && "cursor-pointer outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary-400";
+  const ringProps = aura ? { style: auraStyle(aura, sizes), title: auraLabel(aura) } : {};
+  // The aura ring owns box-shadow, so a ringed photo shows focus as an outline.
+  const linkClass =
+    href &&
+    cn(
+      "cursor-pointer outline-none transition-opacity hover:opacity-90",
+      aura
+        ? "focus-visible:outline-2 focus-visible:outline-offset-[6px] focus-visible:outline-primary-400"
+        : "focus-visible:ring-2 focus-visible:ring-primary-400",
+    );
 
   if (src && !failed) {
     return (
-      <span {...linkProps} className={cn("relative block shrink-0 overflow-hidden rounded-full", linkClass, className)}>
+      <span {...linkProps} {...ringProps} className={cn("relative block shrink-0 overflow-hidden rounded-full", linkClass, className)}>
         <Image src={src} alt="" fill sizes={sizes} className="object-cover" onError={() => setFailed(true)} />
       </span>
     );
@@ -72,6 +107,7 @@ export function Avatar({
   return (
     <span
       {...linkProps}
+      {...ringProps}
       aria-hidden={href ? undefined : true}
       className={cn(
         "grid shrink-0 place-items-center rounded-full bg-primary-100 font-sans font-semibold text-primary-600 [container-type:size]",

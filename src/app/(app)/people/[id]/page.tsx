@@ -29,7 +29,7 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
     await Promise.all([
       supabase
         .from("profiles")
-        .select("id, first_name, avatar_url, aura, location_label, onboarded_at")
+        .select("id, first_name, avatar_url, aura, location_label, onboarded_at, banner")
         .eq("id", id)
         .maybeSingle(),
       supabase
@@ -39,7 +39,7 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
         .eq("status", "open")
         .order("is_primary", { ascending: false })
         .order("opened_at"),
-      supabase.from("connections").select("id, status, requester_id").or(pair).maybeSingle(),
+      supabase.from("connections").select("id, status, requester_id, intro_message, intro_prompt").or(pair).maybeSingle(),
       supabase
         .from("bonds")
         .select("id, status")
@@ -81,10 +81,16 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
         name: profile.first_name,
         avatarUrl: profile.avatar_url,
         aura: profile.aura,
+        banner: profile.banner,
         locationLabel: profile.location_label,
         chapters: (chapters ?? []).map((c) => ({ slug: c.chapter_slug, phase: c.phase, shared: held.has(c.chapter_slug) })),
         relationship,
         connectionId: connection?.status === "pending" ? connection.id : null,
+        // Their note, when they introduced themselves and it waits on you.
+        intro:
+          relationship === "asked_you" && connection?.intro_message
+            ? { message: connection.intro_message, prompt: connection.intro_prompt }
+            : null,
         blocked: Boolean(block),
         prompts: prompts
           ? { honestTension: prompts.honest_tension, sittingWith: prompts.sitting_with, openTo: prompts.open_to }

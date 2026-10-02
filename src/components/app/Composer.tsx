@@ -3,16 +3,15 @@
 import { useEffect, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { PostingToMenu } from "@/components/app/PostMenu";
-import { Toggle } from "@/components/app/settings/SettingsView";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
-import { createPost, openGroveAvailable } from "@/lib/post-actions";
+import { createPost } from "@/lib/post-actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
-import { MEDIA_LIMITS, PROGRESS, type PostAudience, type PostProgress } from "@/lib/posts";
-import { AudiencePicker } from "@/components/app/media/AudiencePicker";
+import { MEDIA_LIMITS, PROGRESS, type PostProgress } from "@/lib/posts";
+import { AudiencePicker, type ShareChoice } from "@/components/app/media/AudiencePicker";
 import { MediaPreview } from "@/components/app/media/MediaPreview";
 import { MediaTiles } from "@/components/app/media/MediaTiles";
 import { clearDraft as forgetDraft, draftHasContent, readDraft, writeDraft, type ComposerDraft } from "@/lib/composer-draft";
@@ -30,8 +29,9 @@ import { mediaSize, uploadWithProgress } from "@/lib/upload";
  * Files upload to Storage as soon as they're picked, so posting is quick and
  * a failed upload shows before the post is written ("Uploading… 62%", h05).
  *
- * PRD §6 additions: an exact audience (AudiencePicker — Only me, Selected
- * Bonds, Everyone) previewed before publishing; the anonymity warning
+ * PRD §6 additions: one "Who can see this" choice (AudiencePicker — Selected
+ * Bonds, Everyone, Anonymously, Open Grouv) with the exact audience previewed
+ * before publishing; the anonymity warning
  * (Figma h06/h14); a large preview of attached media with the caption over it
  * (h07/h14); and a draft that's kept in this browser and can be resumed or
  * discarded. A failed upload or post keeps the whole draft for Retry.
@@ -48,13 +48,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
 
   const [mode, setMode] = useState<(typeof MODES)[number]>(MODES[0]);
   const [stage, setStage] = useState<PostProgress | null>(null);
-  const [anonymous, setAnonymous] = useState(false);
   const [chapter, setChapter] = useState(viewer.chapters[0]?.slug ?? "");
-  // Open Grove: one post a month per space that reaches people at the same
-  // stage beyond your circle. Once it's used the option just isn't offered.
-  const [openGrove, setOpenGrove] = useState(false);
-  const [grove, setGrove] = useState<{ chapter: string; open: boolean } | null>(null);
-  const groveAvailable = grove?.chapter === chapter && grove.open;
   const [chapterMenuOpen, setChapterMenuOpen] = useState(false);
   const [doing, setDoing] = useState("");
   const [honest, setHonest] = useState("");
@@ -62,8 +56,13 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const [attachments, setAttachments] = useState<MediaDraft[]>([]);
   const [error, setError] = useState<string>();
   const [posting, startPosting] = useTransition();
-  const [audience, setAudience] = useState<PostAudience>("everyone");
+  // Exactly one way of sharing. Anonymously and Open Grouv both go to the
+  // whole circle; Open Grouv (no limit) also reaches people at your stage.
+  const [share, setShare] = useState<ShareChoice>("everyone");
   const [audienceIds, setAudienceIds] = useState<string[]>([]);
+  const audience = share === "selected_bonds" ? "selected_bonds" : "everyone";
+  const anonymous = share === "anonymous";
+  const openGrouv = share === "open";
   // A draft from an earlier visit, offered until it's resumed or discarded.
   const [savedDraft, setSavedDraft] = useState<ComposerDraft | null>(null);
 
@@ -83,6 +82,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     caption,
     audience,
     audienceIds,
+    openGrouv,
     media: attachments.flatMap((a) =>
       a.path && a.status === "done"
         ? [
@@ -123,7 +123,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     }, 400);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- currentDraft reads exactly these
-  }, [mode, chapter, stage, anonymous, doing, honest, caption, audience, audienceIds, attachments, savedDraft, viewer.id]);
+  }, [mode, chapter, stage, share, doing, honest, caption, audienceIds, attachments, savedDraft, viewer.id]);
 
   /** "Resume draft": fields come back as they were, media from Storage. */
   const resumeDraft = async () => {
@@ -133,12 +133,20 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     setMode(draft.mode === "root" ? MODES[0] : MODES[1]);
     if (viewer.chapters.some((c) => c.slug === draft.chapter)) setChapter(draft.chapter);
     setStage(draft.stage);
-    setAnonymous(draft.anonymous);
     setDoing(draft.doing);
     setHonest(draft.honest);
     setCaption(draft.caption);
-    setAudience(draft.audience);
-    setAudienceIds(draft.audienceIds);
+    // "Only me" left the composer: those drafts come back as Everyone.
+    setShare(
+      draft.audience === "selected_bonds"
+        ? "selected_bonds"
+        : draft.anonymous
+          ? "anonymous"
+          : draft.openGrouv
+            ? "open"
+            : "everyone",
+    );
+    setAudienceIds(draft.audience === "selected_bonds" ? draft.audienceIds : []);
     if (draft.media.length === 0) return;
     const { data } = await createClient()
       .storage.from("media")
@@ -163,29 +171,16 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     setSavedDraft(null);
   };
 
-  useEffect(() => {
-    if (!chapter) return;
-    let live = true;
-    void openGroveAvailable(chapter).then((open) => {
-      if (live) setGrove({ chapter, open });
-    });
-    return () => {
-      live = false;
-    };
-  }, [chapter]);
-
   const clearDraft = () => {
     setMode(MODES[0]);
     setStage(null);
-    setAnonymous(false);
-    setOpenGrove(false);
     setDoing("");
     setHonest("");
     setCaption("");
     setAttachments([]);
     setChapterMenuOpen(false);
     setError(undefined);
-    setAudience("everyone");
+    setShare("everyone");
     setAudienceIds([]);
     forgetDraft(viewer.id);
   };
@@ -335,7 +330,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         progress: isRoot ? stage : null,
         body: isRoot ? honest : caption,
         anonymous,
-        openGrove: openGrove && groveAvailable && !anonymous && audience === "everyone",
+        openGrove: openGrouv,
         audience,
         audienceIds: audience === "selected_bonds" ? audienceIds : [],
         media: attachments.flatMap((a) =>
@@ -351,16 +346,18 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
       }
       // Figma 599:23020 / 599:23021, and where it went for the narrower audiences.
       toast(
-        audience === "only_me"
-          ? { title: "Saved privately", description: "Only you can see it. Find it in your posts on your profile." }
-          : audience === "selected_bonds"
+        share === "open"
+          ? {
+              title: isRoot ? "Post rooted." : "Post Grouved.",
+              description: "Your Circle and people at your stage in Open Grouv will see this post.",
+            }
+          : share === "selected_bonds"
             ? {
                 title: isRoot ? "Post rooted." : "Post Grouved.",
                 description: `Only the ${audienceIds.length === 1 ? "Bond" : `${audienceIds.length} Bonds`} you chose will see this post.`,
               }
             : { title: isRoot ? "Post rooted. Your Circle will see this post." : "Post Grouved. Your Circle will see this post." },
       );
-      if (openGrove && groveAvailable && !anonymous && audience === "everyone") setGrove({ chapter, open: false });
       clearDraft();
       onClose?.();
     });
@@ -395,40 +392,20 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     attachments.some((a) => a.status === "failed") ||
     (audience === "selected_bonds" && audienceIds.length === 0);
 
-  const audiencePicker = (
-    <AudiencePicker
-      row
-      audience={audience}
-      selected={audienceIds}
-      onChange={(next, ids) => {
-        setAudience(next);
-        setAudienceIds(ids);
-        if (next !== "everyone") setOpenGrove(false);
-      }}
-    />
-  );
-
-  // Who sees it, anonymity and Open Grove as one settings panel: a row each,
-  // the control on the right. Media can identify someone even without a name,
-  // so Just Grouv always carries the warning; Root shows it once anonymous.
+  // One "Who can see this" row: the pill opens the four choices. Media can
+  // identify someone even without a name, so Just Grouv always carries the
+  // warning; Root shows it once Anonymously is picked.
   const postSettings = (warnAlways: boolean) => (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col divide-y divide-ink-50 rounded-xl border border-ink-50 px-4">
-        <div className="py-3">{audiencePicker}</div>
-        <SettingRow
-          title="Post anonymously"
-          hint="Your name and photo won't show on this post."
-          on={anonymous}
-          onChange={() => setAnonymous(!anonymous)}
+      <div className="rounded-xl border border-ink-50 px-4 py-3">
+        <AudiencePicker
+          choice={share}
+          selected={audienceIds}
+          onChange={(next, ids) => {
+            setShare(next);
+            setAudienceIds(ids);
+          }}
         />
-        {groveAvailable && !anonymous && audience === "everyone" && (
-          <SettingRow
-            title="Share to Open Grove"
-            hint="Reach people at your stage beyond your circle. Once a month per Space."
-            on={openGrove}
-            onChange={() => setOpenGrove(!openGrove)}
-          />
-        )}
       </div>
       {(warnAlways || anonymous) && (
         <p className="flex items-start gap-2 font-sans text-xs text-ink-300">
@@ -900,29 +877,6 @@ function VideoIcon({ className }: { className?: string }) {
         strokeLinejoin="round"
       />
     </svg>
-  );
-}
-
-/** One line of the post settings panel: title and hint, switch on the right. */
-function SettingRow({
-  title,
-  hint,
-  on,
-  onChange,
-}: {
-  title: string;
-  hint: string;
-  on: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-sans text-sm font-medium text-ink-700">{title}</span>
-        <span className="font-sans text-xs text-ink-300">{hint}</span>
-      </span>
-      <Toggle label={title} on={on} onChange={onChange} />
-    </div>
   );
 }
 

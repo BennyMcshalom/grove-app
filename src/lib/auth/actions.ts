@@ -185,10 +185,15 @@ export async function resendCode(): Promise<{ error?: string }> {
   return {};
 }
 
-/** "Wrong email? Go back" — forget the pending address. */
-export async function abandonVerification(formData: FormData) {
-  (await cookies()).delete(PENDING_EMAIL_COOKIE);
-  redirect(formData.get("from") === "sign-in" ? "/sign-in" : "/sign-up");
+/**
+ * "Wrong email? Go back" — forget the pending address so /verify stops
+ * catching them, and hand it back to sign-up to correct.
+ */
+export async function abandonVerification() {
+  const jar = await cookies();
+  const pendingEmail = jar.get(PENDING_EMAIL_COOKIE)?.value;
+  jar.delete(PENDING_EMAIL_COOKIE);
+  redirect(pendingEmail ? `/sign-up?email=${encodeURIComponent(pendingEmail)}` : "/sign-up");
 }
 
 export async function signInWithGoogle() {

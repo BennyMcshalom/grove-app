@@ -1,6 +1,7 @@
 import { CallProvider } from "@/components/app/CallProvider";
 import { Sidebar } from "@/components/app/Sidebar";
 import { MobileNav } from "@/components/app/MobileNav";
+import { NotificationPopups } from "@/components/app/NotificationPopups";
 import { PaywallProvider } from "@/components/app/pass/PaywallProvider";
 import { ToastProvider } from "@/components/app/ToastProvider";
 import { SessionSync } from "@/components/app/SessionSync";
@@ -32,6 +33,7 @@ export default async function AppLayout({
     <ViewerProvider viewer={viewer}>
       <SessionSync />
       <ChapterInviteReturn />
+      <NotificationPopups />
       <ToastProvider>
         <PaywallProvider>
         <UnreadMessagesProvider userId={viewer.id} initial={viewer.unreadMessages}>

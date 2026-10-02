@@ -49,16 +49,15 @@ export function ReadyView({ trialEndsAt }: { trialEndsAt: string | null }) {
           </p>
         </header>
 
-        {/* PRD §4/§13: label the 14-day Season Pass trial, its end date, and
-            what Free includes afterwards. */}
+        {/* PRD §4/§13: label the 14-day Season Pass trial, its end date and
+            what it opens. No card is taken, and we don't advertise Free here. */}
         {trialEndsAt && (
           <div className="flex w-full max-w-[460px] flex-col gap-1 rounded-xl bg-primary-50 px-4 py-3 text-center">
             <span className="font-sans text-sm font-semibold text-primary-800">
               Your 14-day Season Pass trial is on — until {longDate(trialEndsAt)}
             </span>
             <span className="font-sans text-xs text-ink-400">
-              All eight Spaces, Bonds, Bond Log and Life Wrapped are open to you. Nothing to pay: afterwards
-              you move to Free, with four active Spaces and everything you&rsquo;ve made kept.
+              All eight Spaces, Bonds, Bond Log and Life Wrapped are open to you.
             </span>
           </div>
         )}

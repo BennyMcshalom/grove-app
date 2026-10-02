@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useToast } from "@/components/app/ToastProvider";
-import { useSpaceChooser } from "@/components/app/pass/PaywallProvider";
+import { usePaywall, useSpaceChooser } from "@/components/app/pass/PaywallProvider";
 import { Button } from "@/components/ui/Button";
 import { resumeSpace } from "@/lib/pass-actions";
 
@@ -14,11 +14,14 @@ import { resumeSpace } from "@/lib/pass-actions";
 export function PausedSpaceNotice({ userChapterId, name }: { userChapterId: string; name: string }) {
   const toast = useToast();
   const chooseSpaces = useSpaceChooser();
+  const paywall = usePaywall();
   const [pending, startPending] = useTransition();
 
   const reactivate = () =>
     startPending(async () => {
       const result = await resumeSpace(userChapterId);
+      // Locked in on Free: only Season Pass brings it back.
+      if (result.locked) return paywall("space_limit");
       if (result.full) return chooseSpaces(userChapterId);
       toast(result.error ? { title: result.error, tone: "danger" } : { title: `${name} is active again`, tone: "confirm" });
     });

@@ -1,3 +1,5 @@
+import type { GroupArtKey } from "@/lib/group-look";
+
 /** Chapter group shapes, built on the server from group_cards(). */
 
 export interface Group {
@@ -8,7 +10,10 @@ export interface Group {
   label: string | null;
   description: string | null;
   icon: string;
+  /** The card's flat colour (hex). */
   color: string;
+  /** The card's line-art (GroupArt.tsx). */
+  art: GroupArtKey;
   chapterSlug: string | null;
   joinPolicy: "open" | "approval";
   memberCount: number;
@@ -18,18 +23,6 @@ export interface Group {
   /** Up to four member photos. */
   memberAvatars: string[];
 }
-
-/** Start a group → PICK A COLOR (Figma 211:11620). */
-export const GROUP_COLORS = [
-  "#FAF8CA",
-  "#E9FEF8",
-  "#CFF7FA",
-  "#D6E1FC",
-  "#BDE3EE",
-  "#FED1FA",
-  "#FED1DD",
-  "#FEF1E9",
-] as const;
 
 export interface Truth {
   id: string;

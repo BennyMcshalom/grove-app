@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { TopBar } from "@/components/app/TopBar";
 import { Avatar } from "@/components/app/Avatar";
+import { ShareSheet, type ShareChannel } from "@/components/app/ShareSheet";
 import { useToast } from "@/components/app/ToastProvider";
 import { TextAction, longDate } from "@/components/app/pass/PassStatus";
 import { FormError } from "@/components/auth/FormError";
@@ -73,17 +74,9 @@ export function InviteView({
     window.location.href = `sms:?&body=${encodeURIComponent(message)}`;
   };
 
-  const shareMore = async () => {
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({ title: "Join me on Grouv", text: message, url: link });
-        void recordReferralShare("share");
-      } catch {
-        // Closing the share sheet isn't an error.
-      }
-      return;
-    }
-    await copy();
+  // A copied link isn't counted as an invite sent; every app share is.
+  const countShare = (channel: ShareChannel) => {
+    if (channel !== "copy") void recordReferralShare(channel === "sms" ? "message" : "share");
   };
 
   return (
@@ -113,7 +106,13 @@ export function InviteView({
             <div className="flex flex-wrap gap-2">
               <ShareChip onClick={shareByMessage}>Message</ShareChip>
               <ShareChip onClick={() => setDialog({ kind: "email" })}>Email</ShareChip>
-              <ShareChip onClick={shareMore}>More ways to share</ShareChip>
+              <ShareSheet
+                url={link}
+                title="Join me on Grouv"
+                text="I'm on Grouv — a place for people in the same chapter of life. Join me:"
+                onShared={countShare}
+                trigger={(open) => <ShareChip onClick={open}>More ways to share</ShareChip>}
+              />
             </div>
 
             <dl className="grid grid-cols-3 gap-3">

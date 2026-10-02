@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
+import { ProfileBanner } from "@/components/app/ProfileBanner";
+import { IntroNote } from "@/components/app/BondsRail";
 import { FeedList } from "@/components/app/FeedList";
 import { MomentViewer } from "@/components/app/LogCoverflow";
 import { ReportPostModal } from "@/components/app/PostModals";
@@ -29,11 +31,15 @@ export interface Person {
   name: string;
   avatarUrl: string | null;
   aura: Aura;
+  /** Their profile banner key; null is their default colour. */
+  banner: string | null;
   locationLabel: string | null;
   chapters: { slug: string; phase: string; shared: boolean }[];
   relationship: "bond" | "circle" | "requested" | "asked_you" | "none";
   /** The pending request, when there is one. */
   connectionId: string | null;
+  /** The note they introduced themselves with, while it waits on the viewer. */
+  intro?: { message: string; prompt: string | null } | null;
   /** The viewer has blocked them. */
   blocked: boolean;
   /** Only bonds can read these. */
@@ -148,10 +154,10 @@ export function PersonView({ person, posts, logs }: { person: Person; posts: Fee
         <div className="mx-auto flex w-full max-w-[1096px] flex-col gap-6 pb-10">
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-6">
           <section className="w-full overflow-hidden rounded-lg bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]">
-            <div className="h-20" style={{ backgroundImage: "var(--wash-banner)" }} />
+            <ProfileBanner banner={person.banner} seed={person.id} className="h-20 sm:h-24" />
             <div className="flex flex-col gap-4 px-5 pb-6 sm:px-8">
-              <span className="-mt-10 block size-20 rounded-full border-4 border-surface">
-                <Avatar src={person.avatarUrl} name={person.name} sizes="80px" className="size-full" />
+              <span className="-mt-10 block size-20 rounded-full">
+                <Avatar src={person.avatarUrl} name={person.name} aura={person.aura} sizes="80px" className="size-full" />
               </span>
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -164,12 +170,21 @@ export function PersonView({ person, posts, logs }: { person: Person; posts: Fee
                 </div>
                 <div className="flex flex-wrap items-center gap-3 font-sans text-sm text-ink-400">
                   <span className="flex items-center gap-1.5">
-                    <span className={cn("size-2 rounded-full", aura?.dot === "bg-surface" ? "bg-primary-600" : aura?.dot)} />
+                    <span className={cn("size-2 rounded-full", aura?.dot)} />
                     {auraLabel(person.aura)}
                   </span>
                   {person.locationLabel && <span>· {person.locationLabel}</span>}
                 </div>
               </div>
+
+              {relationship === "asked_you" && person.intro && (
+                <div className="flex flex-col gap-2">
+                  <span className="font-sans text-sm font-medium text-ink-500">
+                    {person.name} introduced themselves
+                  </span>
+                  <IntroNote message={person.intro.message} prompt={person.intro.prompt} />
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-3">
                 {relationship === "none" && !blocked && (

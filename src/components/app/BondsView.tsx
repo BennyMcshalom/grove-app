@@ -299,7 +299,7 @@ function BondRow({
       )}
     >
       <span className="flex items-center gap-3">
-        <GlowAvatar src={person.avatarUrl} name={person.name} online={online} />
+        <GlowAvatar src={person.avatarUrl} name={person.name} online={online} aura={person.aura} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate font-sans text-base font-medium text-ink-700">
             {person.name}
@@ -338,7 +338,7 @@ function CircleRow({
         active ? "bg-primary-50" : "bg-surface hover:bg-ivory-100",
       )}
     >
-      <GlowAvatar src={person.avatarUrl} name={person.name} online={online} />
+      <GlowAvatar src={person.avatarUrl} name={person.name} online={online} aura={person.aura} />
       {/* Time on the name's line, unread count on the badge's line, so a long
           stage never runs into either. */}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">

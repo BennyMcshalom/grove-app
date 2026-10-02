@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useToast } from "@/components/app/ToastProvider";
+import { useOptionalViewer } from "@/components/app/ViewerProvider";
 import { Button } from "@/components/ui/Button";
 import { Modal, ModalClose, ModalHeader, ModalStatus } from "@/components/ui/Modal";
 import { introduceYourself } from "@/lib/match-actions";
@@ -35,12 +36,45 @@ export function IntroduceModal({
   backLabel?: string;
 }) {
   const toast = useToast();
+  const viewer = useOptionalViewer();
   const [prompt, setPrompt] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [sending, startSending] = useTransition();
   const prompts = starterPrompts(person);
+  // The last opener a chip wrote: another chip may replace it, but never
+  // words they've typed themselves.
+  const [opener, setOpener] = useState<string | null>(null);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const caretToEnd = useRef(false);
+
+  // After a chip writes its opener, the cursor waits at the end to keep typing.
+  useEffect(() => {
+    const el = textarea.current;
+    if (!caretToEnd.current || !el) return;
+    caretToEnd.current = false;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [message]);
+
+  const pick = (label: string, write: (me: string) => string) => {
+    const untouched = !message.trim() || message === opener;
+    if (prompt === label) {
+      setPrompt(null);
+      if (untouched) {
+        setMessage("");
+        setOpener(null);
+      }
+      return;
+    }
+    setPrompt(label);
+    if (!untouched) return;
+    const text = write(viewer?.firstName.trim() ?? "");
+    caretToEnd.current = true;
+    setOpener(text);
+    setMessage(text);
+  };
 
   const send = () => {
     if (!message.trim()) {
@@ -119,20 +153,18 @@ export function IntroduceModal({
         <div className="flex flex-wrap gap-3">
           {prompts.map((p) => (
             <button
-              key={p}
+              key={p.label}
               type="button"
-              aria-pressed={prompt === p}
-              onClick={() => {
-                setPrompt(prompt === p ? null : p);
-                // A tapped prompt starts the note when it's still empty.
-                if (!message.trim() && prompt !== p) setMessage(`${p}: `);
-              }}
+              aria-pressed={prompt === p.label}
+              onClick={() => pick(p.label, p.opener)}
               className={cn(
-                "rounded-full px-3 py-1.5 font-sans text-sm font-medium transition-colors",
-                prompt === p ? "bg-primary-500 text-white" : "bg-primary-50 text-primary-600 hover:bg-primary-100",
+                "rounded-full px-3 py-1.5 text-left font-sans text-sm font-medium transition-colors",
+                prompt === p.label
+                  ? "bg-primary-500 text-white"
+                  : "bg-primary-50 text-primary-600 hover:bg-primary-100",
               )}
             >
-              {p}
+              {p.label}
             </button>
           ))}
         </div>
@@ -141,6 +173,7 @@ export function IntroduceModal({
       <label className="flex flex-col gap-1.5">
         <span className="font-sans text-sm font-medium tracking-wide text-ink-500 uppercase">Your message</span>
         <textarea
+          ref={textarea}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={4}

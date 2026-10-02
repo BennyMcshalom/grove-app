@@ -55,7 +55,10 @@ export async function loadPost(postId: string, viewerName: string): Promise<Post
 }
 
 async function toPosts(rows: FeedRow[], viewerName: string): Promise<Post[]> {
-  const signed = await signPaths("media", rows.flatMap((row) => row.media.map((m) => m.path)), { width: 1280 });
+  const [signed, roots] = await Promise.all([
+    signPaths("media", rows.flatMap((row) => row.media.map((m) => m.path)), { width: 1280 }),
+    rootCounts(rows.map((row) => row.id)),
+  ]);
   const now = Date.now();
   return rows.map((row) => ({
     id: row.id,
@@ -84,7 +87,21 @@ async function toPosts(rows: FeedRow[], viewerName: string): Promise<Post[]> {
     audience: row.audience ?? "everyone",
     comments: row.comments_count,
     rooted: row.rooted,
+    roots: roots.get(row.id) ?? (row.rooted ? 1 : 0),
     mine: row.is_mine,
     createdAt: row.created_at,
   }));
+}
+
+/**
+ * How many people rooted each post ("Root 22", as comments show it). Read
+ * from posts itself, under the same RLS as the feed, so feed_posts keeps its
+ * shape.
+ */
+async function rootCounts(ids: string[]): Promise<Map<string, number>> {
+  if (ids.length === 0) return new Map();
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("posts").select("id, roots_count").in("id", ids);
+  if (error) console.error("[feed] root counts failed", error);
+  return new Map((data ?? []).map((p) => [p.id, p.roots_count]));
 }

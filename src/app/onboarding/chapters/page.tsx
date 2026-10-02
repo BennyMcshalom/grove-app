@@ -31,8 +31,7 @@ export default function ChaptersPage() {
             </h1>
             <p className="font-sans text-xs text-ink-300 lg:text-sm">
               Choose any of the eight chapters that reflect where you are
-              right now. All stay active during your 14-day Season Pass trial;
-              Free keeps four active after that.
+              right now. All stay active during your 14-day Season Pass trial.
             </p>
           </header>
 

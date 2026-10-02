@@ -1,4 +1,5 @@
 import "server-only";
+import { loadAuras } from "@/lib/auras-server";
 import type { CircleLog, LogEntry } from "@/lib/log";
 import { signPaths } from "@/lib/storage-server";
 import { createClient } from "@/lib/supabase/server";
@@ -53,11 +54,15 @@ export async function loadCircleLogs(scope: "solo" | "bond"): Promise<CircleLog[
   if (error) console.error("[log] circle_logs failed", error);
 
   const rows = data ?? [];
-  const signed = await signPaths("media", rows.flatMap((r) => r.entries.map((e) => e.photo_path)), { width: 900 });
+  const [signed, auras] = await Promise.all([
+    signPaths("media", rows.flatMap((r) => r.entries.map((e) => e.photo_path)), { width: 900 }),
+    loadAuras(rows.map((r) => r.user_id)),
+  ]);
   return rows.map((row) => ({
     userId: row.user_id,
     name: row.first_name,
     avatarUrl: row.avatar_url,
+    aura: auras.get(row.user_id),
     chapterSlug: row.chapter_slug,
     phase: row.phase,
     latestAt: row.latest_at,

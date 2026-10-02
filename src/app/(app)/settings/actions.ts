@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { newPasswordSchema } from "@/lib/auth/schemas";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
+import { isBannerKey } from "@/lib/banners";
 import { getChapter } from "@/lib/chapters";
 import { AURAS, LOG_VISIBILITY, type Aura, type LogVisibility } from "@/lib/profile";
 import { sendEmail } from "@/lib/email/send";
@@ -246,6 +247,24 @@ export async function updatePrivacy(input: z.input<typeof PrivacySchema>): Promi
   if (error) {
     console.error("[settings] updatePrivacy failed", error);
     return { error: "We couldn't save that setting. Try again." };
+  }
+  refresh();
+  return {};
+}
+
+/**
+ * The profile banner: one of Grouv's own colours or drawn wallpapers — no
+ * uploads. Null goes back to the default colour.
+ */
+export async function setProfileBanner(banner: string | null): Promise<ActionResult> {
+  const viewer = await requireOnboardedViewer();
+  if (banner !== null && !isBannerKey(banner)) return { error: "That banner isn't one of ours." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ banner }).eq("id", viewer.userId);
+  if (error) {
+    console.error("[settings] setProfileBanner failed", error);
+    return { error: "We couldn't change your banner. Try again." };
   }
   refresh();
   return {};

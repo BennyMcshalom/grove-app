@@ -18,6 +18,8 @@ export interface ShellViewer {
   email: string | null;
   avatarUrl: string | null;
   aura: Aura;
+  /** Profile banner key (src/lib/banners.ts); null is the default colour. */
+  banner: string | null;
   locationLabel: string | null;
   /** Open chapters, oldest first. */
   chapters: {
@@ -35,8 +37,13 @@ export interface ShellViewer {
   hasPass: boolean;
   /** Never had a trial or plan: "Start 14-day trial" is still on offer. */
   trialAvailable: boolean;
-  /** A downgrade paused Spaces and they haven't chosen which four stay active. */
+  /**
+   * They should choose which four Spaces stay active on Free: the trial ends
+   * within three days, or a downgrade paused Spaces. False once locked in.
+   */
   spacesReviewDue: boolean;
+  /** Free's four are locked in: only Season Pass changes them. */
+  spacesLocked: boolean;
   unreadNotifications: number;
   /** Unread direct messages, for the Bonds badge. */
   unreadMessages: number;

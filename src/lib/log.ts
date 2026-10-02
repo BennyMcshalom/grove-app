@@ -1,4 +1,4 @@
-import type { LogVisibility } from "@/lib/profile";
+import type { Aura, LogVisibility } from "@/lib/profile";
 
 /** Grouv Log shapes, built on the server. */
 
@@ -22,6 +22,8 @@ export interface CircleLog {
   userId: string;
   name: string;
   avatarUrl: string | null;
+  /** For the status ring; unset when unknown. */
+  aura?: Aura;
   chapterSlug: string;
   phase: string;
   latestAt: string;

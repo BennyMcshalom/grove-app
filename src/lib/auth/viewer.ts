@@ -20,7 +20,7 @@ export const getViewer = cache(async () => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, first_name, avatar_url, aura, location_label, onboarded_at, theme")
+    .select("id, first_name, avatar_url, aura, location_label, onboarded_at, theme, banner")
     .eq("id", claims.sub)
     .single();
 
@@ -63,7 +63,9 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
   const loadSubscription = () =>
     supabase
       .from("subscriptions")
-      .select("status, trial_started_at, trial_ends_at, current_period_end, bonus_until, spaces_review_due")
+      .select(
+        "status, trial_started_at, trial_ends_at, current_period_end, bonus_until, billing_store, spaces_review_due, spaces_locked_at",
+      )
       .eq("user_id", userId)
       .single();
 
@@ -111,6 +113,7 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
     email: viewer.email ?? null,
     avatarUrl: viewer.profile.avatar_url,
     aura: viewer.profile.aura,
+    banner: viewer.profile.banner,
     locationLabel: viewer.profile.location_label,
     chapters: (chapters.data ?? []).map((c) => ({
       id: c.id,
@@ -124,7 +127,8 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
     trialEndsAt: subscription.data?.trial_ends_at ?? null,
     hasPass: hasPass(subscription.data),
     trialAvailable: subscription.data?.status === "none" && !subscription.data.trial_started_at,
-    spacesReviewDue: !hasPass(subscription.data) && Boolean(subscription.data?.spaces_review_due),
+    spacesReviewDue: spacesChoiceDue(subscription.data, chapters.data?.length ?? 0),
+    spacesLocked: Boolean(subscription.data?.spaces_locked_at),
     unreadNotifications: unread.count ?? 0,
     unreadMessages: messages.data?.[0]?.unread ?? 0,
     focusEndsAt: focusRunning ? focus.data!.ends_at : null,
@@ -143,6 +147,38 @@ export function landingPath(profile: { onboarded_at: string | null } | null) {
  * Mirrors private.has_pass(): the Season Pass is in effect right now. A bonus
  * month (referral reward) counts whatever the plan status says.
  */
+/**
+ * "Choose which 4 Spaces stay active" is owed: from three days before Grouv's
+ * own trial ends (no store plan, no bonus month) while they hold more than
+ * four open Spaces, or after a downgrade paused Spaces — until they lock in.
+ */
+function spacesChoiceDue(
+  s:
+    | {
+        status: string;
+        trial_ends_at: string | null;
+        current_period_end: string | null;
+        bonus_until: string | null;
+        billing_store: string | null;
+        spaces_review_due: boolean;
+        spaces_locked_at: string | null;
+      }
+    | null
+    | undefined,
+  openSpaces: number,
+  now = Date.now(),
+) {
+  if (!s || s.spaces_locked_at) return false;
+  if (!hasPass(s, now)) return s.spaces_review_due;
+  const trialOnly =
+    s.status === "trialing" && !s.billing_store && !(s.bonus_until && Date.parse(s.bonus_until) > now);
+  const endsSoon = Boolean(s.trial_ends_at) && Date.parse(s.trial_ends_at!) - now <= SPACE_CHOICE_LEAD_MS;
+  return trialOnly && endsSoon && openSpaces > FREE_ACTIVE_SPACES;
+}
+
+/** How long before the trial ends the chooser starts asking. */
+const SPACE_CHOICE_LEAD_MS = 3 * 86_400_000;
+
 export function hasPass(
   s:
     | {

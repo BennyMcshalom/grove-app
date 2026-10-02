@@ -5,7 +5,6 @@ import { Avatar } from "@/components/app/Avatar";
 import { Button } from "@/components/ui/Button";
 import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { listAudienceBonds } from "@/lib/post-actions";
-import { AUDIENCES, audienceLabel, type PostAudience } from "@/lib/posts";
 import { cn } from "@/lib/cn";
 
 export interface AudienceBond {
@@ -16,23 +15,35 @@ export interface AudienceBond {
 }
 
 /**
- * "Public visible to: Everyone ▾" — Figma 1310:23137 (the menu: Only me /
- * Selected Bonds › / Everyone) and 1310:23173 (SELECT BOND, a checkbox per
- * bond). With bonds chosen, "This post will be visible to:" lists exactly who
- * (h07) — the exact audience preview PRD §6 asks for before publishing.
+ * How a post is shared — one choice of four. Anonymously and Open Grouv are
+ * both the whole circle ("everyone") with one more thing on: no name, or
+ * reaching people at the same stage beyond the circle. "Only me" isn't
+ * offered (posts saved that way still work).
+ */
+export type ShareChoice = "selected_bonds" | "everyone" | "anonymous" | "open";
+
+export const SHARE_OPTIONS: { value: ShareChoice; label: string; hint: string }[] = [
+  { value: "selected_bonds", label: "Selected Bonds", hint: "Choose specific Bonds to share with" },
+  { value: "everyone", label: "Everyone", hint: "Your whole Grouv circle" },
+  { value: "anonymous", label: "Anonymously", hint: "Your circle sees it without your name or photo" },
+  { value: "open", label: "Open Grouv", hint: "Reach people at your stage beyond your circle" },
+];
+
+/**
+ * "Who can see this ▾" — Figma 1310:23137 (the menu) and 1310:23173 (SELECT
+ * BOND, a checkbox per bond). With bonds chosen, "This post will be visible
+ * to:" lists exactly who (h07) — the exact audience preview PRD §6 asks for
+ * before publishing.
  */
 export function AudiencePicker({
-  audience,
+  choice,
   selected,
   onChange,
-  row = false,
 }: {
-  /** The composer's settings panel: "Who can see this" + hint on the left, pill on the right. */
-  row?: boolean;
-  audience: PostAudience;
+  choice: ShareChoice;
   /** User ids, for "selected_bonds". */
   selected: string[];
-  onChange: (audience: PostAudience, selected: string[]) => void;
+  onChange: (choice: ShareChoice, selected: string[]) => void;
 }) {
   const [open, setOpen] = useState<"menu" | "bonds" | null>(null);
   const [bonds, setBonds] = useState<AudienceBond[] | null>(null);
@@ -41,7 +52,7 @@ export function AudiencePicker({
 
   // Bonds load once, the first time they're needed (a restored draft needs
   // them for its preview too).
-  const needBonds = open !== null || (audience === "selected_bonds" && selected.length > 0);
+  const needBonds = open !== null || (choice === "selected_bonds" && selected.length > 0);
   useEffect(() => {
     if (!needBonds || bonds) return;
     let live = true;
@@ -74,21 +85,19 @@ export function AudiencePicker({
 
   const chosen = (bonds ?? []).filter((b) => selected.includes(b.userId));
 
+  const current = SHARE_OPTIONS.find((o) => o.value === choice) ?? SHARE_OPTIONS[1];
+
   return (
-    <div ref={box} className={cn("relative flex flex-col gap-3", !row && "items-end")}>
-      <div className={cn("flex items-center gap-2", row && "justify-between gap-4")}>
-        {row ? (
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="font-sans text-sm font-medium text-ink-700">Who can see this</span>
-            <span className="font-sans text-xs text-ink-300">
-              {audience === "selected_bonds" && chosen.length > 0
-                ? `${chosen.length} ${chosen.length === 1 ? "Bond" : "Bonds"} you chose`
-                : AUDIENCES.find((a) => a.value === audience)?.hint}
-            </span>
+    <div ref={box} className="relative flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-4">
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="font-sans text-sm font-medium text-ink-700">Who can see this</span>
+          <span className="font-sans text-xs text-ink-300">
+            {choice === "selected_bonds" && chosen.length > 0
+              ? `${chosen.length} ${chosen.length === 1 ? "Bond" : "Bonds"} you chose`
+              : current.hint}
           </span>
-        ) : (
-          <span className="font-sans text-sm text-ink-500">Public visible to:</span>
-        )}
+        </span>
         <button
           type="button"
           aria-haspopup="menu"
@@ -99,7 +108,7 @@ export function AudiencePicker({
           }}
           className="flex shrink-0 items-center gap-2 rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm font-medium text-ink-700 transition-colors hover:bg-primary-100"
         >
-          {audience === "selected_bonds" ? "Selected Bond" : audienceLabel(audience)}
+          {current.label}
           <svg viewBox="0 0 16 16" fill="none" className="size-4" aria-hidden="true">
             <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -112,14 +121,14 @@ export function AudiencePicker({
           aria-label="Who can see this"
           className="absolute right-0 bottom-full z-20 mb-2 w-[min(320px,calc(100vw-4rem))] rounded-2xl bg-surface p-4 shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)]"
         >
-          {AUDIENCES.map((option, i) => {
+          {SHARE_OPTIONS.map((option, i) => {
             const bondsRow = option.value === "selected_bonds";
             return (
               <li key={option.value} className={cn(i > 0 && "border-t border-ink-50")}>
                 <button
                   type="button"
                   role={bondsRow ? "menuitem" : "menuitemradio"}
-                  aria-checked={bondsRow ? undefined : audience === option.value}
+                  aria-checked={bondsRow ? undefined : choice === option.value}
                   onClick={() => {
                     if (bondsRow) {
                       setOpen("bonds");
@@ -143,10 +152,10 @@ export function AudiencePicker({
                       aria-hidden="true"
                       className={cn(
                         "grid size-4 place-items-center rounded-md border",
-                        audience === option.value ? "border-primary-500 bg-primary-500" : "border-ink-100",
+                        choice === option.value ? "border-primary-500 bg-primary-500" : "border-ink-100",
                       )}
                     >
-                      {audience === option.value && <span className="size-1.5 rounded-full bg-white" />}
+                      {choice === option.value && <span className="size-1.5 rounded-full bg-white" />}
                     </span>
                   )}
                 </button>
@@ -178,7 +187,7 @@ export function AudiencePicker({
             <PersonRowsSkeleton count={3} label="Loading your bonds" />
           ) : bonds.length === 0 ? (
             <p className="py-4 text-center font-sans text-sm text-ink-300">
-              You don’t have any Bonds yet. Share with Everyone, or keep it to yourself.
+              You don’t have any Bonds yet. Share with Everyone instead.
             </p>
           ) : (
             <ul className="flex min-h-0 flex-col scroll-slim overflow-y-auto">
@@ -226,10 +235,10 @@ export function AudiencePicker({
         </div>
       )}
 
-      {audience === "selected_bonds" && chosen.length > 0 && (
-        <div className={cn("flex flex-col gap-2", !row && "items-end")}>
+      {choice === "selected_bonds" && chosen.length > 0 && (
+        <div className="flex flex-col gap-2">
           <span className="font-sans text-xs text-ink-300">This post will be visible to:</span>
-          <ul className={cn("flex flex-wrap gap-3", !row && "justify-end")}>
+          <ul className="flex flex-wrap gap-3">
             {chosen.map((b) => (
               <li key={b.userId} className="flex w-14 flex-col items-center gap-1">
                 <Avatar src={b.avatarUrl} name={b.name} sizes="32px" className="size-8" />
@@ -238,9 +247,6 @@ export function AudiencePicker({
             ))}
           </ul>
         </div>
-      )}
-      {audience === "only_me" && !row && (
-        <span className="font-sans text-xs text-ink-300">Only you will see this. It’s saved privately.</span>
       )}
     </div>
   );

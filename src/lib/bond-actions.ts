@@ -467,6 +467,7 @@ function bondError(
     case "horizon":
     case "already_running":
     case "already_shared":
+    case "bad_photo":
     case "not_open":
     case "read_only":
     case "rate_limited":
@@ -580,22 +581,37 @@ export async function endBondActivity(activityId: string): Promise<Result> {
   return {};
 }
 
-/** This week's prompt / gratitude day → Save as draft or Share response. */
+/**
+ * This week's prompt / gratitude day → Save as draft or Share response.
+ * Words, a photo (already uploaded to the viewer's media folder), or both.
+ * `previousPhotoPath` is the draft's old photo, removed once it's replaced.
+ */
 export async function saveBondResponse(
   activityId: string,
   round: number,
   body: string,
   share: boolean,
+  photo: { path: string | null; previousPath?: string | null } = { path: null },
 ): Promise<PassResult> {
-  await requireOnboardedViewer();
+  const viewer = await requireOnboardedViewer();
+  const own = (path: string | null | undefined): path is string =>
+    Boolean(path && path.startsWith(`${viewer.userId}/`) && !path.includes(".."));
+  if (photo.path && !own(photo.path)) return { error: "That photo can't be used." };
+  const text = body.trim().slice(0, 2000);
+  if (!text && !photo.path) return { error: "Write something or add a photo first." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_bond_response", {
     p_activity_id: activityId,
     p_round: round,
-    p_body: body.trim().slice(0, 2000),
+    p_body: text,
     p_share: share,
+    p_photo_path: photo.path,
   });
   if (error) return bondError(error, "We couldn't save that. Try again.");
+  // The draft's old photo is no longer anyone's to see.
+  if (own(photo.previousPath) && photo.previousPath !== photo.path) {
+    await supabase.storage.from("media").remove([photo.previousPath]);
+  }
   refresh();
   return {};
 }

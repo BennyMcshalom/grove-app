@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { use, useActionState, useState } from "react";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
@@ -12,8 +12,14 @@ import { ArrowRight } from "@/components/ui/ArrowRight";
 import { signUp } from "@/lib/auth/actions";
 
 /** Sign Up — Figma 11:16808 (desktop) / 585:19657 (mobile). */
-export default function SignUpPage() {
+export default function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const [state, formAction, pending] = useActionState(signUp, undefined);
+  // "Wrong email? Go back" on the code screen returns here with the address.
+  const { email: returnedEmail } = use(searchParams);
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
 
@@ -64,7 +70,10 @@ export default function SignUpPage() {
               type="email"
               autoComplete="email"
               placeholder="johndoe@email.com"
-              defaultValue={state?.values?.email}
+              defaultValue={
+                state?.values?.email ??
+                (typeof returnedEmail === "string" ? returnedEmail : undefined)
+              }
               error={state?.fieldErrors?.email}
               required
             />

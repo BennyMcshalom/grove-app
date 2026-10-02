@@ -47,21 +47,6 @@ const RINGS_KM = [0.5, 1, 2, 5, 10, 25, 50, 100] as const;
 const HEARTBEAT_MS = 60_000;
 const LOOK_AROUND_MS = 30_000;
 
-/** Figma's three pin auras (amber, lime, cyan) plus two for the other auras. */
-const AURA_COLOR: Record<NearbyMatch["aura"], string> = {
-  in_transition: "#F0B231",
-  reflective: "#5EF01B",
-  deep_focus: "#02D6EE",
-  open_to_connect: "#B27CFD",
-  active_nearby: "#F57E16",
-};
-
-/** The pin's two glows are its own colour, so they're mixed from the hex. */
-function glow(hex: string, alpha: number) {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-}
-
 /** A stable angle per person, so pins don't jump between refreshes. */
 function angleFor(userId: string) {
   let hash = 0;
@@ -583,7 +568,6 @@ function PulseWithPins({
         const angle = angleFor(person.userId);
         const x = cx + Math.cos(angle) * r - 26;
         const y = cy + Math.sin(angle) * r - 26;
-        const color = AURA_COLOR[person.aura];
         return (
           <button
             key={person.userId}
@@ -596,17 +580,9 @@ function PulseWithPins({
               width: `${(52 / STAGE_W) * 100}%`,
             }}
           >
-            {/* 40px disc in the aura colour, 32px portrait centred on it. */}
-            <span
-              className="grid aspect-square w-[76.9%] place-items-center rounded-full"
-              style={{ backgroundColor: color, boxShadow: `0px 2px 9px 5px ${glow(color, 0.2)}` }}
-            >
-              <span
-                className="relative size-4/5 overflow-hidden rounded-full"
-                style={{ boxShadow: `0px 4px 5px 15px ${glow(color, 0.45)}` }}
-              >
-                <Avatar src={person.avatarUrl} name={person.name} sizes="32px" className="size-full" />
-              </span>
+            {/* The 40px pin: a 32px natural portrait in its aura ring. */}
+            <span className="grid aspect-square w-[76.9%] place-items-center">
+              <Avatar src={person.avatarUrl} name={person.name} aura={person.aura} sizes="32px" className="size-4/5" />
             </span>
             <span className="whitespace-nowrap font-sans text-[11px] leading-tight text-ink-500">
               {person.name}

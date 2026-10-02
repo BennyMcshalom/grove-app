@@ -40,10 +40,13 @@ export function OpenSpaceCard({
   const [resuming, startResuming] = useTransition();
   const toast = useToast();
   const chooseSpaces = useSpaceChooser();
+  const paywall = usePaywall();
 
   const reactivate = () =>
     startResuming(async () => {
       const result = await resumeSpace(userChapterId);
+      // Locked in on Free: only Season Pass brings it back.
+      if (result.locked) return paywall("space_limit");
       if (result.full) return chooseSpaces(userChapterId);
       toast(result.error ? { title: result.error, tone: "danger" } : { title: `${chapter.name} is active again`, tone: "confirm" });
     });

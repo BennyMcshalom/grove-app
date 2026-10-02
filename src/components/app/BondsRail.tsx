@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
 import { useRespondToInvite } from "@/components/app/bonds/BondModals";
 import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
 import { cancelConnectionRequest, connectWith, respondToRequest } from "@/lib/bond-actions";
 import type { BondInvite, PendingRequest, Suggestion } from "@/lib/bonds";
+import { cn } from "@/lib/cn";
 
 /**
  * The Bonds rail — Figma frames 452:10158 and 1093:22073.
@@ -121,7 +123,15 @@ export function PendingCard({ request }: { request: PendingRequest }) {
         avatarUrl={request.avatarUrl}
         chapterSlug={request.chapterSlug}
         label={request.phase}
+        linked
       />
+      {request.message && <IntroNote message={request.message} prompt={request.prompt} />}
+      <Link
+        href={`/people/${request.userId}`}
+        className="w-fit font-sans text-xs font-medium text-primary-600 underline-offset-2 hover:underline"
+      >
+        View profile
+      </Link>
       {handled ? (
         <p className="font-sans text-sm text-ink-300">{handled}</p>
       ) : (
@@ -249,27 +259,74 @@ export function SuggestionCard({ person }: { person: Suggestion }) {
   );
 }
 
+/**
+ * The note someone wrote with their introduction, quoted, with the starter
+ * prompt they picked. Long notes fold to three lines with "Read more".
+ */
+export function IntroNote({ message, prompt }: { message: string; prompt: string | null }) {
+  const [open, setOpen] = useState(false);
+  // Roughly three lines at the rail's width; shorter notes need no toggle.
+  const long = message.length > 140 || message.split("\n").length > 3;
+  return (
+    <div className="flex flex-col gap-1.5 rounded-lg bg-ivory-100 px-3 py-2.5">
+      {prompt && <span className="font-sans text-xs font-medium text-primary-600">{prompt}</span>}
+      <p
+        className={cn("font-sans text-sm whitespace-pre-line break-words text-ink-500", !open && "line-clamp-3")}
+      >
+        &ldquo;{message}&rdquo;
+      </p>
+      {long && (
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="w-fit font-sans text-xs font-medium text-ink-400 hover:text-ink-600"
+        >
+          {open ? "Show less" : "Read more"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Person({
   userId,
   name,
   avatarUrl,
   chapterSlug,
   label,
+  linked = false,
 }: {
   userId: string;
   name: string;
   avatarUrl: string | null;
   chapterSlug: string | null;
   label: string | null;
+  /** Avatar and name open their Grouv page. */
+  linked?: boolean;
 }) {
   const online = useIsOnline(userId);
+  const avatar = <GlowAvatar src={avatarUrl} name={name} online={online} />;
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <GlowAvatar src={avatarUrl} name={name} online={online} />
+      {linked ? (
+        <Link href={`/people/${userId}`} aria-label={`View ${name}'s profile`} className="shrink-0 rounded-full">
+          {avatar}
+        </Link>
+      ) : (
+        avatar
+      )}
       <span className="flex min-w-0 flex-col gap-1">
-        <span className="truncate font-sans text-sm font-medium text-ink-700">
-          {name}
-        </span>
+        {linked ? (
+          <Link
+            href={`/people/${userId}`}
+            className="truncate font-sans text-sm font-medium text-ink-700 hover:underline"
+          >
+            {name}
+          </Link>
+        ) : (
+          <span className="truncate font-sans text-sm font-medium text-ink-700">{name}</span>
+        )}
         {label && <ChapterBadge chapterSlug={chapterSlug} label={label} />}
       </span>
     </div>

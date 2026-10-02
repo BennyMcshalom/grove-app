@@ -327,10 +327,13 @@ export function MomentViewer({
   entry,
   onClose,
   onEdit,
+  meta,
 }: {
   entry: LogEntry;
   onClose: () => void;
   onEdit?: () => void;
+  /** Replaces the "Day N · date · Space" line (a Bond Log moment: "Aurora · Week 2 · Oct. 2"). */
+  meta?: string;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -343,7 +346,7 @@ export function MomentViewer({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Day ${entry.dayNumber}`}
+      aria-label={meta ?? `Day ${entry.dayNumber}`}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4"
       onClick={onClose}
     >
@@ -357,8 +360,7 @@ export function MomentViewer({
         )}
         <div className="flex flex-col gap-2 overflow-y-auto p-5">
           <span className="font-sans text-xs font-medium text-ink-400">
-            Day {entry.dayNumber} · {logDateLabel(entry.entryDate)}
-            {chapter ? ` · ${chapter.name}` : ""}
+            {meta ?? `Day ${entry.dayNumber} · ${logDateLabel(entry.entryDate)}${chapter ? ` · ${chapter.name}` : ""}`}
           </span>
           {entry.body && <p className="font-sans text-base whitespace-pre-line text-ink-700">{entry.body}</p>}
           <div className="mt-2 flex justify-end gap-2">

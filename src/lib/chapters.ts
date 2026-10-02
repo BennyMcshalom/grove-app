@@ -11,6 +11,8 @@ export interface Chapter {
   tagline: string;
   /** Pastel circle behind the icon, straight from the Figma fill. */
   tint: string;
+  /** The wash behind this Space's post and Curio cards (tokens in globals.css). */
+  cardClass: string;
   icon: string;
   /** Options for the "<Chapter>, where are you?" step. */
   options: string[];
@@ -22,6 +24,7 @@ export const CHAPTERS: Chapter[] = [
     name: "Career",
     tagline: "Work, ambition, pivots",
     tint: "#FBD3B9",
+    cardClass: "bg-space-career",
     icon: "/icons/chapters/career.svg",
     options: [
       "First job, figuring it out",
@@ -39,6 +42,7 @@ export const CHAPTERS: Chapter[] = [
     name: "Spiritual",
     tagline: "Faith, purpose, inner growth",
     tint: "#E2F6F9",
+    cardClass: "bg-space-spiritual",
     icon: "/icons/chapters/spiritual.svg",
     options: [
       "Newly questioning",
@@ -54,6 +58,7 @@ export const CHAPTERS: Chapter[] = [
     name: "Wealth",
     tagline: "Money, freedom, financial growth",
     tint: "#DCFCE7",
+    cardClass: "bg-space-wealth",
     icon: "/icons/chapters/wealth.svg",
     options: [
       "Getting out of debt",
@@ -69,6 +74,7 @@ export const CHAPTERS: Chapter[] = [
     name: "Adventure",
     tagline: "Travel, exploration, new experiences",
     tint: "#B9E5FB",
+    cardClass: "bg-space-adventure",
     icon: "/icons/chapters/adventure.svg",
     options: [
       "Planning the leap",
@@ -84,6 +90,7 @@ export const CHAPTERS: Chapter[] = [
     name: "Health",
     tagline: "Body, mind, wellbeing",
     tint: "#FBF3B9",
+    cardClass: "bg-space-health",
     icon: "/icons/chapters/health.svg",
     options: [
       "Starting over",
@@ -99,6 +106,7 @@ export const CHAPTERS: Chapter[] = [
     name: "Creative",
     tagline: "Making, expressing, creating",
     tint: "#E9D4FB",
+    cardClass: "bg-space-creative",
     icon: "/icons/chapters/creative.svg",
     options: [
       "Finding the spark",
@@ -114,6 +122,7 @@ export const CHAPTERS: Chapter[] = [
     name: "Learning",
     tagline: "Study, skills, personal growth",
     tint: "#E6FAE6",
+    cardClass: "bg-space-learning",
     icon: "/icons/chapters/learning.svg",
     options: [
       "Day one",
@@ -129,6 +138,7 @@ export const CHAPTERS: Chapter[] = [
     name: "Relationships",
     tagline: "Love, friendship, family",
     tint: "#FCD8EA",
+    cardClass: "bg-space-relationships",
     icon: "/icons/chapters/relationships.svg",
     options: [
       "Newly single",
@@ -151,4 +161,9 @@ export const FREE_ACTIVE_SPACES = 4;
 
 export function getChapter(slug: string): Chapter | undefined {
   return CHAPTERS.find((c) => c.slug === slug);
+}
+
+/** A card's background for its Space; plain surface when there's none (Wander). */
+export function spaceCardClass(slug: string | null | undefined): string {
+  return (slug ? getChapter(slug)?.cardClass : undefined) ?? "bg-surface";
 }

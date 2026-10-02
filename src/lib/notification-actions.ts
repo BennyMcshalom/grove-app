@@ -12,6 +12,20 @@ export async function loadNotifications(): Promise<InboxItem[]> {
   return (data ?? []).map(toInboxItem);
 }
 
+/**
+ * One notification that just arrived over Realtime, with the names and
+ * links the popup needs (the raw row has none). It's among the newest, so a
+ * short page of the inbox finds it.
+ */
+export async function loadNotification(notificationId: string): Promise<InboxItem | null> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_notifications", { p_limit: 10 });
+  if (error) console.error("[notifications] my_notifications failed", error);
+  const row = (data ?? []).find((r) => r.id === notificationId);
+  return row ? toInboxItem(row) : null;
+}
+
 /** Opening the panel reads everything in it. */
 export async function markNotificationsRead(): Promise<void> {
   const viewer = await requireOnboardedViewer();

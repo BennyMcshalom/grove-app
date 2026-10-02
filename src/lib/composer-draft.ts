@@ -17,8 +17,11 @@ export interface ComposerDraft {
   doing: string;
   honest: string;
   caption: string;
+  /** "only_me" only in drafts saved before it left the composer. */
   audience: PostAudience;
   audienceIds: string[];
+  /** Shared to Open Grouv (missing in older drafts). */
+  openGrouv?: boolean;
   media: {
     path: string;
     kind: MediaKind;

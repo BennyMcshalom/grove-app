@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Switch } from "@/components/ui/Switch";
 import { TopBar } from "@/components/app/TopBar";
 import { GroupCard } from "@/components/app/GroupCard";
 import { EmptyState } from "@/components/app/EmptyState";
@@ -132,17 +133,7 @@ function AdminToggle({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        onClick={() => onChange(!on)}
-        className={`flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors ${
-          on ? "justify-end bg-primary-600" : "justify-start bg-ink-50"
-        }`}
-      >
-        <span className="size-5 rounded-full bg-white shadow-sm" />
-      </button>
+      <Switch label="Admin Mode" checked={on} onChange={onChange} />
       <span className="font-sans text-base text-ink-600">Admin Mode</span>
     </label>
   );

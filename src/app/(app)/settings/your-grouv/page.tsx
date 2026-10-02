@@ -30,6 +30,7 @@ export default async function YourGrouvPage() {
         name: p.name,
         avatarUrl: p.avatarUrl,
         relationship: p.relationship,
+        aura: p.aura,
       }))}
       prompts={{
         struggling: prompts?.honest_tension ?? null,

@@ -14,7 +14,8 @@ import type { PlanKind } from "@/lib/revenuecat-client";
  * An optional plan preselects it ("Choose Monthly" on Subscription).
  *
  * It also owns "Choose which 4 Spaces stay active": opened by itself once per
- * visit after a downgrade paused Spaces, or by `useSpaceChooser()(id)`.
+ * visit as the trial nears its end (or after a downgrade paused Spaces), or by
+ * `useSpaceChooser()(id)` — which opens the paywall instead once locked in.
  */
 export type PaywallReason =
   | "general"
@@ -42,16 +43,22 @@ export function useSpaceChooser() {
 }
 
 export function PaywallProvider({ children }: { children: React.ReactNode }) {
-  const { spacesReviewDue } = useViewer();
+  const { spacesReviewDue, spacesLocked, hasPass } = useViewer();
   const [paywall, setPaywall] = useState<{ reason: PaywallReason; plan?: PlanKind } | null>(null);
   // `undefined` = closed; a string (possibly "") = open, focused on that Space.
   const [chooser, setChooser] = useState<string | undefined>(undefined);
   const [prompted, setPrompted] = useState(false);
 
   const open = useCallback<OpenPaywall>((r = "general", options) => setPaywall({ reason: r, plan: options?.plan }), []);
-  const openChooser = useCallback((focusId?: string) => setChooser(focusId ?? ""), []);
+  // Once Free's four are locked in, only Season Pass changes them.
+  const openChooser = useCallback(
+    (focusId?: string) =>
+      spacesLocked && !hasPass ? setPaywall({ reason: "space_limit" }) : setChooser(focusId ?? ""),
+    [spacesLocked, hasPass],
+  );
 
-  // PRD §13: at expiry, prompt them to choose — once per visit, not on every page.
+  // PRD §13: from three days before the trial ends (or after a downgrade),
+  // prompt them to choose — once per visit, not on every page.
   const showPrompt = spacesReviewDue && !prompted && chooser === undefined && !paywall;
 
   return (

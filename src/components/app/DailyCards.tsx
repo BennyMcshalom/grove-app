@@ -5,7 +5,8 @@ import { SendToBondModal } from "@/components/app/SendToBondModal";
 import { useToast } from "@/components/app/ToastProvider";
 import { listCardTargets, sendCard } from "@/lib/bond-actions";
 import type { DailyCard } from "@/lib/bonds";
-import { getChapter } from "@/lib/chapters";
+import { cn } from "@/lib/cn";
+import { getChapter, spaceCardClass } from "@/lib/chapters";
 
 /**
  * This morning's cards: one Curio per open space and one Wander, delivered
@@ -26,7 +27,11 @@ export function DailyCards({ cards }: { cards: DailyCard[] }) {
         {cards.map((card) => (
           <article
             key={card.cardId}
-            className="flex w-[260px] shrink-0 snap-start flex-col gap-2 rounded-2xl bg-surface p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]"
+            // A Curio wears its Space's wash; Wander has no Space and stays plain.
+            className={cn(
+              "flex w-[260px] shrink-0 snap-start flex-col gap-2 rounded-2xl p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]",
+              spaceCardClass(card.kind === "wander" ? null : card.chapterSlug),
+            )}
           >
             <span className="font-sans text-xs font-semibold text-primary-600">
               {card.kind === "wander"

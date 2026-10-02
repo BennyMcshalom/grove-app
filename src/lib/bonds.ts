@@ -44,6 +44,10 @@ export interface PendingRequest {
   avatarUrl: string | null;
   chapterSlug: string | null;
   phase: string | null;
+  /** Their introduction note; null for a plain Connect. */
+  message: string | null;
+  /** The starter prompt they picked, if any. */
+  prompt: string | null;
 }
 
 export interface Suggestion {
@@ -210,8 +214,15 @@ export interface BondLogRound {
   opensOn: string;
   title: string;
   subtitle: string | null;
-  mine: { body: string; shared: boolean } | null;
-  theirs: { body: string } | null;
+  /** Words, a photo, or both — like a solo Log moment. */
+  mine: {
+    body: string | null;
+    photoUrl: string | null;
+    /** The stored path, so replacing a draft photo can remove the old one. */
+    photoPath: string | null;
+    shared: boolean;
+  } | null;
+  theirs: { body: string | null; photoUrl: string | null } | null;
   theirShared: boolean;
 }
 

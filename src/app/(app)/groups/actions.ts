@@ -4,8 +4,8 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { getChapter } from "@/lib/chapters";
-import { GROUP_COLORS, type Group } from "@/lib/groups";
-import { PICKER_ICONS } from "@/lib/icons";
+import { ART_ICON, GROUP_ARTS, type GroupArtKey } from "@/lib/group-look";
+import type { Group } from "@/lib/groups";
 import { loadGroups } from "@/lib/groups-server";
 import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
 import { createClient } from "@/lib/supabase/server";
@@ -16,10 +16,12 @@ const CreateGroupSchema = z.object({
   title: z.string().trim().min(1, "Give the group a name").max(80, "Keep the name under 80 characters"),
   label: z.string().trim().max(60, "Keep the label under 60 characters"),
   description: z.string().trim().max(1000, "Keep it under 1,000 characters"),
-  icon: z.enum(PICKER_ICONS),
-  color: z.enum(GROUP_COLORS),
+  art: z.enum(GROUP_ARTS.map((a) => a.key) as [GroupArtKey, ...GroupArtKey[]]),
+  color: z.string().regex(/^#[0-9a-f]{6}$/i, "Pick a colour"),
   chapterSlug: z.string().nullable(),
 });
+
+const LookSchema = CreateGroupSchema.pick({ art: true, color: true });
 
 export type CreateGroupInput = z.input<typeof CreateGroupSchema>;
 
@@ -31,13 +33,21 @@ export async function createGroup(
   const parsed = CreateGroupSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the group's details." };
 
-  const { title, label, description, icon, color, chapterSlug } = parsed.data;
+  const { title, label, description, art, color, chapterSlug } = parsed.data;
   if (chapterSlug && !getChapter(chapterSlug)) return { error: "That space doesn't exist." };
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("groups")
-    .insert({ title, label: label || null, description: description || null, icon, color, chapter_slug: chapterSlug })
+    .insert({
+      title,
+      label: label || null,
+      description: description || null,
+      icon: ART_ICON[art],
+      art,
+      color: color.toUpperCase(),
+      chapter_slug: chapterSlug,
+    })
     .select("slug")
     .single();
 
@@ -50,6 +60,40 @@ export async function createGroup(
 
   refresh();
   return { slug: data.slug };
+}
+
+/**
+ * Colours other groups in the Space already wear, so a new one can take a
+ * different one ("no two colours the same"). "Any space" groups compare
+ * against each other.
+ */
+export async function loadTakenGroupColors(chapterSlug: string | null): Promise<string[]> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const query = supabase.from("groups").select("color");
+  const { data, error } = await (chapterSlug ? query.eq("chapter_slug", chapterSlug) : query.is("chapter_slug", null));
+  if (error) console.error("[groups] taken colours failed", error);
+  return (data ?? []).map((g) => g.color);
+}
+
+/** Admins change a group's art and colour. RLS lets only admins update. */
+export async function updateGroupLook(groupId: string, input: { art: string; color: string }): Promise<Result> {
+  await requireOnboardedViewer();
+  const parsed = LookSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Pick art and a colour." };
+  const { art, color } = parsed.data;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("groups")
+    .update({ art, color: color.toUpperCase(), icon: ART_ICON[art] })
+    .eq("id", groupId)
+    .select("id");
+  if (error) console.error("[groups] updateGroupLook failed", error);
+  if (error || !data?.length) return { error: "Only the group's admins can change its look." };
+
+  refresh();
+  return {};
 }
 
 /** "Join" on an open group; "Send join request" on one an admin reviews. */

@@ -10,6 +10,7 @@ import {
   type PendingRequest,
   type Suggestion,
 } from "@/lib/bonds";
+import { signPaths } from "@/lib/storage-server";
 import { createClient } from "@/lib/supabase/server";
 
 /** The viewer's bonds first, then their circle, most recently active first. */
@@ -62,6 +63,8 @@ export async function loadPendingRequests(): Promise<PendingRequest[]> {
     avatarUrl: row.avatar_url,
     chapterSlug: row.chapter_slug,
     phase: row.phase,
+    message: row.message,
+    prompt: row.prompt,
   }));
 }
 
@@ -152,8 +155,14 @@ export async function loadBondLog(bondId: string): Promise<BondLogRound[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("bond_log", { p_bond_id: bondId });
   if (error) console.error("[bonds] bond_log failed", error);
+  const rows = data ?? [];
+  const photos = await signPaths(
+    "media",
+    rows.flatMap((row) => [row.my_photo_path, row.their_photo_path]),
+    { width: 900 },
+  );
 
-  return (data ?? []).map((row) => ({
+  return rows.map((row) => ({
     activityId: row.activity_id,
     kind: row.kind,
     activityStartedAt: row.activity_started_at,
@@ -162,8 +171,17 @@ export async function loadBondLog(bondId: string): Promise<BondLogRound[]> {
     opensOn: row.opens_on,
     title: row.title ?? "",
     subtitle: row.subtitle,
-    mine: row.my_body !== null ? { body: row.my_body, shared: row.my_shared } : null,
-    theirs: row.their_body !== null ? { body: row.their_body } : null,
+    mine: row.my_saved
+      ? {
+          body: row.my_body,
+          photoUrl: row.my_photo_path ? (photos.get(row.my_photo_path) ?? null) : null,
+          photoPath: row.my_photo_path,
+          shared: row.my_shared,
+        }
+      : null,
+    theirs: row.their_shared
+      ? { body: row.their_body, photoUrl: row.their_photo_path ? (photos.get(row.their_photo_path) ?? null) : null }
+      : null,
     theirShared: row.their_shared,
   }));
 }

@@ -1,4 +1,5 @@
 import "server-only";
+import { isGroupArt } from "@/lib/group-look";
 import type { Group, JoinRequest, Truth, VideoTruth } from "@/lib/groups";
 import type { Database } from "@/lib/supabase/database.types";
 import { signPaths } from "@/lib/storage-server";
@@ -15,6 +16,7 @@ function toGroup(row: CardRow): Group {
     description: row.description,
     icon: row.icon,
     color: row.color,
+    art: isGroupArt(row.art) ? row.art : "crossroads",
     chapterSlug: row.chapter_slug,
     joinPolicy: row.join_policy,
     memberCount: row.member_count,

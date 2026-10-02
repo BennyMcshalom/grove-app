@@ -1,41 +1,59 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { IconPicker } from "@/components/app/IconPicker";
+import { useEffect, useState, useTransition } from "react";
+import { GroupLookPicker } from "@/components/app/GroupLookPicker";
 import { usePaywall } from "@/components/app/pass/PaywallProvider";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
-import { createGroup } from "@/app/(app)/groups/actions";
+import { createGroup, loadTakenGroupColors } from "@/app/(app)/groups/actions";
 import { CHAPTERS } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
-import { GROUP_COLORS } from "@/lib/groups";
-import { PICKER_ICONS, type PickerIcon } from "@/lib/icons";
+import { artForSpace, pickGroupColor, type GroupArtKey } from "@/lib/group-look";
 
 /**
  * Start a group — Figma frame 211:11620.
  *
- * A 660px white card: title + close, the strapline, PICK AN ICON and PICK A
- * COLOR, then Chapter Name / Label / what it's for, and "Create group" above a
- * top rule. Labels, placeholders and swatches are Figma's. The "Space" select
- * isn't in the frame; it's what lets a group be suggested to people in that
- * chapter.
+ * A 660px white card: title + close, the strapline, Chapter Name / Label /
+ * Space / what it's for, then the card's look — line-art and one flat colour
+ * (testing feedback, 2 Oct 2026, replaced Figma's icon and pastel pickers) —
+ * and "Create group" above a top rule. The "Space" select isn't in the frame;
+ * it's what lets a group be suggested to people in that chapter, and it
+ * decides the starting art and which colours are already taken.
  */
 export function CreateGroupModal({ onClose }: { onClose: () => void }) {
   const viewer = useViewer();
   const toast = useToast();
-  const [icon, setIcon] = useState<string>(PICKER_ICONS[0]);
-  const [color, setColor] = useState<string>(GROUP_COLORS[0]);
   const [title, setTitle] = useState("");
   const [label, setLabel] = useState("");
   const [description, setDescription] = useState("");
   const [chapterSlug, setChapterSlug] = useState(viewer.chapters[0]?.slug ?? "");
+  const [art, setArt] = useState<GroupArtKey>(() => artForSpace(chapterSlug));
+  const [artPicked, setArtPicked] = useState(false);
+  const [color, setColor] = useState(() => pickGroupColor([]));
+  const [taken, setTaken] = useState<string[]>([]);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const [error, setError] = useState<string>();
   const [saving, startSaving] = useTransition();
   const paywall = usePaywall();
+
+  // Each Space's groups wear different colours: learn which are taken and,
+  // if ours is one of them, draw a free one.
+  useEffect(() => {
+    let cancelled = false;
+    loadTakenGroupColors(chapterSlug || null).then((colors) => {
+      if (cancelled) return;
+      setTaken(colors);
+      setColor((current) =>
+        colors.some((c) => c.toUpperCase() === current.toUpperCase()) ? pickGroupColor(colors) : current,
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [chapterSlug]);
 
   return (
     <div
@@ -91,8 +109,8 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
                   title,
                   label,
                   description,
-                  icon: icon as PickerIcon,
-                  color: color as (typeof GROUP_COLORS)[number],
+                  art,
+                  color,
                   chapterSlug: chapterSlug || null,
                 });
                 if (result.passRequired) {
@@ -110,31 +128,6 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
               });
             }}
           >
-            <IconPicker value={icon} onChange={setIcon} />
-
-            <fieldset className="flex flex-col gap-6">
-              <legend className="font-sans text-base text-ink-300">
-                PICK A COLOR
-              </legend>
-              <div className="flex flex-wrap gap-5">
-                {GROUP_COLORS.map((swatch) => (
-                  <button
-                    key={swatch}
-                    type="button"
-                    aria-label={`Colour ${swatch}`}
-                    aria-pressed={color === swatch}
-                    onClick={() => setColor(swatch)}
-                    style={{ backgroundColor: swatch }}
-                    className={cn(
-                      "size-14 rounded-full transition-shadow",
-                      color === swatch &&
-                        "ring-2 ring-primary-500 ring-offset-2",
-                    )}
-                  />
-                ))}
-              </div>
-            </fieldset>
-
             <Labelled label="Chapter Name ">
               <input
                 value={title}
@@ -159,7 +152,10 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
             <Labelled label="Space">
               <select
                 value={chapterSlug}
-                onChange={(e) => setChapterSlug(e.target.value)}
+                onChange={(e) => {
+                  setChapterSlug(e.target.value);
+                  if (!artPicked) setArt(artForSpace(e.target.value));
+                }}
                 className={cn(FIELD, "appearance-none")}
               >
                 <option value="">Any space</option>
@@ -181,6 +177,18 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
                 className={cn(FIELD, "block h-[129px] w-full resize-y")}
               />
             </Labelled>
+
+            <GroupLookPicker
+              art={art}
+              color={color}
+              taken={taken}
+              title={title}
+              onChange={(look) => {
+                if (look.art !== art) setArtPicked(true);
+                setArt(look.art);
+                setColor(look.color);
+              }}
+            />
 
             <div className="flex flex-col gap-3 border-t border-ink-50 pt-6">
               <FormError message={error} />

@@ -80,9 +80,11 @@ export interface Post {
     height?: number | null;
   }[];
   comments: number;
-  /** The viewer's own "I see you". Never shown as a count. */
+  /** The viewer's own Root. */
   rooted: boolean;
-  /** This month's one post shared beyond the author's circle. */
+  /** How many people rooted it, shown as "Root 22" like comments. */
+  roots: number;
+  /** Shared to Open Grouv: reaches people at the same stage beyond the circle. */
   openGrove: boolean;
   /** Who it's for; the author's own cards label anything narrower than everyone. */
   audience: PostAudience;
@@ -114,7 +116,7 @@ export interface FeedCursor {
  * Which posts a feed shows:
  *   home  — you, your circle and your bonds, last 48 hours, newest first
  *   roots — the same, in one space
- *   open  — Open Grove posts from people outside the circle at your stage
+ *   open  — Open Grouv posts from people outside the circle at your stage
  *   mine  — the viewer's own posts, anonymous ones included (pages)
  *   all   — whatever the viewer may see (permalinks)
  *

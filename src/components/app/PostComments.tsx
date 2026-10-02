@@ -172,7 +172,7 @@ function CommentRow({
     <div className="flex gap-3 sm:gap-4">
       <Avatar src={comment.avatar} name={comment.author} userId={comment.authorId} sizes="40px" className="size-9 sm:size-10" />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex flex-col gap-1 rounded-lg bg-ivory-100 px-3 py-2.5 sm:px-4">
+        <div className="flex flex-col gap-1 rounded-lg bg-surface px-3 py-2.5 sm:px-4">
           <div className="flex items-baseline gap-2">
             <span className="font-sans text-base font-semibold text-ink-800">{comment.author}</span>
             <span className="font-sans text-xs text-ink-300" suppressHydrationWarning>
@@ -269,7 +269,7 @@ function CommentBox({
           rows={1}
           maxLength={2000}
           placeholder={placeholder}
-          className="w-full resize-none rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-sm text-ink-600 outline-none placeholder:text-ink-300 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
+          className="w-full resize-none rounded-lg bg-surface px-3.5 py-2.5 font-sans text-sm text-ink-600 outline-none placeholder:text-ink-300 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
         />
       </label>
       <button

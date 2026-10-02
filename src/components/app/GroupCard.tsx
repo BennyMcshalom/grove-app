@@ -6,13 +6,17 @@ import { Avatar } from "@/components/app/Avatar";
 import { useToast } from "@/components/app/ToastProvider";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight } from "@/components/ui/ArrowRight";
+import { GroupArt } from "@/components/app/GroupArt";
 import { joinGroup } from "@/app/(app)/groups/actions";
+import { inkOn } from "@/lib/group-look";
 import type { Group } from "@/lib/groups";
 
 /**
  * Chapter group card — Figma component 178:5933 (instances 205:7820…7823).
  *
- * Glyph, title, phase badge, the member stack with its blurb and the group's
+ * Since testing (2 Oct 2026) the whole card is the group's flat colour with
+ * its line-art in place of the glyph; text and actions take dark ink, or
+ * white on a dark colour. Art, title, phase badge, the member stack with its blurb and the group's
  * description, with "Admin" and "Read More" stacked down the right edge. The
  * "Show Button" property gates the Admin action, which the screen's Admin Mode
  * toggle drives. Before you're in, the right edge carries "Join" — which joins
@@ -33,37 +37,26 @@ export function GroupCard({
   const [pending, startTransition] = useTransition();
   const member = group.myRole !== null;
   const extra = group.memberCount - group.memberAvatars.length;
+  const { ink, paper, muted } = inkOn(group.color);
+  // Text actions sit on the card colour, so they take its ink, not orange.
+  const action = "rounded-full px-3 py-2.5 font-ui text-sm font-semibold transition-colors hover:bg-[var(--card-paper)]";
 
   return (
-    <article className="flex gap-2 rounded-lg bg-surface p-4">
-      <span
-        className="grid size-8 shrink-0 place-items-center rounded-full text-primary-600"
-        style={{ backgroundColor: group.color }}
-      >
-        <span
-          className="size-4 bg-current"
-          style={{
-            maskImage: `url(/icons/events/${group.icon}.svg)`,
-            WebkitMaskImage: `url(/icons/events/${group.icon}.svg)`,
-            maskSize: "contain",
-            WebkitMaskSize: "contain",
-            maskRepeat: "no-repeat",
-            WebkitMaskRepeat: "no-repeat",
-            maskPosition: "center",
-            WebkitMaskPosition: "center",
-          }}
-        />
-      </span>
+    <article
+      className="flex gap-3 rounded-xl p-4"
+      style={{ backgroundColor: group.color, color: ink, "--card-paper": paper } as React.CSSProperties}
+    >
+      <GroupArt art={group.art} ink={ink} paper={paper} className="size-14 sm:size-16" />
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <h2 className="font-sans text-sm font-semibold text-ink-600">
+        <h2 className="font-display text-base leading-tight font-bold">
           <Link href={`/groups/${group.slug}`} className="hover:underline">
             {group.title}
           </Link>
         </h2>
 
         {group.label && (
-          <span className="w-fit rounded-full bg-ivory-500 p-2 font-sans text-xs font-semibold text-ink-300">
+          <span className="w-fit rounded-full px-2 py-1 font-sans text-xs font-semibold" style={{ backgroundColor: paper }}>
             {group.label}
           </span>
         )}
@@ -73,29 +66,29 @@ export function GroupCard({
             {group.memberAvatars.map((src, i) => (
               <span
                 key={`${src}-${i}`}
-                className="rounded-full border-2 border-surface"
-                style={{ marginLeft: i === 0 ? 0 : -8 }}
+                className="rounded-full border-2"
+                style={{ marginLeft: i === 0 ? 0 : -8, borderColor: group.color }}
               >
                 <Avatar src={src} name="" sizes="32px" className="size-7" />
               </span>
             ))}
             {(extra > 0 || group.memberAvatars.length === 0) && (
               <span
-                className="grid size-8 place-items-center rounded-full border-2 border-surface bg-primary-50 font-sans text-xs font-extrabold text-primary-600"
-                style={{ marginLeft: group.memberAvatars.length ? -8 : 0 }}
+                className="grid size-8 place-items-center rounded-full border-2 font-sans text-xs font-extrabold"
+                style={{ marginLeft: group.memberAvatars.length ? -8 : 0, borderColor: group.color, backgroundColor: paper }}
               >
                 {group.memberAvatars.length ? `+${extra}` : group.memberCount}
               </span>
             )}
           </span>
-          <span className="font-sans text-xs text-ink-400">
+          <span className="font-sans text-xs font-medium" style={{ color: muted }}>
             {group.memberCount === 1 ? "1 member" : `${group.memberCount} members`}
           </span>
         </div>
 
         {/* Figma sets the description in italics on every card instance. */}
         {group.description && (
-          <p className="line-clamp-3 font-sans text-xs text-ink-400 italic">
+          <p className="line-clamp-3 font-sans text-xs italic" style={{ color: muted }}>
             {group.description}
           </p>
         )}
@@ -124,7 +117,7 @@ export function GroupCard({
             )}
             <Link
               href={`/groups/${group.slug}`}
-              className="flex items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm text-primary-600 transition-colors hover:bg-primary-50"
+              className={`flex items-center gap-2 ${action}`}
             >
               Read More
               <ArrowRight className="size-4" />
@@ -133,7 +126,8 @@ export function GroupCard({
         ) : requested ? (
           <Link
             href={`/groups/${group.slug}`}
-            className="rounded-full px-3 py-2.5 font-ui text-sm text-ink-300 hover:bg-ivory-100"
+            className={action}
+            style={{ color: muted }}
           >
             Requested
           </Link>
@@ -156,7 +150,7 @@ export function GroupCard({
                 }
               })
             }
-            className="flex items-center gap-2 rounded-full px-3 py-2.5 font-ui text-sm text-primary-600 transition-colors hover:bg-primary-50 disabled:opacity-60"
+            className={`flex items-center gap-2 ${action} disabled:opacity-60`}
           >
             Join
             <ArrowRight className="size-4" />

@@ -11,7 +11,7 @@ import { timeAgo } from "@/lib/time";
 /**
  * View log — Figma frame 246:7102.
  *
- * A 660px card: the member's glowing portrait beside "<Name>'s Log" and its
+ * A 660px card: the member's portrait beside "<Name>'s Log" and its
  * chapter badge, then their moments in the same cover-flow as Log Memories
  * (drag, flick, arrows; tap the front card to open it), and "Let's Grouv".
  */
@@ -40,11 +40,7 @@ export function ViewLogModal({
         <header className="flex items-center justify-between gap-4 border-b border-ink-50 pb-4">
           <div className="flex items-center gap-6 p-2">
             <span className="relative size-12 shrink-0">
-              <span
-                className="absolute inset-0 rounded-full bg-[#F0B231]"
-                style={{ boxShadow: "0px 2px 9px 9px rgba(251, 148, 31, 0.45)" }}
-              />
-              <Avatar src={log.avatarUrl} name={log.name} userId={log.userId} sizes="48px" className="relative size-12" />
+              <Avatar src={log.avatarUrl} name={log.name} userId={log.userId} aura={log.aura} sizes="48px" className="relative size-12" />
               {online && (
                 <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-60" />
               )}

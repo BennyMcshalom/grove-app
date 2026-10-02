@@ -3,18 +3,15 @@
 import Link from "next/link";
 import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { useEffect, useState } from "react";
-import {
-  ChapterGroupCard,
-  GROUP_GRADIENT,
-} from "@/components/app/ChapterGroupCard";
+import { ChapterGroupCard } from "@/components/app/ChapterGroupCard";
 import { loadSuggestedGroups } from "@/app/(app)/groups/actions";
 import type { Group } from "@/lib/groups";
 
 /**
  * SUGGESTED FOR YOUR CHAPTER — Figma frame 575:17911 (the My Group right rail).
  *
- * A 396px column of gradient cards for groups in your chapters you haven't
- * joined: the first takes the warm orange wash, the rest the pink one.
+ * A 396px column of group cards (each in its own colour and art) for groups
+ * in your Spaces, the ones you haven't joined first.
  */
 export function SuggestedRail() {
   const [groups, setGroups] = useState<Group[] | null>(null);
@@ -52,7 +49,7 @@ export function SuggestedRail() {
           </p>
         ) : (
           <ul className="flex flex-col gap-4">
-            {groups.map((group, i) => (
+            {groups.map((group) => (
               <li key={group.id}>
                 <ChapterGroupCard
                   title={group.title}
@@ -60,7 +57,8 @@ export function SuggestedRail() {
                   href={`/groups/${group.slug}`}
                   avatars={group.memberAvatars}
                   memberCount={group.memberCount}
-                  gradient={i === 0 ? GROUP_GRADIENT.orange : GROUP_GRADIENT.pink}
+                  color={group.color}
+                  art={group.art}
                 />
               </li>
             ))}

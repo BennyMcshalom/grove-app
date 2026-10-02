@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { usePaywall } from "@/components/app/pass/PaywallProvider";
+import { ShareSheet } from "@/components/app/ShareSheet";
 import { useToast } from "@/components/app/ToastProvider";
 import { exportShareCard } from "@/components/app/wrapped/exportCard";
 import { CheckIcon, DownloadIcon, WarningIcon } from "@/components/app/wrapped/icons";
@@ -11,7 +12,7 @@ import { ArrowRight } from "@/components/ui/ArrowRight";
 import { Button } from "@/components/ui/Button";
 import { ModalHeader, ModalStatus, ModalClose } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { cn } from "@/lib/cn";
+import { Switch } from "@/components/ui/Switch";
 import { createShareLink, previewShareText, revokeShareLink } from "@/lib/wrapped-actions";
 import { weekdayLabel, wrapPeriodWord, type ShareCardData, type Wrap } from "@/lib/wrapped";
 
@@ -234,14 +235,13 @@ export function WrapShareFlow({
       <>
         <ModalHeader title="Preview" onClose={onClose} />
         {previewBody === undefined ? (
-          <div className="flex flex-col gap-4" aria-busy="true">
-            <Skeleton className="h-10 w-32" />
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="aspect-[596/260] w-full rounded-2xl" />
-            <Skeleton className="h-4 w-3/4" />
+          <div className="mx-auto flex w-full max-w-[340px] flex-col gap-4" aria-busy="true">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-3 w-56" />
+            <Skeleton className="aspect-[3/4] w-full rounded-[22px]" />
           </div>
         ) : (
-          <ShareCard card={card} variant="preview" />
+          <ShareCard card={card} variant="preview" className="mx-auto max-w-[340px]" />
         )}
         <div className="flex flex-col gap-2 pt-2">
           <Button size="sm" fullWidth loading={creating} disabled={previewBody === undefined} onClick={create}>
@@ -345,7 +345,19 @@ export function WrapShareFlow({
       )}
 
       <div className="flex flex-col gap-2">
-        <Button size="sm" fullWidth onClick={onClose}>
+        {link && (
+          <ShareSheet
+            url={link.url}
+            title="A moment from my Life Wrapped"
+            text={card.sharerName ? `A moment from ${card.sharerName}’s Life Wrapped on Grouv` : "A moment from a Life Wrapped on Grouv"}
+            trigger={(open) => (
+              <Button size="sm" fullWidth onClick={open}>
+                Share
+              </Button>
+            )}
+          />
+        )}
+        <Button variant="secondary" size="sm" fullWidth onClick={onClose}>
           Done
         </Button>
         <Button
@@ -363,7 +375,7 @@ export function WrapShareFlow({
   );
 }
 
-/** Figma's switch rows: label and hint on the left, a pill toggle on the right. */
+/** Figma's switch rows: label and hint on the left, the shared switch on the right. */
 function Toggle({
   label,
   description,
@@ -381,24 +393,7 @@ function Toggle({
         <span className="font-sans text-base text-ink-800">{label}</span>
         <span className="font-sans text-sm text-ink-300">{description}</span>
       </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        onClick={() => onChange(!checked)}
-        className={cn(
-          "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-          checked ? "bg-primary-600" : "bg-ink-50",
-        )}
-      >
-        <span
-          className={cn(
-            "absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform",
-            checked ? "translate-x-[22px]" : "translate-x-0.5",
-          )}
-        />
-      </button>
+      <Switch label={label} checked={checked} onChange={onChange} className="mt-0.5" />
     </div>
   );
 }
