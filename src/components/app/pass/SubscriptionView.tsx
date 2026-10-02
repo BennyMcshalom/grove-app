@@ -411,14 +411,15 @@ function Comparison({
 }) {
   return (
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
-      <Card>
+      {/* On a phone the plan they have leads; side by side on desktop. */}
+      <Card className={current === "pass" ? "order-2 lg:order-1" : undefined}>
         <div className="flex flex-col gap-2">
           <span className="flex flex-wrap items-center gap-3">
             <h2 className="font-display text-2xl font-semibold text-ink-800 lg:text-3xl">Free plan</h2>
             {current === "free" && <Chip tone="primary">Current plan</Chip>}
           </span>
           <p className="font-sans text-base text-ink-400">
-            {current === "free" ? "You’re on the free plan" : "Where you’ll land if you don’t subscribe"}
+            {current === "free" ? "You’re on the free plan" : "What Free includes"}
           </p>
         </div>
         <Divider />
@@ -440,7 +441,7 @@ function Comparison({
         </ListBlock>
       </Card>
 
-      <Card>
+      <Card className={current === "pass" ? "order-1 lg:order-2" : undefined}>
         <span className="flex flex-wrap items-center gap-3">
           <h2 className="font-display text-2xl font-semibold text-ink-800 lg:text-3xl">Season Pass</h2>
           {current === "pass" && <Chip tone="primary">Current plan</Chip>}
@@ -486,9 +487,9 @@ function Comparison({
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
+function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <section className="flex w-full flex-col gap-5 rounded-lg bg-surface p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] lg:p-6">
+    <section className={cn("flex w-full flex-col gap-5 rounded-lg bg-surface p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] lg:p-6", className)}>
       {children}
     </section>
   );

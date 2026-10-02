@@ -63,15 +63,15 @@ export async function createGroup(
 }
 
 /**
- * Colours other groups in the Space already wear, so a new one can take a
- * different one ("no two colours the same"). "Any space" groups compare
- * against each other.
+ * Colours other groups already wear, anywhere in the app, so a new one can
+ * take a different one ("no two colours the same"). Groups sit side by side
+ * across Spaces in the rail and on Browse, so the whole app counts. Once all
+ * sixteen are taken, the picker falls back to any palette colour.
  */
-export async function loadTakenGroupColors(chapterSlug: string | null): Promise<string[]> {
+export async function loadTakenGroupColors(): Promise<string[]> {
   await requireOnboardedViewer();
   const supabase = await createClient();
-  const query = supabase.from("groups").select("color");
-  const { data, error } = await (chapterSlug ? query.eq("chapter_slug", chapterSlug) : query.is("chapter_slug", null));
+  const { data, error } = await supabase.from("groups").select("color");
   if (error) console.error("[groups] taken colours failed", error);
   return (data ?? []).map((g) => g.color);
 }

@@ -52,7 +52,7 @@ export default async function SpacesPage({ searchParams }: PageProps<"/spaces">)
         <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-8 pb-10">
             {/* Below the rail breakpoint the INVITATIONS rail section leads the page. */}
-            <div className="rail:hidden">
+            <div className="empty:hidden rail:hidden">
               <InvitationsList titled />
             </div>
 

@@ -24,7 +24,7 @@ const HUE_TRACK = `linear-gradient(to right, ${[0, 45, 90, 135, 180, 225, 270, 3
 
 /**
  * Pick a group's look: line-art from the set and one flat colour. The
- * palette greys out colours other groups in the Space already wear; Shuffle
+ * palette greys out colours other groups already wear; Shuffle
  * draws a free one, and the hue slider makes a custom one.
  */
 export function GroupLookPicker({
@@ -93,8 +93,8 @@ export function GroupLookPicker({
                 key={swatch}
                 type="button"
                 disabled={inUse}
-                aria-label={inUse ? `Colour ${swatch}, already used in this space` : `Colour ${swatch}`}
-                title={inUse ? "Another group in this space has it" : undefined}
+                aria-label={inUse ? `Colour ${swatch}, already used by another group` : `Colour ${swatch}`}
+                title={inUse ? "Another group already has it" : undefined}
                 aria-pressed={color.toUpperCase() === swatch}
                 onClick={() => onChange({ art, color: swatch })}
                 style={{ backgroundColor: swatch }}
@@ -144,7 +144,7 @@ export function GroupLookModal({ group, onClose }: { group: Group; onClose: () =
 
   useEffect(() => {
     let cancelled = false;
-    loadTakenGroupColors(group.chapterSlug).then((colors) => {
+    loadTakenGroupColors().then((colors) => {
       if (!cancelled) setTaken(colors);
     });
     return () => {

@@ -39,11 +39,11 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
   const [saving, startSaving] = useTransition();
   const paywall = usePaywall();
 
-  // Each Space's groups wear different colours: learn which are taken and,
+  // No two groups wear the same colour: learn which are taken and,
   // if ours is one of them, draw a free one.
   useEffect(() => {
     let cancelled = false;
-    loadTakenGroupColors(chapterSlug || null).then((colors) => {
+    loadTakenGroupColors().then((colors) => {
       if (cancelled) return;
       setTaken(colors);
       setColor((current) =>
@@ -53,7 +53,7 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
     return () => {
       cancelled = true;
     };
-  }, [chapterSlug]);
+  }, []);
 
   return (
     <div
