@@ -2,6 +2,7 @@
 
 import { PostMedia } from "@/components/app/PostMedia";
 import { Linkify } from "@/components/ui/Linkify";
+import { MentionText } from "@/components/app/MentionText";
 import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { PostComments } from "@/components/app/PostComments";
@@ -12,6 +13,7 @@ import {
   ReportPostModal,
 } from "@/components/app/PostModals";
 import { SendToBondModal } from "@/components/app/SendToBondModal";
+import { SpaceFrame, useSpaceLabelStyle } from "@/components/app/SpaceLabel";
 import { ShareSheet } from "@/components/app/ShareSheet";
 import { useToast } from "@/components/app/ToastProvider";
 import { setRooted } from "@/lib/post-actions";
@@ -25,17 +27,27 @@ import { cn } from "@/lib/cn";
  * Variants in Figma are "Post", "Post with video", "Comment with photo" and
  * "Grouv"; here the media is a prop since the chrome is identical across them.
  */
-export function PostCard({ post: initial }: { post: Post }) {
+export function PostCard({
+  post: initial,
+  defaultCommentsOpen = false,
+  onDeleted,
+}: {
+  post: Post;
+  /** The post modal opens with its thread showing. */
+  defaultCommentsOpen?: boolean;
+  onDeleted?: () => void;
+}) {
   const [post, setPost] = useState(initial);
   const [menuOpen, setMenuOpen] = useState(false);
   const [rooted, setRootedState] = useState(initial.rooted);
   const [roots, setRoots] = useState(initial.roots);
   const [comments, setComments] = useState(initial.comments);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(defaultCommentsOpen);
   // Figma pairs each menu item with a modal and a confirming alert.
   const [dialog, setDialog] = useState<PostMenuAction | null>(null);
   const [deleted, setDeleted] = useState(false);
   const toast = useToast();
+  const labelStyle = useSpaceLabelStyle();
 
   if (deleted) return null;
 
@@ -58,11 +70,14 @@ export function PostCard({ post: initial }: { post: Post }) {
   };
 
   return (
+    // The wash hints at the Space; the label (banner or tag) names it.
+    <SpaceFrame slug={post.chapterSlug}>
     <article
       id={`post-${post.id}`}
       // Each Space has its own wash, so a scroll shows where a post is from.
       className={cn(
-        "flex gap-4 rounded-2xl p-4 sm:p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]",
+        "flex gap-4 p-4 sm:p-5 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)]",
+        labelStyle === "banner" && post.chapterSlug ? "rounded-xl" : "rounded-2xl",
         spaceCardClass(post.chapterSlug),
       )}
     >
@@ -133,7 +148,7 @@ export function PostCard({ post: initial }: { post: Post }) {
             )}
             {post.body && !captionInImage && (
               <p className="font-sans text-base whitespace-pre-line text-ink-400">
-                <Linkify text={post.body} className="text-primary-600" />
+                <MentionText text={post.body} source="posts" id={post.id} className="text-primary-600" />
               </p>
             )}
           </div>
@@ -222,12 +237,14 @@ export function PostCard({ post: initial }: { post: Post }) {
             onDeleted={() => {
               setDialog(null);
               setDeleted(true);
+              onDeleted?.();
               toast({ title: "Post deleted", tone: "danger" });
             }}
           />
         )}
       </div>
     </article>
+    </SpaceFrame>
   );
 }
 

@@ -48,11 +48,11 @@ export function trialStartedEmail({
   return {
     to,
     subject: "Your Grouv free trial has started",
-    text: `Hi ${firstName},\n\nYour free trial of Grouv has started${ends ? ` and runs until ${ends}` : ""}. You won't be charged for the trial. See or change your plan any time in Settings: ${siteUrl}/settings`,
+    text: `Hi ${firstName},\n\nYour free trial of Grouv has started${ends ? ` and runs until ${ends}` : ""}. All eight Spaces, Bonds, Bond Log and Life Wrapped are included until your trial ends. See or change your plan any time in Settings: ${siteUrl}/settings`,
     html: layout(`
       <p style="margin:0 0 16px;">Hi ${name},</p>
       <p style="margin:0 0 16px;">Your free trial of Grouv has started${ends ? ` and runs until <strong>${escapeHtml(ends)}</strong>` : ""}. Everything is open to you in the meantime.</p>
-      <p style="margin:0 0 24px;">You won't be charged for the trial. You can see or change your plan any time in Settings.</p>
+      <p style="margin:0 0 24px;">All eight Spaces, Bonds, Bond Log and Life Wrapped are included until your trial ends. You can see or change your plan any time in Settings.</p>
       <a href="${siteUrl}/settings" style="display:inline-block;background:#F57E16;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;">Open Settings</a>
     `),
   };

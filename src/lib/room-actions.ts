@@ -1,6 +1,7 @@
 "use server";
 
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
+import { isUuid } from "@/lib/mentions";
 import { createClient } from "@/lib/supabase/server";
 
 /** A message in a group or event conversation, with who wrote it. */
@@ -16,6 +17,9 @@ export interface RoomMessage {
 }
 
 const COLUMNS = "id, kind, body, created_at, sender_id, sender:profiles!messages_sender_id_fkey(first_name, avatar_url)";
+// What a sender gets back: the row plus who the database kept as mentioned.
+const SENT_COLUMNS =
+  "id, kind, body, created_at, sender_id, mentions, sender:profiles!messages_sender_id_fkey(first_name, avatar_url)";
 
 type Row = {
   id: string;
@@ -65,7 +69,9 @@ export async function loadRoomMessage(messageId: string): Promise<RoomMessage | 
 export async function sendRoomMessage(
   conversationId: string,
   body: string,
-): Promise<{ message?: RoomMessage; error?: string }> {
+  /** People picked from the @ list; the database keeps conversation members. */
+  mentions: string[] = [],
+): Promise<{ message?: RoomMessage; mentions?: string[]; error?: string }> {
   const viewer = await requireOnboardedViewer();
   const text = body.trim();
   if (!text) return { error: "Write a message first." };
@@ -74,8 +80,8 @@ export async function sendRoomMessage(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("messages")
-    .insert({ conversation_id: conversationId, sender_id: viewer.userId, body: text })
-    .select(COLUMNS)
+    .insert({ conversation_id: conversationId, sender_id: viewer.userId, body: text, mentions: mentions.filter(isUuid).slice(0, 20) })
+    .select(SENT_COLUMNS)
     .single();
 
   if (error || !data) {
@@ -92,5 +98,5 @@ export async function sendRoomMessage(
     .eq("conversation_id", conversationId)
     .eq("user_id", viewer.userId);
 
-  return { message: toRoomMessage(data as Row, viewer.userId) };
+  return { message: toRoomMessage(data as Row, viewer.userId), mentions: data.mentions };
 }

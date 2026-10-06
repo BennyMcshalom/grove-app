@@ -1127,10 +1127,18 @@ await step("morning cards", async () => {
   await su(`select private.deliver_daily_cards(${dawn})`);
   const cards = await q(F, `select * from public.my_daily_cards()`);
   check("one curio per space and one wander", cards.length === 2 && cards.some((c) => c.kind === "wander"), cards);
+  // Both learning cards were unseen, so the first pick was either one.
+  const firstCurio = cards.find((c) => c.kind === "curio")?.card_id;
   await su(`delete from public.user_daily_curio where user_id = $1`, [F]);
   await su(`select private.deliver_daily_cards(${dawn})`);
   const again = await q(F, `select * from public.my_daily_cards()`);
-  check("never the same topic cluster twice in a week", again.length === 0, again);
+  // The pool is spent (one card seen, the other in its cluster): rather than
+  // an empty slot, the card never served comes round first.
+  check(
+    "a spent pool recycles instead of going empty",
+    again.length === 2 && again.some((c) => c.kind === "curio" && c.card_id !== firstCurio),
+    again,
+  );
 
   const [{ open_direct_conversation: ef }] = await q(F, `select public.open_direct_conversation($1)`, [E]);
   await q(F, `insert into public.messages (conversation_id, sender_id, kind, card_id) values ($1, $2, 'card', $3)`, [ef, F, curio]);
@@ -1977,73 +1985,134 @@ await step("delete account", async () => {
   });
 }
 
-// --- Spaces: chapter invitations; Chapter Groups: pass gate and outcomes ------
-await step("chapter invitations", async () => {
-  const Am = await person("Amara", [{ slug: "career", phase: "Starting over" }]);
-  const Za = await person("Zainab", [{ slug: "health", phase: "Building a habit" }]);
-  const St = await person("Stranger", [{ slug: "wealth", phase: "Learning the basics" }]);
-  const Li = await person("Linky", [{ slug: "health", phase: "Starting over" }]);
-  await connect(Am, Za);
-  const [{ id: uc }] = await su(`select id from public.user_chapters where user_id = $1 and chapter_slug = 'career'`, [Am]);
+// --- Chapter Companions (invitations); Chapter Groups: pass gate and outcomes ------
+await step("chapter companions: invite, accept, walk with, check in, removed", async () => {
+  const Jo = await person("Jomo", [{ slug: "career", phase: "Starting over" }]);
+  const Vi = await person("Vico", [{ slug: "health", phase: "Building a habit" }]);
+  const St = await person("Strang", [{ slug: "wealth", phase: "Learning the basics" }]);
+  const Li = await person("Linka", [{ slug: "health", phase: "Starting over" }]);
+  await connect(Jo, Vi);
+  const [{ id: uc }] = await su(`select id from public.user_chapters where user_id = $1 and chapter_slug = 'career'`, [Jo]);
+  const [{ id: e1 }] = await q(Jo, `insert into public.log_entries (user_chapter_id, body, entry_date) values ($1, 'First week', current_date - 3) returning id`, [uc]);
+  const [{ id: e2 }] = await q(Jo, `insert into public.log_entries (user_chapter_id, body, photo_path, entry_date) values ($1, 'Hard day', $2, current_date - 2) returning id`, [uc, `${Jo}/log-hard.jpg`]);
+  const [{ id: secret }] = await q(Jo, `insert into public.log_entries (user_chapter_id, body, photo_path, visibility) values ($1, 'Private thing', $2, 'only_me') returning id`, [uc, `${Jo}/log-secret.jpg`]);
+  const [{ id: other }] = await q(Vi, `select id from public.user_chapters where user_id = $1`, [Vi]);
+  const [{ id: notMine }] = await q(Vi, `insert into public.log_entries (user_chapter_id, body) values ($1, 'Victor''s own') returning id`, [other]);
+  const chaptersBefore = await su(`select count(*)::int n from public.user_chapters where user_id = $1`, [Vi]);
+  const connBefore = await su(`select * from public.connections where user_low = least($1::uuid, $2::uuid) and user_high = greatest($1::uuid, $2::uuid)`, [Jo, Vi]);
 
-  await fails("strangers can't be invited directly", Am, `select * from public.create_chapter_invite($1, 'New City', null, '{}', array[$2]::uuid[])`, [uc, St], "circle or this Space");
-  await fails("photos must be yours", Am, `select * from public.create_chapter_invite($1, 'New City', null, array['someone/x.jpg'], '{}')`, [uc], "uploading");
-  await fails("only chapters you hold", Za, `select * from public.create_chapter_invite($1, 'New City')`, [uc], "chapter you hold");
-  const [invite] = await q(
-    Am,
-    `select * from public.create_chapter_invite($1, ' New City ', 'Come along', array[$2 || '/c.jpg'], array[$3]::uuid[])`,
-    [uc, Am, Za],
-  );
+  const create = (uid, sql, params) => q(uid, sql, params);
+  const invite13 = `select * from public.create_companion_invite($1, 'Trying to find a balance', 'You''ve been here', 'Honest questions', 'Two interviews in', 'Final round', current_date + 7, true, true, true, $2::uuid[], '{}'::uuid[], $3)`;
+  await fails("strangers can't be invited directly", Jo, invite13, [uc, [e1], St], "circle or this Space");
+  await fails("only your own moments", Jo, invite13, [uc, [notMine], Vi], "your own moments");
+  await fails("only chapters you hold", Vi, invite13, [uc, [], null], "chapter you hold");
+  const [invite] = await create(Jo, invite13, [uc, [e2, e1], Vi]);
   check("an invitation gets a link token", typeof invite?.token === "string" && invite.token.length === 20, invite);
-  const notes = await q(Za, `select * from public.notifications where kind = 'chapter_invite'`);
-  check("the recipient is notified", notes.length === 1 && notes[0].data.token === invite.token, notes);
-  const [mine] = await q(Za, `select * from public.my_chapter_invitations()`);
-  check("it waits in INVITATIONS", mine?.title === "New City" && mine.sender_name === "Amara", mine);
-  const peek = await q(St, `select * from public.chapter_invites`);
-  check("others can't read invitations", peek.length === 0, peek.length);
+  const notes = await q(Vi, `select * from public.notifications where kind = 'companion_invite'`);
+  check("the companion is notified", notes.length === 1 && notes[0].data.token === invite.token, notes);
+  const [waiting] = await q(Vi, `select * from public.my_companion_invitations()`);
+  check("it waits in INVITATIONS", waiting?.title === "Trying to find a balance" && waiting.sender_name === "Jomo", waiting);
 
   const anonCard = await db.transaction(async (tx) => {
     await tx.exec("set local role anon");
-    return (await tx.query(`select * from public.chapter_invite_card($1)`, [invite.token])).rows;
+    return (await tx.query(`select * from public.companion_invite_card($1)`, [invite.token])).rows;
   });
-  check("the link card opens signed out", anonCard.length === 1 && anonCard[0].note === "Come along", anonCard);
-
-  await fails("the sender can't accept their own", Am, `select public.respond_chapter_invite($1, true, 'Starting over')`, [invite.token], "your own");
-  await fails("joining a Space you don't hold needs a stage", Za, `select public.respond_chapter_invite($1, true)`, [invite.token], "Pick where");
-  const [{ respond_chapter_invite: joined }] = await q(Za, `select public.respond_chapter_invite($1, true, 'Starting over')`, [invite.token]);
-  const held = await su(`select 1 from public.user_chapters where user_id = $1 and chapter_slug = 'career' and status = 'open'`, [Za]);
-  check("accepting opens the chapter's Space", joined === "joined" && held.length === 1, { joined, held });
-  const accepted = await q(Am, `select * from public.notifications where kind = 'chapter_invite_accepted'`);
-  check("the sender hears they joined", accepted.length === 1, accepted.length);
-  const left = await q(Za, `select * from public.notifications where kind = 'chapter_invite'`);
-  check("the invitation notice clears", left.length === 0, left.length);
-  await fails("an answer is final", Za, `select public.respond_chapter_invite($1, false)`, [invite.token], "already answered");
-
-  // A link recipient: not invited directly, arrives by the token.
-  const [{ respond_chapter_invite: linkJoin }] = await q(Li, `select public.respond_chapter_invite($1, true, 'Growing a team')`, [invite.token]);
-  const [conn] = await su(
-    `select status from public.connections where user_low = least($1::uuid, $2::uuid) and user_high = greatest($1::uuid, $2::uuid)`,
-    [Am, Li],
+  check(
+    "the link card opens signed out with counts only",
+    anonCard.length === 1 && anonCard[0].why === "You've been here" && anonCard[0].moment_count === 2 && !("photo_path" in anonCard[0]),
+    anonCard,
   );
-  check("a link accept connects you with the sender", linkJoin === "joined" && conn?.status === "accepted", { linkJoin, conn });
-  const stray = await q(Li, `select * from public.notifications where kind = 'connection_request'`);
-  check("with no request left to answer", stray.length === 0, stray.length);
+  const [strangerCard] = await q(Li, `select * from public.companion_invite_card($1)`, [invite.token]);
+  check("someone else sees it was meant for another", strangerCard?.for_someone_else === true, strangerCard);
+  await fails("the link only works for who it was written for", Li, `select * from public.respond_companion_invite($1, true)`, [invite.token], "someone else");
+  await fails("the sender can't accept their own", Jo, `select * from public.respond_companion_invite($1, true)`, [invite.token], "your own");
 
-  const [second] = await q(Am, `select * from public.create_chapter_invite($1, 'Round two', null, '{}', array[$2]::uuid[])`, [uc, Za]);
-  const [{ respond_chapter_invite: declined }] = await q(Za, `select public.respond_chapter_invite($1, false)`, [second.token]);
-  const waiting = await q(Za, `select * from public.my_chapter_invitations()`);
-  check("declining clears it quietly", declined === "declined" && waiting.length === 0, { declined, waiting });
+  // Before accepting, nothing is readable.
+  const early = await q(Vi, `select * from public.companion_moments(gen_random_uuid())`);
+  check("no moments without a relationship", early.length === 0, early);
 
-  // Full on Free: the Space limit still applies to invitations.
-  await su(`update public.subscriptions set status = 'none', trial_ends_at = null, current_period_end = null where user_id = $1`, [St]);
-  for (const [slug, phase] of [
-    ["health", "Starting over"],
-    ["creative", "Mid-project"],
-    ["learning", "Day one"],
-  ]) {
-    await su(`insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, $2, $3)`, [St, slug, phase]);
-  }
-  await fails("a full Free member hits the Space limit", St, `select public.respond_chapter_invite($1, true, 'Starting over')`, [invite.token], "4 chapters");
+  const [answer] = await q(Vi, `select * from public.respond_companion_invite($1, true)`, [invite.token]);
+  const companion = answer?.companion_id;
+  check("accepting makes a companion", answer?.status === "accepted" && typeof companion === "string", answer);
+  const chaptersAfter = await su(`select count(*)::int n from public.user_chapters where user_id = $1`, [Vi]);
+  check("accepting creates no user_chapters row", chaptersAfter[0].n === chaptersBefore[0].n, { chaptersBefore, chaptersAfter });
+  const connAfter = await su(`select * from public.connections where user_low = least($1::uuid, $2::uuid) and user_high = greatest($1::uuid, $2::uuid)`, [Jo, Vi]);
+  check("their circle connection is untouched", JSON.stringify(connAfter) === JSON.stringify(connBefore), { connBefore, connAfter });
+  const told = await q(Jo, `select * from public.notifications where kind = 'companion_accepted'`);
+  check("the owner hears they accepted", told.length === 1 && told[0].entity_id === companion, told);
+  const leftover = await q(Vi, `select * from public.notifications where kind = 'companion_invite'`);
+  check("the invitation notice clears", leftover.length === 0, leftover.length);
+  await fails("a spent link can't be taken by someone else", Li, `select * from public.respond_companion_invite($1, true)`, [invite.token], "someone else");
+
+  // Victor: Chapters I'm walking with → the shared chapter.
+  const walking = await q(Vi, `select * from public.walking_with()`);
+  check(
+    "John's chapter is under Chapters I'm walking with",
+    walking.length === 1 && walking[0].companion_id === companion && walking[0].owner_name === "Jomo" && walking[0].milestone === "Final round",
+    walking,
+  );
+  const [detail] = await q(Vi, `select * from public.companion_detail($1)`, [companion]);
+  check("the shared chapter opens", detail?.why === "You've been here" && detail.where_now === "Two interviews in" && !detail.is_owner, detail);
+  const moments = await q(Vi, `select * from public.companion_moments($1)`, [companion]);
+  check("selected moments, in order", moments.map((m) => m.id).join() === [e1, e2].join(), moments);
+  check("a selected photo's path is shared", moments[1]?.photo_path === `${Jo}/log-hard.jpg`, moments[1]);
+
+  // Unselected moments stay private.
+  check("unselected moments stay private (function)", !moments.some((m) => m.id === secret), moments);
+  const direct = await q(Vi, `select id from public.log_entries where id = $1`, [secret]);
+  check("unselected moments stay private (table)", direct.length === 0, direct);
+  const picked = await q(Vi, `select * from public.chapter_invite_moments`);
+  check("companions can't read the selection table", picked.length === 0, picked);
+  const updatesTable = await q(Vi, `select * from public.companion_updates`);
+  check("companions can't read the updates table", updatesTable.length === 0, updatesTable);
+
+  // Updates go only to the companions picked.
+  const [{ share_companion_update: upd }] = await q(Jo, `select public.share_companion_update($1, 'Got the offer', null, null)`, [uc]);
+  const shared = await q(Vi, `select * from public.companion_shared_updates($1)`, [companion]);
+  check("a shared update reaches the companion", shared.length === 1 && shared[0].id === upd, shared);
+  const ping = await q(Vi, `select * from public.notifications where kind = 'companion_update'`);
+  check("with a notification to the shared chapter", ping.length === 1 && ping[0].entity_id === companion, ping);
+  await fails("updates need a companion of this chapter", Jo, `select public.share_companion_update($1, 'x', null, array[gen_random_uuid()])`, [uc], "can't get updates");
+
+  // Check in; John sees it and replies.
+  await q(Vi, `select public.send_companion_message($1, 'Thinking of you before the final round')`, [companion]);
+  const [row] = await q(Jo, `select * from public.chapter_companion_list($1)`, [uc]);
+  check("John sees the check-in", row?.companion_id === companion && row.last_message === "Thinking of you before the final round", row);
+  const ownerPing = await q(Jo, `select * from public.notifications where kind = 'companion_checkin'`);
+  check("John is notified of the check-in", ownerPing.length === 1, ownerPing.length);
+  await q(Jo, `select public.send_companion_message($1, 'Thank you!')`, [companion]);
+  const thread = await q(Vi, `select * from public.companion_thread($1)`, [companion]);
+  check("the thread holds both", thread.length === 2 && thread[1].author_id === Jo, thread);
+  await fails("a bystander can't check in", Li, `select public.send_companion_message($1, 'hi')`, [companion], "no longer walking");
+  const peek = await q(Li, `select * from public.companion_detail($1)`, [companion]);
+  check("a bystander can't open it", peek.length === 0, peek);
+
+  // Removal ends access at once.
+  await q(Jo, `select public.end_companion($1)`, [companion]);
+  const gone = await q(Vi, `select * from public.companion_detail($1)`, [companion]);
+  const goneMoments = await q(Vi, `select * from public.companion_moments($1)`, [companion]);
+  const goneThread = await q(Vi, `select * from public.companion_thread($1)`, [companion]);
+  const goneList = await q(Vi, `select * from public.walking_with()`);
+  check(
+    "removed: no detail, moments, thread or list",
+    gone.length + goneMoments.length + goneThread.length + goneList.length === 0,
+    { gone, goneMoments, goneThread, goneList },
+  );
+  await fails("removed: can't check in", Vi, `select public.send_companion_message($1, 'still here?')`, [companion], "no longer walking");
+  const kept = await q(Jo, `select * from public.companion_thread($1)`, [companion]);
+  check("the owner keeps the thread", kept.length === 2, kept.length);
+
+  // An open link: anyone can take it, once; declining is quiet.
+  const [open] = await q(Jo, `select * from public.create_companion_invite($1, 'Open', 'Why not', null, null, null, null, false, false, true, '{}', '{}', null)`, [uc]);
+  const [no] = await q(St, `select * from public.respond_companion_invite($1, false)`, [open.token]);
+  check("declining is quiet", no?.status === "declined", no);
+  const [yes] = await q(Li, `select * from public.respond_companion_invite($1, true)`, [open.token]);
+  check("an open link admits the first to accept", yes?.status === "accepted", yes);
+  const noStory = await q(Li, `select * from public.companion_moments($1)`, [yes.companion_id]);
+  check("no story when it wasn't shared", noStory.length === 0, noStory);
+  await q(Li, `select public.end_companion($1)`, [yes.companion_id]);
+  const left = await q(Li, `select * from public.walking_with()`);
+  check("a companion can leave", left.length === 0, left);
 });
 
 await step("chapter groups: pass gate and outcomes", async () => {
@@ -2173,6 +2242,126 @@ await step("pending requests carry the introduction; Bond Log photos", async () 
   check("nothing saved reads as nothing saved", mine?.my_saved === false, mine);
   const old = await q(Pb, `select public.save_bond_response($1, 1, 'Words only', true)`, [weekly.id]);
   check("words alone still work", old.length === 1);
+});
+
+await step("everyone gets their curio, for 24 hours", async () => {
+  const Cl = await person("Cleo", [
+    { slug: "creative", phase: "Mid-project" },
+    { slug: "health", phase: "Building a habit" },
+  ]);
+  const [{ id: art }] = await su(
+    `insert into public.content_cards (kind, chapter_slug, topic_cluster, title, body) values ('curio', 'creative', 'creative-test', 'Make more', 'Judge later.') returning id`,
+  );
+  const [{ id: body }] = await su(
+    `insert into public.content_cards (kind, chapter_slug, topic_cluster, title, body) values ('curio', 'health', 'health-test', 'Walk after eating', 'Ten minutes.') returning id`,
+  );
+  await su(`insert into public.content_cards (kind, chapter_slug, topic_cluster, title, body) values ('curio', 'learning', 'learning-test', 'Test yourself', 'Recall beats re-reading.')`);
+  await su(`insert into private.wander_adjacency (chapter_slug, topic_cluster) values ('creative', 'birdsong') on conflict do nothing`);
+  // The "only Wander" member: every Curio in their Spaces was served two days
+  // ago, so the old 60-day rule left those slots empty while Wander had one.
+  await su(
+    `insert into private.cards_served (user_id, card_id, topic_cluster, served_at) values ($1, $2, 'creative-test', now() - interval '2 days'), ($1, $3, 'health-test', now() - interval '2 days')`,
+    [Cl, art, body],
+  );
+
+  // No morning job ran for them: opening Home serves the set.
+  let cards = await q(Cl, `select * from public.my_daily_cards()`);
+  const curio = cards.filter((c) => c.kind === "curio").map((c) => c.chapter_slug).sort().join();
+  check("a spent Space still gets its Curio (not only Wander)", curio === "creative,health", cards);
+  check("plus one Wander", cards.filter((c) => c.kind === "wander").length === 1, cards);
+  const hours = (new Date(cards[0]?.expires_at) - Date.now()) / 36e5;
+  check("cards last 24 hours from serving", hours > 23.9 && hours <= 24, hours);
+  const again = await q(Cl, `select card_id from public.my_daily_cards()`);
+  check("opening Home again keeps the same set", again.length === cards.length, again);
+
+  // A Space opened mid-day joins the live set.
+  await q(Cl, `insert into public.user_chapters (user_id, chapter_slug, phase) values ($1, 'learning', 'Day one')`, [Cl]);
+  cards = await q(Cl, `select * from public.my_daily_cards()`);
+  const learningCard = cards.find((c) => c.chapter_slug === "learning");
+  check("a new Space is topped up today", Boolean(learningCard) && cards.length === 4, cards);
+  check(
+    "a top-up shares the set's expiry",
+    learningCard && new Date(learningCard.expires_at).getTime() === new Date(cards[0].expires_at).getTime(),
+    cards,
+  );
+
+  // Tomorrow: a fresh set; a paused Space sits it out.
+  await su(`update public.user_chapters set paused_at = now() where user_id = $1 and chapter_slug = 'health'`, [Cl]);
+  await su(`update public.user_daily_curio set expires_at = now() - interval '1 minute' where user_id = $1`, [Cl]);
+  cards = await q(Cl, `select * from public.my_daily_cards()`);
+  const spaces = cards.filter((c) => c.kind === "curio").map((c) => c.chapter_slug).sort().join();
+  check("the next day brings a new set, paused Spaces skipped", spaces === "creative,learning", cards);
+  const [{ n }] = await su(`select count(*)::int n from private.cards_served where user_id = $1 and card_id = $2`, [Cl, art]);
+  check("each serving is recorded once", n === 3, n);
+});
+
+await step("@mentions: saved, notified, checked against who can see it", async () => {
+  const career = [{ slug: "career", phase: "Starting over" }];
+  const Ma = await person("Mira", career);
+  const Mb = await person("Milo", career);
+  const Mc = await person("Mona", career);
+  const Md = await person("Mack", career);
+  await connect(Ma, Mb);
+  await connect(Ma, Md);
+  const notes = async (uid) =>
+    su(`select actor_id, entity_id, data from public.notifications where user_id = $1 and kind = 'mentioned' order by created_at`, [uid]);
+
+  // A circle post: Milo can see it, Mona (same Space, not connected) can't.
+  const [{ id: post }] = await q(Ma, `insert into public.posts (chapter_slug, body) values ('career', 'Day one @Milo') returning id`);
+  const [{ id: comment, mentions }] = await q(
+    Mb,
+    `insert into public.comments (post_id, body, mentions) values ($1, '@Mira @Mona hi', $2) returning id, mentions`,
+    [post, [Ma, Mc, Mb]],
+  );
+  check("a comment keeps only people who can see the post (not self)", mentions.length === 1 && mentions[0] === Ma, mentions);
+  const [note] = await notes(Ma);
+  check(
+    "the mentioned person is notified, pointing at the post",
+    note?.actor_id === Mb && note.entity_id === post && note.data.source === "comment" && note.data.comment_id === comment,
+    note,
+  );
+  check("someone who can't see it gets nothing", (await notes(Mc)).length === 0);
+  check("no notification to yourself", (await notes(Mb)).length === 0);
+
+  // Posts take their mentions once they exist.
+  const [{ mentions: direct }] = await q(Ma, `insert into public.posts (chapter_slug, body, mentions) values ('career', 'x', $1) returning mentions`, [[Mb]]);
+  check("a post's mentions don't ride on the insert", direct.length === 0, direct);
+  const [{ set_post_mentions: kept }] = await q(Ma, `select public.set_post_mentions($1, $2)`, [post, [Mb, Mc]]);
+  check("set_post_mentions keeps who can see it", kept.length === 1 && kept[0] === Mb, kept);
+  const [postNote] = await notes(Mb);
+  check("…and notifies them", postNote?.data.source === "post" && postNote.entity_id === post, postNote);
+  await fails("only the author tags people in a post", Mb, `select public.set_post_mentions($1, $2)`, [post, [Ma]], "Only the author");
+
+  // Mention candidates match what may be saved.
+  const offered = (await q(Mb, `select user_id from public.mention_candidates('M', $1)`, [post])).map((r) => r.user_id);
+  check("the @ list offers people who can see the post", offered.includes(Ma) && !offered.includes(Mc) && !offered.includes(Mb), offered);
+
+  // Blocked: Mack blocks Mira — even on a post he could see, no mention, no notification.
+  const [{ id: open }] = await q(Ma, `insert into public.posts (chapter_slug, body, open_grove) values ('career', 'open', true) returning id`);
+  await q(Md, `select public.block_user($1)`, [Ma]);
+  const [{ mentions: afterBlock }] = await q(Ma, `insert into public.comments (post_id, body, mentions) values ($1, '@Mack @Mona', $2) returning mentions`, [
+    open,
+    [Md, Mc],
+  ]);
+  check("a block drops the mention; an Open Grouv reader stays", afterBlock.length === 1 && afterBlock[0] === Mc, afterBlock);
+  check("blocked → no notification", (await notes(Md)).length === 0);
+  check("Open Grouv reader notified", (await notes(Mc)).length === 1);
+
+  // Chats: only members.
+  const [{ open_direct_conversation: dm }] = await q(Ma, `select public.open_direct_conversation($1)`, [Mb]);
+  const [{ mentions: chat }] = await q(
+    Ma,
+    `insert into public.messages (conversation_id, sender_id, body, mentions) values ($1, $2, '@Milo look', $3) returning mentions`,
+    [dm, Ma, [Mb, Mc]],
+  );
+  check("a chat keeps conversation members only", chat.length === 1 && chat[0] === Mb, chat);
+  const chatNote = (await notes(Mb)).find((n) => n.data.source === "message");
+  check("chat mention notifies with the conversation", chatNote?.entity_id === dm && chatNote.data.conversation_kind === "direct", chatNote);
+
+  // The faces on someone's rings: the viewer, and shared connections.
+  const ring = (await q(Mb, `select user_id from public.grouv_people($1)`, [Ma])).map((r) => r.user_id);
+  check("their Grouv shows you on their rings", ring.includes(Mb) && !ring.includes(Md), ring);
+  check("a stranger sees nobody on them", (await q(Mc, `select user_id from public.grouv_people($1)`, [Ma])).length === 0);
 });
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

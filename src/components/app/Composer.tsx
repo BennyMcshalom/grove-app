@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
+import { MentionInput, useMentionPicks, type MentionPicks } from "@/components/app/MentionInput";
 import { PostingToMenu } from "@/components/app/PostMenu";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
@@ -65,6 +66,8 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const openGrouv = share === "open";
   // A draft from an earlier visit, offered until it's resumed or discarded.
   const [savedDraft, setSavedDraft] = useState<ComposerDraft | null>(null);
+  // People tagged with @ in the words; checked again by the database.
+  const picks = useMentionPicks();
 
   const uploading = attachments.some((a) => a.status === "uploading");
   const uploadingNow = attachments.filter((a) => a.status === "uploading");
@@ -333,6 +336,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         openGrove: openGrouv,
         audience,
         audienceIds: audience === "selected_bonds" ? audienceIds : [],
+        mentions: picks.idsIn(isRoot ? honest : caption),
         media: attachments.flatMap((a) =>
           a.path
             ? [{ path: a.path, kind: a.kind, trimStart: a.trimStart, trimEnd: a.trimEnd, width: a.width, height: a.height }]
@@ -587,6 +591,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
               onChange={setCaption}
               maxLength={4000}
               plainLabel
+              mention={{ chapterSlug: chapter, picks }}
             />
           </div>
 
@@ -646,6 +651,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
             value={honest}
             onChange={setHonest}
             maxLength={4000}
+            mention={{ chapterSlug: chapter, picks }}
           />
         </div>
 
@@ -729,6 +735,7 @@ function Field({
   onChange,
   maxLength,
   plainLabel = false,
+  mention,
 }: {
   label: string;
   name: string;
@@ -738,7 +745,11 @@ function Field({
   maxLength: number;
   /** Just Grouv labels its caption in sentence case, not the prompts' caps. */
   plainLabel?: boolean;
+  /** Offers people to tag with @: the circle and people holding this Space. */
+  mention?: { chapterSlug: string; picks: MentionPicks };
 }) {
+  const fieldClass =
+    "w-full resize-y rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]";
   return (
     <div className="flex flex-col gap-1.5">
       <label
@@ -750,15 +761,29 @@ function Field({
       >
         {label}
       </label>
-      <textarea
-        id={name}
-        name={name}
-        rows={rows}
-        value={value}
-        maxLength={maxLength}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full resize-y rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
-      />
+      {mention ? (
+        <MentionInput
+          id={name}
+          name={name}
+          rows={rows}
+          value={value}
+          maxLength={maxLength}
+          onChange={onChange}
+          context={{ kind: "space", chapterSlug: mention.chapterSlug }}
+          picks={mention.picks}
+          className={fieldClass}
+        />
+      ) : (
+        <textarea
+          id={name}
+          name={name}
+          rows={rows}
+          value={value}
+          maxLength={maxLength}
+          onChange={(e) => onChange(e.target.value)}
+          className={fieldClass}
+        />
+      )}
     </div>
   );
 }

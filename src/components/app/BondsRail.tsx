@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
 import { useRespondToInvite } from "@/components/app/bonds/BondModals";
+import { WalkingWithLink } from "@/components/app/companions/WalkingWithLink";
 import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
 import { cancelConnectionRequest, connectWith, respondToRequest } from "@/lib/bond-actions";
@@ -30,6 +31,8 @@ export function BondsRail({
   return (
     <aside className="hidden w-[260px] shrink-0 scroll-slim overflow-y-auto bg-ivory-100 px-4 py-6 lg:block xl:w-[300px] xl:px-5">
       <div className="flex flex-col gap-7">
+        <WalkingWithLink />
+
         {invites.length > 0 && (
           <section className="flex flex-col gap-4">
             <h2 className="font-sans text-base font-medium text-ink-600">

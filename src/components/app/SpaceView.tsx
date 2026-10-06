@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { CloseChapterWizard } from "@/components/app/CloseChapterWizard";
 import { ChapterInviteModal } from "@/components/app/invite/ChapterInviteModal";
+import { SpaceCompanionsStrip } from "@/components/app/companions/SpaceCompanionsStrip";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { FeedEnd, FeedList } from "@/components/app/FeedList";
 import { RightRail } from "@/components/app/RightRail";
@@ -144,7 +145,7 @@ export function SpaceView({
                   <div className="flex shrink-0 items-center gap-2">
                     {/* The phone frame keeps only ⋮, so the invite moves into the menu there. */}
                     <Button variant="secondary" size="sm" className="hidden sm:flex" onClick={() => setInviting(true)}>
-                      Invite someone
+                      Invite someone to walk with me
                     </Button>
                     <SpaceMenu onInvite={() => setInviting(true)} onCloseChapter={() => setClosing(true)} />
                   </div>
@@ -175,6 +176,8 @@ export function SpaceView({
                     In progress
                   </span>
                 </span>
+                {/* Chapter Companions: who walks alongside this chapter. */}
+                <SpaceCompanionsStrip slug={slug} userChapterId={userChapterId} />
               </div>
 
               <div role="tablist" className="flex">
@@ -405,7 +408,7 @@ function SpaceMenu({ onInvite, onCloseChapter }: { onInvite: () => void; onClose
               onInvite();
             }}
           >
-            Invite someone
+            Invite someone to walk with me
           </button>
           <button
             type="button"

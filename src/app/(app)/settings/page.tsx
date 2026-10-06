@@ -32,7 +32,7 @@ export default async function SettingsPage() {
     supabase.rpc("am_i_staff"),
     supabase
       .from("subscriptions")
-      .select("trial_started_at, current_period_end, cancel_at_period_end, billing_store")
+      .select("trial_started_at, current_period_end, cancel_at_period_end, billing_store, bonus_until")
       .eq("user_id", viewer.id)
       .single(),
     supabase.from("privacy_settings").select("discoverable, activity_matching").eq("user_id", viewer.id).maybeSingle(),
@@ -71,6 +71,7 @@ export default async function SettingsPage() {
         store: subscription?.billing_store ?? null,
         currentPeriodEnd: subscription?.current_period_end ?? null,
         cancelAtPeriodEnd: subscription?.cancel_at_period_end ?? false,
+        bonusUntil: subscription?.bonus_until ?? null,
       }}
       privacy={{
         discoverable: privacy?.discoverable ?? true,

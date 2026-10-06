@@ -103,6 +103,18 @@
   --color-space-learning: #f4fcf4;
   --color-space-relationships: #fef2f8;
 
+  /* The stronger accent of each Space, for the label a post or Curio card
+     wears (banner or tag — SpaceLabel.tsx). White text sits on these, so
+     every one clears 4.5:1 against white. */
+  --color-space-career-accent: #c2410c;
+  --color-space-spiritual-accent: #0e7490;
+  --color-space-wealth-accent: #15803d;
+  --color-space-adventure-accent: #0369a1;
+  --color-space-health-accent: #a16207;
+  --color-space-creative-accent: #7e22ce;
+  --color-space-learning-accent: #4d7c0f;
+  --color-space-relationships-accent: #be185d;
+
   /* Type. Outfit = display, Figtree = body, Lato = buttons/labels. */
   --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
@@ -195,6 +207,17 @@
     --color-space-creative: #261f2e;
     --color-space-learning: #1f271f;
     --color-space-relationships: #2b1f26;
+
+    /* The accents a shade deeper, so they don't glare on the dark page; the
+       white label on them keeps its contrast. */
+    --color-space-career-accent: #9a3412;
+    --color-space-spiritual-accent: #155e75;
+    --color-space-wealth-accent: #166534;
+    --color-space-adventure-accent: #075985;
+    --color-space-health-accent: #854d0e;
+    --color-space-creative-accent: #6b21a8;
+    --color-space-learning-accent: #3f6212;
+    --color-space-relationships-accent: #9d174d;
 
     /* Backgrounds, darkest (the page) to lightest (borders, scrollbars). */
     --color-ivory-50: #1b1a1f;

@@ -91,7 +91,12 @@ type NotificationKind =
   | "introduction_declined"
   | "match_available"
   | "chapter_invite"
-  | "chapter_invite_accepted";
+  | "chapter_invite_accepted"
+  | "companion_invite"
+  | "companion_accepted"
+  | "companion_update"
+  | "companion_checkin"
+  | "mentioned";
 /** A chapter invitation recipient's answer. */
 type InviteResponse = "pending" | "accepted" | "declined";
 /** Who a post is for (composer "Visible to"). */
@@ -173,6 +178,7 @@ export type Database = {
           media_path?: string | null;
           duration_seconds?: number | null;
           shared_post_id?: string | null;
+          mentions?: string[];
         };
         Update: { body?: string | null; edited_at?: string | null; deleted_at?: string | null };
         Relationships: [
@@ -459,6 +465,7 @@ export type Database = {
           audience: Audience;
           roots_count: number;
           comments_count: number;
+          mentions: string[];
           created_at: string;
           updated_at: string;
         };
@@ -535,6 +542,7 @@ export type Database = {
           media_path: string | null;
           parent_id: string | null;
           roots_count: number;
+          mentions: string[];
           created_at: string;
           updated_at: string;
         };
@@ -544,6 +552,7 @@ export type Database = {
           body?: string | null;
           media_path?: string | null;
           parent_id?: string | null;
+          mentions?: string[];
         };
         Update: { body?: string | null; media_path?: string | null };
         Relationships: [ProfilesFk<"comments_author_id_fkey", "author_id">];
@@ -721,6 +730,11 @@ export type Database = {
         token: string;
         created_at: string;
         revoked_at: string | null;
+        recipient_id: string | null;
+        ask: string | null;
+        share_story: boolean;
+        share_current: boolean;
+        share_future: boolean;
       }>;
       chapter_invite_recipients: ReadOnlyTable<{
         invite_id: string;
@@ -728,6 +742,47 @@ export type Database = {
         status: InviteResponse;
         created_at: string;
         responded_at: string | null;
+      }>;
+      chapter_invite_moments: ReadOnlyTable<{
+        invite_id: string;
+        log_entry_id: string | null;
+        post_id: string | null;
+        position: number;
+      }>;
+      companion_chapter_notes: ReadOnlyTable<{
+        user_chapter_id: string;
+        owner_id: string;
+        where_now: string | null;
+        milestone: string | null;
+        milestone_date: string | null;
+        updated_at: string;
+      }>;
+      chapter_companions: ReadOnlyTable<{
+        id: string;
+        invite_id: string;
+        user_chapter_id: string;
+        owner_id: string;
+        companion_id: string;
+        created_at: string;
+        muted_at: string | null;
+        ended_at: string | null;
+        ended_by: string | null;
+      }>;
+      companion_updates: ReadOnlyTable<{
+        id: string;
+        user_chapter_id: string;
+        owner_id: string;
+        body: string | null;
+        photo_path: string | null;
+        created_at: string;
+      }>;
+      companion_update_recipients: ReadOnlyTable<{ update_id: string; companion_id: string }>;
+      companion_messages: ReadOnlyTable<{
+        id: string;
+        companion_id: string;
+        author_id: string;
+        body: string;
+        created_at: string;
       }>;
       truths: {
         Row: { id: string; group_id: string; body: string; felt_count: number; created_at: string };
@@ -1149,6 +1204,15 @@ export type Database = {
         };
       };
       set_post_audience: { Args: { p_post_id: string; p_user_ids: string[] }; Returns: number };
+      set_post_mentions: { Args: { p_post_id: string; p_user_ids: string[] }; Returns: string[] };
+      mention_candidates: {
+        Args: { p_query?: string; p_post_id?: string | null; p_chapter_slug?: string | null; p_conversation_id?: string | null };
+        Returns: { user_id: string; first_name: string; avatar_url: string | null; aura: Aura; is_close: boolean }[];
+      };
+      grouv_people: {
+        Args: { p_user_id: string };
+        Returns: { user_id: string; first_name: string; avatar_url: string | null; aura: Aura; relationship: "bond" | "circle" }[];
+      };
       complete_onboarding: {
         Args: {
           p_chapters: Json;
@@ -1163,17 +1227,26 @@ export type Database = {
         Returns: Database["public"]["Tables"]["subscriptions"]["Row"];
       };
       has_pass: { Args: Record<string, never>; Returns: boolean };
-      create_chapter_invite: {
+      create_companion_invite: {
         Args: {
           p_user_chapter_id: string;
           p_title: string;
-          p_note?: string | null;
-          p_photo_paths?: string[];
-          p_recipients?: string[];
+          p_why?: string | null;
+          p_ask?: string | null;
+          p_where_now?: string | null;
+          p_milestone?: string | null;
+          p_milestone_date?: string | null;
+          p_share_story?: boolean;
+          p_share_current?: boolean;
+          p_share_future?: boolean;
+          p_log_entry_ids?: string[];
+          p_post_ids?: string[];
+          p_recipient?: string | null;
         };
         Returns: { id: string; token: string }[];
       };
-      chapter_invite_card: {
+      revoke_companion_invite: { Args: { p_invite_id: string }; Returns: undefined };
+      companion_invite_card: {
         Args: { p_token: string };
         Returns: {
           id: string;
@@ -1181,19 +1254,26 @@ export type Database = {
           sender_name: string;
           sender_avatar: string | null;
           chapter_slug: string;
+          phase: string;
           title: string;
-          note: string | null;
-          photo_paths: string[];
+          why: string | null;
+          ask: string | null;
+          share_story: boolean;
+          share_current: boolean;
+          share_future: boolean;
+          moment_count: number;
           is_sender: boolean;
+          for_someone_else: boolean;
+          taken: boolean;
           my_status: InviteResponse | null;
-          holds_chapter: boolean;
+          my_companion_id: string | null;
         }[];
       };
-      respond_chapter_invite: {
-        Args: { p_token: string; p_accept: boolean; p_phase?: string | null };
-        Returns: "joined" | "declined";
+      respond_companion_invite: {
+        Args: { p_token: string; p_accept: boolean };
+        Returns: { status: "accepted" | "declined"; companion_id: string | null }[];
       };
-      my_chapter_invitations: {
+      my_companion_invitations: {
         Args: Record<string, never>;
         Returns: {
           id: string;
@@ -1205,6 +1285,123 @@ export type Database = {
           sender_avatar: string | null;
           created_at: string;
         }[];
+      };
+      walking_with: {
+        Args: Record<string, never>;
+        Returns: {
+          companion_id: string;
+          owner_id: string;
+          owner_name: string;
+          owner_avatar: string | null;
+          chapter_slug: string;
+          phase: string;
+          title: string;
+          milestone: string | null;
+          milestone_date: string | null;
+          latest_update: string | null;
+          latest_update_at: string | null;
+          muted: boolean;
+          since: string;
+        }[];
+      };
+      companion_detail: {
+        Args: { p_companion_id: string };
+        Returns: {
+          companion_id: string;
+          user_chapter_id: string;
+          owner_id: string;
+          owner_name: string;
+          owner_avatar: string | null;
+          companion_user_id: string;
+          companion_name: string;
+          companion_avatar: string | null;
+          chapter_slug: string;
+          phase: string;
+          title: string;
+          why: string | null;
+          ask: string | null;
+          share_story: boolean;
+          share_current: boolean;
+          share_future: boolean;
+          where_now: string | null;
+          milestone: string | null;
+          milestone_date: string | null;
+          note_updated_at: string | null;
+          muted: boolean;
+          is_owner: boolean;
+          ended: boolean;
+          since: string;
+        }[];
+      };
+      companion_moments: {
+        Args: { p_companion_id: string };
+        Returns: {
+          kind: "log" | "post";
+          id: string;
+          body: string | null;
+          photo_path: string | null;
+          entry_date: string;
+          day_number: number;
+          created_at: string;
+        }[];
+      };
+      companion_shared_updates: {
+        Args: { p_companion_id: string };
+        Returns: { id: string; body: string | null; photo_path: string | null; created_at: string }[];
+      };
+      companion_thread: {
+        Args: { p_companion_id: string };
+        Returns: {
+          id: string;
+          author_id: string;
+          author_name: string;
+          author_avatar: string | null;
+          body: string;
+          created_at: string;
+        }[];
+      };
+      send_companion_message: { Args: { p_companion_id: string; p_body: string }; Returns: string };
+      mute_companion: { Args: { p_companion_id: string; p_muted: boolean }; Returns: undefined };
+      end_companion: { Args: { p_companion_id: string }; Returns: undefined };
+      chapter_companion_list: {
+        Args: { p_user_chapter_id: string };
+        Returns: {
+          companion_id: string;
+          user_id: string;
+          name: string;
+          avatar_url: string | null;
+          since: string;
+          share_story: boolean;
+          share_current: boolean;
+          share_future: boolean;
+          moment_count: number;
+          last_message: string | null;
+          last_message_at: string | null;
+          last_message_mine: boolean | null;
+        }[];
+      };
+      chapter_pending_invites: {
+        Args: { p_user_chapter_id: string };
+        Returns: {
+          id: string;
+          token: string;
+          recipient_id: string | null;
+          recipient_name: string | null;
+          recipient_avatar: string | null;
+          created_at: string;
+        }[];
+      };
+      share_companion_update: {
+        Args: { p_user_chapter_id: string; p_body: string | null; p_photo_path?: string | null; p_companion_ids?: string[] | null };
+        Returns: string;
+      };
+      set_companion_note: {
+        Args: { p_user_chapter_id: string; p_where_now: string | null; p_milestone: string | null; p_milestone_date?: string | null };
+        Returns: undefined;
+      };
+      set_companion_moments: {
+        Args: { p_companion_id: string; p_log_entry_ids: string[]; p_post_ids: string[] };
+        Returns: number;
       };
       group_request_outcome: { Args: { p_group_id: string }; Returns: RequestStatus | null };
       acknowledge_group_request: { Args: { p_group_id: string }; Returns: undefined };

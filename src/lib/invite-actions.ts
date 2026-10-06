@@ -6,15 +6,16 @@ import { z } from "zod";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { loadBondPeople } from "@/lib/bonds-server";
 import { getChapter } from "@/lib/chapters";
-import { INVITE_COOKIE, type InvitePerson, type PendingInvitation } from "@/lib/invites";
-import { signPaths } from "@/lib/storage-server";
+import { loadCompanionNote, loadInvitationCard, loadPickableMoments } from "@/lib/companions-server";
+import { INVITE_COOKIE, type InvitePerson, type PendingInvitation, type PickableMoment } from "@/lib/invites";
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 type Result = { error?: string };
 
 const SINCE = new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric" });
 
-/** "Invite someone to this chapter" — your Bonds first, then your circle and the Space. */
+/** Who you can invite: your Bonds first, then your circle and the Space. */
 export async function loadInvitePeople(chapterSlug: string): Promise<InvitePerson[]> {
   await requireOnboardedViewer();
   if (!getChapter(chapterSlug)) return [];
@@ -49,65 +50,97 @@ export async function loadInvitePeople(chapterSlug: string): Promise<InvitePerso
   return out;
 }
 
+/** Your own chapter, or null. */
+async function ownChapter(userChapterId: string, userId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("user_chapters")
+    .select("id, chapter_slug, opened_at")
+    .eq("id", userChapterId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data ? { id: data.id, chapterSlug: data.chapter_slug, openedAt: data.opened_at } : null;
+}
+
+/** What the invitation form starts from: your moments in this chapter and its current note. */
+export async function loadInviteSetup(
+  userChapterId: string,
+): Promise<{ moments: PickableMoment[]; note: { whereNow: string; milestone: string; milestoneDate: string } }> {
+  const viewer = await requireOnboardedViewer();
+  const chapter = await ownChapter(userChapterId, viewer.userId);
+  if (!chapter) return { moments: [], note: { whereNow: "", milestone: "", milestoneDate: "" } };
+  const [moments, note] = await Promise.all([
+    loadPickableMoments(viewer.userId, chapter),
+    loadCompanionNote(chapter.id),
+  ]);
+  return { moments, note };
+}
+
 const InviteSchema = z.object({
   userChapterId: z.uuid(),
-  title: z.string().trim().min(1, "Give your invitation a title").max(120, "Keep the title under 120 characters"),
-  note: z.string().trim().max(1000, "Keep the note under 1,000 characters"),
-  photoPaths: z.array(z.string()).max(4),
-  recipients: z.array(z.uuid()).max(30, "Invite up to 30 people at a time"),
+  title: z.string().trim().min(1, "Give your chapter a title").max(120, "Keep the title under 120 characters"),
+  why: z.string().trim().max(1000, "Keep each answer under 1,000 characters"),
+  ask: z.string().trim().max(1000, "Keep each answer under 1,000 characters"),
+  whereNow: z.string().trim().max(1000, "Keep each answer under 1,000 characters"),
+  milestone: z.string().trim().max(200, "Keep the milestone under 200 characters"),
+  milestoneDate: z.union([z.iso.date(), z.literal("")]),
+  share: z.object({ story: z.boolean(), current: z.boolean(), future: z.boolean() }),
+  logEntryIds: z.array(z.uuid()).max(30, "Pick up to 30 moments"),
+  postIds: z.array(z.uuid()).max(30, "Pick up to 30 moments"),
+  recipient: z.uuid().nullable(),
 });
 
-export type ChapterInviteInput = z.input<typeof InviteSchema>;
+export type CompanionInviteInput = z.input<typeof InviteSchema>;
 
-/** Preview → "Send Invite". Returns the /i/<token> link for sharing. */
-export async function sendChapterInvite(input: ChapterInviteInput): Promise<Result & { token?: string }> {
+/** Preview → "Send invitation". Returns the /i/<token> link on Grouv's one public origin. */
+export async function sendCompanionInvite(input: CompanionInviteInput): Promise<Result & { link?: string }> {
   await requireOnboardedViewer();
   const parsed = InviteSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check your invitation." };
 
-  const { userChapterId, title, note, photoPaths, recipients } = parsed.data;
+  const v = parsed.data;
+  if (!v.share.story && !v.share.current && !v.share.future) return { error: "Choose at least one thing to share." };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("create_chapter_invite", {
-    p_user_chapter_id: userChapterId,
-    p_title: title,
-    p_note: note || null,
-    p_photo_paths: photoPaths,
-    p_recipients: recipients,
+  const { data, error } = await supabase.rpc("create_companion_invite", {
+    p_user_chapter_id: v.userChapterId,
+    p_title: v.title,
+    p_why: v.why || null,
+    p_ask: v.ask || null,
+    p_where_now: v.whereNow || null,
+    p_milestone: v.milestone || null,
+    p_milestone_date: v.milestoneDate || null,
+    p_share_story: v.share.story,
+    p_share_current: v.share.current,
+    p_share_future: v.share.future,
+    p_log_entry_ids: v.share.story ? v.logEntryIds : [],
+    p_post_ids: v.share.story ? v.postIds : [],
+    p_recipient: v.recipient,
   });
 
   if (error || !data?.[0]) {
-    console.error("[invites] sendChapterInvite failed", error);
-    if (error?.hint && ["rate_limited", "space_paused", "not_reachable", "title", "note", "photos", "too_many"].includes(error.hint)) {
-      return { error: error.message };
-    }
+    console.error("[invites] sendCompanionInvite failed", error);
+    const known = [
+      "rate_limited", "space_paused", "not_reachable", "already_companion", "title", "note",
+      "nothing_shared", "too_many_moments", "not_your_moment",
+    ];
+    if (error?.hint && known.includes(error.hint)) return { error: error.message };
     return { error: "We couldn't send your invitation. Try again." };
   }
-  return { token: data[0].token };
+  return { link: `${await siteUrl()}/i/${data[0].token}` };
 }
 
-export type RespondResult = Result & {
-  status?: "joined" | "declined";
-  /** Opening the Space needs a stage first (the "where are you?" sheet). */
-  needsPhase?: boolean;
-  /** Full on Free: the Season Pass paywall, reason "space_limit". */
-  spaceLimit?: boolean;
-};
+export type RespondResult = Result & { status?: "accepted" | "declined"; companionId?: string | null };
 
-/** "Join chapter" / "Decline invitation" — in the app and on /i/<token>. */
-export async function respondChapterInvite(token: string, accept: boolean, phase?: string): Promise<RespondResult> {
+/** "Accept invitation" / "Not now" — in the app and on /i/<token>. */
+export async function respondCompanionInvite(token: string, accept: boolean): Promise<RespondResult> {
   await requireOnboardedViewer();
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("respond_chapter_invite", {
-    p_token: token,
-    p_accept: accept,
-    p_phase: phase ?? null,
-  });
+  const { data, error } = await supabase.rpc("respond_companion_invite", { p_token: token, p_accept: accept });
 
-  if (error || !data) {
-    if (error?.hint === "phase_required") return { needsPhase: true };
-    if (error?.hint === "chapter_limit") return { spaceLimit: true, error: error.message };
-    if (error?.hint && ["gone", "own", "answered", "rate_limited"].includes(error.hint)) return { error: error.message };
-    console.error("[invites] respondChapterInvite failed", error);
+  const row = data?.[0];
+  if (error || !row) {
+    if (error?.hint && ["gone", "own", "answered", "not_for_you"].includes(error.hint)) return { error: error.message };
+    console.error("[invites] respondCompanionInvite failed", error);
     return { error: "We couldn't answer that invitation. Try again." };
   }
 
@@ -115,15 +148,15 @@ export async function respondChapterInvite(token: string, accept: boolean, phase
   const jar = await cookies();
   if (jar.get(INVITE_COOKIE)?.value === token) jar.delete(INVITE_COOKIE);
   refresh();
-  return { status: data };
+  return { status: row.status, companionId: row.companion_id };
 }
 
 /** INVITATIONS — the invitations waiting on the viewer. */
 export async function loadMyInvitations(): Promise<PendingInvitation[]> {
   await requireOnboardedViewer();
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("my_chapter_invitations");
-  if (error) console.error("[invites] my_chapter_invitations failed", error);
+  const { data, error } = await supabase.rpc("my_companion_invitations");
+  if (error) console.error("[invites] my_companion_invitations failed", error);
   return (data ?? []).map((r) => ({
     id: r.id,
     token: r.token,
@@ -135,26 +168,8 @@ export async function loadMyInvitations(): Promise<PendingInvitation[]> {
   }));
 }
 
-/** Opening a row under INVITATIONS: the full card, photos signed. */
+/** Opening a row under INVITATIONS: the full card. */
 export async function loadInvitation(token: string) {
   await requireOnboardedViewer();
-  const supabase = await createClient();
-  const { data } = await supabase.rpc("chapter_invite_card", { p_token: token });
-  const row = data?.[0];
-  if (!row) return null;
-  const signed = await signPaths("media", row.photo_paths, { width: 1080 });
-  return {
-    id: row.id,
-    token,
-    senderId: row.sender_id,
-    senderName: row.sender_name,
-    senderAvatar: row.sender_avatar,
-    chapterSlug: row.chapter_slug,
-    title: row.title,
-    note: row.note,
-    photoUrls: row.photo_paths.flatMap((p) => signed.get(p) ?? []),
-    isSender: row.is_sender,
-    myStatus: row.my_status,
-    holdsChapter: row.holds_chapter,
-  };
+  return loadInvitationCard(token);
 }

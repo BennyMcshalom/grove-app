@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { MessagesSkeleton } from "@/components/ui/Skeleton";
 import { Avatar } from "@/components/app/Avatar";
+import { MentionInput, useMentionPicks } from "@/components/app/MentionInput";
+import { MentionText, rememberMentions } from "@/components/app/MentionText";
+import type { MentionPerson } from "@/lib/mentions";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { useRealtimeChannel } from "@/lib/supabase/use-channel";
@@ -58,15 +61,17 @@ export function useRoomMessages(conversationId: string, enabled: boolean) {
   );
 
   const send = useCallback(
-    async (body: string) => {
+    async (body: string, mentioned: MentionPerson[] = []) => {
       setSending(true);
-      const result = await sendRoomMessage(conversationId, body);
+      const result = await sendRoomMessage(conversationId, body, mentioned.map((p) => p.id));
       setSending(false);
       if (result.error || !result.message) {
         toast({ title: result.error ?? "Your message didn't send.", tone: "danger" });
         return false;
       }
       const message = result.message;
+      const kept = new Set(result.mentions);
+      rememberMentions("messages", message.id, mentioned.filter((p) => kept.has(p.id)));
       setMessages((prev) => [...(prev ?? []), message]);
       return true;
     },
@@ -117,7 +122,9 @@ export function RoomMessageList({
                 {clock.format(new Date(message.createdAt)).toLowerCase()}
               </span>
             </span>
-            <p className="font-sans text-sm whitespace-pre-line text-ink-400">{message.body}</p>
+            <p className="font-sans text-sm whitespace-pre-line text-ink-400">
+              {message.body && <MentionText text={message.body} source="messages" id={message.id} className="text-primary-600" />}
+            </p>
           </div>
         </li>
       ))}
@@ -131,20 +138,25 @@ export function RoomComposer({
   onSend,
   sending,
   disabled = false,
+  conversationId,
 }: {
   placeholder: string;
-  onSend: (body: string) => Promise<boolean>;
+  onSend: (body: string, mentioned: MentionPerson[]) => Promise<boolean>;
   sending: boolean;
   disabled?: boolean;
+  /** Lets "@" offer the conversation's members. */
+  conversationId?: string;
 }) {
   const [draft, setDraft] = useState("");
+  const picks = useMentionPicks();
 
   const submit = async () => {
     const body = draft.trim();
     if (!body || sending) return;
     setDraft("");
-    const ok = await onSend(body);
+    const ok = await onSend(body, picks.peopleIn(body));
     if (!ok) setDraft(body);
+    else picks.clear();
   };
 
   return (
@@ -155,14 +167,19 @@ export function RoomComposer({
       }}
       className="mx-auto flex w-full max-w-[724px] items-center gap-3"
     >
-      <input
+      <MentionInput
+        as="input"
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={setDraft}
+        context={conversationId ? { kind: "conversation", conversationId } : { kind: "people", people: [] }}
+        picks={picks}
+        placement="above"
+        wrapperClassName="min-w-0 flex-1"
         placeholder={placeholder}
         aria-label={placeholder}
         maxLength={4000}
         disabled={disabled}
-        className="min-w-0 flex-1 rounded-2xl bg-ivory-100 px-5 py-4 font-sans text-sm text-ink-500 outline-none placeholder:text-ink-300 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)] disabled:cursor-not-allowed"
+        className="w-full rounded-2xl bg-ivory-100 px-5 py-4 font-sans text-sm text-ink-500 outline-none placeholder:text-ink-300 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)] disabled:cursor-not-allowed"
       />
       <button
         type="submit"

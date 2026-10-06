@@ -57,7 +57,7 @@ export function InvitationsList({
                 {invite.senderName} invited you
               </span>
               <span className="truncate font-sans text-xs text-ink-300">
-                to join &ldquo;{invite.title}&rdquo;
+                to walk alongside &ldquo;{invite.title}&rdquo;
               </span>
             </span>
             <ArrowRight className="size-5 shrink-0 text-primary-500" />

@@ -6,6 +6,7 @@ import { TopBar } from "@/components/app/TopBar";
 import { Avatar } from "@/components/app/Avatar";
 import { ProfileBanner as BannerStrip } from "@/components/app/ProfileBanner";
 import { BannerPicker } from "@/components/app/settings/BannerPicker";
+import { setSpaceLabelStyle, useSpaceLabelStyle } from "@/components/app/SpaceLabel";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { FormError } from "@/components/auth/FormError";
@@ -67,6 +68,8 @@ export interface SettingsBilling {
   store: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  /** A granted Season Pass (referral or bonus month) runs until then. */
+  bonusUntil?: string | null;
 }
 
 export function SettingsView({
@@ -177,7 +180,9 @@ export function SettingsView({
                   onChange={() => savePreference({ theme: lightMode ? "dark" : "light" })}
                 />
               }
+              divider
             />
+            <PostLabelsRow />
           </Card>
 
           <Card>
@@ -396,7 +401,7 @@ const longDate = (iso: string) =>
  * portal for web purchases, or the App Store / Google Play).
  */
 function SubscriptionRow({ billing }: { billing: SettingsBilling }) {
-  const { id: viewerId, subscriptionStatus, trialEndsAt } = useViewer();
+  const { id: viewerId, subscriptionStatus, trialEndsAt, hasPass } = useViewer();
   const toast = useToast();
   const [pending, startPending] = useTransition();
   const [price, setPrice] = useState<string | null>(null);
@@ -473,6 +478,19 @@ function SubscriptionRow({ billing }: { billing: SettingsBilling }) {
     </Button>
   );
 
+  // A granted pass (outlasting any trial) reads like a paid one: no end date,
+  // no "subscribe to keep it" (testing feedback, 6 Oct).
+  const granted =
+    hasPass &&
+    !hasPlan &&
+    (subscriptionStatus !== "trialing" ||
+      (billing.bonusUntil != null && trialEndsAt !== null && Date.parse(billing.bonusUntil) > Date.parse(trialEndsAt)));
+  if (granted) {
+    return (
+      <Row title="You’re on Season Pass" body="Your subscription is active. Enjoy everything included in your plan." />
+    );
+  }
+
   if (subscriptionStatus === "trialing" && trialEndsAt) {
     return hasPlan ? (
       <Row
@@ -490,9 +508,9 @@ function SubscriptionRow({ billing }: { billing: SettingsBilling }) {
   }
   if (subscriptionStatus === "active") {
     const renewal = billing.currentPeriodEnd
-      ? ` ${billing.cancelAtPeriodEnd ? "Ends" : "Renews"} on ${longDate(billing.currentPeriodEnd)}.`
+      ? ` Your plan ${billing.cancelAtPeriodEnd ? "ends" : "renews"} on ${longDate(billing.currentPeriodEnd)}.`
       : "";
-    return <Row title="Full access" body={`Your plan is active.${renewal}`} trailing={manage} />;
+    return <Row title="You’re on Season Pass" body={`Your subscription is active.${renewal}`} trailing={manage} />;
   }
   if (subscriptionStatus === "past_due") {
     return (
@@ -773,6 +791,41 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
         </div>
       </form>
     </div>
+  );
+}
+
+/** Trying two designs for a post's Space label; this device only. */
+function PostLabelsRow() {
+  const style = useSpaceLabelStyle();
+  return (
+    <Row
+      title="Post labels"
+      body="How posts and Curio show their Space."
+      trailing={
+        <div role="radiogroup" aria-label="Post labels" className="flex shrink-0 rounded-full bg-ivory-400 p-1">
+          {(
+            [
+              ["banner", "Banner"],
+              ["tag", "Tag"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={style === value}
+              onClick={() => setSpaceLabelStyle(value)}
+              className={cn(
+                "rounded-full px-3 py-1 font-ui text-sm font-medium transition-colors",
+                style === value ? "bg-surface text-ink-700 shadow-sm" : "text-ink-400 hover:text-ink-600",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      }
+    />
   );
 }
 

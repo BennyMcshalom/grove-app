@@ -4,13 +4,15 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { loadBondPeople } from "@/lib/bonds-server";
-import { loadFeed } from "@/lib/feed";
+import { loadFeed, loadPost } from "@/lib/feed";
+import { isUuid } from "@/lib/mentions";
 import {
   MEDIA_LIMITS,
   PROGRESS,
   REPORT_REASONS,
   type FeedPage,
   type FeedQuery,
+  type Post,
   type PostComment,
   type PostProgress,
   type ReportReason,
@@ -40,6 +42,13 @@ export async function loadPosts(query: FeedQuery): Promise<FeedPage> {
   return loadFeed(parsed.data, viewer.profile.first_name);
 }
 
+/** One post, for the post modal opened from a shared ?post= link. Null when it isn't visible. */
+export async function loadOnePost(postId: string): Promise<Post | null> {
+  const viewer = await requireOnboardedViewer();
+  if (!isUuid(postId)) return null;
+  return loadPost(postId, viewer.profile.first_name);
+}
+
 const CreatePostSchema = z.object({
   chapterSlug: z.string().min(1),
   kind: z.enum(["root", "grouv"]),
@@ -53,6 +62,8 @@ const CreatePostSchema = z.object({
   audience: z.enum(["everyone", "selected_bonds", "only_me"]).default("everyone"),
   /** For "selected_bonds": who, by user id. Each must be an active bond. */
   audienceIds: z.array(z.uuid()).max(50).default([]),
+  /** People tagged with @; the database keeps those who can see the post. */
+  mentions: z.array(z.uuid()).max(20).default([]),
   media: z
     .array(
       z.object({
@@ -76,7 +87,8 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   const parsed = CreatePostSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Something in that post didn't look right." };
 
-  const { chapterSlug, kind, title, progress, body, anonymous, openGrove, media, audience, audienceIds } = parsed.data;
+  const { chapterSlug, kind, title, progress, body, anonymous, openGrove, media, audience, audienceIds, mentions } =
+    parsed.data;
   const isRoot = kind === "root";
 
   if (isRoot && !title && !body && media.length === 0) {
@@ -152,6 +164,13 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
       await supabase.from("posts").delete().eq("id", post.id);
       return { error: "We couldn't attach your media. Try again." };
     }
+  }
+
+  // Last, once its audience is set: who can see it decides who can be tagged.
+  // A failed tag never costs the post.
+  if (mentions.length > 0) {
+    const { error: mentionError } = await supabase.rpc("set_post_mentions", { p_post_id: post.id, p_user_ids: mentions });
+    if (mentionError) console.error("[posts] set_post_mentions failed", mentionError);
   }
 
   refresh();
@@ -340,7 +359,9 @@ export async function addComment(
   postId: string,
   body: string,
   parentId: string | null = null,
-): Promise<{ comment?: PostComment; error?: string }> {
+  /** People picked from the @ list; the database keeps those who may see the post. */
+  mentions: string[] = [],
+): Promise<{ comment?: PostComment; mentions?: string[]; error?: string }> {
   const viewer = await requireOnboardedViewer();
   const text = body.trim();
   if (!text) return { error: "Write a comment first." };
@@ -349,8 +370,8 @@ export async function addComment(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("comments")
-    .insert({ post_id: postId, body: text, parent_id: parentId })
-    .select("id, created_at")
+    .insert({ post_id: postId, body: text, parent_id: parentId, mentions: mentions.filter(isUuid).slice(0, 20) })
+    .select("id, created_at, mentions")
     .single();
 
   if (error || !data) {
@@ -360,6 +381,7 @@ export async function addComment(
   }
 
   return {
+    mentions: data.mentions,
     comment: {
       id: data.id,
       authorId: viewer.userId,

@@ -7,6 +7,7 @@ import { Avatar } from "@/components/app/Avatar";
 import { ChapterGroupCard, GROUP_GRADIENT } from "@/components/app/ChapterGroupCard";
 import { IntroduceModal } from "@/components/app/home/IntroduceModal";
 import { InvitationsList } from "@/components/app/invite/InvitationsList";
+import { WalkingWithLink } from "@/components/app/companions/WalkingWithLink";
 import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
 import { loadSuggestedGroups } from "@/app/(app)/groups/actions";
@@ -124,6 +125,8 @@ export function RightRail({
               ))}
             </ul>
           )}
+          {/* Chapter Companions: the chapters you walk alongside. */}
+          {variant === "feed" && <WalkingWithLink />}
         </Section>
 
         {variant === "feed" && <Divider />}

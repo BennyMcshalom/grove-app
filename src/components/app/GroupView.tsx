@@ -262,7 +262,12 @@ export function GroupView({
         {member && tab === "Conversation" && (
           /* Frame 222:13512 — the comment bar. */
           <div className="shrink-0 border-t border-ink-50 bg-surface px-4 py-5 lg:px-8">
-            <RoomComposer placeholder="Add a comment......" onSend={chat.send} sending={chat.sending} />
+            <RoomComposer
+              placeholder="Add a comment......"
+              onSend={chat.send}
+              sending={chat.sending}
+              conversationId={group.conversationId}
+            />
           </div>
         )}
       </div>

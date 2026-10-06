@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { BondChat, GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
 import { BondInviteCard, BondsRail, PendingCard, SuggestionCard } from "@/components/app/BondsRail";
+import { WalkingWithLink } from "@/components/app/companions/WalkingWithLink";
 import { useIsOnline } from "@/components/app/Presence";
 import { useCollapsedSidebar } from "@/components/app/SidebarProvider";
 import { bondDuration, type BondInvite, type BondPerson, type PendingRequest, type Suggestion } from "@/lib/bonds";
@@ -194,6 +195,12 @@ export function BondsView({
               )}
             </section>
           )}
+
+          {/* Chapter Companions: the chapters you've been invited to walk alongside. */}
+          {/* The rail carries it from lg up. */}
+          <div className="bg-surface px-4 pt-4 lg:hidden">
+            <WalkingWithLink />
+          </div>
 
           <section className="flex flex-col gap-3 bg-surface pt-4">
             <h2 className="px-4 font-sans text-base font-medium text-ink-600">

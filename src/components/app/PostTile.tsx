@@ -10,9 +10,11 @@ import { cn } from "@/lib/cn";
 /**
  * One post as a 9:16 tile in a profile grid (Instagram's layout): the first
  * photo or video fills the tile, cropped to fit; a post without media shows
- * its words on a warm card. Tapping opens the post.
+ * its words on a warm card. Tapping opens the post: in a modal over the
+ * grid when `onOpen` is given, otherwise its own page. It stays a link to
+ * /posts/<id> either way, so a new tab or a copied link still works.
  */
-export function PostTile({ post }: { post: Post }) {
+export function PostTile({ post, onOpen }: { post: Post; onOpen?: (post: Post) => void }) {
   const cover = post.media[0];
   const [loaded, setLoaded] = useState(false);
   const words = post.title || post.body;
@@ -20,6 +22,11 @@ export function PostTile({ post }: { post: Post }) {
   return (
     <Link
       href={`/posts/${post.id}`}
+      onClick={(e) => {
+        if (!onOpen || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        onOpen(post);
+      }}
       className="group relative block aspect-[9/16] overflow-hidden rounded-lg bg-ivory-200 sm:rounded-xl"
       aria-label={words ? `Open post: ${words.slice(0, 60)}` : "Open post"}
     >

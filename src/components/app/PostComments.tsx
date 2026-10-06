@@ -3,9 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { Avatar } from "@/components/app/Avatar";
-import { Linkify } from "@/components/ui/Linkify";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
+import { MentionInput, useMentionPicks } from "@/components/app/MentionInput";
+import { MentionText, rememberMentions } from "@/components/app/MentionText";
+import type { MentionPerson } from "@/lib/mentions";
 import { addComment, deleteComment, loadComments, setCommentRooted } from "@/lib/post-actions";
 import type { PostComment } from "@/lib/posts";
 import { cn } from "@/lib/cn";
@@ -41,12 +43,15 @@ export function PostComments({
     };
   }, [postId]);
 
-  const post = async (body: string, parentId: string | null) => {
-    const result = await addComment(postId, body, parentId);
+  const post = async (body: string, parentId: string | null, mentioned: MentionPerson[]) => {
+    const result = await addComment(postId, body, parentId, mentioned.map((p) => p.id));
     if (result.error || !result.comment) {
       toast({ title: result.error ?? "We couldn't post your comment.", tone: "danger" });
       return false;
     }
+    // The database keeps only who may see the post; show those straight away.
+    const kept = new Set(result.mentions);
+    rememberMentions("comments", result.comment.id, mentioned.filter((p) => kept.has(p.id)));
     setComments((prev) => [...(prev ?? []), result.comment!]);
     onCountChange(1);
     if (parentId) {
@@ -133,7 +138,8 @@ export function PostComments({
                         <CommentBox
                           placeholder={`Reply to ${comment.author}`}
                           autoFocus
-                          onSend={(body) => post(body, comment.id)}
+                          postId={postId}
+                          onSend={(body, mentioned) => post(body, comment.id, mentioned)}
                         />
                       </li>
                     )}
@@ -145,7 +151,7 @@ export function PostComments({
         </ul>
       )}
 
-      <CommentBox placeholder="Add a comment" onSend={(body) => post(body, null)} />
+      <CommentBox placeholder="Add a comment" postId={postId} onSend={(body, mentioned) => post(body, null, mentioned)} />
     </section>
   );
 }
@@ -180,7 +186,7 @@ function CommentRow({
             </span>
           </div>
           <p className="font-sans text-sm break-words whitespace-pre-line text-ink-600">
-            <Linkify text={comment.body} className="text-primary-600" />
+            <MentionText text={comment.body} source="comments" id={comment.id} className="text-primary-600" />
           </p>
         </div>
 
@@ -225,21 +231,28 @@ function CommentRow({
 function CommentBox({
   placeholder,
   autoFocus,
+  postId,
   onSend,
 }: {
   placeholder: string;
   autoFocus?: boolean;
-  onSend: (body: string) => Promise<boolean>;
+  /** Who the @ list offers: people who can see this post. */
+  postId: string;
+  onSend: (body: string, mentioned: MentionPerson[]) => Promise<boolean>;
 }) {
   const viewer = useViewer();
   const [draft, setDraft] = useState("");
   const [sending, startSending] = useTransition();
+  const picks = useMentionPicks();
 
   const send = () => {
     const body = draft.trim();
     if (!body) return;
     startSending(async () => {
-      if (await onSend(body)) setDraft("");
+      if (await onSend(body, picks.peopleIn(body))) {
+        setDraft("");
+        picks.clear();
+      }
     });
   };
 
@@ -256,10 +269,12 @@ function CommentBox({
           flex row refuses to shrink below it and overflows the card. */}
       <label className="min-w-0 flex-1">
         <span className="sr-only">{placeholder}</span>
-        <textarea
+        <MentionInput
           value={draft}
           autoFocus={autoFocus}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={setDraft}
+          context={{ kind: "post", postId }}
+          picks={picks}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();

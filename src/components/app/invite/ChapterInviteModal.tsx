@@ -1,35 +1,33 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- local previews of picked photos */
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Image from "next/image";
+import { useEffect, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { ShareSheet } from "@/components/app/ShareSheet";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
+import { MomentPicker, splitMomentKeys } from "@/components/app/companions/MomentPicker";
 import { InvitationCard } from "@/components/app/invite/InvitationCard";
 import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Modal, ModalHeader, ModalStatus } from "@/components/ui/Modal";
+import { Modal, ModalClose, ModalHeader, ModalStatus } from "@/components/ui/Modal";
 import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
-import { loadInvitePeople, sendChapterInvite } from "@/lib/invite-actions";
+import { loadInvitePeople, loadInviteSetup, sendCompanionInvite } from "@/lib/invite-actions";
 import type { Chapter } from "@/lib/chapters";
-import type { InvitePerson } from "@/lib/invites";
+import type { InvitePerson, PickableMoment } from "@/lib/invites";
 import { cn } from "@/lib/cn";
-import { removeUploads, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
 
-const MAX_PHOTOS = 4;
-
-interface Photo {
-  path: string;
-  preview: string;
-}
+const TEXTAREA =
+  "w-full resize-y rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-base text-ink-500 outline-none placeholder:text-ink-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]";
 
 /**
- * Invite someone into your chapter — Figma 1497:23169 (title, photo, note),
- * 1505:24264 (who: YOUR BOND and SUGGESTED PEOPLE), 1497:23440 (Preview with
- * the invited people, × to drop someone — toast 1519:783 — and + to add
- * more), then "Send Invite" (toast 1514:25098) and the share link.
+ * CHAPTER COMPANIONS — "Invite someone to walk with me".
+ *
+ * Compose (the chapter card, who, why, where you are now, what would help,
+ * the next milestone, and what they can see) → pick the moments for "Story
+ * so far" → Preview (exactly the invitation they'll get) → Invitation ready
+ * (the link, Copy, Share). Accepting never opens a Space for them.
  */
 export function ChapterInviteModal({
   userChapterId,
@@ -44,100 +42,68 @@ export function ChapterInviteModal({
 }) {
   const viewer = useViewer();
   const toast = useToast();
-  const [step, setStep] = useState<"content" | "who" | "preview" | "sent">("content");
-  const [title, setTitle] = useState(`${chapter.name}: ${phase}`);
-  const [note, setNote] = useState("");
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [step, setStep] = useState<"compose" | "who" | "moments" | "preview" | "sent">("compose");
   const [people, setPeople] = useState<InvitePerson[] | null>(null);
-  const [chosen, setChosen] = useState<string[]>([]);
+  const [moments, setMoments] = useState<PickableMoment[] | null>(null);
+  const [recipient, setRecipient] = useState<InvitePerson | null>(null);
   const [query, setQuery] = useState("");
+  const [why, setWhy] = useState("");
+  const [whereNow, setWhereNow] = useState("");
+  const [ask, setAsk] = useState("");
+  const [milestone, setMilestone] = useState("");
+  const [milestoneDate, setMilestoneDate] = useState("");
+  const [share, setShare] = useState({ story: true, current: true, future: true });
+  const [picked, setPicked] = useState<string[]>([]);
   const [error, setError] = useState<string>();
   const [link, setLink] = useState<string>();
   const [sending, startSending] = useTransition();
-  const fileInput = useRef<HTMLInputElement>(null);
-  const sent = useRef(false);
-  const photosRef = useRef(photos);
-  useEffect(() => {
-    photosRef.current = photos;
-  }, [photos]);
 
   useEffect(() => {
     let cancelled = false;
     loadInvitePeople(chapter.slug).then((rows) => {
       if (!cancelled) setPeople(rows);
     });
+    loadInviteSetup(userChapterId).then((setup) => {
+      if (cancelled) return;
+      setMoments(setup.moments);
+      // Where you are now belongs to the chapter: start from the latest.
+      setWhereNow((v) => v || setup.note.whereNow);
+      setMilestone((v) => v || setup.note.milestone);
+      setMilestoneDate((v) => v || setup.note.milestoneDate);
+    });
     return () => {
       cancelled = true;
     };
-  }, [chapter.slug]);
+  }, [chapter.slug, userChapterId]);
 
-  // Closing before sending leaves no orphaned uploads behind.
-  useEffect(
-    () => () => {
-      if (!sent.current) removeUploads("media", photosRef.current.map((p) => p.path));
-      photosRef.current.forEach((p) => URL.revokeObjectURL(p.preview));
-    },
-    [],
-  );
-
-  const chosenPeople = useMemo(
-    () => (people ?? []).filter((p) => chosen.includes(p.userId)),
-    [people, chosen],
-  );
-
-  const addPhotos = async (files: FileList | null) => {
-    if (!files?.length) return;
-    setError(undefined);
-    setUploading(true);
-    for (const file of Array.from(files).slice(0, MAX_PHOTOS - photos.length)) {
-      if (!file.type.startsWith("image/")) {
-        setError("Choose a photo.");
-        continue;
-      }
-      if (file.size > UPLOAD_LIMITS.photoBytes) {
-        setError("Photos can be up to 10 MB.");
-        continue;
-      }
-      const uploaded = await uploadFile("media", viewer.id, file, { prefix: "invite-", fallbackExtension: "jpg" });
-      if ("error" in uploaded) {
-        setError(uploaded.error);
-        continue;
-      }
-      setPhotos((prev) => [...prev, { path: uploaded.path, preview: URL.createObjectURL(file) }]);
-    }
-    setUploading(false);
-  };
-
-  const removePhoto = (photo: Photo) => {
-    removeUploads("media", [photo.path]);
-    URL.revokeObjectURL(photo.preview);
-    setPhotos((prev) => prev.filter((p) => p !== photo));
-  };
+  const name = recipient?.name ?? "them";
+  const storyCount = share.story ? picked.length : 0;
 
   const send = () =>
     startSending(async () => {
       setError(undefined);
-      const result = await sendChapterInvite({
+      const result = await sendCompanionInvite({
         userChapterId,
-        title,
-        note,
-        photoPaths: photos.map((p) => p.path),
-        recipients: chosen,
+        title: phase,
+        why,
+        ask,
+        whereNow,
+        milestone,
+        milestoneDate,
+        share,
+        ...splitMomentKeys(share.story ? picked : []),
+        recipient: recipient?.userId ?? null,
       });
-      if (result.error || !result.token) {
+      if (result.error || !result.link) {
         setError(result.error);
         return;
       }
-      sent.current = true;
-      setLink(`${window.location.origin}/i/${result.token}`);
+      setLink(result.link);
       setStep("sent");
-      if (chosenPeople.length > 0) {
-        const first = chosenPeople[0].name;
-        const to = chosenPeople.length === 1 ? first : `${first} and ${chosenPeople.length - 1} more`;
+      if (recipient) {
         toast({
-          title: "Chapter invite sent",
-          description: `Your invite is on its way to ${to}. They’ll need to accept before joining this chapter.`,
+          title: "Invitation sent",
+          description: `${recipient.name} will see it in their invitations. Nothing changes until they accept.`,
         });
       }
     });
@@ -146,9 +112,11 @@ export function ChapterInviteModal({
     return (
       <Modal label="Invitation ready" onClose={onClose} width="max-w-[480px]">
         <ModalStatus icon={<LinkIcon />} title="Invitation ready">
-          Share this link with anyone else you&rsquo;d like here. They&rsquo;ll see your card and can join after signing in.
+          {recipient
+            ? `Send ${recipient.name} this link too, if you like. It only works for them.`
+            : "Share this link with the person you’d like beside you. They can join Grouv or sign in to accept."}
         </ModalStatus>
-        <ShareLink link={link} title={title} />
+        <ShareLink link={link} senderName={viewer.firstName} chapterName={chapter.name} />
         <Button variant="secondary" fullWidth onClick={onClose}>
           Done
         </Button>
@@ -158,65 +126,68 @@ export function ChapterInviteModal({
 
   if (step === "preview") {
     return (
-      <Modal label="Preview" onClose={onClose}>
+      <Modal label="Preview" onClose={onClose} width="max-w-[560px]">
         <ModalHeader title="Preview" onClose={onClose} />
-        <InvitationCard
-          title={title.trim()}
-          subtitle="You are inviting people to join you in this chapter"
-          photoUrls={photos.map((p) => p.preview)}
-          note={note.trim() || null}
-        >
-          <div className="flex flex-col gap-3">
-            <span className="font-sans text-sm font-medium text-ink-700">Invited people</span>
-            <ul className="flex flex-wrap gap-4">
-              {chosenPeople.map((p) => (
-                <li key={p.userId} className="flex w-16 flex-col items-center gap-1">
-                  <span className="relative">
-                    <Avatar src={p.avatarUrl} name={p.name} sizes="40px" className="size-10" />
-                    <button
-                      type="button"
-                      aria-label={`Remove ${p.name}`}
-                      onClick={() => {
-                        setChosen((prev) => prev.filter((id) => id !== p.userId));
-                        toast({ title: "Removed from invite list", description: `${p.name} won’t get this invitation.` });
-                      }}
-                      className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-destructive-5 text-destructive-60"
-                    >
-                      <svg viewBox="0 0 12 12" fill="none" className="size-2.5" aria-hidden="true">
-                        <path d="m3 3 6 6M9 3 3 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      </svg>
-                    </button>
-                  </span>
-                  <span className="w-full truncate text-center font-sans text-xs text-ink-500">{p.name}</span>
-                </li>
-              ))}
-              <li>
-                <button
-                  type="button"
-                  aria-label="Invite more people"
-                  onClick={() => setStep("who")}
-                  className="grid size-10 place-items-center rounded-full border border-dashed border-primary-500 bg-primary-50 text-primary-600 transition-colors hover:bg-primary-100"
-                >
-                  +
-                </button>
-              </li>
-            </ul>
-            {chosenPeople.length === 0 && (
-              <p className="font-sans text-sm text-ink-300">
-                No one picked yet. You&rsquo;ll get a link to share once it&rsquo;s sent.
-              </p>
-            )}
-          </div>
-        </InvitationCard>
+        <p className="-mt-3 font-sans text-sm text-ink-300">
+          This is exactly what {recipient ? recipient.name : "they’ll"} {recipient ? "will " : ""}see.
+        </p>
+        <div className="rounded-2xl border border-ink-50 p-4 sm:p-5">
+          <InvitationCard
+            senderName={viewer.firstName}
+            chapterSlug={chapter.slug}
+            phase={phase}
+            title={phase}
+            why={why.trim() || null}
+            ask={ask.trim() || null}
+            share={share}
+            momentCount={storyCount}
+          >
+            <div className="pointer-events-none flex flex-col gap-3 opacity-80" aria-hidden="true">
+              <Button fullWidth tabIndex={-1}>
+                Accept invitation
+              </Button>
+              <Button variant="secondary" fullWidth tabIndex={-1}>
+                Not now
+              </Button>
+            </div>
+          </InvitationCard>
+        </div>
         <div className="flex flex-col gap-3">
           <FormError message={error} />
           <Button fullWidth loading={sending} onClick={send}>
-            Send Invite
+            Send invitation
           </Button>
-          <Button variant="secondary" fullWidth disabled={sending} onClick={() => setStep("content")}>
+          <Button variant="secondary" fullWidth disabled={sending} onClick={() => setStep("compose")}>
             Edit
           </Button>
         </div>
+      </Modal>
+    );
+  }
+
+  if (step === "moments") {
+    return (
+      <Modal label="Story so far" onClose={onClose} width="max-w-[560px]" className="max-h-[calc(100dvh-2rem)]">
+        <div className="flex flex-col gap-2">
+          <ModalHeader title="Story so far" onClose={onClose} />
+          <p className="font-sans text-sm text-ink-300">
+            Pick the moments {name} can see. Everything else in your Log stays private.
+          </p>
+        </div>
+        <div className="-mx-1 min-h-0 flex-1 scroll-slim overflow-y-auto px-1">
+          {moments === null ? (
+            <PersonRowsSkeleton count={3} label="Loading your moments" />
+          ) : (
+            <MomentPicker
+              moments={moments}
+              picked={picked}
+              onToggle={(key) => setPicked((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))}
+            />
+          )}
+        </div>
+        <Button fullWidth onClick={() => setStep("compose")}>
+          {picked.length === 0 ? "Done" : `Use ${picked.length} ${picked.length === 1 ? "moment" : "moments"}`}
+        </Button>
       </Modal>
     );
   }
@@ -226,12 +197,18 @@ export function ChapterInviteModal({
     const match = (p: InvitePerson) => !needle || p.name.toLowerCase().includes(needle);
     const bonds = (people ?? []).filter((p) => p.group === "bond" && match(p));
     const suggested = (people ?? []).filter((p) => p.group === "suggested" && match(p));
+    const pick = (p: InvitePerson) => {
+      setRecipient(p);
+      setStep("compose");
+    };
 
     return (
-      <Modal label="Invite someone to this chapter" onClose={onClose} className="max-h-[calc(100dvh-2rem)]">
-        <div className="flex flex-col gap-4">
-          <ModalHeader title="Invite someone to this chapter" onClose={onClose} />
-          <p className="font-sans text-base text-ink-300">Bring someone into this part of your life.</p>
+      <Modal label="Who would you like beside you?" onClose={onClose} className="max-h-[calc(100dvh-2rem)]">
+        <div className="flex flex-col gap-2">
+          <ModalHeader title="Who would you like beside you?" onClose={onClose} />
+          <p className="font-sans text-sm text-ink-300">
+            Someone in your circle or this Space. Not on Grouv yet? Skip this and share the link instead.
+          </p>
         </div>
         <Input
           value={query}
@@ -245,163 +222,269 @@ export function ChapterInviteModal({
             <PersonRowsSkeleton count={4} label="Loading people" />
           ) : bonds.length + suggested.length === 0 ? (
             <p className="py-6 text-center font-sans text-sm text-ink-300">
-              {needle
-                ? "No one by that name."
-                : "No one to pick yet. Send it as a link instead — you’ll get one after sending."}
+              {needle ? "No one by that name." : "No one to pick yet. Share the link instead."}
             </p>
           ) : (
             <>
-              {bonds.length > 0 && (
-                <PeopleGroup title="Your bond" people={bonds} chosen={chosen} onToggle={toggle} />
-              )}
+              {bonds.length > 0 && <PeopleGroup title="Your bond" people={bonds} chosen={recipient?.userId} onPick={pick} />}
               {suggested.length > 0 && (
-                <PeopleGroup title="Suggested people" people={suggested} chosen={chosen} onToggle={toggle} />
+                <PeopleGroup title="Suggested people" people={suggested} chosen={recipient?.userId} onPick={pick} />
               )}
             </>
           )}
         </div>
-        <Button fullWidth onClick={() => setStep("preview")}>
-          Continue
+        <Button
+          variant="secondary"
+          fullWidth
+          onClick={() => {
+            setRecipient(null);
+            setStep("compose");
+          }}
+        >
+          Someone not on Grouv — I&rsquo;ll share a link
         </Button>
       </Modal>
     );
   }
 
+  const nothingShared = !share.story && !share.current && !share.future;
+
   return (
-    <Modal label="Invite someone into your chapter" onClose={onClose}>
-      <ModalHeader title="Invite someone into your chapter" onClose={onClose} />
-      <Input
-        label="Title"
-        value={title}
-        maxLength={120}
-        onChange={(e) => setTitle(e.target.value)}
-        hint="This is exactly the headline your invite will carry."
-      />
+    <Modal label="Invite into my chapter" onClose={onClose} width="max-w-[560px]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <span className="font-sans text-xs font-semibold tracking-wide text-primary-600 uppercase">
+            Chapter companions
+          </span>
+          <h2 className="font-display text-2xl font-semibold text-ink-800">Invite into my chapter</h2>
+          <p className="font-sans text-sm text-ink-300">
+            Choose what {recipient ? recipient.name : "they"} can see and why you want them here.
+          </p>
+        </div>
+        <ModalClose onClose={onClose} className="-mt-3 -mr-3 shrink-0" />
+      </div>
+
+      <div className={cn("flex items-center gap-3 rounded-2xl p-4", chapter.cardClass)}>
+        <span className="grid size-12 shrink-0 place-items-center rounded-full bg-surface">
+          <Image src={chapter.icon} alt="" width={32} height={32} className="size-8" />
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span className="font-sans text-sm font-medium text-ink-500">{chapter.name} chapter</span>
+          <span className="truncate font-display text-lg font-semibold text-ink-800">{phase}</span>
+        </span>
+      </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className="font-sans text-sm font-medium text-ink-500">Photo (optional)</span>
-        {photos.length > 0 && (
-          <ul className="flex flex-wrap gap-3">
-            {photos.map((photo) => (
-              <li key={photo.path} className="relative size-20 overflow-hidden rounded-lg bg-ivory-200">
-                <img src={photo.preview} alt="" className="size-full object-cover" />
-                <button
-                  type="button"
-                  aria-label="Remove photo"
-                  onClick={() => removePhoto(photo)}
-                  className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-ink-900/50 text-white"
-                >
-                  <svg viewBox="0 0 12 12" fill="none" className="size-2.5" aria-hidden="true">
-                    <path d="m3 3 6 6M9 3 3 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {photos.length < MAX_PHOTOS && (
+        <span className="font-sans text-sm font-medium text-ink-500">Invite</span>
+        {recipient ? (
+          <span className="flex w-fit items-center gap-2 rounded-full bg-primary-50 py-1 pr-1 pl-1">
+            <Avatar src={recipient.avatarUrl} name={recipient.name} sizes="28px" className="size-7" />
+            <span className="font-sans text-sm font-medium text-ink-700">{recipient.name}</span>
+            <button
+              type="button"
+              onClick={() => setStep("who")}
+              className="rounded-full px-2.5 py-1 font-ui text-xs font-medium text-primary-600 hover:bg-primary-100"
+            >
+              Change
+            </button>
+          </span>
+        ) : (
           <button
             type="button"
-            disabled={uploading}
-            onClick={() => fileInput.current?.click()}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 rounded-lg bg-ivory-200 transition-colors hover:bg-ivory-300 disabled:opacity-60",
-              photos.length ? "py-4" : "py-10",
-            )}
+            onClick={() => setStep("who")}
+            className="flex items-center gap-3 rounded-lg border border-dashed border-primary-300 px-3.5 py-3 text-left transition-colors hover:bg-primary-50"
           >
-            <PhotoIcon />
-            <span className="font-sans text-sm font-semibold text-ink-700">Photo</span>
-            <span className="font-sans text-sm text-ink-400">{uploading ? "Uploading…" : "Upload a photo"}</span>
+            <span className="grid size-8 place-items-center rounded-full bg-primary-100 text-primary-600" aria-hidden="true">
+              +
+            </span>
+            <span className="flex flex-col">
+              <span className="font-sans text-sm font-medium text-ink-700">Choose someone</span>
+              <span className="font-sans text-xs text-ink-300">Or leave it and share a link with anyone</span>
+            </span>
           </button>
         )}
-        <input
-          ref={fileInput}
-          type="file"
-          accept="image/*"
-          multiple
-          hidden
-          onChange={(e) => {
-            void addPhotos(e.target.files);
-            e.target.value = "";
-          }}
+      </div>
+
+      <Field label={recipient ? `Why ${recipient.name}?` : "Why them?"}>
+        <textarea
+          value={why}
+          onChange={(e) => setWhy(e.target.value)}
+          rows={3}
+          maxLength={1000}
+          placeholder="You’ve been through this yourself, and you always ask the honest question."
+          className={TEXTAREA}
+        />
+      </Field>
+      <Field label="Where are you now?">
+        <textarea
+          value={whereNow}
+          onChange={(e) => setWhereNow(e.target.value)}
+          rows={3}
+          maxLength={1000}
+          placeholder="Two interviews in, still deciding what balance means for me."
+          className={TEXTAREA}
+        />
+      </Field>
+      <Field label={recipient ? `What would help from ${recipient.name}?` : "What would help from them?"}>
+        <textarea
+          value={ask}
+          onChange={(e) => setAsk(e.target.value)}
+          rows={2}
+          maxLength={1000}
+          placeholder="A check-in before big days. Honest questions when I’m going in circles."
+          className={TEXTAREA}
+        />
+      </Field>
+      <div className="flex flex-col gap-1.5">
+        <span className="font-sans text-sm font-medium text-ink-500">Next milestone</span>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="min-w-0 flex-1">
+            <Input
+              value={milestone}
+              maxLength={200}
+              onChange={(e) => setMilestone(e.target.value)}
+              placeholder="Final-round interview"
+              aria-label="Next milestone"
+            />
+          </div>
+          <div className="sm:w-44">
+            <Input
+              type="date"
+              value={milestoneDate}
+              onChange={(e) => setMilestoneDate(e.target.value)}
+              aria-label="Milestone date (optional)"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <span className="font-sans text-sm font-medium text-ink-500">Share with {recipient ? recipient.name : "them"}</span>
+        <ShareOption
+          checked={share.story}
+          onChange={(story) => setShare((s) => ({ ...s, story }))}
+          title="Story so far"
+          detail={
+            picked.length === 0
+              ? "Pick moments from this chapter"
+              : `${picked.length} ${picked.length === 1 ? "moment" : "moments"} you selected`
+          }
+          action={
+            share.story ? (
+              <button
+                type="button"
+                onClick={() => setStep("moments")}
+                className="shrink-0 rounded-full px-3 py-1.5 font-ui text-sm font-medium text-primary-600 hover:bg-primary-50"
+              >
+                {picked.length === 0 ? "Choose" : "Edit"}
+              </button>
+            ) : null
+          }
+        />
+        <ShareOption
+          checked={share.current}
+          onChange={(current) => setShare((s) => ({ ...s, current }))}
+          title="Current note and milestone"
+          detail="Where you are now and what’s next"
+        />
+        <ShareOption
+          checked={share.future}
+          onChange={(future) => setShare((s) => ({ ...s, future }))}
+          title="Future updates I choose to share"
+          detail="Only the ones you send their way"
         />
       </div>
 
-      <label className="flex flex-col gap-1.5">
-        <span className="font-sans text-sm font-medium text-ink-500">Add a note (optional)</span>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={5}
-          maxLength={1000}
-          placeholder="Let them know why you’d like them here"
-          className="w-full resize-y rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-base text-ink-500 outline-none placeholder:text-ink-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
-        />
-      </label>
-
-      <FormError message={error} />
-      <Button
-        fullWidth
-        disabled={!title.trim() || uploading}
-        onClick={() => {
-          setError(undefined);
-          setStep("who");
-        }}
-      >
-        Continue
+      <FormError message={error ?? (nothingShared ? "Choose at least one thing to share." : undefined)} />
+      <Button fullWidth disabled={nothingShared} onClick={() => setStep("preview")}>
+        Preview invitation
       </Button>
     </Modal>
   );
+}
 
-  function toggle(userId: string) {
-    setChosen((prev) => (prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]));
-  }
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="font-sans text-sm font-medium text-ink-500">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function ShareOption({
+  checked,
+  onChange,
+  title,
+  detail,
+  action,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  title: string;
+  detail: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-ivory-100 px-3.5 py-3">
+      <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="size-5 shrink-0 accent-primary-500"
+        />
+        <span className="flex min-w-0 flex-col">
+          <span className="font-sans text-sm font-medium text-ink-700">{title}</span>
+          <span className="truncate font-sans text-xs text-ink-300">{detail}</span>
+        </span>
+      </label>
+      {action}
+    </div>
+  );
 }
 
 function PeopleGroup({
   title,
   people,
   chosen,
-  onToggle,
+  onPick,
 }: {
   title: string;
   people: InvitePerson[];
-  chosen: string[];
-  onToggle: (userId: string) => void;
+  chosen?: string;
+  onPick: (person: InvitePerson) => void;
 }) {
   return (
     <section className="flex flex-col gap-3">
       <h3 className="font-sans text-xs font-semibold tracking-wide text-ink-300 uppercase">{title}</h3>
-      <ul className="flex flex-col gap-2">
-        {people.map((p) => {
-          const on = chosen.includes(p.userId);
-          return (
-            <li key={p.userId}>
-              <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg py-2">
-                <span className="flex min-w-0 items-center gap-3">
-                  <Avatar src={p.avatarUrl} name={p.name} sizes="48px" className="size-12 shrink-0" />
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="truncate font-sans text-base font-medium text-ink-600">{p.name}</span>
-                    <span className="truncate font-sans text-xs text-ink-200">{p.detail}</span>
-                  </span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={on}
-                  onChange={() => onToggle(p.userId)}
-                  className="size-5 shrink-0 accent-primary-500"
-                />
-              </label>
-            </li>
-          );
-        })}
+      <ul className="flex flex-col gap-1">
+        {people.map((p) => (
+          <li key={p.userId}>
+            <button
+              type="button"
+              onClick={() => onPick(p)}
+              aria-pressed={chosen === p.userId}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-ivory-100",
+                chosen === p.userId && "bg-primary-50",
+              )}
+            >
+              <Avatar src={p.avatarUrl} name={p.name} sizes="48px" className="size-12 shrink-0" />
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="truncate font-sans text-base font-medium text-ink-600">{p.name}</span>
+                <span className="truncate font-sans text-xs text-ink-200">{p.detail}</span>
+              </span>
+            </button>
+          </li>
+        ))}
       </ul>
     </section>
   );
 }
 
 /** The link, Copy, and Share (the phone's sheet, or Grouv's own on desktop). */
-function ShareLink({ link, title }: { link: string; title: string }) {
+function ShareLink({ link, senderName, chapterName }: { link: string; senderName: string; chapterName: string }) {
   const toast = useToast();
 
   return (
@@ -425,8 +508,8 @@ function ShareLink({ link, title }: { link: string; title: string }) {
       </div>
       <ShareSheet
         url={link}
-        title="Join my chapter on Grouv"
-        text={title}
+        title="Walk with me through this chapter"
+        text={`${senderName} would like you beside them in their ${chapterName} chapter on Grouv.`}
         trigger={(open) => (
           <Button fullWidth onClick={open}>
             Share
@@ -442,16 +525,6 @@ function SearchIcon() {
     <svg viewBox="0 0 20 20" fill="none" className="size-5 text-ink-300" aria-hidden="true">
       <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.6" />
       <path d="m13.5 13.5 3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PhotoIcon() {
-  return (
-    <svg viewBox="0 0 40 40" fill="none" className="size-10 text-primary-500" aria-hidden="true">
-      <path d="M4 10a3 3 0 0 1 3-3h9l3 3h14a3 3 0 0 1 3 3v17a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V10Z" fill="currentColor" />
-      <rect x="13" y="15" width="14" height="12" rx="2" stroke="white" strokeWidth="1.6" />
-      <path d="m14 25 4-4 3 3 2-2 3 3" stroke="white" strokeWidth="1.6" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -1,96 +1,111 @@
-"use client";
-
-/* eslint-disable @next/next/no-img-element -- signed Storage URLs, sized by the card */
-import { useState } from "react";
+import Image from "next/image";
+import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import type { CompanionShare } from "@/lib/invites";
 
 /**
- * The chapter invitation card — Figma 1497:23440 (the sender's Preview) and
- * 1524:25315 (what the recipient sees).
+ * "Invitation from John" — what someone invited to walk alongside a chapter
+ * sees, in the app, on the /i/<token> link, and in the owner's Preview.
  *
- * "CHAPTER INVITATION", the title, one line of context, the photos as a
- * one-at-a-time carousel, then the note. Actions come from the caller.
+ * The chapter banner (its Space wash and icon, "John's Career chapter",
+ * YOU'RE INVITED and the title), why they were chosen, exactly what they'll
+ * be able to see, and the reassurance that nothing of theirs changes.
+ * Actions come from the caller.
  */
 export function InvitationCard({
+  senderName,
+  chapterSlug,
+  phase,
   title,
-  subtitle,
-  photoUrls,
-  note,
+  why,
+  ask,
+  share,
+  momentCount,
   children,
 }: {
+  senderName: string;
+  chapterSlug: string;
+  phase: string;
   title: string;
-  /** "You are inviting people…" / "Amara has invited you…". */
-  subtitle: string;
-  photoUrls: string[];
-  note: string | null;
+  why: string | null;
+  ask: string | null;
+  share: CompanionShare;
+  momentCount: number;
   children?: React.ReactNode;
 }) {
+  const chapter = getChapter(chapterSlug);
+  const chapterName = chapter?.name ?? "life";
+  const access = [
+    share.story && momentCount > 0 && `${senderName}’s ${momentCount} selected ${momentCount === 1 ? "moment" : "moments"}`,
+    share.current && "Their current note and next milestone",
+    share.future && "Future updates they choose to share",
+  ].filter((line): line is string => Boolean(line));
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <span className="font-sans text-xs font-semibold tracking-wide text-primary-600 uppercase">
-          Chapter invitation
+      <h2 className="font-display text-2xl font-semibold text-ink-800">Invitation from {senderName}</h2>
+
+      <div className={cn("flex flex-col gap-3 rounded-2xl p-5 sm:p-6", chapter?.cardClass ?? "bg-ivory-200")}>
+        <span className="flex w-fit items-center gap-2 rounded-full bg-surface px-3 py-1.5">
+          {chapter && <Image src={chapter.icon} alt="" width={20} height={20} className="size-5" />}
+          <span className="font-sans text-xs font-medium text-ink-600">
+            {senderName}&rsquo;s {chapterName} chapter
+          </span>
         </span>
-        <h2 className="font-display text-2xl font-semibold text-ink-800">{title}</h2>
-        <p className="font-sans text-base text-ink-300">{subtitle}</p>
+        <span className="font-sans text-xs font-semibold tracking-wide text-primary-600 uppercase">
+          You&rsquo;re invited
+        </span>
+        <div className="flex flex-col gap-1">
+          <p className="font-display text-2xl font-semibold text-ink-800">{title}</p>
+          {phase !== title && <p className="font-sans text-sm text-ink-400">{phase}</p>}
+        </div>
+        <p className="font-sans text-base text-ink-500">
+          {senderName} wants you beside them in this chapter of their life.
+        </p>
       </div>
 
-      {photoUrls.length > 0 && <PhotoCarousel urls={photoUrls} />}
+      {why && (
+        <figure className="flex flex-col gap-2 border-l-4 border-primary-300 pl-4">
+          <figcaption className="font-sans text-sm font-medium text-ink-700">Why {senderName} chose you</figcaption>
+          <blockquote className="font-display text-lg whitespace-pre-line text-ink-600">&ldquo;{why}&rdquo;</blockquote>
+        </figure>
+      )}
 
-      {note && (
-        <div className="flex flex-col gap-2">
-          <span className="font-sans text-sm font-medium text-ink-700">Note</span>
-          <p className="rounded-lg bg-ivory-100 px-4 py-3 font-sans text-base whitespace-pre-line text-ink-400">
-            {note}
-          </p>
+      {ask && (
+        <div className="flex flex-col gap-1">
+          <span className="font-sans text-sm font-medium text-ink-700">What would help</span>
+          <p className="font-sans text-base whitespace-pre-line text-ink-400">{ask}</p>
         </div>
       )}
+
+      {access.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl bg-ivory-100 p-4">
+          <span className="font-sans text-sm font-medium text-ink-700">If you accept, you can see</span>
+          <ul className="flex flex-col gap-2">
+            {access.map((line) => (
+              <li key={line} className="flex items-start gap-2 font-sans text-sm text-ink-500">
+                <CheckIcon />
+                {line}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <p className="font-sans text-sm text-ink-300">
+        You can reply and check in. {senderName}&rsquo;s private Log stays private, and your own {chapterName}{" "}
+        chapter will not change.
+      </p>
 
       {children}
     </div>
   );
 }
 
-function PhotoCarousel({ urls }: { urls: string[] }) {
-  const [index, setIndex] = useState(0);
-  const many = urls.length > 1;
-
+function CheckIcon() {
   return (
-    <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-ivory-200">
-      <img src={urls[index]} alt={`Invitation photo ${index + 1} of ${urls.length}`} className="size-full object-cover" />
-      {many && (
-        <>
-          {index > 0 && (
-            <CarouselButton side="left" label="Previous photo" onClick={() => setIndex((i) => i - 1)} />
-          )}
-          {index < urls.length - 1 && (
-            <CarouselButton side="right" label="Next photo" onClick={() => setIndex((i) => i + 1)} />
-          )}
-          <span className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5" aria-hidden="true">
-            {urls.map((url, i) => (
-              <span key={url} className={cn("size-1.5 rounded-full", i === index ? "bg-white" : "bg-white/50")} />
-            ))}
-          </span>
-        </>
-      )}
-    </div>
-  );
-}
-
-function CarouselButton({ side, label, onClick }: { side: "left" | "right"; label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className={cn(
-        "absolute top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-ink-900/30 text-white transition-colors hover:bg-ink-900/50",
-        side === "left" ? "left-3" : "right-3",
-      )}
-    >
-      <svg viewBox="0 0 16 16" fill="none" className={cn("size-4", side === "left" && "rotate-180")} aria-hidden="true">
-        <path d="m6 3 5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
+    <svg viewBox="0 0 20 20" fill="none" className="mt-0.5 size-4 shrink-0 text-primary-600" aria-hidden="true">
+      <path d="m4 10.5 4 4 8-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

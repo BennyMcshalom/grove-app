@@ -5,7 +5,7 @@ import { useEffect } from "react";
 
 const SEEN = "grouv:chapter-invite-shown";
 
-/** Opens My Spaces with the invitation card, once per browser session. */
+/** Opens the invitation card (/i/<token>), once per browser session. */
 export function InviteRedirect({ token }: { token: string }) {
   const router = useRouter();
 
@@ -16,7 +16,7 @@ export function InviteRedirect({ token }: { token: string }) {
     } catch {
       // No session storage (private mode): showing it once per load is fine.
     }
-    router.replace(`/spaces?invite=${token}`);
+    router.replace(`/i/${token}`);
   }, [token, router]);
 
   return null;

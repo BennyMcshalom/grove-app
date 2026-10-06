@@ -48,7 +48,9 @@ function stateOf(s: SubscriptionInfo): State {
     if (paid && s.status === "past_due") return "payfailed";
     if (paid && (s.cancelAtPeriodEnd || s.status === "canceled")) return "canceled";
     if (paid && (s.status === "active" || s.status === "trialing")) return "active";
-    if (s.status === "trialing") return "trial";
+    // A granted month that outlasts the trial is the pass they really have.
+    const bonusLive = s.bonusUntil !== null && Date.parse(s.bonusUntil) > s.now;
+    if (s.status === "trialing" && !bonusLive) return "trial";
     return "bonus";
   }
   return s.trialStartedAt || paid || s.status === "expired" || s.status === "canceled" ? "expired" : "free";
@@ -74,8 +76,9 @@ const UNLOCKED = [
  * 1549:777 (Active), 1549:1153 (Canceled, still active), 1550:777 (Expired),
  * 1550:1153 (Payment failed), 1550:1296 (Purchase restored), 1550:22879
  * (cancel confirmation), and the PRD's post-founding layout (Monthly primary
- * once Founding is fully claimed). The in-app trial and a referral month show
- * as their own Season Pass states with exact end dates.
+ * once Founding is fully claimed). The in-app trial shows its exact end date;
+ * a granted month reads like a paid pass ("You're on Season Pass"), without
+ * an end date or a "move to Free".
  *
  * Cancel, reactivate and payment details go through RevenueCat's customer
  * portal (the management URL): Web Billing plans can only be changed there.
@@ -98,6 +101,9 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
   const kind = planKindOf(info.plan, offer);
   const planName = kind ? PLAN_NAMES[kind] : "Season Pass";
   const price = priceFor(kind, offer);
+  // "Your next payment is $69 on 3 March" — only for a paid plan that renews.
+  const renews = state === "active" && info.status === "active" && !info.cancelAtPeriodEnd ? info.currentPeriodEnd : null;
+  const nextPrice = kind && offer ? (offer[kind]?.price ?? null) : null;
   const paused = viewer.chapters.filter((c) => c.pausedAt).length;
 
   const openBilling = () =>
@@ -177,9 +183,24 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
               Bonds, Bond Log and Life Wrapped are open to you — choose a plan to keep them going.
             </Banner>
           )}
-          {state === "bonus" && info.bonusUntil && (
-            <Banner tone="primary" title={`A month of Season Pass, on us — until ${longDate(info.bonusUntil)}`}>
-              Thanks for bringing a friend into Grouv. Nothing to pay; after that you&rsquo;ll move to Free.
+          {/* Granted or paid, it reads the same: no end date, no "move to Free"
+              (testing feedback, 6 Oct). Only a real renewal shows a payment. */}
+          {(state === "bonus" || (state === "active" && info.status === "active")) && (
+            <Banner tone="primary" title="You’re on Season Pass">
+              Your subscription is active. Enjoy everything included in your plan.
+              {renews &&
+                (nextPrice ? (
+                  <>
+                    {" "}
+                    Your next payment is{" "}
+                    <strong className="font-semibold text-ink-700">
+                      {nextPrice} on {longDate(renews)}
+                    </strong>
+                    .
+                  </>
+                ) : (
+                  <> Your plan renews on {longDate(renews)}.</>
+                ))}
             </Banner>
           )}
 
@@ -330,6 +351,8 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
                 trialPending={trialPending}
                 onPlans={() => paywall("general")}
                 onTrial={startFreeTrial}
+                // A granted pass has no end date on show, so no "after it ends".
+                passCta={state === "bonus" ? "See Season Pass plans" : undefined}
               />
             </>
           )}
@@ -402,12 +425,15 @@ function Comparison({
   trialPending,
   onPlans,
   onTrial,
+  passCta = "Keep Season Pass after it ends",
 }: {
   current: "free" | "pass";
   trialAvailable: boolean;
   trialPending: boolean;
   onPlans: () => void;
   onTrial: () => void;
+  /** The button under Season Pass when it is theirs. */
+  passCta?: string;
 }) {
   return (
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
@@ -479,7 +505,7 @@ function Comparison({
         )}
         {current === "pass" && (
           <Button size="md" fullWidth onClick={onPlans}>
-            Keep Season Pass after it ends
+            {passCta}
           </Button>
         )}
       </Card>

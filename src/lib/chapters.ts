@@ -13,6 +13,8 @@ export interface Chapter {
   tint: string;
   /** The wash behind this Space's post and Curio cards (tokens in globals.css). */
   cardClass: string;
+  /** The stronger accent behind its label (banner or tag), white text on top. */
+  accentClass: string;
   icon: string;
   /** Options for the "<Chapter>, where are you?" step. */
   options: string[];
@@ -25,6 +27,7 @@ export const CHAPTERS: Chapter[] = [
     tagline: "Work, ambition, pivots",
     tint: "#FBD3B9",
     cardClass: "bg-space-career",
+    accentClass: "bg-space-career-accent",
     icon: "/icons/chapters/career.svg",
     options: [
       "First job, figuring it out",
@@ -43,6 +46,7 @@ export const CHAPTERS: Chapter[] = [
     tagline: "Faith, purpose, inner growth",
     tint: "#E2F6F9",
     cardClass: "bg-space-spiritual",
+    accentClass: "bg-space-spiritual-accent",
     icon: "/icons/chapters/spiritual.svg",
     options: [
       "Newly questioning",
@@ -59,6 +63,7 @@ export const CHAPTERS: Chapter[] = [
     tagline: "Money, freedom, financial growth",
     tint: "#DCFCE7",
     cardClass: "bg-space-wealth",
+    accentClass: "bg-space-wealth-accent",
     icon: "/icons/chapters/wealth.svg",
     options: [
       "Getting out of debt",
@@ -75,6 +80,7 @@ export const CHAPTERS: Chapter[] = [
     tagline: "Travel, exploration, new experiences",
     tint: "#B9E5FB",
     cardClass: "bg-space-adventure",
+    accentClass: "bg-space-adventure-accent",
     icon: "/icons/chapters/adventure.svg",
     options: [
       "Planning the leap",
@@ -91,6 +97,7 @@ export const CHAPTERS: Chapter[] = [
     tagline: "Body, mind, wellbeing",
     tint: "#FBF3B9",
     cardClass: "bg-space-health",
+    accentClass: "bg-space-health-accent",
     icon: "/icons/chapters/health.svg",
     options: [
       "Starting over",
@@ -107,6 +114,7 @@ export const CHAPTERS: Chapter[] = [
     tagline: "Making, expressing, creating",
     tint: "#E9D4FB",
     cardClass: "bg-space-creative",
+    accentClass: "bg-space-creative-accent",
     icon: "/icons/chapters/creative.svg",
     options: [
       "Finding the spark",
@@ -123,6 +131,7 @@ export const CHAPTERS: Chapter[] = [
     tagline: "Study, skills, personal growth",
     tint: "#E6FAE6",
     cardClass: "bg-space-learning",
+    accentClass: "bg-space-learning-accent",
     icon: "/icons/chapters/learning.svg",
     options: [
       "Day one",
@@ -139,6 +148,7 @@ export const CHAPTERS: Chapter[] = [
     tagline: "Love, friendship, family",
     tint: "#FCD8EA",
     cardClass: "bg-space-relationships",
+    accentClass: "bg-space-relationships-accent",
     icon: "/icons/chapters/relationships.svg",
     options: [
       "Newly single",
@@ -166,4 +176,9 @@ export function getChapter(slug: string): Chapter | undefined {
 /** A card's background for its Space; plain surface when there's none (Wander). */
 export function spaceCardClass(slug: string | null | undefined): string {
   return (slug ? getChapter(slug)?.cardClass : undefined) ?? "bg-surface";
+}
+
+/** The solid accent behind the label of a Space; null when there is none. */
+export function spaceAccentClass(slug: string | null | undefined): string | null {
+  return (slug ? getChapter(slug)?.accentClass : undefined) ?? null;
 }

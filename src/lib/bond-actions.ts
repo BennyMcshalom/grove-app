@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import type { BondPerson, ChatMessage, DailyCard, Suggestion } from "@/lib/bonds";
 import { loadBondPeople, loadSuggestions } from "@/lib/bonds-server";
+import { isUuid } from "@/lib/mentions";
 import { signPaths } from "@/lib/storage-server";
 import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
 import { createClient } from "@/lib/supabase/server";
@@ -319,6 +320,8 @@ export async function sendMessage(
   otherUserId: string,
   conversationId: string | null,
   body: string,
+  /** People picked from the @ list; the database keeps conversation members. */
+  mentions: string[] = [],
 ): Promise<Result & { message?: ChatMessage; conversationId?: string }> {
   const viewer = await requireOnboardedViewer();
   const text = body.trim();
@@ -332,7 +335,7 @@ export async function sendMessage(
 
   const { data, error } = await supabase
     .from("messages")
-    .insert({ conversation_id: conversation, sender_id: viewer.userId, body: text })
+    .insert({ conversation_id: conversation, sender_id: viewer.userId, body: text, mentions: mentions.filter(isUuid).slice(0, 20) })
     .select(MESSAGE_COLUMNS)
     .single();
 
@@ -356,7 +359,10 @@ export async function markConversationRead(conversationId: string): Promise<void
     .eq("user_id", viewer.userId);
 }
 
-/** Today's Curio and Wander cards (expire at noon local). */
+/**
+ * Today's Curio and Wander cards, live for 24 hours. Reading them serves a
+ * set when there's none live, so a card is always waiting.
+ */
 export async function loadDailyCards(): Promise<DailyCard[]> {
   await requireOnboardedViewer();
   const supabase = await createClient();

@@ -80,7 +80,7 @@ export interface ChatMessage {
   file?: { name: string; size: number | null };
 }
 
-/** A morning card: one Curio per open space, one Wander. Gone at noon. */
+/** A daily card: one Curio per active Space (up to four), one Wander. Live for 24 hours. */
 export interface DailyCard {
   cardId: string;
   kind: "curio" | "wander";

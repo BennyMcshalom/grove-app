@@ -155,7 +155,12 @@ export function EventView({
               tab === "Conversation" ? "block" : "hidden rail:block",
             )}
           >
-            <RoomComposer placeholder="Join conversation" onSend={chat.send} sending={chat.sending} />
+            <RoomComposer
+              placeholder="Join conversation"
+              onSend={chat.send}
+              sending={chat.sending}
+              conversationId={event.conversationId}
+            />
           </div>
         )}
       </div>

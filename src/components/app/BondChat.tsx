@@ -3,12 +3,13 @@
 import Image from "next/image";
 import { MessagesSkeleton } from "@/components/ui/Skeleton";
 import { Photo, Video } from "@/components/ui/Media";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { BondMark } from "@/components/app/BondMark";
 import { BondBanner } from "@/components/app/bonds/BondBanner";
 import { ChatMenu } from "@/components/app/ChatMenu";
-import { Linkify } from "@/components/ui/Linkify";
 import { Avatar } from "@/components/app/Avatar";
+import { MentionInput, useMentionPicks } from "@/components/app/MentionInput";
+import { MentionText, rememberMentions } from "@/components/app/MentionText";
 import { useIsOnline } from "@/components/app/Presence";
 import { useToast } from "@/components/app/ToastProvider";
 import { useCalls } from "@/components/app/CallProvider";
@@ -77,6 +78,15 @@ export function BondChat({
   const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, startSending] = useTransition();
+  // "@" in a one-to-one chat offers the other person.
+  const picks = useMentionPicks();
+  const mentionable = useMemo(
+    () => ({
+      kind: "people" as const,
+      people: [{ id: person.userId, name: person.name, avatarUrl: person.avatarUrl, aura: person.aura ?? undefined }],
+    }),
+    [person.userId, person.name, person.avatarUrl, person.aura],
+  );
   const listRef = useRef<HTMLDivElement>(null);
 
   // Callbacks from the parent change every render; effects read the latest.
@@ -153,14 +163,18 @@ export function BondChat({
     const body = draft.trim();
     if (!body || sending) return;
     setDraft("");
+    const mentioned = picks.peopleIn(body);
+    picks.clear();
     startSending(async () => {
-      const result = await sendMessage(person.userId, conversationId, body);
+      const result = await sendMessage(person.userId, conversationId, body, mentioned.map((p) => p.id));
       if (result.error || !result.message || !result.conversationId) {
         setDraft(body);
+        mentioned.forEach(picks.add);
         toast({ title: result.error ?? "Your message didn't send.", tone: "danger" });
         return;
       }
       const message = result.message;
+      rememberMentions("messages", message.id, mentioned);
       setMessages((prev) => [...(prev ?? []), message]);
       if (!conversationId) setConversationId(result.conversationId);
       onActivityRef.current?.({
@@ -364,9 +378,13 @@ export function BondChat({
           </label>
           <label className="min-w-0 flex-1">
             <span className="sr-only">Message {person.name}</span>
-            <input
+            <MentionInput
+              as="input"
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={setDraft}
+              context={mentionable}
+              picks={picks}
+              placement="above"
               maxLength={4000}
               placeholder="Write your message..."
               className="w-full bg-transparent font-sans text-base text-ink-500 outline-none placeholder:text-ink-500"
@@ -558,7 +576,12 @@ function Bubble({
           >
             <p className="font-sans text-sm font-medium whitespace-pre-line">
               {message.kind === "text" && message.body ? (
-                <Linkify text={message.body} />
+                <MentionText
+                  text={message.body}
+                  source="messages"
+                  id={message.id}
+                  mentionClassName={mine ? "font-semibold text-white underline underline-offset-2" : undefined}
+                />
               ) : (
                 messagePreview(message.kind, message.body)
               )}

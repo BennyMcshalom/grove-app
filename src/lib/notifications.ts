@@ -140,29 +140,79 @@ export function toInboxItem(row: NotificationRow): InboxItem {
         href: row.entity_id ? `/people/${row.entity_id}` : "/bonds",
       };
     }
-    // Chapter invitations (Figma 122:8021's INVITATIONS rail).
+    // Chapter Companions — "Walk alongside a chapter". The chapter_invite
+    // kinds are older rows of the same invitation.
+    case "companion_invite":
     case "chapter_invite": {
-      const title = typeof data.title === "string" ? data.title : "their chapter";
+      const chapter = typeof data.chapter_slug === "string" ? getChapter(data.chapter_slug) : undefined;
+      const title = typeof data.title === "string" ? data.title : null;
       return {
         ...base,
-        title: `${who} invited you`,
-        body: `to join "${title}"`,
-        href: typeof data.token === "string" ? `/i/${data.token}` : "/spaces",
+        title: `${who} invited you to walk with them`,
+        body: chapter ? `Through their ${chapter.name} chapter${title ? `: "${title}"` : ""}.` : "Through a chapter of their life.",
+        href: typeof data.token === "string" ? `/i/${data.token}` : "/bonds/walking-with",
       };
     }
+    case "companion_accepted":
     case "chapter_invite_accepted": {
       const chapter = typeof data.chapter_slug === "string" ? getChapter(data.chapter_slug) : undefined;
       return {
         ...base,
-        title: `${who} joined your chapter`,
-        body: typeof data.title === "string" ? `They're part of "${data.title}" now.` : "They're in your circle now.",
-        href: chapter ? `/spaces/${chapter.slug}` : "/spaces",
+        title: `${who} is walking with you`,
+        body: chapter ? `They accepted your invitation into your ${chapter.name} chapter.` : "They accepted your invitation.",
+        href: chapter
+          ? `/spaces/${chapter.slug}/companions${row.kind === "companion_accepted" && row.entity_id ? `?c=${row.entity_id}` : ""}`
+          : "/spaces",
+      };
+    }
+    case "companion_update": {
+      const chapter = typeof data.chapter_slug === "string" ? getChapter(data.chapter_slug) : undefined;
+      const excerpt = typeof data.excerpt === "string" && data.excerpt ? `"${data.excerpt}"` : "They shared a photo.";
+      return {
+        ...base,
+        title: chapter ? `${who} shared an update in their ${chapter.name} chapter` : `${who} shared an update`,
+        body: excerpt,
+        href: row.entity_id ? `/walking/${row.entity_id}` : "/bonds/walking-with",
+      };
+    }
+    case "companion_checkin": {
+      const chapter = typeof data.chapter_slug === "string" ? getChapter(data.chapter_slug) : undefined;
+      const fromOwner = data.from_owner === true;
+      const excerpt = typeof data.excerpt === "string" ? `"${data.excerpt}"` : "";
+      return {
+        ...base,
+        title: fromOwner ? `${who} replied to your check-in` : `${who} checked in on your ${chapter?.name ?? ""} chapter`.replace("  ", " "),
+        body: excerpt,
+        href: fromOwner
+          ? row.entity_id ? `/walking/${row.entity_id}` : "/bonds/walking-with"
+          : chapter ? `/spaces/${chapter.slug}/companions${row.entity_id ? `?c=${row.entity_id}` : ""}` : "/spaces",
       };
     }
     case "post_rooted":
       return { ...base, title: `${who} rooted your post`, body: "Your post took root with them.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
     case "post_commented":
       return { ...base, title: `${who} commented on your post`, body: "See what they said.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
+    // @mentions: in a post, a comment, or a chat (direct, group or event).
+    case "mentioned": {
+      const excerpt = typeof data.excerpt === "string" && data.excerpt ? `"${data.excerpt}"` : null;
+      if (data.source === "message") {
+        const href =
+          typeof data.group_slug === "string"
+            ? `/groups/${data.group_slug}`
+            : typeof data.event_id === "string"
+              ? `/events/${data.event_id}`
+              : row.actor_id
+                ? `/bonds?with=${row.actor_id}`
+                : "/bonds";
+        return { ...base, title: `${who} mentioned you in a chat`, body: excerpt ?? "See what they said.", href };
+      }
+      return {
+        ...base,
+        title: `${who} mentioned you in ${data.source === "comment" ? "a comment" : "a post"}`,
+        body: excerpt ?? "See what they said.",
+        href: row.entity_id ? `/posts/${row.entity_id}` : "/home",
+      };
+    }
     case "group_join_request":
       return {
         ...base,

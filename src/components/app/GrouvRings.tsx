@@ -2,20 +2,22 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Avatar } from "@/components/app/Avatar";
+import { Avatar, grouvHref } from "@/components/app/Avatar";
 import { useViewer } from "@/components/app/ViewerProvider";
+import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
 import { auraLabel, AURAS, type Aura } from "@/lib/profile";
 
 /**
- * Your Grouv rings — Figma component 489:17418 (used in frames 417:16407 and
- * 435:18506).
+ * Grouv rings — Figma component 489:17418 (used in frames 417:16407 and
+ * 435:18506). Your Grouv and everyone else's Grouv (/people/<id>) share it.
  *
- * A 390x401 stage carries three concentric rings (380 / 280 / 180), your
- * portrait at the centre and up to four people from your bonds and circle on
- * them, with the three layer badges pinned at Figma's coordinates. Tapping a
- * layer shows what you wrote for it: Struggling with is your Honest tension,
- * Building is Sitting with, Open to is Open to.
+ * A 390x401 stage carries three concentric rings (380 / 280 / 180), the
+ * person's portrait at the centre and up to four people on them, with the
+ * three layer badges pinned at Figma's coordinates. Tapping a layer shows
+ * what they wrote for it: Struggling with is their Honest tension, Building
+ * is Sitting with, Open to is Open to. Beside it, their card: name (YOU on
+ * your own), a Space · stage chip per open chapter, aura and location.
  */
 const STAGE_W = 390;
 const STAGE_H = 401;
@@ -83,10 +85,40 @@ const SPOTS: { left: number; top: number }[] = [
   { left: 111, top: 342 },
 ];
 
-export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts: RingPrompts }) {
+/** Whose Grouv this is. */
+export interface GrouvSubject {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  aura: Aura;
+  locationLabel: string | null;
+  /** Open chapters, primary first. */
+  chapters: { slug: string; phase: string }[];
+  /** Your own Grouv: the card says YOU and empty layers link to Edit Profile. */
+  self: boolean;
+}
+
+export function GrouvRings({
+  subject,
+  people,
+  prompts,
+  promptsHidden = false,
+  label,
+  children,
+}: {
+  subject: GrouvSubject;
+  people: RingPerson[];
+  prompts: RingPrompts;
+  /** Their prompts are for their Bonds only (RLS) and weren't readable. */
+  promptsHidden?: boolean;
+  /** A small pill beside the name: "In your circle", "Bonded"… */
+  label?: string | null;
+  /** Under the card's details: the actions on someone else's Grouv. */
+  children?: React.ReactNode;
+}) {
   const viewer = useViewer();
   const [entered, setEntered] = useState<Layer | null>(null);
-  const aura = AURAS.find((a) => a.value === viewer.aura);
+  const aura = AURAS.find((a) => a.value === subject.aura);
   const badge = BADGES.find((b) => b.id === entered);
 
   return (
@@ -114,16 +146,16 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
             />
           ))}
 
-          {/* Frame 1618868315 — your portrait, ringed by Ellipse 18. */}
+          {/* Frame 1618868315 — their portrait, ringed by Ellipse 18. */}
           <span
             className="absolute"
             style={{ left: x(175), top: y(169), width: w(40), aspectRatio: "1" }}
           >
             <span className="absolute -inset-[20%] rounded-full border border-primary-100" />
             <Avatar
-              src={viewer.avatarUrl}
-              name={viewer.firstName}
-              aura={viewer.aura}
+              src={subject.avatarUrl}
+              name={subject.name}
+              aura={subject.aura}
               sizes="40px"
               className="relative size-full"
             />
@@ -134,13 +166,15 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
             return (
               <Link
                 key={person.userId}
-                href={`/bonds?with=${person.userId}`}
-                title={person.name}
+                // On your own Grouv a face opens your chat; on someone
+                // else's, that person's Grouv (or yours, if it's you).
+                href={subject.self ? `/bonds?with=${person.userId}` : grouvHref(person.userId, viewer.id)}
+                title={person.userId === viewer.id ? "You" : person.name}
                 className="absolute grid place-items-center rounded-full transition-transform hover:scale-110"
                 style={{ left: x(spot.left), top: y(spot.top), width: w(40), aspectRatio: "1" }}
               >
                 <Avatar src={person.avatarUrl} name={person.name} aura={person.aura} sizes="40px" className="size-full" />
-                <span className="sr-only">{person.name}</span>
+                <span className="sr-only">{person.userId === viewer.id ? "You" : person.name}</span>
               </Link>
             );
           })}
@@ -168,30 +202,43 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
         </p>
       </div>
 
-      <div className="flex w-full flex-col gap-4 lg:max-w-[468px]">
-        {/* Frame 1618868182 — the YOU card. */}
+      <div className="flex w-full min-w-0 flex-col gap-4 lg:max-w-[468px]">
+        {/* Frame 1618868182 — the YOU card, or theirs. */}
         <div className="flex flex-col gap-3 rounded-2xl border border-ink-50 bg-ivory-50 px-5 py-6">
-          <span className="font-sans text-lg font-semibold text-ink-800">
-            YOU
-          </span>
-          <div className="flex flex-wrap gap-4">
-            {viewer.chapters[0] && (
-              <span className="flex items-center gap-1 rounded-full bg-ivory-500 px-2 py-1 font-sans text-xs font-medium text-ink-400">
-                <TrendUpIcon className="size-3" />
-                {viewer.chapters[0].phase}
+          <div className="flex flex-wrap items-center gap-2">
+            {subject.self ? (
+              <span className="font-sans text-lg font-semibold text-ink-800">YOU</span>
+            ) : (
+              <h1 className="font-sans text-lg font-semibold text-ink-800">{subject.name}</h1>
+            )}
+            {label && (
+              <span className="rounded-full bg-primary-50 px-2.5 py-0.5 font-sans text-xs font-medium text-primary-800">
+                {label}
               </span>
             )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {subject.chapters.map((chapter) => (
+              <span
+                key={chapter.slug}
+                className="flex items-center gap-1 rounded-full bg-ivory-500 px-2 py-1 font-sans text-xs font-medium text-ink-400"
+              >
+                <TrendUpIcon className="size-3 shrink-0" />
+                {getChapter(chapter.slug)?.name ?? chapter.slug} · {chapter.phase}
+              </span>
+            ))}
             <span className="flex items-center gap-1 rounded-full bg-ivory-500 px-2 py-1 font-sans text-xs font-medium text-ink-400">
               <span className={cn("size-1.5 rounded-full", aura?.dot)} />
-              {auraLabel(viewer.aura)}
+              {auraLabel(subject.aura)}
             </span>
           </div>
-          {viewer.locationLabel && (
+          {subject.locationLabel && (
             <span className="flex items-center gap-2 font-sans text-sm font-medium text-ink-400">
               <PinIcon className="size-6 shrink-0" />
-              {viewer.locationLabel}
+              {subject.locationLabel}
             </span>
           )}
+          {children}
         </div>
 
         {/* Frame 1618868328 — the explainer, or the layer you stepped into. */}
@@ -200,10 +247,15 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
             <span className={cn("w-fit rounded-full px-3 py-1 font-ui text-xs font-semibold", badge.className)}>
               {badge.label}
             </span>
-            <p className="font-sans text-base whitespace-pre-line text-ink-500">
-              {prompts[badge.id] ?? badge.empty}
+            <p className={cn("font-sans text-base whitespace-pre-line", prompts[badge.id] ? "text-ink-500" : "text-ink-300")}>
+              {prompts[badge.id] ??
+                (subject.self
+                  ? badge.empty
+                  : promptsHidden
+                    ? `Only ${subject.name}'s Bonds can read what's in this ring.`
+                    : `${subject.name} hasn't written this one yet.`)}
             </p>
-            {!prompts[badge.id] && (
+            {subject.self && !prompts[badge.id] && (
               <Link href="/settings/edit-profile" className="font-sans text-sm font-medium text-primary-600 hover:underline">
                 Add it in Edit Profile
               </Link>
@@ -211,8 +263,17 @@ export function GrouvRings({ people, prompts }: { people: RingPerson[]; prompts:
           </div>
         ) : (
           <p className="rounded-2xl border border-ink-50 bg-ivory-50 px-5 py-6 font-sans text-base text-ink-300">
-            You&rsquo;re standing in the middle of your own Grouv. Each ring is a
-            layer of where you are, struggling, building, open to. Step into one.
+            {subject.self ? (
+              <>
+                You&rsquo;re standing in the middle of your own Grouv. Each ring is a
+                layer of where you are, struggling, building, open to. Step into one.
+              </>
+            ) : (
+              <>
+                You&rsquo;re standing in {subject.name}&rsquo;s Grouv. Each ring is a layer of
+                where they are, struggling, building, open to. Step into one.
+              </>
+            )}
           </p>
         )}
       </div>

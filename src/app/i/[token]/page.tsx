@@ -1,65 +1,75 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { InvitationActions } from "@/components/app/invite/InvitationActions";
 import { InvitationCard } from "@/components/app/invite/InvitationCard";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { getViewer } from "@/lib/auth/viewer";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { loadInvitationCard } from "@/lib/companions-server";
 
 export const metadata: Metadata = {
-  title: "A chapter invitation · Grouv",
+  title: "An invitation to walk alongside a chapter · Grouv",
   robots: { index: false },
 };
 
 /**
- * Recipient landing for a chapter invitation link — Figma 1524:25315.
+ * "Invitation from John" — the link an owner shares to invite someone to
+ * walk alongside one of their chapters.
  *
- * Signed in, the card opens inside the app (My Spaces) where you can join or
- * decline. Signed out, it shows the card and carries the invitation through
- * sign-up (/i/<token>/join sets a cookie the app shell picks up afterwards).
+ * Signed in, Accept invitation / Not now right here. Signed out (or not on
+ * Grouv yet), the same card with "Join Grouv to accept" and "I already have an
+ * account": /i/<token>/join remembers the invitation in a cookie through
+ * sign-up, verification and onboarding, and brings them back here after.
  */
 export default async function InvitationLanding({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   if (!/^[0-9a-f]{20}$/.test(token)) notFound();
 
-  if (await getViewer()) redirect(`/spaces?invite=${token}`);
+  const viewer = await getViewer();
+  const invite = await loadInvitationCard(token);
+  if (!invite) notFound();
 
-  const supabase = await createClient();
-  const { data } = await supabase.rpc("chapter_invite_card", { p_token: token });
-  const card = data?.[0];
-  if (!card) notFound();
-
-  // Media is private; sign just this card's photos, an hour at a time.
-  let photoUrls: string[] = [];
-  if (card.photo_paths.length > 0) {
-    const { data: signed } = await createAdminClient()
-      .storage.from("media")
-      .createSignedUrls(card.photo_paths, 60 * 60);
-    photoUrls = (signed ?? []).flatMap((s) => (s.signedUrl ? [s.signedUrl] : []));
-  }
+  const onboarded = Boolean(viewer?.profile.onboarded_at);
 
   return (
     <main className="flex min-h-dvh flex-col items-center bg-ivory-100 px-4 py-8 sm:py-12">
-      <Logo className="mb-8 h-10 w-auto" />
-      <div className="flex w-full max-w-[660px] flex-col gap-6 rounded-2xl bg-surface p-6 sm:p-8">
+      <Link href={onboarded ? "/home" : "/"} aria-label="Grouv">
+        <Logo className="mb-8 h-10 w-auto" />
+      </Link>
+      <div className="flex w-full max-w-[560px] flex-col gap-6 rounded-2xl bg-surface p-5 sm:p-8">
         <InvitationCard
-          title={card.title}
-          subtitle={`${card.sender_name} has invited you to join them in this chapter of their life`}
-          photoUrls={photoUrls}
-          note={card.note}
+          senderName={invite.senderName}
+          chapterSlug={invite.chapterSlug}
+          phase={invite.phase}
+          title={invite.title}
+          why={invite.why}
+          ask={invite.ask}
+          share={invite.share}
+          momentCount={invite.momentCount}
         >
-          <div className="flex flex-col gap-3">
-            <Button fullWidth href={`/i/${token}/join`}>
-              Join Grouv to accept
+          {onboarded ? (
+            <InvitationActions invite={invite} />
+          ) : viewer ? (
+            // Signed in, but onboarding isn't finished: finish it, then come back.
+            <Button fullWidth href={`/i/${token}/join?to=onboarding`}>
+              Finish joining Grouv to accept
             </Button>
-            <Button variant="secondary" fullWidth href={`/i/${token}/join?to=sign-in`}>
-              I already have an account
-            </Button>
-            <p className="text-center font-sans text-xs text-ink-300">
-              Every new member gets 14 days of Season Pass, free.
-            </p>
-          </div>
+          ) : invite.taken ? (
+            <p className="text-center font-sans text-sm text-ink-300">This invitation has already been accepted.</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <Button fullWidth href={`/i/${token}/join`}>
+                Join Grouv to accept
+              </Button>
+              <Button variant="secondary" fullWidth href={`/i/${token}/join?to=sign-in`}>
+                I already have an account
+              </Button>
+              <p className="text-center font-sans text-xs text-ink-300">
+                Every new member gets 14 days of Season Pass, free.
+              </p>
+            </div>
+          )}
         </InvitationCard>
       </div>
     </main>
