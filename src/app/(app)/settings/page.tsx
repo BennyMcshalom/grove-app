@@ -15,8 +15,6 @@ export default async function SettingsPage() {
     { data: profile },
     { data: isStaff },
     { data: subscription },
-    { data: privacy },
-    { data: blocks },
   ] = await Promise.all([
     supabase
       .from("profile_prompts")
@@ -35,19 +33,7 @@ export default async function SettingsPage() {
       .select("trial_started_at, current_period_end, cancel_at_period_end, billing_store, bonus_until")
       .eq("user_id", viewer.id)
       .single(),
-    supabase.from("privacy_settings").select("discoverable, activity_matching").eq("user_id", viewer.id).maybeSingle(),
-    supabase
-      .from("blocks")
-      .select("blocked_id, created_at")
-      .eq("blocker_id", viewer.id)
-      .order("created_at", { ascending: false }),
   ]);
-
-  // Blocked accounts by name and photo (profiles are readable to members).
-  const blockedIds = (blocks ?? []).map((b) => b.blocked_id);
-  const { data: blockedProfiles } = blockedIds.length
-    ? await supabase.from("profiles").select("id, first_name, avatar_url").in("id", blockedIds)
-    : { data: [] };
 
   return (
     <SettingsView
@@ -73,16 +59,6 @@ export default async function SettingsPage() {
         cancelAtPeriodEnd: subscription?.cancel_at_period_end ?? false,
         bonusUntil: subscription?.bonus_until ?? null,
       }}
-      privacy={{
-        discoverable: privacy?.discoverable ?? true,
-        activityMatching: privacy?.activity_matching ?? true,
-      }}
-      blocked={(blocks ?? []).flatMap((b) => {
-        const person = blockedProfiles?.find((p) => p.id === b.blocked_id);
-        return person
-          ? [{ userId: person.id, name: person.first_name, avatarUrl: person.avatar_url, blockedAt: b.created_at }]
-          : [];
-      })}
     />
   );
 }

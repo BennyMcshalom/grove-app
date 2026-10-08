@@ -8,7 +8,7 @@ import { respondCompanionInvite } from "@/lib/invite-actions";
 import type { CompanionInvitation } from "@/lib/invites";
 
 /**
- * Accept invitation / Not now — or, once it's answered (or isn't the
+ * Join chapter / Decline invitation (Figma 1794:42823) — or, once it's answered (or isn't the
  * viewer's to answer), a line saying so. Accepting opens the shared chapter;
  * it never opens a Space or touches anyone's circle.
  */
@@ -37,7 +37,7 @@ export function InvitationActions({
   }
   if (invite.forSomeoneElse) return note(`This invitation was meant for someone else. Ask ${invite.senderName} for your own.`);
   if (invite.taken) return note("This invitation has already been accepted.");
-  if (answered === "declined" || invite.myStatus === "declined") return note("You said not now to this invitation.");
+  if (answered === "declined" || invite.myStatus === "declined") return note("You declined this invitation.");
   if (invite.myStatus === "accepted") return note("You’ve answered this invitation.");
 
   const respond = (accept: boolean) =>
@@ -57,10 +57,10 @@ export function InvitationActions({
     <div className="flex flex-col gap-3">
       <FormError message={error} />
       <Button fullWidth loading={pending} onClick={() => respond(true)}>
-        Accept invitation
+        Join chapter
       </Button>
       <Button variant="secondary" fullWidth disabled={pending} onClick={() => respond(false)}>
-        Not now
+        Decline invitation
       </Button>
     </div>
   );

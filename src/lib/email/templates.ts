@@ -211,3 +211,45 @@ export function notificationEmail(input: NotificationEmailInput): Email | null {
     text: `Hi ${input.recipientName},\n\n${copy.line}\n\n${copy.cta}: ${url}\n\nTurn these emails off in Settings: ${input.siteUrl}/settings`,
   };
 }
+
+/** Settings → "Request export": the link builds the file when they open it signed in. */
+export function dataExportEmail({ to, firstName, siteUrl }: { to: string; firstName: string; siteUrl: string }): Email {
+  const link = `${siteUrl}/api/export`;
+  return {
+    to,
+    subject: "Your Grouv data export",
+    text: `Hi ${firstName},\n\nHere's the link to download a copy of your Grouv data: your profile, chapters, posts, Grouv Log, the messages you sent and your connections, as one file. Open it while signed in to Grouv: ${link}\n\nIf you didn't ask for this, you can ignore this email.`,
+    html: layout(`
+      <p style="margin:0 0 16px;">Hi ${escapeHtml(firstName)},</p>
+      <p style="margin:0 0 24px;">Here&#39;s your download link: a copy of your profile, chapters, posts, Grouv Log, the messages you sent and your connections, as one file. Open it while signed in to Grouv.</p>
+      <a href="${link}" style="display:inline-block;background:#F57E16;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;">Download my data</a>
+      <p style="margin:24px 0 0;font-size:14px;color:#6B7280;">If you didn&#39;t ask for this, you can ignore this email.</p>
+    `),
+  };
+}
+
+/** Danger zone: the account goes for good on `deleteAfter` unless they sign back in. */
+export function accountDeletionEmail({
+  to,
+  firstName,
+  deleteAfter,
+  siteUrl,
+}: {
+  to: string;
+  firstName: string;
+  deleteAfter: string;
+  siteUrl: string;
+}): Email {
+  const when = new Date(deleteAfter).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+  return {
+    to,
+    subject: "Your Grouv account is scheduled for deletion",
+    text: `Hi ${firstName},\n\nYour account is scheduled for permanent deletion on ${when}. Sign back in any time before then to cancel: ${siteUrl}/sign-in\n\nAfter that date, your data, Bonds, and posts are gone for good.`,
+    html: layout(`
+      <p style="margin:0 0 16px;">Hi ${escapeHtml(firstName)},</p>
+      <p style="margin:0 0 16px;">Your account is scheduled for permanent deletion on <strong>${escapeHtml(when)}</strong>. Sign back in any time before then to cancel.</p>
+      <p style="margin:0 0 24px;">After that date, your data, Bonds, and posts are gone for good.</p>
+      <a href="${siteUrl}/sign-in" style="display:inline-block;background:#F57E16;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;">Keep my account</a>
+    `),
+  };
+}

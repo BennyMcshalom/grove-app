@@ -250,7 +250,7 @@ export function GroupView({
                 Members can read the {tab === "Conversation" ? "conversation" : tab === "Truth Board" ? "Truth Board" : "video truths"}.
               </p>
             ) : tab === "Conversation" ? (
-              <RoomMessageList messages={chat.messages} empty="No one has said anything yet. Start the conversation." />
+              <RoomMessageList messages={chat.messages} empty="No one has said anything yet. Start the conversation." chat={chat} />
             ) : tab === "Truth Board" ? (
               <TruthBoard groupId={group.id} truths={truths} />
             ) : (
@@ -267,6 +267,8 @@ export function GroupView({
               onSend={chat.send}
               sending={chat.sending}
               conversationId={group.conversationId}
+              replyTo={chat.replyTo}
+              onCancelReply={() => chat.setReplyTo(null)}
             />
           </div>
         )}

@@ -7,10 +7,11 @@ import type { CompanionShare } from "@/lib/invites";
  * "Invitation from John" — what someone invited to walk alongside a chapter
  * sees, in the app, on the /i/<token> link, and in the owner's Preview.
  *
- * The chapter banner (its Space wash and icon, "John's Career chapter",
- * YOU'RE INVITED and the title), why they were chosen, exactly what they'll
- * be able to see, and the reassurance that nothing of theirs changes.
- * Actions come from the caller.
+ * CHAPTER INVITATION, the headline and who's asking (Figma 1794:42823
+ * "Viewer's end"; the owner's Preview is 1794:42749), the chapter banner
+ * (its Space wash and icon), why they were chosen, exactly what they'll be
+ * able to see, and the reassurance that nothing of theirs changes. Actions
+ * come from the caller.
  */
 export function InvitationCard({
   senderName,
@@ -21,6 +22,7 @@ export function InvitationCard({
   ask,
   share,
   momentCount,
+  audience = "invitee",
   children,
 }: {
   senderName: string;
@@ -31,6 +33,8 @@ export function InvitationCard({
   ask: string | null;
   share: CompanionShare;
   momentCount: number;
+  /** The owner's Preview says "You are inviting…". */
+  audience?: "owner" | "invitee";
   children?: React.ReactNode;
 }) {
   const chapter = getChapter(chapterSlug);
@@ -43,7 +47,17 @@ export function InvitationCard({
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="font-display text-2xl font-semibold text-ink-800">Invitation from {senderName}</h2>
+      <div className="flex flex-col gap-2">
+        <span className="font-sans text-xs font-medium tracking-wide text-primary-600 uppercase">
+          Chapter invitation
+        </span>
+        <h2 className="font-display text-xl font-semibold text-ink-800 sm:text-2xl">{title}</h2>
+        <p className="font-sans text-base text-ink-300">
+          {audience === "owner"
+            ? "You are inviting people to join you in this chapter"
+            : `${senderName} has invited you to join them in this chapter of their life`}
+        </p>
+      </div>
 
       <div className={cn("flex flex-col gap-3 rounded-2xl p-5 sm:p-6", chapter?.cardClass ?? "bg-ivory-200")}>
         <span className="flex w-fit items-center gap-2 rounded-full bg-surface px-3 py-1.5">
@@ -52,16 +66,7 @@ export function InvitationCard({
             {senderName}&rsquo;s {chapterName} chapter
           </span>
         </span>
-        <span className="font-sans text-xs font-semibold tracking-wide text-primary-600 uppercase">
-          You&rsquo;re invited
-        </span>
-        <div className="flex flex-col gap-1">
-          <p className="font-display text-2xl font-semibold text-ink-800">{title}</p>
-          {phase !== title && <p className="font-sans text-sm text-ink-400">{phase}</p>}
-        </div>
-        <p className="font-sans text-base text-ink-500">
-          {senderName} wants you beside them in this chapter of their life.
-        </p>
+        <p className="font-display text-2xl font-semibold text-ink-800">{phase}</p>
       </div>
 
       {why && (

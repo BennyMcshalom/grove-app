@@ -177,10 +177,15 @@ export async function loadBondLog(bondId: string): Promise<BondLogRound[]> {
           photoUrl: row.my_photo_path ? (photos.get(row.my_photo_path) ?? null) : null,
           photoPath: row.my_photo_path,
           shared: row.my_shared,
+          heading: row.my_title,
         }
       : null,
     theirs: row.their_shared
-      ? { body: row.their_body, photoUrl: row.their_photo_path ? (photos.get(row.their_photo_path) ?? null) : null }
+      ? {
+          body: row.their_body,
+          photoUrl: row.their_photo_path ? (photos.get(row.their_photo_path) ?? null) : null,
+          heading: row.their_title,
+        }
       : null,
     theirShared: row.their_shared,
   }));

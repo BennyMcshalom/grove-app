@@ -19,7 +19,7 @@ import {
 } from "@/components/app/pass/PassStatus";
 import { BILLING_ON, usePassOffer, usePurchase } from "@/components/app/pass/usePassOffer";
 import { Button } from "@/components/ui/Button";
-import { Modal, ModalClose } from "@/components/ui/Modal";
+import { Modal, ModalClose, ModalHeader } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { restorePurchase } from "@/lib/pass-actions";
 import { PLAN_NAMES, type PassOffer, type PassPlan, type PlanKind } from "@/lib/revenuecat-client";
@@ -46,7 +46,7 @@ const REASON: Record<PaywallReason, string | null> = {
   journal_media: "Photos, voice and video entries are part of Season Pass.",
 };
 
-type Step = "choose" | "confirmTrial" | "ineligible" | "pending" | "success" | "failure";
+type Step = "choose" | "confirmTrial" | "ineligible" | "checkout" | "pending" | "success" | "failure";
 
 /**
  * The Season Pass paywall — Figma 1546:777 (Founding selected), 1546:853
@@ -72,6 +72,7 @@ export function Paywall({
   const [picked, setPicked] = useState<PlanKind | null>(initialPlan ?? null);
   const [step, setStep] = useState<Step>("choose");
   const [paidUntil, setPaidUntil] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
   const [restoring, startRestoring] = useTransition();
   const [trialing, startTrialing] = useTransition();
 
@@ -84,9 +85,13 @@ export function Paywall({
   const trialEligible = viewer.trialAvailable;
 
   const buy = async (plan: PassPlan) => {
-    setStep("choose");
+    // RevenueCat's own checkout opens over this step; backing out of it
+    // returns here.
+    setStep("checkout");
+    setPaying(true);
     const outcome = await purchase(plan, () => setStep("pending"));
-    if (outcome.kind === "cancelled") return setStep("choose");
+    setPaying(false);
+    if (outcome.kind === "cancelled") return setStep("checkout");
     if (outcome.kind === "failed") return setStep("failure");
     setPaidUntil(outcome.trialEnd ?? outcome.currentPeriodEnd);
     if (outcome.syncError) toast({ title: outcome.syncError, tone: "info" });
@@ -98,7 +103,7 @@ export function Paywall({
       setStep(trialEligible ? "confirmTrial" : "ineligible");
       return;
     }
-    void buy(plan);
+    setStep("checkout");
   };
 
   const restore = () =>
@@ -132,13 +137,13 @@ export function Paywall({
             title={`Start your ${weeklyTrial ?? 14}-day free trial?`}
             actions={
               <>
-                <Button size="md" fullWidth onClick={() => offer?.weekly && buy(offer.weekly)}>
+                <Button size="md" fullWidth onClick={() => setStep("checkout")}>
                   Start my trial
                 </Button>
                 <TextAction onClick={() => setStep("choose")}>Not now</TextAction>
               </>
             }
-            footnote="Cancel anytime in Settings before your trial ends."
+            footnote="You can cancel anytime in Settings before your trial ends."
           >
             You&rsquo;re not charged today. On day {weeklyTrial ?? 14} we&rsquo;ll start billing{" "}
             {offer?.weekly?.price}/week unless you cancel before then.
@@ -169,6 +174,16 @@ export function Paywall({
             This account has already used a Season Pass trial. You can still get full access with Monthly
             {offer?.founding ? " or the Founding year" : ""}.
           </StatusCard>
+        )}
+
+        {step === "checkout" && selected && (
+          <Checkout
+            plan={selected}
+            trialDays={selected.kind === "weekly" ? weeklyTrial : null}
+            paying={paying}
+            onPay={() => void buy(selected)}
+            onCancel={() => setStep("choose")}
+          />
         )}
 
         {step === "pending" && (
@@ -204,13 +219,20 @@ export function Paywall({
               </>
             }
           >
-            <p>Your Season Pass is active. Full access is unlocked across every Space.</p>
+            <p>
+              {selected.kind === "weekly" && weeklyTrial
+                ? `Your ${weeklyTrial}-day free trial is active. Full access is unlocked across every Space.`
+                : `Your ${PLAN_NAMES[selected.kind]} is active. Full access is unlocked across every Space.`}
+            </p>
             <div className="mt-5 flex flex-col gap-0.5 rounded-xl bg-ivory-100 px-4 py-3">
-              <span className="font-sans text-sm font-semibold text-ink-800">{PLAN_NAMES[selected.kind]}</span>
+              <span className="font-sans text-sm font-semibold text-ink-800">
+                {PLAN_NAMES[selected.kind]}
+                {selected.kind === "weekly" && weeklyTrial ? " - Trial" : ""}
+              </span>
               {paidUntil && (
                 <span className="font-sans text-xs text-ink-300">
                   {selected.kind === "weekly" && weeklyTrial
-                    ? `Free until ${shortDate(paidUntil)}, then ${selected.price}/week`
+                    ? `First charge: ${selected.price} on ${longDate(paidUntil)}. Cancel anytime before then.`
                     : `Renews at ${selected.price}/${selected.unit} on ${shortDate(paidUntil)}`}
                 </span>
               )}
@@ -301,7 +323,7 @@ export function Paywall({
             {selected.kind === "founding"
               ? "Get my founding year"
               : selected.kind === "monthly"
-                ? "Continue monthly"
+                ? "Get monthly plan"
                 : weeklyTrial
                   ? `Start my ${weeklyTrial}-day trial`
                   : "Continue weekly"}
@@ -474,5 +496,80 @@ function DueToday({ plan, weeklyTrial }: { plan: PassPlan; weeklyTrial: number |
       <span className="font-sans text-xs text-ink-300">{then}</span>
       {trial && <span className="font-sans text-xs text-primary-700">Your trial starts only after you confirm on the next step.</span>}
     </div>
+  );
+}
+
+/** "Oct 7, 2026" — days from now, for the first charge after a trial. */
+const inDays = (days: number) => shortDate(new Date(Date.now() + days * 86_400_000).toISOString());
+
+/**
+ * "Add payment method" — Figma 1564:23122 (Trial, Weekly), 1564:23212
+ * (Monthly), 1564:23299 (Founding); phone 1801:37106/37169/37202. Figma draws
+ * a card form, but RevenueCat Web Billing collects the card itself (we never
+ * see card numbers), so this step keeps Figma's summary, security note and
+ * pay button, and the button opens RevenueCat's secure checkout.
+ */
+function Checkout({
+  plan,
+  trialDays,
+  paying,
+  onPay,
+  onCancel,
+}: {
+  plan: PassPlan;
+  trialDays: number | null;
+  paying: boolean;
+  onPay: () => void;
+  onCancel: () => void;
+}) {
+  const zero = new Intl.NumberFormat("en-US", { style: "currency", currency: plan.pkg.webBillingProduct.price.currency }).format(0);
+  const summary = trialDays
+    ? `You won't be charged today. We'll bill ${plan.price}/week automatically starting ${inDays(trialDays)}, you can cancel anytime before then.`
+    : plan.kind === "founding"
+      ? `You'll be charged ${plan.firstPrice} today for your founding year, then ${plan.price}/year automatically starting ${inDays(365)} — cancel anytime before renewal.`
+      : `You'll be charged ${plan.firstPrice} today, then ${plan.price}/${plan.unit} automatically until you cancel.`;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <ModalHeader title="Add payment method" onClose={onCancel} />
+      <p className="flex items-start gap-2.5 rounded-xl bg-primary-50 px-4 py-3.5 font-sans text-sm text-primary-700">
+        <CardIcon />
+        {summary}
+      </p>
+      <div className="flex flex-col gap-1">
+        <span className="font-sans text-base font-semibold text-ink-800">{PLAN_NAMES[plan.kind]}</span>
+        <span className="font-sans text-sm text-ink-400">
+          You&rsquo;ll enter your card on our secure checkout next. Visa, Mastercard &amp; Amex accepted.
+        </span>
+      </div>
+      <p className="flex items-center gap-2 font-sans text-xs text-ink-300">
+        <LockIcon />
+        Payments are encrypted and processed securely. We never store your full card number.
+      </p>
+      <div className="flex flex-col items-stretch gap-2">
+        <Button size="md" fullWidth loading={paying} onClick={onPay}>
+          {trialDays ? `Start my trial — ${zero} due today` : `Pay ${plan.firstPrice} & subscribe`}
+        </Button>
+        <TextAction onClick={onCancel}>Cancel</TextAction>
+      </div>
+    </div>
+  );
+}
+
+function CardIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="mt-0.5 size-4 shrink-0" aria-hidden="true">
+      <rect x="2.5" y="4.5" width="15" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M2.5 8h15M5.5 12.5h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="size-4 shrink-0" aria-hidden="true">
+      <rect x="4" y="9" width="12" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M6.5 9V6.5a3.5 3.5 0 0 1 7 0V9" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
   );
 }

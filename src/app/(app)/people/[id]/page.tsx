@@ -33,10 +33,11 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
     { data: prompts },
     { data: block },
     { data: ringPeople },
+    { data: fields },
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, first_name, avatar_url, aura, location_label, onboarded_at, banner")
+      .select("id, first_name, avatar_url, aura, onboarded_at, banner")
       .eq("id", id)
       .maybeSingle(),
     supabase
@@ -58,6 +59,8 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
     supabase.from("blocks").select("blocked_id").eq("blocker_id", viewer.id).eq("blocked_id", id).maybeSingle(),
     // The faces on their rings: you, and connections you share.
     supabase.rpc("grouv_people", { p_user_id: id }),
+    // Location, current chapter, bio and birthday as their audiences allow.
+    supabase.rpc("profile_for", { p_user_id: id }),
   ]);
 
   if (!profile?.onboarded_at) notFound();
@@ -73,6 +76,7 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
         : "none";
 
   const held = new Set(viewer.chapters.map((c) => c.slug));
+  const visible = fields?.[0];
 
   // Nothing of theirs shows while you've blocked them.
   const [posts, logs] = block
@@ -91,8 +95,12 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
         avatarUrl: profile.avatar_url,
         aura: profile.aura,
         banner: profile.banner,
-        locationLabel: profile.location_label,
-        chapters: (chapters ?? []).map((c) => ({ slug: c.chapter_slug, phase: c.phase, shared: held.has(c.chapter_slug) })),
+        locationLabel: visible?.location_label ?? null,
+        chapters: visible?.show_chapter
+          ? (chapters ?? []).map((c) => ({ slug: c.chapter_slug, phase: c.phase, shared: held.has(c.chapter_slug) }))
+          : [],
+        bio: visible?.bio ?? null,
+        birthday: visible?.birthday ?? null,
         relationship,
         connectionId: connection?.status === "pending" ? connection.id : null,
         // Their note, when they introduced themselves and it waits on you.

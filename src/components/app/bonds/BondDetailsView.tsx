@@ -110,18 +110,7 @@ export function BondDetailsView({ details, checkins }: { details: BondDetails; c
                 </Button>
               )}
             </Card>
-          ) : (
-            <Card label="Bond depth">
-              {details.sharedGoal && <p className="font-sans text-base text-ink-700">{details.sharedGoal}</p>}
-              <div className="flex items-center gap-4">
-                <DepthBar level={details.depthLevel} />
-                <span className="shrink-0 font-sans text-sm text-ink-600">
-                  {goalSpan(details.goalHorizonMonths, details.since)}
-                </span>
-              </div>
-              <p className="font-sans text-xs text-ink-400">{caption}</p>
-            </Card>
-          )}
+          ) : null /* Free (1801:29358): Milestones and the locked Bond Log only. */}
 
           {(hasPass || checkins.length > 0) && (
             <Card
@@ -185,26 +174,22 @@ export function BondDetailsView({ details, checkins }: { details: BondDetails; c
             />
           ) : (
             <Card
-              label="Bond Log · Season Pass feature"
+              label="Bond Log"
               muted
               action={
-                <span className="flex flex-wrap items-center gap-4">
-                  {details.logCount > 0 && (
-                    <Link href={`/log/bonds/${details.bondId}`} className="font-sans text-sm text-ink-400 hover:underline">
-                      Look back
-                    </Link>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => paywall("bond_log")}
-                    className="font-sans text-sm font-medium text-primary-600 hover:underline"
-                  >
-                    <Lock />
-                    Unlock Bond Log
-                  </button>
-                </span>
+                details.logCount > 0 ? (
+                  <Link href={`/log/bonds/${details.bondId}`} className="font-sans text-sm text-ink-400 hover:underline">
+                    Look back
+                  </Link>
+                ) : undefined
               }
-            />
+            >
+              <p className="font-sans text-xs text-ink-400">Bond log is only available in Season Pass feature</p>
+              <Button size="sm" variant="secondary" className="w-fit" onClick={() => paywall("bond_log")}>
+                <Lock />
+                Unlock Bond Log
+              </Button>
+            </Card>
           )}
         </div>
       </div>
@@ -272,17 +257,18 @@ function Milestones({ details, stage }: { details: BondDetails; stage: BondStage
   };
 
   return (
-    <ol className="flex flex-wrap items-center gap-3">
+    // One row at every width (1801:29358): the steps share it, arrows between.
+    <ol className="flex items-center gap-2 sm:gap-3">
       {order.map((step, i) => {
         const past = i < current;
         const now = i === current;
         const when = reachedOn[step];
         return (
-          <li key={step} className="flex items-center gap-3">
+          <li key={step} className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-[200px] sm:gap-3">
             {i > 0 && <Arrow faded={i > current} />}
             <span
               className={cn(
-                "flex min-w-[112px] flex-col items-center rounded-lg px-4 py-2.5 text-center",
+                "flex min-w-0 flex-1 flex-col items-center rounded-lg px-2 py-2.5 text-center sm:px-4",
                 now ? "bg-primary-600 text-white" : past ? "bg-primary-50 text-primary-300" : "bg-ivory-200 text-ink-500",
               )}
             >
@@ -300,7 +286,7 @@ function Milestones({ details, stage }: { details: BondDetails; stage: BondStage
 
 function Arrow({ faded }: { faded: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={cn("size-5", faded ? "text-ink-100" : "text-primary-500")} aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" className={cn("size-5 shrink-0", faded ? "text-ink-100" : "text-primary-500")} aria-hidden="true">
       <path d="M4 12h15m0 0-6-6m6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

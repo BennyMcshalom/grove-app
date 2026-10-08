@@ -328,14 +328,14 @@ function RoundCard({
         {round.mine ? (
           <MomentTile
             who="You"
-            body={round.mine.body}
+            body={withHeading(round.mine)}
             photoUrl={round.mine.photoUrl}
             meta={meta}
             draft={!round.mine.shared}
             onOpen={() =>
               canAnswer && mineDraft
                 ? onAnswer()
-                : setOpened({ who: "You", body: round.mine!.body, photoUrl: round.mine!.photoUrl, meta })
+                : setOpened({ who: "You", body: withHeading(round.mine!), photoUrl: round.mine!.photoUrl, meta })
             }
           />
         ) : canAnswer ? (
@@ -354,10 +354,10 @@ function RoundCard({
         {round.theirs ? (
           <MomentTile
             who={name}
-            body={round.theirs.body}
+            body={withHeading(round.theirs)}
             photoUrl={round.theirs.photoUrl}
             meta={meta}
-            onOpen={() => setOpened({ who: name, body: round.theirs!.body, photoUrl: round.theirs!.photoUrl, meta })}
+            onOpen={() => setOpened({ who: name, body: withHeading(round.theirs!), photoUrl: round.theirs!.photoUrl, meta })}
           />
         ) : (
           <EmptyTile who={name}>Waiting for {name} to respond…</EmptyTile>
@@ -381,6 +381,14 @@ function RoundCard({
       )}
     </article>
   );
+}
+
+/** "Try something new together": the title they gave it, above their words. */
+function withHeading(response: { body: string | null; heading: string | null }) {
+  if (!response.heading) return response.body;
+  return response.body ? `${response.heading}
+
+${response.body}` : response.heading;
 }
 
 /**
@@ -486,6 +494,9 @@ function PromptModal({ round, name, onClose }: { round: BondLogRound; name: stri
   const viewer = useViewer();
   const draft = round.mine && !round.mine.shared ? round.mine : null;
   const [body, setBody] = useState(draft?.body ?? "");
+  // 1732:44501 — "Try something new together" names the activity first.
+  const [title, setTitle] = useState(draft?.heading ?? "");
+  const titled = round.kind === "something_new";
   // The draft's saved photo, or one picked now (`fresh`: uploaded here and
   // not saved yet, so closing without saving removes it again).
   const [photo, setPhoto] = useState<{ path: string; preview: string; fresh: boolean } | null>(
@@ -536,7 +547,7 @@ function PromptModal({ round, name, onClose }: { round: BondLogRound; name: stri
       const result = await saveBondResponse(round.activityId, round.round, body, share, {
         path: photo?.path ?? null,
         previousPath: draft?.photoPath ?? null,
-      });
+      }, titled ? title : null);
       if (result.error) return setError(result.error);
       if (photo?.fresh) URL.revokeObjectURL(photo.preview);
       onClose();
@@ -569,6 +580,18 @@ function PromptModal({ round, name, onClose }: { round: BondLogRound; name: stri
         <ModalHeader title={heading} onClose={close} />
       </div>
       <p className="font-sans text-base text-ink-500">{intro}</p>
+      {titled && (
+        <label className="flex flex-col gap-2">
+          <span className={FIELD_LABEL}>Title</span>
+          <input
+            value={title}
+            maxLength={120}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Give your challenge a title"
+            className={WELL}
+          />
+        </label>
+      )}
       <label className="flex flex-col gap-2">
         <span className={FIELD_LABEL}>{round.title}</span>
         <textarea

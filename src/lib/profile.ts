@@ -27,9 +27,10 @@ export function auraLabel(aura: Aura) {
 export const LOG_VISIBILITY = [
   // WHO CAN SEE YOUR LOG (Figma 1307:22530) adds "Everyone" above the rest.
   { value: "everyone", label: "Everyone", body: "Anyone on Grouv in your spaces can scroll your log" },
-  { value: "circle", label: "My circle", body: "Only people you’re connected with can see it" },
-  { value: "bonds", label: "Bonds only", body: "Only your bonds can see it" },
-  { value: "only_me", label: "Only me", body: "Nobody else can see it" },
+  { value: "circle", label: "My circle", body: "People you’re connected with can see it" },
+  { value: "bonds", label: "Bonds only", body: "Only your Bonds can open your log" },
+  // 1798:50311 calls it "Private".
+  { value: "only_me", label: "Private", body: "Just you. A closed door." },
 ] as const;
 
 export type LogVisibility = (typeof LOG_VISIBILITY)[number]["value"];

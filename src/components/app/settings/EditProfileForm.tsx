@@ -36,9 +36,15 @@ export interface EditablePrompts {
 export function EditProfileForm({
   prompts: initialPrompts,
   username: initialUsername = "",
+  bio: initialBio = "",
+  birthday: initialBirthday = "",
 }: {
   prompts: EditablePrompts;
   username?: string;
+  /** Who sees these two is set in Settings → Privacy & AI controls. */
+  bio?: string;
+  /** "YYYY-MM-DD" or "". */
+  birthday?: string;
 }) {
   const viewer = useViewer();
   const toast = useToast();
@@ -47,6 +53,8 @@ export function EditProfileForm({
   const [username, setUsername] = useState(initialUsername);
   const [usernameError, setUsernameError] = useState<string>();
   const [location, setLocation] = useState(viewer.locationLabel ?? "");
+  const [bio, setBio] = useState(initialBio);
+  const [birthday, setBirthday] = useState(initialBirthday);
   // The coordinates behind a detected location, so saving needn't look the city up again.
   const [detected, setDetected] = useState<{ label: string; latitude: number; longitude: number } | null>(null);
   const [aura, setAura] = useState<Aura>(viewer.aura);
@@ -182,10 +190,15 @@ export function EditProfileForm({
         })),
         primaryChapterId: primaryId,
         username,
+        bio,
+        birthday,
       });
       if (result.error || result.fieldErrors) {
         setError(result.error);
         setNameError(result.fieldErrors?.firstName);
+        if (result.fieldErrors?.bio || result.fieldErrors?.birthday) {
+          setError(result.fieldErrors.bio ?? result.fieldErrors.birthday);
+        }
         if (result.fieldErrors?.username) setUsernameError(result.fieldErrors.username);
         return;
       }
@@ -304,6 +317,31 @@ export function EditProfileForm({
                       <CrosshairIcon />
                     </button>
                   </div>
+                </Labelled>
+
+                <Labelled
+                  label="Bio"
+                  hint="A line or two about you. Choose who sees it, and your birthday, in Settings → Privacy & AI controls."
+                >
+                  <textarea
+                    rows={2}
+                    maxLength={300}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="What you're about right now"
+                    className={cn(fieldClass, "resize-y")}
+                  />
+                </Labelled>
+
+                <Labelled label="Birthday" hint="Only the day and month show on your profile, to the people you choose.">
+                  <input
+                    type="date"
+                    value={birthday}
+                    min="1900-01-01"
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setBirthday(e.target.value)}
+                    className={fieldClass}
+                  />
                 </Labelled>
               </div>
             </Card>

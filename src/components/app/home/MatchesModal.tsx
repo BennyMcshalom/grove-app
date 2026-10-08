@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
+import { BlockDialog, ReportPersonModal } from "@/components/app/bonds/SafetyDialogs";
 import { IntroduceModal, type IntroTarget } from "@/components/app/home/IntroduceModal";
 import { MatchPreferencesModal } from "@/components/app/home/MatchPreferencesModal";
 import { useToast } from "@/components/app/ToastProvider";
@@ -25,6 +26,8 @@ export function MatchesModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string>();
   const [introducing, setIntroducing] = useState<IntroTarget | null>(null);
   const [preferences, setPreferences] = useState(false);
+  // The card's "…" (1668:23871): Block (1689:44046) or Report (1689:44028).
+  const [safety, setSafety] = useState<{ kind: "block" | "report"; match: Match } | null>(null);
   const [notifying, startNotifying] = useTransition();
 
   const fetchMatches = useCallback(
@@ -54,7 +57,7 @@ export function MatchesModal({ onClose }: { onClose: () => void }) {
 
   // The nested modals handle their own Escape; this one closes when it's on top.
   useEffect(() => {
-    if (introducing || preferences) return;
+    if (introducing || preferences || safety) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     const overflow = document.body.style.overflow;
@@ -63,7 +66,7 @@ export function MatchesModal({ onClose }: { onClose: () => void }) {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflow;
     };
-  }, [introducing, preferences, onClose]);
+  }, [introducing, preferences, safety, onClose]);
 
   const notRelevant = async (match: Match) => {
     setMatches((prev) => prev?.filter((m) => m.userId !== match.userId) ?? prev);
@@ -154,6 +157,7 @@ export function MatchesModal({ onClose }: { onClose: () => void }) {
                               })
                             }
                             onNotRelevant={() => void notRelevant(match)}
+                            onSafety={(kind) => setSafety({ kind, match })}
                           />
                         </li>
                       ))}
@@ -171,6 +175,18 @@ export function MatchesModal({ onClose }: { onClose: () => void }) {
           onSent={() => setMatches((prev) => prev?.filter((m) => m.userId !== introducing.userId) ?? prev)}
         />
       )}
+      {safety?.kind === "block" && (
+        <BlockDialog
+          userId={safety.match.userId}
+          name={safety.match.name}
+          context="match"
+          onClose={() => setSafety(null)}
+          onBlocked={() => setMatches((prev) => prev?.filter((m) => m.userId !== safety.match.userId) ?? prev)}
+        />
+      )}
+      {safety?.kind === "report" && (
+        <ReportPersonModal userId={safety.match.userId} what="profile" onClose={() => setSafety(null)} />
+      )}
       {preferences && <MatchPreferencesModal onClose={() => setPreferences(false)} onSaved={load} />}
     </>
   );
@@ -180,17 +196,22 @@ function MatchCard({
   match,
   onIntroduce,
   onNotRelevant,
+  onSafety,
 }: {
   match: Match;
   onIntroduce: () => void;
   onNotRelevant: () => void;
+  onSafety: (kind: "block" | "report") => void;
 }) {
   const space = getChapter(match.chapterSlug)?.name ?? "";
   return (
     <article className="flex h-full gap-3 rounded-2xl bg-surface p-4">
       <Avatar src={match.avatarUrl} name={match.name} userId={match.userId} sizes="32px" className="size-8" />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <h3 className="font-sans text-lg font-medium text-ink-800">{match.name}</h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="min-w-0 font-sans text-lg font-medium text-ink-800">{match.name}</h3>
+          <ProfileOverflow name={match.name} onPick={onSafety} />
+        </div>
         <span className="flex w-fit items-center gap-2 rounded-full bg-primary-50 px-3 py-1 font-sans text-xs font-medium text-primary-600">
           <span aria-hidden="true" className="size-1.5 rounded-full bg-primary-500" />
           {space} · {match.phase}
@@ -216,6 +237,61 @@ function MatchCard({
         </div>
       </div>
     </article>
+  );
+}
+
+/** "Home — Profile overflow menu (Priya)" — Figma 1668:23871: Block, Report. */
+export function ProfileOverflow({ name, onPick }: { name: string; onPick: (kind: "block" | "report") => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative -mt-1 -mr-1 shrink-0">
+      <button
+        type="button"
+        aria-label={`More about ${name}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="grid size-8 place-items-center rounded-full text-ink-400 transition-colors hover:bg-ivory-200 hover:text-ink-700"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" className="size-5" aria-hidden="true">
+          <circle cx="6" cy="12" r="1.7" />
+          <circle cx="12" cy="12" r="1.7" />
+          <circle cx="18" cy="12" r="1.7" />
+        </svg>
+      </button>
+      {open && (
+        <ul
+          role="menu"
+          className="absolute top-full right-0 z-30 mt-1 flex w-48 flex-col rounded-xl border border-primary-100 bg-surface p-1.5 shadow-[0px_8px_24px_0px_rgba(0,0,0,0.12)]"
+        >
+          {(["block", "report"] as const).map((kind) => (
+            <li key={kind} role="none">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  onPick(kind);
+                }}
+                className="w-full rounded-lg px-3 py-2.5 text-left font-sans text-sm text-destructive-60 transition-colors hover:bg-ivory-100"
+              >
+                {kind === "block" ? "Block" : "Report"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

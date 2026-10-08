@@ -1,12 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { MessagesSkeleton } from "@/components/ui/Skeleton";
 import { Photo, Video } from "@/components/ui/Media";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { BondMark } from "@/components/app/BondMark";
 import { BondBanner } from "@/components/app/bonds/BondBanner";
+import { ConfirmDialog } from "@/components/app/bonds/ConfirmDialog";
+import { PeoplePicker, type PickablePerson } from "@/components/app/bonds/PeoplePicker";
 import { ChatMenu } from "@/components/app/ChatMenu";
+import { ReportPostModal } from "@/components/app/PostModals";
 import { Avatar } from "@/components/app/Avatar";
 import { MentionInput, useMentionPicks } from "@/components/app/MentionInput";
 import { MentionText, rememberMentions } from "@/components/app/MentionText";
@@ -16,7 +20,11 @@ import { useCalls } from "@/components/app/CallProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { formatSeconds, VoiceRecorder } from "@/components/app/VoiceRecorder";
 import {
+  deleteMessage,
+  editMessage,
   ensureConversation,
+  forwardMessage,
+  listCardTargets,
   loadMessage,
   loadMessages,
   markConversationRead,
@@ -123,11 +131,18 @@ export function BondChat({
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
         async (payload) => {
-          const row = payload.new as { id: string; sender_id: string | null; kind: ChatMessage["kind"]; body: string | null; created_at: string };
+          const row = payload.new as {
+            id: string;
+            sender_id: string | null;
+            kind: ChatMessage["kind"];
+            body: string | null;
+            created_at: string;
+            reply_to_id?: string | null;
+          };
           if (row.sender_id === viewer.id) return; // Already added when sent.
 
           const message: ChatMessage | null =
-            row.kind === "text" || row.kind === "system"
+            (row.kind === "text" || row.kind === "system") && !row.reply_to_id
               ? { id: row.id, kind: row.kind, fromMe: false, body: row.body, createdAt: row.created_at }
               : await loadMessage(row.id);
           if (!message) return;
@@ -143,6 +158,15 @@ export function BondChat({
       )
       .on(
         "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        (payload) => {
+          // Edits and deletions, from them (or this account on another device).
+          const row = payload.new as { id: string; body: string | null; edited_at: string | null; deleted_at: string | null };
+          setMessages((prev) => prev?.map((m) => applyUpdate(m, row)) ?? prev);
+        },
+      )
+      .on(
+        "postgres_changes",
         { event: "UPDATE", schema: "public", table: "conversation_members", filter: `conversation_id=eq.${conversationId}` },
         (payload) => {
           const row = payload.new as { user_id: string; last_read_at: string | null };
@@ -153,22 +177,119 @@ export function BondChat({
     [conversationId, viewer.id],
   );
 
-  // Keep the newest message in view.
+  // Keep the newest message in view (edits and deletions don't jump the list).
+  const messageCount = messages?.length ?? 0;
   useEffect(() => {
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
-  }, [messages]);
+  }, [messageCount]);
+
+  // Per-message actions (Figma 1788:38139 mine / 1788:38148 theirs).
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [editing, setEditing] = useState<ChatMessage | null>(null);
+  const [deleting, setDeleting] = useState<ChatMessage | null>(null);
+  const [reporting, setReporting] = useState<ChatMessage | null>(null);
+  const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
+  const [forwardTargets, setForwardTargets] = useState<PickablePerson[] | null>(null);
+  const [forwardingTo, setForwardingTo] = useState<string | null>(null);
+  const [deletingBusy, startDeleting] = useTransition();
+  const inputWrap = useRef<HTMLLabelElement>(null);
+  const focusInput = () => setTimeout(() => inputWrap.current?.querySelector("input")?.focus(), 0);
+
+  const onAction = (action: MessageAction, message: ChatMessage) => {
+    switch (action) {
+      case "reply":
+        setEditing(null);
+        setReplyingTo(message);
+        focusInput();
+        break;
+      case "edit":
+        setReplyingTo(null);
+        setEditing(message);
+        setDraft(message.body ?? "");
+        focusInput();
+        break;
+      case "copy":
+        void navigator.clipboard
+          ?.writeText(message.body ?? "")
+          .then(() => toast({ title: "Copied", description: "Message text copied to your clipboard." }))
+          .catch(() => toast({ title: "We couldn't copy that.", tone: "danger" }));
+        break;
+      case "forward":
+        setForwarding(message);
+        if (!forwardTargets) {
+          void listCardTargets().then((people) =>
+            setForwardTargets(people.filter((p) => p.userId !== person.userId)),
+          );
+        }
+        break;
+      case "delete":
+        setDeleting(message);
+        break;
+      case "report":
+        setReporting(message);
+        break;
+    }
+  };
+
+  const confirmDelete = () =>
+    startDeleting(async () => {
+      if (!deleting) return;
+      const result = await deleteMessage(deleting.id);
+      if (result.error) return void toast({ title: result.error, tone: "danger" });
+      const row = { id: deleting.id, body: null, edited_at: null, deleted_at: new Date().toISOString() };
+      setMessages((prev) => prev?.map((m) => applyUpdate(m, row)) ?? prev);
+      if (editing?.id === deleting.id) cancelCompose();
+      setDeleting(null);
+      toast({ title: "Message deleted", description: "It's been removed for everyone in this conversation.", tone: "danger" });
+    });
+
+  const forwardTo = async (target: PickablePerson) => {
+    if (!forwarding) return;
+    setForwardingTo(target.userId);
+    const result = await forwardMessage(forwarding.id, target.userId);
+    setForwardingTo(null);
+    if (result.error) return void toast({ title: result.error, tone: "danger" });
+    setForwarding(null);
+    toast({ title: "Message forwarded", description: `Sent to ${target.name}.` });
+  };
+
+  const cancelCompose = () => {
+    if (editing) setDraft("");
+    setEditing(null);
+    setReplyingTo(null);
+  };
+
+  const saveEdit = (message: ChatMessage, body: string) => {
+    if (body === (message.body ?? "").trim()) return cancelCompose();
+    startSending(async () => {
+      const result = await editMessage(message.id, body);
+      if (result.error) return void toast({ title: result.error, tone: "danger" });
+      setMessages(
+        (prev) =>
+          prev?.map((m) => applyUpdate(m, { id: message.id, body, edited_at: result.editedAt ?? null, deleted_at: null })) ??
+          prev,
+      );
+      setEditing(null);
+      setDraft("");
+      toast({ title: "Message updated", description: "Your edit is now visible to everyone, marked as edited." });
+    });
+  };
 
   const send = () => {
     const body = draft.trim();
     if (!body || sending) return;
+    if (editing) return saveEdit(editing, body);
+    const reply = replyingTo;
     setDraft("");
+    setReplyingTo(null);
     const mentioned = picks.peopleIn(body);
     picks.clear();
     startSending(async () => {
-      const result = await sendMessage(person.userId, conversationId, body, mentioned.map((p) => p.id));
+      const result = await sendMessage(person.userId, conversationId, body, mentioned.map((p) => p.id), reply?.id ?? null);
       if (result.error || !result.message || !result.conversationId) {
         setDraft(body);
+        setReplyingTo(reply);
         mentioned.forEach(picks.add);
         toast({ title: result.error ?? "Your message didn't send.", tone: "danger" });
         return;
@@ -272,9 +393,12 @@ export function BondChat({
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <GlowAvatar src={person.avatarUrl} name={person.name} online={online} aura={person.aura} />
             <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="truncate font-sans text-base font-medium text-ink-700">
+              <Link
+                href={`/people/${person.userId}`}
+                className="truncate font-sans text-base font-medium text-ink-700 hover:underline"
+              >
                 {person.name}
-              </span>
+              </Link>
               {person.phase && <ChapterBadge chapterSlug={person.chapterSlug} label={person.phase} />}
             </div>
           </div>
@@ -335,6 +459,7 @@ export function BondChat({
                     message={m}
                     person={person}
                     read={Boolean(otherReadAt && otherReadAt >= m.createdAt)}
+                    onAction={(action) => onAction(action, m)}
                   />
                 ))}
               </div>
@@ -343,7 +468,29 @@ export function BondChat({
         )}
       </div>
 
-      <div className="shrink-0 p-5">
+      <div className="flex shrink-0 flex-col gap-2 p-5">
+        {(editing || replyingTo) && (
+          <div className="flex items-center gap-3 rounded-lg border-l-2 border-primary-500 bg-ivory-200 px-3 py-2">
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="font-sans text-xs font-semibold text-primary-700">
+                {editing ? "Editing message" : `Replying to ${replyingTo?.fromMe ? "yourself" : person.name}`}
+              </span>
+              <span className="truncate font-sans text-sm text-ink-500">
+                {editing ? editing.body : replyingTo ? messagePreview(replyingTo.kind, replyingTo.body) : ""}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={cancelCompose}
+              aria-label={editing ? "Cancel edit" : "Cancel reply"}
+              className="grid size-7 shrink-0 place-items-center rounded-full text-ink-500 hover:bg-ivory-300"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="size-4" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -376,7 +523,7 @@ export function BondChat({
               }}
             />
           </label>
-          <label className="min-w-0 flex-1">
+          <label ref={inputWrap} className="min-w-0 flex-1">
             <span className="sr-only">Message {person.name}</span>
             <MentionInput
               as="input"
@@ -399,7 +546,7 @@ export function BondChat({
             />
             <button
               type="submit"
-              aria-label="Send"
+              aria-label={editing ? "Save edit" : "Send"}
               disabled={!draft.trim() || sending}
               className="grid size-8 place-items-center rounded-full transition-colors hover:bg-ivory-200 disabled:opacity-40"
             >
@@ -408,8 +555,70 @@ export function BondChat({
           </div>
         </form>
       </div>
+
+      {/* "Delete this message?" — Figma 1776:27862, toast 1776:27893. */}
+      {deleting && (
+        <ConfirmDialog
+          title="Delete this message?"
+          action="Delete message"
+          tone="danger"
+          busy={deletingBusy}
+          onConfirm={confirmDelete}
+          onClose={() => setDeleting(null)}
+        >
+          This removes it for everyone in the conversation. They&rsquo;ll see &ldquo;This message was deleted&rdquo; in its
+          place. This can&rsquo;t be undone.
+        </ConfirmDialog>
+      )}
+
+      {reporting && (
+        <ReportPostModal
+          postId={reporting.id}
+          targetType="message"
+          quiet
+          onClose={() => setReporting(null)}
+          onReported={() => {
+            setReporting(null);
+            toast({ title: "Report submitted", description: "We'll review this message and follow up if needed." });
+          }}
+        />
+      )}
+
+      {forwarding && (
+        <PeoplePicker
+          title="Forward to"
+          people={forwardTargets}
+          busyId={forwardingTo}
+          onPick={(target) => void forwardTo(target)}
+          onClose={() => setForwarding(null)}
+        />
+      )}
     </section>
   );
+}
+
+type MessageAction = "reply" | "edit" | "forward" | "copy" | "delete" | "report";
+
+/**
+ * A message after an edit or a delete — and any reply quoting it, so its
+ * quote follows along.
+ */
+function applyUpdate(
+  message: ChatMessage,
+  row: { id: string; body: string | null; edited_at: string | null; deleted_at: string | null },
+): ChatMessage {
+  if (message.id === row.id) {
+    if (row.deleted_at) {
+      const { id, kind, fromMe, createdAt } = message;
+      return { id, kind, fromMe, body: null, createdAt, deleted: true };
+    }
+    return message.deleted ? message : { ...message, body: row.body, editedAt: row.edited_at };
+  }
+  if (message.replyTo?.id === row.id) {
+    const preview = row.deleted_at ? "This message was deleted" : (row.body ?? message.replyTo.preview);
+    return { ...message, replyTo: { ...message.replyTo, preview } };
+  }
+  return message;
 }
 
 const dayLabel = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "long" });
@@ -438,10 +647,12 @@ function Bubble({
   message,
   person,
   read,
+  onAction,
 }: {
   message: ChatMessage;
   person: BondPerson;
   read: boolean;
+  onAction: (action: MessageAction) => void;
 }) {
   const mine = message.fromMe;
   const time = clock.format(new Date(message.createdAt));
@@ -450,13 +661,58 @@ function Bubble({
     return <p className="text-center font-sans text-xs text-ink-300">{message.body}</p>;
   }
 
+  if (message.deleted) {
+    return (
+      <div className={cn("flex gap-2", mine ? "justify-end" : "justify-start")}>
+        {!mine && (
+          <Avatar src={person.avatarUrl} name={person.name} userId={person.userId} className="size-10 self-end" />
+        )}
+        <p className="flex items-end gap-2.5 rounded-2xl border border-dashed border-ink-100 px-3 py-2.5 font-sans text-sm text-ink-300 italic">
+          This message was deleted
+          <span className="shrink-0 font-sans text-xs font-medium not-italic">{time}</span>
+        </p>
+      </div>
+    );
+  }
+
+  // Your own: Edit, Forward, Reply, Copy text, Delete. Theirs: Reply, Copy text, Report.
+  const hasText = message.kind === "text" && Boolean(message.body);
+  const actions: { action: MessageAction; label: string; danger?: boolean }[] = mine
+    ? [
+        ...(hasText ? [{ action: "edit" as const, label: "Edit" }] : []),
+        { action: "forward", label: "Forward" },
+        { action: "reply", label: "Reply" },
+        ...(hasText ? [{ action: "copy" as const, label: "Copy text" }] : []),
+        { action: "delete", label: "Delete", danger: true },
+      ]
+    : [
+        { action: "reply", label: "Reply" },
+        ...(hasText ? [{ action: "copy" as const, label: "Copy text" }] : []),
+        { action: "report", label: "Report", danger: true },
+      ];
+  const menu = <MessageMenu actions={actions} onAction={onAction} alignEnd={!mine} />;
+
   return (
-    <div className={cn("flex gap-2", mine ? "justify-end" : "justify-start")}>
+    <div className={cn("group flex gap-2", mine ? "justify-end" : "justify-start")}>
       {!mine && (
         <Avatar src={person.avatarUrl} name={person.name} userId={person.userId} className="size-10 self-end" />
       )}
+      {mine && menu}
 
-      <div className={cn("flex max-w-[334px] flex-col gap-1", mine && "items-end")}>
+      <div className={cn("flex min-w-0 max-w-[334px] flex-col gap-1", mine && "items-end")}>
+        {message.replyTo && (
+          <span
+            className={cn(
+              "flex max-w-full flex-col rounded-lg border-l-2 border-primary-300 bg-ivory-200 px-2.5 py-1.5",
+              mine && "self-end",
+            )}
+          >
+            <span className="font-sans text-xs font-semibold text-ink-500">
+              {message.replyTo.fromMe ? "You" : person.name}
+            </span>
+            <span className="line-clamp-2 font-sans text-xs text-ink-400">{message.replyTo.preview}</span>
+          </span>
+        )}
         {message.kind === "post_share" ? (
           <div
             className={cn(
@@ -592,6 +848,7 @@ function Bubble({
                 mine ? "text-primary-50" : "text-ink-500",
               )}
             >
+              {message.editedAt && "edited · "}
               {time}
             </span>
           </div>
@@ -604,6 +861,90 @@ function Bubble({
           </span>
         )}
       </div>
+      {!mine && menu}
+    </div>
+  );
+}
+
+/**
+ * The ⋮ beside a bubble (component set 1788:38348) and its menu. Shown on
+ * hover or focus on desktop; always there, quietly, on touch screens.
+ */
+function MessageMenu({
+  actions,
+  onAction,
+  alignEnd,
+}: {
+  actions: { action: MessageAction; label: string; danger?: boolean }[];
+  onAction: (action: MessageAction) => void;
+  alignEnd: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent | TouchEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", close);
+    document.addEventListener("touchstart", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("touchstart", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative shrink-0 self-center">
+      <button
+        type="button"
+        aria-label="Message actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "grid size-8 place-items-center rounded-full text-ink-400 transition-opacity hover:bg-ivory-200 hover:text-ink-700 focus-visible:opacity-100",
+          open ? "opacity-100" : "opacity-60 md:opacity-0 md:group-hover:opacity-100",
+        )}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" className="size-5" aria-hidden="true">
+          <circle cx="12" cy="5.5" r="1.8" />
+          <circle cx="12" cy="12" r="1.8" />
+          <circle cx="12" cy="18.5" r="1.8" />
+        </svg>
+      </button>
+      {open && (
+        <ul
+          role="menu"
+          className={cn(
+            "absolute bottom-full z-30 mb-1 flex w-48 flex-col rounded-xl bg-surface p-1.5 shadow-[0px_8px_24px_0px_rgba(0,0,0,0.12)]",
+            alignEnd ? "left-0" : "right-0",
+          )}
+        >
+          {actions.map((item) => (
+            <li key={item.action} role="none">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  onAction(item.action);
+                }}
+                className={cn(
+                  "w-full rounded-lg px-3 py-2.5 text-left font-sans text-sm transition-colors hover:bg-ivory-100",
+                  item.danger ? "text-destructive-60" : "text-ink-700",
+                )}
+              >
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

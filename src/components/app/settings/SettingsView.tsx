@@ -19,7 +19,6 @@ import {
   changePasswordWithCode,
   passwordStatus,
   sendPasswordCode,
-  deleteAccount,
   billingManagementUrl,
   refreshBilling,
   startTrial,
@@ -30,12 +29,6 @@ import { cn } from "@/lib/cn";
 import { applyTheme } from "@/lib/theme";
 import { isCancelled, planPackage, priceLabel, purchasesFor } from "@/lib/revenuecat-client";
 import { AURAS, LOG_VISIBILITY, auraLabel, type LogVisibility } from "@/lib/profile";
-import {
-  BlockedAccountsCard,
-  PrivacyAiCard,
-  type BlockedAccount,
-  type PrivacySettings,
-} from "@/components/app/settings/PrivacySections";
 
 /**
  * Settings — Figma frame 390:13507.
@@ -77,16 +70,11 @@ export function SettingsView({
   preferences,
   isStaff,
   billing,
-  privacy = { discoverable: true, activityMatching: true },
-  blocked = [],
 }: {
   prompts: SettingsPrompts;
   preferences: SettingsPreferences;
   isStaff: boolean;
   billing: SettingsBilling;
-  /** Privacy & AI toggles and blocked accounts (PRD §12). */
-  privacy?: PrivacySettings;
-  blocked?: BlockedAccount[];
 }) {
   const toast = useToast();
   const [prefs, setPrefs] = useState(preferences);
@@ -267,6 +255,15 @@ export function SettingsView({
                 </label>
               }
             />
+            {/* Profile field audiences, preview, blocked accounts, export and
+                deleting the account (Figma 1608:35963). */}
+            <Row
+              title="Privacy & AI controls"
+              body="Who sees each profile field, blocked accounts, your data and account."
+              href="/settings/privacy"
+              trailing={<CaretIcon className="size-6 text-ink-400" />}
+              divider
+            />
             <Row
               title="Grouv’s Promise"
               body="Making every season feel a little less alone."
@@ -274,11 +271,6 @@ export function SettingsView({
               trailing={<CaretIcon className="size-6 text-ink-400" />}
             />
           </Card>
-
-          <PrivacyAiCard initial={privacy} />
-          <BlockedAccountsCard initial={blocked} />
-
-          <DangerZone />
 
           <div className="flex flex-col items-center">
             <div className="flex gap-2.5">
@@ -563,51 +555,6 @@ function SubscriptionRow({ billing }: { billing: SettingsBilling }) {
         )
       }
     />
-  );
-}
-
-function DangerZone() {
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string>();
-  const [deleting, startDeleting] = useTransition();
-
-  return (
-    <Card>
-      <div className="flex flex-col gap-2">
-        <span className="font-sans text-sm text-destructive-60 uppercase">
-          Danger zone
-        </span>
-        <p className="font-sans text-sm text-ink-300">
-          Permanently deletes your account, all your data, bonds, and
-          posts. This cannot be undone.
-        </p>
-      </div>
-      <FormError message={error} />
-      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:gap-8">
-        <input
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          placeholder="Type “DELETE” to confirm"
-          aria-label="Type DELETE to confirm"
-          className="flex-1 rounded-lg bg-destructive-5 px-3.5 py-2.5 font-sans text-sm text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-400"
-        />
-        <button
-          type="button"
-          onClick={() => {
-            setError(undefined);
-            startDeleting(async () => {
-              // Success redirects away; only failures come back.
-              const result = await deleteAccount(confirm);
-              if (result?.error) setError(result.error);
-            });
-          }}
-          disabled={confirm !== "DELETE" || deleting}
-          className="shrink-0 rounded-full bg-destructive-60 px-5 py-2.5 font-ui text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {deleting ? "Deleting…" : "Delete"}
-        </button>
-      </div>
-    </Card>
   );
 }
 

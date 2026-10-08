@@ -96,7 +96,8 @@ type NotificationKind =
   | "companion_accepted"
   | "companion_update"
   | "companion_checkin"
-  | "mentioned";
+  | "mentioned"
+  | "event_cancelled";
 /** A chapter invitation recipient's answer. */
 type InviteResponse = "pending" | "accepted" | "declined";
 /** Who a post is for (composer "Visible to"). */
@@ -166,6 +167,10 @@ export type Database = {
           card_id: string | null;
           file_name: string | null;
           file_size: number | null;
+          reply_to_id: string | null;
+          deleted_by: string | null;
+          pinned_at: string | null;
+          pinned_by: string | null;
         };
         Insert: {
           conversation_id: string;
@@ -174,6 +179,7 @@ export type Database = {
           card_id?: string | null;
           file_name?: string | null;
           file_size?: number | null;
+          reply_to_id?: string | null;
           body?: string | null;
           media_path?: string | null;
           duration_seconds?: number | null;
@@ -195,6 +201,13 @@ export type Database = {
             columns: ["card_id"];
             isOneToOne: false;
             referencedRelation: "content_cards";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey";
+            columns: ["reply_to_id"];
+            isOneToOne: false;
+            referencedRelation: "messages";
             referencedColumns: ["id"];
           },
         ];
@@ -391,6 +404,44 @@ export type Database = {
         };
         Insert: { user_id: string; duration: FocusDuration; ends_at: string };
         Update: { ended_early_at?: string | null; digest_seen_at?: string | null };
+        Relationships: [];
+      };
+      profile_details: {
+        Row: {
+          user_id: string;
+          bio: string | null;
+          birthday: string | null;
+          bio_audience: LogVisibility;
+          location_audience: LogVisibility;
+          chapter_audience: LogVisibility;
+          birthday_audience: LogVisibility;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          bio?: string | null;
+          birthday?: string | null;
+          bio_audience?: LogVisibility;
+          location_audience?: LogVisibility;
+          chapter_audience?: LogVisibility;
+          birthday_audience?: LogVisibility;
+          updated_at?: string;
+        };
+        Update: {
+          bio?: string | null;
+          birthday?: string | null;
+          bio_audience?: LogVisibility;
+          location_audience?: LogVisibility;
+          chapter_audience?: LogVisibility;
+          birthday_audience?: LogVisibility;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      account_deletions: {
+        Row: { user_id: string; requested_at: string; delete_after: string };
+        Insert: { user_id: string; requested_at?: string; delete_after: string };
+        Update: { delete_after?: string };
         Relationships: [];
       };
       privacy_settings: {
@@ -1043,7 +1094,7 @@ export type Database = {
       start_bond_activity: { Args: { p_bond_id: string; p_kind: BondActivityKind }; Returns: string };
       end_bond_activity: { Args: { p_activity_id: string }; Returns: undefined };
       save_bond_response: {
-        Args: { p_activity_id: string; p_round: number; p_body: string; p_share: boolean; p_photo_path?: string | null };
+        Args: { p_activity_id: string; p_round: number; p_body: string; p_share: boolean; p_photo_path?: string | null; p_title?: string | null };
         Returns: undefined;
       };
       bond_log: {
@@ -1064,6 +1115,8 @@ export type Database = {
           my_photo_path: string | null;
           their_photo_path: string | null;
           my_saved: boolean;
+          my_title: string | null;
+          their_title: string | null;
         }[];
       };
       my_bond_logs: {
@@ -1209,6 +1262,12 @@ export type Database = {
         Args: { p_query?: string; p_post_id?: string | null; p_chapter_slug?: string | null; p_conversation_id?: string | null };
         Returns: { user_id: string; first_name: string; avatar_url: string | null; aura: Aura; is_close: boolean }[];
       };
+      profile_for: {
+        Args: { p_user_id: string };
+        Returns: { bio: string | null; birthday: string | null; location_label: string | null; show_chapter: boolean }[];
+      };
+      request_account_deletion: { Args: Record<string, never>; Returns: string };
+      cancel_account_deletion: { Args: Record<string, never>; Returns: boolean };
       grouv_people: {
         Args: { p_user_id: string };
         Returns: { user_id: string; first_name: string; avatar_url: string | null; aura: Aura; relationship: "bond" | "circle" }[];
@@ -1246,6 +1305,9 @@ export type Database = {
         Returns: { id: string; token: string }[];
       };
       revoke_companion_invite: { Args: { p_invite_id: string }; Returns: undefined };
+      can_moderate_conversation: { Args: { p_conversation_id: string }; Returns: boolean };
+      delete_room_message: { Args: { p_message_id: string }; Returns: undefined };
+      pin_room_message: { Args: { p_message_id: string; p_pin: boolean }; Returns: undefined };
       companion_invite_card: {
         Args: { p_token: string };
         Returns: {
@@ -1820,6 +1882,8 @@ export type Database = {
       set_chat_muted: { Args: { p_conversation_id: string; p_muted: boolean }; Returns: undefined };
       block_user: { Args: { p_user_id: string }; Returns: undefined };
       unblock_user: { Args: { p_user_id: string }; Returns: undefined };
+      edit_my_message: { Args: { p_message: string; p_body: string }; Returns: string };
+      delete_my_message: { Args: { p_message: string }; Returns: undefined };
       my_unread_messages: {
         Args: Record<string, never>;
         Returns: { unread: number; latest_sender: string | null }[];

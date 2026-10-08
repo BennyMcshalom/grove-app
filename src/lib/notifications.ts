@@ -234,6 +234,14 @@ export function toInboxItem(row: NotificationRow): InboxItem {
             body: "There are other groups in your chapters.",
             href: "/groups",
           };
+    // "Delete Event" — the host called it off.
+    case "event_cancelled":
+      return {
+        ...base,
+        title: `${typeof data.title === "string" ? data.title : "An event you were going to"} was cancelled`,
+        body: `${who} called it off. It's no longer happening.`,
+        href: "/events",
+      };
     case "wave_received":
       return {
         ...base,
@@ -280,7 +288,8 @@ export function toInboxItem(row: NotificationRow): InboxItem {
     case "trial_ending":
       return {
         ...base,
-        title: "Your Season Pass trial ends soon",
+        // Figma 1566:34543: "Your trial ends in 3 days".
+        title: trialEndsIn(data.ends_at),
         body:
           typeof data.ends_at === "string"
             ? `Full access until ${new Date(data.ends_at).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" })}. Compare plans before it ends.`
@@ -366,3 +375,9 @@ const REPORT_NOUNS: Record<string, string> = {
   truth: "a Truth",
   space_question: "a question",
 };
+
+function trialEndsIn(endsAt: unknown) {
+  const days = typeof endsAt === "string" ? Math.ceil((Date.parse(endsAt) - Date.now()) / 86_400_000) : NaN;
+  if (!(days > 0)) return "Your Season Pass trial ends soon";
+  return `Your trial ends in ${days} ${days === 1 ? "day" : "days"}`;
+}

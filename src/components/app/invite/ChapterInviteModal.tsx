@@ -47,6 +47,8 @@ export function ChapterInviteModal({
   const [moments, setMoments] = useState<PickableMoment[] | null>(null);
   const [recipient, setRecipient] = useState<InvitePerson | null>(null);
   const [query, setQuery] = useState("");
+  // 1794:42614 — "This is exactly the headline your invite will carry."
+  const [title, setTitle] = useState(`${chapter.name}: ${phase}`);
   const [why, setWhy] = useState("");
   const [whereNow, setWhereNow] = useState("");
   const [ask, setAsk] = useState("");
@@ -84,7 +86,7 @@ export function ChapterInviteModal({
       setError(undefined);
       const result = await sendCompanionInvite({
         userChapterId,
-        title: phase,
+        title: title.trim() || phase,
         why,
         ask,
         whereNow,
@@ -102,8 +104,8 @@ export function ChapterInviteModal({
       setStep("sent");
       if (recipient) {
         toast({
-          title: "Invitation sent",
-          description: `${recipient.name} will see it in their invitations. Nothing changes until they accept.`,
+          title: "Chapter invite sent",
+          description: `Your invite is on its way to ${recipient.name}. They’ll need to accept before joining this chapter.`,
         });
       }
     });
@@ -136,7 +138,8 @@ export function ChapterInviteModal({
             senderName={viewer.firstName}
             chapterSlug={chapter.slug}
             phase={phase}
-            title={phase}
+            title={title.trim() || phase}
+            audience="owner"
             why={why.trim() || null}
             ask={ask.trim() || null}
             share={share}
@@ -146,7 +149,7 @@ export function ChapterInviteModal({
         <div className="flex flex-col gap-3">
           <FormError message={error} />
           <Button fullWidth loading={sending} onClick={send}>
-            Send invitation
+            Send Invite
           </Button>
           <Button variant="secondary" fullWidth disabled={sending} onClick={() => setStep("compose")}>
             Edit
@@ -194,11 +197,11 @@ export function ChapterInviteModal({
     };
 
     return (
-      <Modal label="Who would you like beside you?" onClose={onClose} className="max-h-[calc(100dvh-2rem)]">
+      <Modal label="Invite someone to this chapter" onClose={onClose} className="max-h-[calc(100dvh-2rem)]">
         <div className="flex flex-col gap-2">
-          <ModalHeader title="Who would you like beside you?" onClose={onClose} />
+          <ModalHeader title="Invite someone to this chapter" onClose={onClose} />
           <p className="font-sans text-sm text-ink-300">
-            Someone in your circle or this Space. Not on Grouv yet? Skip this and share the link instead.
+            Bring someone into this part of your life. Not on Grouv yet? Skip this and share the link instead.
           </p>
         </div>
         <Input
@@ -241,16 +244,11 @@ export function ChapterInviteModal({
   const nothingShared = !share.story && !share.current && !share.future;
 
   return (
-    <Modal label="Invite into my chapter" onClose={onClose} width="max-w-[560px]">
+    <Modal label="Invite someone to this chapter" onClose={onClose} width="max-w-[560px]">
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <span className="font-sans text-xs font-semibold tracking-wide text-primary-600 uppercase">
-            Chapter companions
-          </span>
-          <h2 className="font-display text-2xl font-semibold text-ink-800">Invite into my chapter</h2>
-          <p className="font-sans text-sm text-ink-300">
-            Choose what {recipient ? recipient.name : "they"} can see and why you want them here.
-          </p>
+          <h2 className="font-display text-2xl font-semibold text-ink-800">Invite someone to this chapter</h2>
+          <p className="font-sans text-sm text-ink-300">Bring someone into this part of your life.</p>
         </div>
         <ModalClose onClose={onClose} className="-mt-3 -mr-3 shrink-0" />
       </div>
@@ -264,6 +262,12 @@ export function ChapterInviteModal({
           <span className="truncate font-display text-lg font-semibold text-ink-800">{phase}</span>
         </span>
       </div>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="font-sans text-sm font-medium text-ink-500">Title</span>
+        <Input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder={`${chapter.name}: ${phase}`} />
+        <span className="font-sans text-sm text-ink-300">This is exactly the headline your invite will carry.</span>
+      </label>
 
       <div className="flex flex-col gap-1.5">
         <span className="font-sans text-sm font-medium text-ink-500">Invite</span>
@@ -296,13 +300,13 @@ export function ChapterInviteModal({
         )}
       </div>
 
-      <Field label={recipient ? `Why ${recipient.name}?` : "Why them?"}>
+      <Field label="Add a note (optional)">
         <textarea
           value={why}
           onChange={(e) => setWhy(e.target.value)}
           rows={3}
           maxLength={1000}
-          placeholder="You’ve been through this yourself, and you always ask the honest question."
+          placeholder={`Let ${recipient ? recipient.name : "them"} know why you’d like them here`}
           className={TEXTAREA}
         />
       </Field>
@@ -387,8 +391,8 @@ export function ChapterInviteModal({
       </div>
 
       <FormError message={error ?? (nothingShared ? "Choose at least one thing to share." : undefined)} />
-      <Button fullWidth disabled={nothingShared} onClick={() => setStep("preview")}>
-        Preview invitation
+      <Button fullWidth disabled={nothingShared || !title.trim()} onClick={() => setStep("preview")}>
+        Continue
       </Button>
     </Modal>
   );

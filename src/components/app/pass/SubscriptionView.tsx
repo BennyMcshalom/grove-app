@@ -71,6 +71,16 @@ const UNLOCKED = [
   "Chapter keepsakes & Wrapped sharing",
 ];
 
+/** Figma's "What's included" on a plan card (1565:23291…); Spaces, not chapters, per the PRD. */
+const INCLUDED = [
+  "All eight Spaces active at once",
+  "Advanced people discovery & matching preferences",
+  "Enhanced Bonds, shared Bond Logs & reflection prompts",
+  "Richer private journals with voice, photos & videos",
+  "Weekly, monthly & completed-chapter Life Wrapped",
+  "Styled Chapter keepsakes & Wrapped sharing or export",
+];
+
 /**
  * Settings → Subscription. Figma 1545:22030 (Free: plan comparison),
  * 1549:777 (Active), 1549:1153 (Canceled, still active), 1550:777 (Expired),
@@ -93,11 +103,16 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
   const chooseSpaces = useSpaceChooser();
   const offer = usePassOffer(viewer.id);
   const [restored, setRestored] = useState(false);
-  const [confirm, setConfirm] = useState<"cancel" | "change" | null>(null);
+  const [confirm, setConfirm] = useState<"cancel" | "cancelTrial" | "change" | null>(null);
   const [busy, startBusy] = useTransition();
   const [trialPending, startTrialPending] = useTransition();
 
-  const state: State = restored ? "restored" : stateOf(info);
+  // Restored shows its banner over the plan as it now stands (Figma 1566:33736).
+  const base = stateOf(info);
+  const state: State = restored && base === "active" ? "restored" : base;
+  // A paid plan still in its free days — the Weekly plan's trial (1565:23291).
+  const paidTrial = info.store !== null && info.status === "trialing" && info.trialEndsAt !== null;
+  const bonusLive = info.bonusUntil !== null && Date.parse(info.bonusUntil) > info.now;
   const kind = planKindOf(info.plan, offer);
   const planName = kind ? PLAN_NAMES[kind] : "Season Pass";
   const price = priceFor(kind, offer);
@@ -124,6 +139,7 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
         return;
       }
       setRestored(true);
+      router.refresh();
     });
 
   const startFreeTrial = () =>
@@ -146,7 +162,7 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[1096px] flex-col gap-5 pb-10">
           {state === "restored" && (
-            <Banner tone="success" icon title="Purchase restored — welcome back">
+            <Banner tone="success" icon title="Purchase restored, welcome back">
               Your Season Pass is active again. Everything you had unlocked is back.
             </Banner>
           )}
@@ -206,44 +222,48 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
 
           {(state === "active" || state === "restored") && (
             <Card>
-              <PlanHeader name={planName} chip="Active" chipTone="success" price={price} />
+              {paidTrial && info.trialEndsAt ? (
+                <PlanHeader name={planName} chip="Trial" chipTone="warning" price={`Free until ${monthDay(info.trialEndsAt)}`} />
+              ) : (
+                <PlanHeader name={planName} chip="Active" chipTone="success" price={price} />
+              )}
               <Divider />
               <Rows>
-                <DetailRow
-                  label={info.status === "trialing" ? "Free trial until" : "Renews on"}
-                  value={
-                    info.status === "trialing" && info.trialEndsAt
-                      ? longDate(info.trialEndsAt)
-                      : info.currentPeriodEnd
-                        ? longDate(info.currentPeriodEnd)
-                        : "—"
-                  }
-                />
-                {state === "active" && info.store && <DetailRow label="Payment method" value={STORES[info.store] ?? info.store} />}
+                {paidTrial && info.trialEndsAt ? (
+                  <DetailRow label="Trial ends" value={longDate(info.trialEndsAt)} />
+                ) : (
+                  <>
+                    {bonusLive && info.bonusUntil && (
+                      <DetailRow label="Referral reward" value={`Applied until ${longDate(info.bonusUntil)}`} />
+                    )}
+                    <DetailRow label="Renews on" value={info.currentPeriodEnd ? longDate(info.currentPeriodEnd) : "—"} />
+                  </>
+                )}
+                {info.store && <DetailRow label="Payment method" value={STORES[info.store] ?? info.store} />}
+                {paidTrial && info.trialEndsAt && nextPrice && (
+                  <DetailRow label="First charge" value={`${nextPrice} on ${longDate(info.trialEndsAt)}`} />
+                )}
               </Rows>
-              {state === "active" ? (
-                <>
-                  <Unlocked title="What stays unlocked" />
-                  <div className="flex flex-col items-stretch gap-2">
-                    <Button variant="secondary" size="md" fullWidth loading={busy} onClick={openBilling}>
-                      Manage payment method
-                    </Button>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <TextAction onClick={() => setConfirm("change")}>Change plan</TextAction>
-                      <TextAction tone="danger" onClick={() => setConfirm("cancel")}>
-                        Cancel Season Pass
-                      </TextAction>
-                    </div>
-                  </div>
-                  <Footnote>
-                    Canceling keeps your access until your plan period ends. Your existing memories always stay with you.
-                  </Footnote>
-                </>
-              ) : (
-                <Button size="md" fullWidth onClick={() => setRestored(false)}>
-                  Done
+              <Divider />
+              <Included />
+              <Divider />
+              <div className="flex flex-col items-stretch gap-2">
+                <Button variant="secondary" size="md" fullWidth loading={busy} onClick={openBilling}>
+                  Manage payment method
                 </Button>
-              )}
+                {paidTrial ? (
+                  <TextAction tone="danger" onClick={() => setConfirm("cancelTrial")}>
+                    Cancel before trial ends
+                  </TextAction>
+                ) : (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <TextAction onClick={() => setConfirm("change")}>Change plan</TextAction>
+                    <TextAction tone="danger" onClick={() => setConfirm("cancel")}>
+                      Cancel season plan
+                    </TextAction>
+                  </div>
+                )}
+              </div>
             </Card>
           )}
 
@@ -256,12 +276,16 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
                   <DetailRow label="Payment method" value={`${STORES[info.store] ?? info.store} (won’t be charged again)`} />
                 )}
               </Rows>
+              <Divider />
+              <Included />
+              <Divider />
               <Button size="md" fullWidth loading={busy} onClick={openBilling}>
                 Reactivate Season Pass
               </Button>
               <Footnote>
-                Changed your mind? Reactivate from billing before {info.currentPeriodEnd ? longDate(info.currentPeriodEnd) : "your plan ends"}
-                {kind === "founding" ? " and you keep your founding renewal price." : "."}
+                {kind === "founding"
+                  ? "Changed your mind? Reactivating keeps your founding renewal price."
+                  : `Changed your mind? Reactivate before ${info.currentPeriodEnd ? longDate(info.currentPeriodEnd) : "your plan ends"}.`}
               </Footnote>
             </Card>
           )}
@@ -273,6 +297,9 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
                 <DetailRow label="Access ends unless updated" value={info.currentPeriodEnd ? longDate(info.currentPeriodEnd) : "—"} />
                 {info.store && <DetailRow label="Payment method on file" value={`${STORES[info.store] ?? info.store} (declined)`} />}
               </Rows>
+              <Divider />
+              <Included />
+              <Divider />
               <Button size="md" fullWidth loading={busy} onClick={openBilling}>
                 Update payment method
               </Button>
@@ -388,6 +415,30 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
           tools always stay available.
         </StatusModal>
       )}
+      {/* Figma 1566:34533 / 1801:37812. The trial copy never says "return to
+          Free" (the owner's trial rule); cancelling happens in billing. */}
+      {confirm === "cancelTrial" && (
+        <StatusModal
+          label="Cancel free trial"
+          onClose={() => setConfirm(null)}
+          icon={<WarningIcon />}
+          tone="warning"
+          title="Cancel your free trial?"
+          actions={
+            <>
+              <Button size="md" fullWidth onClick={() => setConfirm(null)}>
+                Keep my trial
+              </Button>
+              <TextAction tone="danger" disabled={busy} onClick={openBilling}>
+                Cancel trial
+              </TextAction>
+            </>
+          }
+        >
+          You&rsquo;ll keep trial access until {info.trialEndsAt ? longDate(info.trialEndsAt) : "your trial ends"}. You will not
+          be charged, and your existing memories always stay with you.
+        </StatusModal>
+      )}
       {confirm === "change" && (
         <StatusModal
           label="Change plan"
@@ -412,6 +463,10 @@ export function SubscriptionView({ info }: { info: SubscriptionInfo }) {
     </div>
   );
 }
+
+/** "Oct 14" */
+const monthDay = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 function priceFor(kind: PlanKind | null, offer: PassOffer | null | undefined) {
   const plan = kind && offer ? offer[kind] : null;
@@ -468,28 +523,19 @@ function Comparison({
       </Card>
 
       <Card className={current === "pass" ? "order-1 lg:order-2" : undefined}>
-        <span className="flex flex-wrap items-center gap-3">
-          <h2 className="font-display text-2xl font-semibold text-ink-800 lg:text-3xl">Season Pass</h2>
-          {current === "pass" && <Chip tone="primary">Current plan</Chip>}
-        </span>
-        <ul className="flex flex-col gap-3">
-          {[
-            ["All eight Spaces, active at once", "Hold every part of your life at the same time."],
-            ["Advanced discovery", "Refine who you discover by stage, intent and distance."],
-            ["Enhanced Bonds", "Share reflection prompts, Bond Logs and meaningful moments with your Bonds."],
-            ["Richer private journals", "Save voice entries, photos and videos alongside your thoughts."],
-            ["Life Wrapped", "Turn your memories into weekly, monthly and completed-chapter recaps."],
-            ["Chapter keepsakes", "Create styled chapter summaries and Wrapped cards to save, export or share."],
-          ].map(([title, body]) => (
-            <li key={title} className="flex items-start gap-2.5">
-              <StarIcon />
-              <span className="flex flex-col">
-                <span className="font-sans text-sm font-medium text-ink-700">{title}</span>
-                <span className="font-sans text-sm text-ink-400">{body}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
+        {/* Figma 1801:42868: a subtitle, then the same ticked list as Free. */}
+        <div className="flex flex-col gap-2">
+          <span className="flex flex-wrap items-center gap-3">
+            <h2 className="font-display text-2xl font-semibold text-ink-800 lg:text-3xl">Season Pass</h2>
+            {current === "pass" && <Chip tone="primary">Current plan</Chip>}
+          </span>
+          <p className="font-sans text-base text-ink-400">
+            Unlock more ways to connect, &amp; preserve the moments that matter
+          </p>
+        </div>
+        <Divider />
+        <Included />
+        <Divider />
         {current === "free" && (
           <div className="flex flex-col items-stretch gap-2">
             <Button size="md" fullWidth onClick={onPlans}>
@@ -562,7 +608,7 @@ function PlanHeader({
 }: {
   name: string;
   chip: string;
-  chipTone: "success" | "muted" | "danger";
+  chipTone: "success" | "muted" | "danger" | "warning";
   price: string | null;
   muted?: boolean;
 }) {
@@ -577,7 +623,7 @@ function PlanHeader({
   );
 }
 
-function Chip({ tone, children }: { tone: "primary" | "success" | "muted" | "danger"; children: React.ReactNode }) {
+function Chip({ tone, children }: { tone: "primary" | "success" | "muted" | "danger" | "warning"; children: React.ReactNode }) {
   return (
     <span
       className={cn(
@@ -586,6 +632,7 @@ function Chip({ tone, children }: { tone: "primary" | "success" | "muted" | "dan
         tone === "success" && "bg-success-10 text-success-70",
         tone === "muted" && "bg-ivory-300 text-ink-400",
         tone === "danger" && "bg-destructive-10 text-destructive-60",
+        tone === "warning" && "bg-warning-10 text-warning-70",
       )}
     >
       {children}
@@ -610,12 +657,12 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Unlocked({ title }: { title: string }) {
+function Included() {
   return (
-    <ListBlock title={title}>
-      {UNLOCKED.map((line) => (
-        <li key={line} className="flex items-center gap-2.5 font-sans text-sm text-ink-400">
-          <Tick />
+    <ListBlock title="What’s included">
+      {INCLUDED.map((line) => (
+        <li key={line} className="flex items-start gap-2.5 font-sans text-sm text-ink-400">
+          <Tick className="mt-0.5" />
           {line}
         </li>
       ))}
@@ -634,17 +681,4 @@ function ListBlock({ title, children }: { title: string; children: React.ReactNo
 
 function Footnote({ children }: { children: React.ReactNode }) {
   return <p className="font-sans text-xs text-ink-300">{children}</p>;
-}
-
-function StarIcon() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" className="mt-0.5 size-4 shrink-0 text-primary-500" aria-hidden="true">
-      <path
-        d="m8 1.8 1.8 3.8 4.1.5-3 2.9.8 4.1L8 11.1l-3.7 2 .8-4.1-3-2.9 4.1-.5L8 1.8Z"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }

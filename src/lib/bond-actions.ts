@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
-import type { BondPerson, ChatMessage, DailyCard, Suggestion } from "@/lib/bonds";
+import { messagePreview, type BondPerson, type ChatMessage, type DailyCard, type Suggestion } from "@/lib/bonds";
 import { loadBondPeople, loadSuggestions } from "@/lib/bonds-server";
 import { isUuid } from "@/lib/mentions";
 import { signPaths } from "@/lib/storage-server";
@@ -158,7 +158,9 @@ export async function connectWith(
 }
 
 const MESSAGE_COLUMNS =
-  "id, sender_id, kind, body, media_path, duration_seconds, file_name, file_size, created_at, shared_post:posts!messages_shared_post_id_fkey(id, title, body, chapter_slug), card:content_cards!messages_card_id_fkey(kind, title, body)";
+  "id, sender_id, kind, body, media_path, duration_seconds, file_name, file_size, created_at, edited_at, deleted_at, reply_to_id, reply:messages!reply_to_id(id, sender_id, kind, body, deleted_at), shared_post:posts!messages_shared_post_id_fkey(id, title, body, chapter_slug), card:content_cards!messages_card_id_fkey(kind, title, body)";
+
+type ReplyRow = { id: string; sender_id: string | null; kind: ChatMessage["kind"]; body: string | null; deleted_at: string | null };
 
 type MessageRow = {
   id: string;
@@ -170,16 +172,34 @@ type MessageRow = {
   file_name: string | null;
   file_size: number | null;
   created_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
+  reply_to_id: string | null;
+  // A self-join: the column hint makes it the quoted message (many-to-one),
+  // though the generated types read it as a list.
+  reply: ReplyRow | ReplyRow[] | null;
   shared_post: { id: string; title: string | null; body: string | null; chapter_slug: string } | null;
   card: { kind: "curio" | "wander"; title: string; body: string } | null;
 };
 
 async function toChatMessages(rows: MessageRow[], viewerId: string): Promise<ChatMessage[]> {
-  const signed = await signPaths("chat", rows.map((row) => row.media_path), { width: 1080 });
+  // A deleted message keeps its row but shows nothing of what it said.
+  const signed = await signPaths("chat", rows.map((row) => (row.deleted_at ? null : row.media_path)), { width: 1080 });
   return rows.map((row) => toChatMessage(row, viewerId, signed));
 }
 
 function toChatMessage(row: MessageRow, viewerId: string, signed: Map<string, string>): ChatMessage {
+  const quoted = Array.isArray(row.reply) ? (row.reply[0] ?? null) : row.reply;
+  const reply = quoted
+    ? {
+        id: quoted.id,
+        fromMe: quoted.sender_id === viewerId,
+        preview: quoted.deleted_at ? "This message was deleted" : messagePreview(quoted.kind, quoted.body),
+      }
+    : null;
+  if (row.deleted_at) {
+    return { id: row.id, kind: row.kind, fromMe: row.sender_id === viewerId, body: null, createdAt: row.created_at, deleted: true };
+  }
   return {
     id: row.id,
     kind: row.kind,
@@ -201,6 +221,8 @@ function toChatMessage(row: MessageRow, viewerId: string, signed: Map<string, st
           : null
         : undefined,
     card: row.kind === "card" ? row.card : undefined,
+    editedAt: row.edited_at,
+    replyTo: reply,
   };
 }
 
@@ -216,7 +238,6 @@ export async function loadMessages(
       .from("messages")
       .select(MESSAGE_COLUMNS)
       .eq("conversation_id", conversationId)
-      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(100),
     supabase
@@ -322,6 +343,8 @@ export async function sendMessage(
   body: string,
   /** People picked from the @ list; the database keeps conversation members. */
   mentions: string[] = [],
+  /** Reply → the message being answered, quoted above this one. */
+  replyToId: string | null = null,
 ): Promise<Result & { message?: ChatMessage; conversationId?: string }> {
   const viewer = await requireOnboardedViewer();
   const text = body.trim();
@@ -335,7 +358,13 @@ export async function sendMessage(
 
   const { data, error } = await supabase
     .from("messages")
-    .insert({ conversation_id: conversation, sender_id: viewer.userId, body: text, mentions: mentions.filter(isUuid).slice(0, 20) })
+    .insert({
+      conversation_id: conversation,
+      sender_id: viewer.userId,
+      body: text,
+      mentions: mentions.filter(isUuid).slice(0, 20),
+      reply_to_id: replyToId && isUuid(replyToId) ? replyToId : null,
+    })
     .select(MESSAGE_COLUMNS)
     .single();
 
@@ -347,6 +376,94 @@ export async function sendMessage(
 
   const [message] = await toChatMessages([data as MessageRow], viewer.userId);
   return { message, conversationId: conversation };
+}
+
+/** Message menu → Edit (your own text messages). The database checks it's yours. */
+export async function editMessage(messageId: string, body: string): Promise<Result & { editedAt?: string }> {
+  await requireOnboardedViewer();
+  const text = body.trim();
+  if (!text) return { error: "Write a message first." };
+  if (text.length > 4000) return { error: "Keep messages under 4,000 characters." };
+  if (!isUuid(messageId)) return { error: "That message is no longer here." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("edit_my_message", { p_message: messageId, p_body: text });
+  if (error) {
+    if (error.hint && ["not_found", "not_sender", "deleted", "not_text", "empty", "too_long"].includes(error.hint)) {
+      return { error: error.message };
+    }
+    console.error("[bonds] edit_my_message failed", error);
+    return { error: "We couldn't save that edit. Try again." };
+  }
+  return { editedAt: data ?? new Date().toISOString() };
+}
+
+/** Message menu → Delete: removed for everyone, "This message was deleted" in its place. */
+export async function deleteMessage(messageId: string): Promise<Result> {
+  await requireOnboardedViewer();
+  if (!isUuid(messageId)) return { error: "That message is no longer here." };
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("messages").select("media_path").eq("id", messageId).maybeSingle();
+  const { error } = await supabase.rpc("delete_my_message", { p_message: messageId });
+  if (error) {
+    if (error.hint === "not_found" || error.hint === "not_sender") return { error: error.message };
+    console.error("[bonds] delete_my_message failed", error);
+    return { error: "We couldn't delete that message. Try again." };
+  }
+  // The attachment goes too; the row only keeps its place in the thread.
+  if (row?.media_path) await supabase.storage.from("chat").remove([row.media_path]);
+  return {};
+}
+
+/**
+ * Message menu → Forward: the same words, attachment, post or card, sent to
+ * someone else in your circle as a new message from you.
+ */
+export async function forwardMessage(messageId: string, userId: string): Promise<Result> {
+  const viewer = await requireOnboardedViewer();
+  if (!isUuid(messageId) || !isUuid(userId)) return { error: "We couldn't forward that." };
+  const supabase = await createClient();
+  const { data: source } = await supabase
+    .from("messages")
+    .select("kind, body, media_path, duration_seconds, file_name, file_size, shared_post_id, card_id, deleted_at")
+    .eq("id", messageId)
+    .maybeSingle();
+  if (!source || source.deleted_at || source.kind === "system") return { error: "That message is no longer here." };
+
+  const opened = await openConversation(userId, null);
+  if (opened.error || !opened.conversationId) return { error: opened.error };
+  const conversation = opened.conversationId;
+
+  // Attachments are copied into the other chat's folder, where its members can read them.
+  let mediaPath: string | null = null;
+  if (source.media_path) {
+    const name = source.media_path.split("/").pop() ?? "file";
+    mediaPath = `${conversation}/${viewer.userId}/${crypto.randomUUID()}-${name}`;
+    const { error: copyError } = await supabase.storage.from("chat").copy(source.media_path, mediaPath);
+    if (copyError) {
+      console.error("[bonds] forward copy failed", copyError);
+      return { error: "We couldn't forward that attachment. Try again." };
+    }
+  }
+
+  const { error } = await supabase.from("messages").insert({
+    conversation_id: conversation,
+    sender_id: viewer.userId,
+    kind: source.kind,
+    body: source.body,
+    media_path: mediaPath,
+    duration_seconds: source.duration_seconds,
+    file_name: source.file_name,
+    file_size: source.file_size,
+    shared_post_id: source.shared_post_id,
+    card_id: source.card_id,
+  });
+  if (error) {
+    if (mediaPath) await supabase.storage.from("chat").remove([mediaPath]);
+    console.error("[bonds] forwardMessage failed", error);
+    if (error.hint === "rate_limited") return { error: error.message };
+    return { error: "We couldn't forward that. Try again." };
+  }
+  return {};
 }
 
 export async function markConversationRead(conversationId: string): Promise<void> {
@@ -598,6 +715,8 @@ export async function saveBondResponse(
   body: string,
   share: boolean,
   photo: { path: string | null; previousPath?: string | null } = { path: null },
+  /** "Try something new together" → TITLE. */
+  title: string | null = null,
 ): Promise<PassResult> {
   const viewer = await requireOnboardedViewer();
   const own = (path: string | null | undefined): path is string =>
@@ -612,6 +731,7 @@ export async function saveBondResponse(
     p_body: text,
     p_share: share,
     p_photo_path: photo.path,
+    p_title: title?.trim().slice(0, 120) || null,
   });
   if (error) return bondError(error, "We couldn't save that. Try again.");
   // The draft's old photo is no longer anyone's to see.

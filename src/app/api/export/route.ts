@@ -17,8 +17,16 @@ export async function GET() {
     return new Response("We couldn't put your data together. Try again.", { status: 500 });
   }
 
+  // Bio, birthday and who sees each profile field (owner-only table).
+  const { data: details } = await supabase
+    .from("profile_details")
+    .select("bio, birthday, bio_audience, location_audience, chapter_audience, birthday_audience, updated_at")
+    .eq("user_id", claims.claims.sub)
+    .maybeSingle();
+  const file = typeof data === "object" && !Array.isArray(data) ? { ...data, profile_details: details ?? null } : data;
+
   const day = new Date().toISOString().slice(0, 10);
-  return new Response(JSON.stringify(data, null, 2), {
+  return new Response(JSON.stringify(file, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Content-Disposition": `attachment; filename="grouv-data-${day}.json"`,

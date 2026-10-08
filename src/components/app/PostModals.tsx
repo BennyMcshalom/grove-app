@@ -231,11 +231,17 @@ export function ReportPostModal({
   targetType = "post",
   onClose,
   onReported,
+  title = "Report this",
+  quiet = false,
 }: {
   postId: string;
-  targetType?: "post" | "profile";
+  targetType?: "post" | "profile" | "message";
   onClose: () => void;
   onReported: () => void;
+  /** "Report this profile" on Home's match cards (1689:44028). */
+  title?: string;
+  /** Bonds and Home confirm with a toast instead of the "Report submitted" card. */
+  quiet?: boolean;
 }) {
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState("");
@@ -246,7 +252,7 @@ export function ReportPostModal({
   if (sent) return <ReportSubmittedModal onDone={onReported} />;
 
   return (
-    <Shell label="Report this" onClose={onClose}>
+    <Shell label={title} onClose={onClose}>
       <form
         className="flex flex-col gap-8"
         onSubmit={(e) => {
@@ -256,6 +262,7 @@ export function ReportPostModal({
           startSending(async () => {
             const result = await reportContent(targetType, postId, reason, details);
             if (result.error) setError(result.error);
+            else if (quiet) onReported();
             else setSent(true);
           });
         }}

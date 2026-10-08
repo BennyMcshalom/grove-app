@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { Glyph } from "@/components/app/EventsView";
-import { RoomComposer, RoomMessageList, useRoomMessages } from "@/components/app/RoomChat";
+import { ConfirmDialog, RoomComposer, RoomMessageList, useRoomMessages } from "@/components/app/RoomChat";
 import { useToast } from "@/components/app/ToastProvider";
 import { TopBar } from "@/components/app/TopBar";
 import { Button } from "@/components/ui/Button";
@@ -119,18 +120,26 @@ export function EventView({
               tab === "Conversation" ? "flex" : "hidden rail:flex",
             )}
           >
-            <p className="flex w-full max-w-[427px] items-start gap-2 rounded-xl border border-primary-200 bg-primary-50 p-2 font-sans text-sm text-ink-300 italic">
-              <InfoIcon className="size-5 shrink-0 text-primary-600" />
-              {cancelled
-                ? "This event has been cancelled."
-                : `Group created for ${event.title}. ${event.goingCount} ${event.goingCount === 1 ? "person" : "people"} going so far.`}
-            </p>
+            <EventSummary event={event} isHost={isHost} />
+
+            {isHost && !cancelled && (
+              <div className="flex w-full items-start gap-4 rounded-2xl bg-primary-50 p-4 sm:p-5">
+                <LockIcon />
+                <span className="flex flex-col gap-1">
+                  <span className="font-sans text-lg font-medium text-primary-600">Host access</span>
+                  <span className="font-sans text-sm text-primary-600">
+                    You&rsquo;re hosting {event.title}. Full conversation below
+                  </span>
+                </span>
+              </div>
+            )}
 
             {event.going ? (
               <RoomMessageList
                 messages={chat.messages}
                 hostId={event.hostId}
                 empty="No messages yet. Say hello to everyone going."
+                chat={cancelled ? undefined : chat}
               />
             ) : (
               <div className="flex flex-col items-center gap-3 py-6 text-center">
@@ -160,6 +169,8 @@ export function EventView({
               onSend={chat.send}
               sending={chat.sending}
               conversationId={event.conversationId}
+              replyTo={chat.replyTo}
+              onCancelReply={() => chat.setReplyTo(null)}
             />
           </div>
         )}
@@ -192,8 +203,6 @@ function EventDetails({
   pending: boolean;
   full: boolean;
 }) {
-  const toast = useToast();
-  const [cancelling, startCancelling] = useTransition();
   const cancelled = event.status === "cancelled";
   const card = carded ? "rounded-lg bg-surface p-4" : "";
   const distance = distanceLabel(event.distanceKm);
@@ -248,21 +257,7 @@ function EventDetails({
                 {full ? "Capacity reached" : "I'll Grouv"}
               </Button>
             )}
-            {isHost && (
-              <Button
-                variant="tertiary"
-                size="sm"
-                loading={cancelling}
-                onClick={() =>
-                  startCancelling(async () => {
-                    const result = await cancelEvent(event.id);
-                    toast(result.error ? { title: result.error, tone: "danger" } : { title: "Event cancelled", tone: "danger" });
-                  })
-                }
-              >
-                Cancel event
-              </Button>
-            )}
+            {/* The host deletes the event from the conversation's menu (1784:38023). */}
           </div>
         )}
       </section>
@@ -343,12 +338,125 @@ function Value({ children }: { children: React.ReactNode }) {
   );
 }
 
-function InfoIcon({ className }: { className?: string }) {
+/**
+ * The top of the conversation (1779:27909 / 1801:33753): what the event is
+ * about, who's going, its status chip, and the host's menu with Delete Event
+ * (1784:38023 → 1784:38047). Deleting cancels it; everyone going is told.
+ */
+function EventSummary({ event, isHost }: { event: EventCard; isHost: boolean }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [menu, setMenu] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const cancelled = event.status === "cancelled";
+  const [now] = useState(() => Date.now());
+  const status = cancelled ? "Cancelled" : new Date(event.startsAt).getTime() > now ? "Upcoming" : "Started";
+
+  useEffect(() => {
+    if (!menu) return;
+    const onPointer = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenu(false);
+    };
+    const id = setTimeout(() => document.addEventListener("mousedown", onPointer));
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener("mousedown", onPointer);
+    };
+  }, [menu]);
+
   return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M10 9v4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <circle cx="10" cy="6.5" r="0.9" fill="currentColor" />
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex items-start gap-3">
+        <p className="min-w-0 flex-1 font-sans text-base whitespace-pre-line text-ink-700">
+          {event.description ?? `A ${getChapter(event.chapterSlug)?.name ?? ""} gathering.`}
+        </p>
+        {isHost && !cancelled && (
+          <div ref={menuRef} className="relative shrink-0">
+            <button
+              type="button"
+              aria-label="Event options"
+              aria-haspopup="menu"
+              aria-expanded={menu}
+              onClick={() => setMenu((v) => !v)}
+              className="grid size-8 place-items-center rounded-full text-ink-700 transition-colors hover:bg-ivory-200"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="size-5" aria-hidden="true">
+                <circle cx="10" cy="4.5" r="1.6" />
+                <circle cx="10" cy="10" r="1.6" />
+                <circle cx="10" cy="15.5" r="1.6" />
+              </svg>
+            </button>
+            {menu && (
+              <div
+                role="menu"
+                className="absolute top-full right-0 z-20 mt-1 flex w-[220px] flex-col rounded-lg bg-surface py-2 shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)]"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenu(false);
+                    setConfirming(true);
+                  }}
+                  className="px-4 py-2 text-left font-sans text-sm font-medium text-destructive-60 transition-colors hover:bg-ivory-200"
+                >
+                  Delete Event
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <span className="flex items-center gap-1.5">
+        {event.attendeeAvatars.length > 0 && (
+          <span className="flex -space-x-2">
+            {event.attendeeAvatars.slice(0, 4).map((src, i) => (
+              <Avatar key={i} src={src} name="" sizes="24px" className="size-6 ring-2 ring-surface" />
+            ))}
+          </span>
+        )}
+        <span className="font-sans text-xs text-ink-500">
+          {event.goingCount} going to this event
+        </span>
+      </span>
+      <span
+        className={cn(
+          "flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 font-sans text-xs",
+          cancelled ? "bg-destructive-5 text-destructive-60" : "bg-ivory-200 text-ink-500",
+        )}
+      >
+        <span className={cn("size-1.5 rounded-full", cancelled ? "bg-destructive-60" : "bg-primary-500")} />
+        {status}
+      </span>
+
+      {confirming && (
+        <ConfirmDialog
+          title="Delete this Event?"
+          body="Are you sure you want to delete this event? This action cannot be undone, and all attendees registered for the event will be notified."
+          confirm="Delete Event"
+          onCancel={() => setConfirming(false)}
+          onConfirm={async () => {
+            const result = await cancelEvent(event.id);
+            if (result.error) {
+              toast({ title: result.error, tone: "danger" });
+              return;
+            }
+            setConfirming(false);
+            toast({ title: "Event deleted", description: "Everyone going has been told.", tone: "danger" });
+            router.push("/events");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="size-7 shrink-0 text-primary-600" aria-hidden="true">
+      <rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14.5v2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }

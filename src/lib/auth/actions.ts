@@ -119,6 +119,9 @@ export async function signIn(_state: AuthFormState, formData: FormData): Promise
     return { error: "We couldn't sign you in. Try again in a moment.", values };
   }
 
+  // Signing back in calls off a scheduled account deletion.
+  await supabase.rpc("cancel_account_deletion");
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("onboarded_at")

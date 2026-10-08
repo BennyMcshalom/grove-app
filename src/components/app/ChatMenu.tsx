@@ -2,19 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ReportPostModal } from "@/components/app/PostModals";
-import { ConfirmBar } from "@/components/app/PersonView";
 import { EndBondModal } from "@/components/app/bonds/BondModals";
+import { ConfirmDialog } from "@/components/app/bonds/ConfirmDialog";
+import { BlockDialog, ReportPersonModal } from "@/components/app/bonds/SafetyDialogs";
 import { useToast } from "@/components/app/ToastProvider";
-import { blockUser, chatMuted, removeFromCircle, setChatMuted } from "@/lib/bond-actions";
+import { chatMuted, removeFromCircle, setChatMuted } from "@/lib/bond-actions";
 import type { BondPerson } from "@/lib/bonds";
 import { cn } from "@/lib/cn";
 
+type Dialog = "mute" | "release" | "remove" | "block" | "report";
+
 /**
- * The chat header's "…": view profile, mute, remove from circle, block,
- * report. It borrows the post menu's look. In a Bond it leads with "View Bond
- * details", "Mute Bond" and "End Bond" (Figma note 1268:22520); removing
- * someone from your circle still ends a bond as well.
+ * The chat header's "…" — Figma "Bond actions" 1610:39540 / 1650:39710:
+ * Mute (or Unmute) Bond, a rule, then Release Bond, Block and Report, each
+ * confirmed in its own dialog (1610:36719, 1645:23515, 1610:39648,
+ * 1610:39615, 1610:36739) and answered with a toast. A circle chat has the
+ * same shape with View profile and Remove from circle instead of Release.
  */
 export function ChatMenu({
   person,
@@ -28,12 +31,11 @@ export function ChatMenu({
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [muted, setMuted] = useState<boolean | null>(null);
-  const [confirming, setConfirming] = useState<"remove" | "block" | null>(null);
-  const [reporting, setReporting] = useState(false);
-  const [ending, setEnding] = useState(false);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
   const bondId = person.relationship === "bond" ? person.bondId : null;
   const [busy, startBusy] = useTransition();
   const menu = useRef<HTMLDivElement>(null);
+  const first = person.name.split(" ")[0] || person.name;
 
   useEffect(() => {
     if (!open || !conversationId) return;
@@ -56,27 +58,43 @@ export function ChatMenu({
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
 
+  const choose = (next: Dialog) => {
+    setDialog(next);
+    setOpen(false);
+  };
+  const close = () => setDialog(null);
+
   const toggleMute = () =>
     startBusy(async () => {
       if (!conversationId) return;
       const next = !muted;
       const result = await setChatMuted(conversationId, next);
-      if (result.error) return toast({ title: result.error, tone: "danger" });
+      if (result.error) return void toast({ title: result.error, tone: "danger" });
       setMuted(next);
-      setOpen(false);
-      toast({ title: next ? `Muted ${person.name}` : `Unmuted ${person.name}` });
+      close();
+      // Toasts 1645:23507 / 1645:23530.
+      toast(
+        next
+          ? {
+              title: bondId ? "Bond muted" : "Chat muted",
+              description: `You won’t get notifications from ${first}.${bondId ? " The Bond stays active." : ""}`,
+            }
+          : {
+              title: bondId ? "Bond unmuted" : "Chat unmuted",
+              description: `You’ll get notifications from ${first} again.`,
+            },
+      );
     });
 
-  const confirm = () =>
+  const remove = () =>
     startBusy(async () => {
-      const result = confirming === "block" ? await blockUser(person.userId) : await removeFromCircle(person.userId);
-      if (result.error) return toast({ title: result.error, tone: "danger" });
-      setConfirming(null);
-      toast({
-        title:
-          confirming === "block" ? `Blocked ${person.name}` : `${person.name} is no longer in your circle`,
-      });
+      const result = await removeFromCircle(person.userId);
+      if (result.error) return void toast({ title: result.error, tone: "danger" });
+      close();
+      toast({ title: `${person.name} is no longer in your circle` });
     });
+
+  const label = bondId ? " Bond" : "";
 
   return (
     <div ref={menu} className="relative">
@@ -96,79 +114,71 @@ export function ChatMenu({
           role="menu"
           className="absolute top-full right-0 z-30 mt-2 flex w-56 flex-col rounded-xl bg-surface p-1.5 shadow-[0px_8px_24px_0px_rgba(0,0,0,0.12)]"
         >
-          {bondId && <MenuLink href={`/bonds/${bondId}`}>View Bond details</MenuLink>}
-          <MenuLink href={`/people/${person.userId}`}>View profile</MenuLink>
+          {!bondId && <MenuLink href={`/people/${person.userId}`}>View profile</MenuLink>}
           {conversationId && (
-            <MenuItem onClick={toggleMute} disabled={busy || muted === null}>
+            <MenuItem onClick={() => choose("mute")} disabled={muted === null}>
               {muted ? "Unmute" : "Mute"}
-              {bondId ? " Bond" : ""}
+              {label}
             </MenuItem>
           )}
-          {bondId && (
-            <MenuItem
-              onClick={() => {
-                setEnding(true);
-                setOpen(false);
-              }}
-            >
-              End Bond
+          <li role="separator" className="mx-1.5 my-1 h-px bg-ink-50" />
+          {bondId ? (
+            <MenuItem danger onClick={() => choose("release")}>
+              Release Bond
+            </MenuItem>
+          ) : (
+            <MenuItem danger onClick={() => choose("remove")}>
+              Remove from circle
             </MenuItem>
           )}
-          <MenuItem
-            onClick={() => {
-              setConfirming("remove");
-              setOpen(false);
-            }}
-          >
-            Remove from circle
-          </MenuItem>
-          <MenuItem
-            danger
-            onClick={() => {
-              setConfirming("block");
-              setOpen(false);
-            }}
-          >
+          <MenuItem danger onClick={() => choose("block")}>
             Block
           </MenuItem>
-          <MenuItem
-            danger
-            onClick={() => {
-              setReporting(true);
-              setOpen(false);
-            }}
-          >
+          <MenuItem danger onClick={() => choose("report")}>
             Report
           </MenuItem>
         </ul>
       )}
 
-      {confirming && (
-        <div className="absolute top-full right-0 z-30 mt-2 w-72">
-          <ConfirmBar
-            message={
-              confirming === "block"
-                ? `Block ${person.name}? They won't be able to message, call, connect with or see you nearby.`
-                : `Remove ${person.name} from your circle? ${person.relationship === "bond" ? "Your bond ends too. " : ""}Your chat stays, but you can't message until you reconnect.`
-            }
-            action={confirming === "block" ? "Block" : "Remove"}
-            busy={busy}
-            onConfirm={confirm}
-            onCancel={() => setConfirming(null)}
-          />
-        </div>
+      {dialog === "mute" && (
+        <ConfirmDialog
+          title={`${muted ? "Unmute" : "Mute"} this${label || " chat"}?`}
+          action={`${muted ? "Unmute" : "Mute"}${label || " chat"}`}
+          busy={busy}
+          onConfirm={toggleMute}
+          onClose={close}
+        >
+          {muted
+            ? `You’ll start getting notifications from ${first} again. Nothing else about the${label || " chat"} changes.`
+            : `You won’t get notifications from ${first}, but the${label || " chat"} stays active and messages still arrive.`}
+        </ConfirmDialog>
       )}
 
-      {ending && bondId && <EndBondModal bondId={bondId} name={person.name} onClose={() => setEnding(false)} />}
+      {dialog === "release" && bondId && <EndBondModal bondId={bondId} name={person.name} onClose={close} />}
 
-      {reporting && (
-        <ReportPostModal
-          postId={person.userId}
-          targetType="profile"
-          onClose={() => setReporting(false)}
-          onReported={() => setReporting(false)}
+      {dialog === "remove" && (
+        <ConfirmDialog
+          title={`Remove ${first} from your circle?`}
+          action="Remove from circle"
+          tone="danger"
+          busy={busy}
+          onConfirm={remove}
+          onClose={close}
+        >
+          Your chat stays, but you can&rsquo;t message each other until you reconnect.
+        </ConfirmDialog>
+      )}
+
+      {dialog === "block" && (
+        <BlockDialog
+          userId={person.userId}
+          name={person.name}
+          context={bondId ? "bond" : "circle"}
+          onClose={close}
         />
       )}
+
+      {dialog === "report" && <ReportPersonModal userId={person.userId} what="conversation" onClose={close} />}
     </div>
   );
 }

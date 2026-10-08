@@ -7,13 +7,14 @@ export default async function EditProfilePage() {
   const viewer = await getShellViewer();
   const supabase = await createClient();
 
-  const [{ data: prompts }, { data: profile }] = await Promise.all([
+  const [{ data: prompts }, { data: profile }, { data: details }] = await Promise.all([
     supabase
       .from("profile_prompts")
       .select("honest_tension, sitting_with, open_to")
       .eq("user_id", viewer.id)
       .maybeSingle(),
     supabase.from("profiles").select("username").eq("id", viewer.id).single(),
+    supabase.from("profile_details").select("bio, birthday").eq("user_id", viewer.id).maybeSingle(),
   ]);
 
   return (
@@ -24,6 +25,8 @@ export default async function EditProfilePage() {
         openTo: prompts?.open_to ?? "",
       }}
       username={profile?.username ?? ""}
+      bio={details?.bio ?? ""}
+      birthday={details?.birthday ?? ""}
     />
   );
 }

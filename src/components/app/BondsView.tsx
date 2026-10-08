@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { BondChat, GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
 import { BondInviteCard, BondsRail, PendingCard, SuggestionCard } from "@/components/app/BondsRail";
+import { PeoplePicker, SearchField } from "@/components/app/bonds/PeoplePicker";
+import { Button } from "@/components/ui/Button";
 import { WalkingWithLink } from "@/components/app/companions/WalkingWithLink";
 import { useIsOnline } from "@/components/app/Presence";
 import { useCollapsedSidebar } from "@/components/app/SidebarProvider";
@@ -42,15 +44,23 @@ export function BondsView({
   // open chat (new previews, cleared unread) is layered on top until then.
   const [activity, setActivity] = useState<Record<string, Partial<Activity>>>({});
   const merged = people.map((p) => ({ ...p, ...activity[p.userId] }));
-  const bonds = merged.filter((p) => p.relationship === "bond");
+  // The list search (Figma 1610:37927) narrows both sections by name.
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const matches = (p: BondPerson) => !q || p.name.toLowerCase().includes(q);
+  const bonds = merged.filter((p) => p.relationship === "bond" && matches(p));
   // Most recent activity first, like any chat list: the last message, or when
   // you connected — so someone you've just accepted lands at the top.
   const lastActive = (p: BondPerson) => Math.max(Date.parse(p.since) || 0, p.lastMessage ? Date.parse(p.lastMessage.at) : 0);
   const circle = merged
-    .filter((p) => p.relationship === "circle")
+    .filter((p) => p.relationship === "circle" && matches(p))
     .sort((a, b) => lastActive(b) - lastActive(a));
 
-  const [selectedId, setSelectedId] = useState<string | null>(openWith ?? merged[0]?.userId ?? null);
+  // Nothing is open until you pick someone: the pane shows "Start new
+  // conversation" (1610:37927 / 1798:56723) with the New Message list (1798:54514).
+  const [selectedId, setSelectedId] = useState<string | null>(openWith);
+  const [picking, setPicking] = useState(false);
+  const anyConversation = merged.some((p) => p.lastMessage);
   // On a phone the list and the chat are separate screens (635:18535 vs
   // 635:19212); on desktop both panes are on screen at once.
   const [chatOpen, setChatOpen] = useState(openWith !== null);
@@ -196,6 +206,18 @@ export function BondsView({
             </section>
           )}
 
+          {!anyConversation && (
+            <div className="bg-surface md:hidden">
+              <StartConversation onStart={() => setPicking(true)} />
+            </div>
+          )}
+
+          {merged.length > 0 && (
+            <div className="border-b border-ink-50 bg-surface p-4">
+              <SearchField value={query} onChange={setQuery} />
+            </div>
+          )}
+
           {/* Chapter Companions: the chapters you've been invited to walk alongside. */}
           {/* The rail carries it from lg up. */}
           <div className="bg-surface px-4 pt-4 lg:hidden">
@@ -208,7 +230,9 @@ export function BondsView({
             </h2>
             {bonds.length === 0 ? (
               <p className="px-4 pb-4 font-sans text-sm text-ink-300">
-                No bonds yet. Bonds form on their own as you and someone in your circle keep showing up for each other.
+                {q
+                  ? "No one by that name."
+                  : "No bonds yet. Bonds form on their own as you and someone in your circle keep showing up for each other."}
               </p>
             ) : (
               <ul>
@@ -231,7 +255,7 @@ export function BondsView({
             </h2>
             {circle.length === 0 ? (
               <p className="px-4 pb-4 font-sans text-sm text-ink-300">
-                Your circle is empty. Connect with people in your spaces.
+                {q ? "No one by that name." : "Your circle is empty. Connect with people in your spaces."}
               </p>
             ) : (
               <ul>
@@ -273,14 +297,51 @@ export function BondsView({
               }
             />
           ) : (
-            <p className="m-auto max-w-[260px] text-center font-sans text-sm text-ink-300">
-              Choose someone from your bonds or circle to talk to.
-            </p>
+            <div className="m-auto w-full max-w-[360px] px-5">
+              <StartConversation onStart={() => setPicking(true)} />
+            </div>
           )}
         </div>
 
         <BondsRail invites={invites} pending={pending} suggestions={suggestions} />
       </div>
+
+      {picking && (
+        <PeoplePicker
+          title="New Message"
+          people={merged}
+          onPick={(person) => {
+            setPicking(false);
+            open(person.userId);
+          }}
+          onClose={() => setPicking(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** "Start new conversation" — Figma 1610:37927 / 1798:56723. */
+function StartConversation({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-6 px-4 py-10 text-center">
+      <span className="grid size-14 place-items-center rounded-full bg-primary-100 text-primary-600" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" className="size-7">
+          <path
+            d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v10a1.5 1.5 0 0 1-1.5 1.5H9l-5 3.5v-15Z"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      <span className="flex flex-col gap-2">
+        <span className="font-display text-2xl font-semibold text-ink-800">Start new conversation</span>
+        <span className="font-sans text-base text-ink-300">Send a message to start a chat</span>
+      </span>
+      <Button size="sm" fullWidth onClick={onStart}>
+        Send Message
+      </Button>
     </div>
   );
 }

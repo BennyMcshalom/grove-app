@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Avatar, grouvHref } from "@/components/app/Avatar";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { getChapter } from "@/lib/chapters";
+import { birthdayLabel } from "@/lib/profile-audience";
 import { cn } from "@/lib/cn";
 import { auraLabel, AURAS, type Aura } from "@/lib/profile";
 
@@ -94,6 +95,9 @@ export interface GrouvSubject {
   locationLabel: string | null;
   /** Open chapters, primary first. */
   chapters: { slug: string; phase: string }[];
+  /** Bio and birthday ("YYYY-MM-DD"), when their audience lets the viewer see them. */
+  bio?: string | null;
+  birthday?: string | null;
   /** Your own Grouv: the card says YOU and empty layers link to Edit Profile. */
   self: boolean;
 }
@@ -238,6 +242,13 @@ export function GrouvRings({
               {subject.locationLabel}
             </span>
           )}
+          {subject.birthday && (
+            <span className="flex items-center gap-2 font-sans text-sm font-medium text-ink-400">
+              <CakeIcon className="size-6 shrink-0" />
+              Birthday · {birthdayLabel(subject.birthday)}
+            </span>
+          )}
+          {subject.bio && <p className="font-sans text-sm whitespace-pre-line text-ink-500">{subject.bio}</p>}
           {children}
         </div>
 
@@ -278,6 +289,16 @@ export function GrouvRings({
         )}
       </div>
     </section>
+  );
+}
+
+function CakeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M4.5 20.5v-7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7M3 20.5h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M4.5 15.5c1.5 1.3 3 1.3 4.5 0s3-1.3 4.5 0 3 1.3 4.5 0 1.5-.7 1.5-.7M12 11.5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M12 3.5c.9 1 1.2 1.9.8 2.6a.9.9 0 0 1-1.6 0c-.4-.7-.1-1.6.8-2.6Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
   );
 }
 

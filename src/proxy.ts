@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
+// "/goodbye" confirms a scheduled account deletion after signing out.
 /** Pages a signed-out visitor may open. Everything else needs a session. */
-const PUBLIC_PATHS = new Set(["/", "/terms", "/privacy", "/verify", "/sign-in", "/sign-up"]);
+const PUBLIC_PATHS = new Set(["/", "/terms", "/privacy", "/verify", "/sign-in", "/sign-up", "/goodbye"]);
 // "/r/" is the invite-link landing (grouv.app/r/amara92).
 // "/w/" is a shared Life Wrapped card (grouv.app/w/9f3k2p).
 // "/i/" is a chapter invitation card (grouv.app/i/<token>).

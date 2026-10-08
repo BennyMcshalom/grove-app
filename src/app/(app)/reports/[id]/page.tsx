@@ -59,7 +59,7 @@ export default async function ReportOutcomePage({ params }: { params: Promise<{ 
               <Button size="sm" href="/home">
                 Done
               </Button>
-              <Button size="sm" variant="secondary" href="/settings#blocked">
+              <Button size="sm" variant="secondary" href="/settings/blocked">
                 Blocked accounts
               </Button>
             </div>

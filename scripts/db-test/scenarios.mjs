@@ -1938,6 +1938,12 @@ await step("delete account", async () => {
     await q(K2, `select public.save_bond_response($1, 1, 'Slow coffee', true)`, [gratitude]);
     await q(K1, `select public.end_bond_activity($1)`, [gratitude]);
     await fails("an ended challenge is read-only", K2, `select public.save_bond_response($1, 1, 'Again', true)`, [gratitude], "read-only");
+
+    // "Try something new together" names the activity (20261008110100_event_chat).
+    const [{ start_bond_activity: fresh }] = await q(K1, `select public.start_bond_activity($1, 'something_new')`, [invite]);
+    await q(K1, `select public.save_bond_response($1, 1, 'Signed us up', true, null, 'Pottery class')`, [fresh]);
+    const tried = (await q(K2, `select * from public.bond_log($1)`, [invite])).find((r) => r.activity_id === fresh && r.round === 1);
+    check("a try-something-new answer carries its title", tried?.their_title === "Pottery class" && tried?.their_body === "Signed us up", tried);
   });
 
   await step("end bond: read-only record, and the engine stands back", async () => {
@@ -2362,6 +2368,201 @@ await step("@mentions: saved, notified, checked against who can see it", async (
   const ring = (await q(Mb, `select user_id from public.grouv_people($1)`, [Ma])).map((r) => r.user_id);
   check("their Grouv shows you on their rings", ring.includes(Mb) && !ring.includes(Md), ring);
   check("a stranger sees nobody on them", (await q(Mc, `select user_id from public.grouv_people($1)`, [Ma])).length === 0);
+});
+
+// --- Bond chat message actions (20261008100100_chat_actions) ------------------
+await step("chat actions: reply, edit, delete", async () => {
+  const Ka = await person("Kai", learning);
+  const Kb = await person("Kit", learning);
+  const Kc = await person("Kev", learning);
+  await connect(Ka, Kb);
+  await connect(Ka, Kc);
+  const [{ open_direct_conversation: dm }] = await q(Ka, `select public.open_direct_conversation($1)`, [Kb]);
+  const [{ open_direct_conversation: other }] = await q(Ka, `select public.open_direct_conversation($1)`, [Kc]);
+  const send = (from, conv, body, reply = null) =>
+    q(from, `insert into public.messages (conversation_id, sender_id, body, reply_to_id) values ($1, $2, $3, $4) returning id`, [
+      conv,
+      from,
+      body,
+      reply,
+    ]);
+  const [{ id: first }] = await send(Ka, dm, "hello");
+  const [{ id: answer }] = await send(Kb, dm, "hey", first);
+  check("a reply quotes a message in the same chat", Boolean(answer));
+  const [{ id: elsewhere }] = await send(Ka, other, "elsewhere");
+  await fails(
+    "a reply can't quote another conversation",
+    Kb,
+    `insert into public.messages (conversation_id, sender_id, body, reply_to_id) values ($1, $2, 'x', $3)`,
+    [dm, Kb, elsewhere],
+    "this conversation",
+  );
+
+  // Edit: only the sender, only text, marked edited.
+  await fails("someone else can't edit your message", Kb, `select public.edit_my_message($1, 'hacked')`, [first], "your own");
+  await fails("an outsider can't edit it either", Kc, `select public.edit_my_message($1, 'hacked')`, [first], "no longer here");
+  await fails("an edit needs words", Ka, `select public.edit_my_message($1, '   ')`, [first], "Write a message");
+  const [{ edit_my_message: editedAt }] = await q(Ka, `select public.edit_my_message($1, 'hello there')`, [first]);
+  const [row] = await su(`select body, edited_at from public.messages where id = $1`, [first]);
+  check("the edit saves and is marked edited", row.body === "hello there" && row.edited_at !== null && editedAt !== null, row);
+
+  // A direct update by the sender is marked edited too.
+  await q(Kb, `update public.messages set body = 'hey you' where id = $1`, [answer]);
+  const [direct] = await su(`select edited_at from public.messages where id = $1`, [answer]);
+  check("a direct body change carries edited_at", direct.edited_at !== null, direct);
+
+  // Delete: only the sender, words cleared, stays deleted.
+  await fails("someone else can't delete your message", Kb, `select public.delete_my_message($1)`, [first], "your own");
+  await q(Ka, `select public.delete_my_message($1)`, [first]);
+  const [gone] = await su(`select body, deleted_at from public.messages where id = $1`, [first]);
+  check("a deleted message keeps its place with its words cleared", gone.deleted_at !== null && gone.body === "", gone);
+  await fails("a deleted message can't be edited", Ka, `select public.edit_my_message($1, 'back')`, [first], "deleted");
+  await fails(
+    "…or brought back",
+    Ka,
+    `update public.messages set deleted_at = null where id = $1`,
+    [first],
+    "deleted",
+  );
+  check("deleting twice is harmless", (await q(Ka, `select public.delete_my_message($1)`, [first])).length === 1);
+  const seen = await q(Kb, `select id, deleted_at from public.messages where id = $1`, [first]);
+  check("the other person still sees the placeholder row", seen.length === 1 && seen[0].deleted_at !== null, seen);
+});
+
+// --- Event / group chat actions (20261008110100_event_chat) --------------------
+await step("event chat: host pins and removes, members reply, event deletion notifies", async () => {
+  const Ha = await person("Hana", learning);
+  const Mo = await person("Moe", learning);
+  const Ni = await person("Nia", learning);
+  const Ou = await person("Oto", learning);
+  const [{ id: ev }] = await q(
+    Ha,
+    `insert into public.events (chapter_slug, title, venue_name, starts_at, capacity) values ('learning', 'Chat walk', 'Park', now() + interval '2 days', 10) returning id`,
+  );
+  for (const who of [Mo, Ni]) await q(who, `insert into public.event_attendees (event_id, user_id) values ($1, $2)`, [ev, who]);
+  const [{ conversation_id: conv }] = await su(`select conversation_id from public.events where id = $1`, [ev]);
+  const send = (from, body, reply = null) =>
+    q(from, `insert into public.messages (conversation_id, sender_id, body, reply_to_id) values ($1, $2, $3, $4) returning id`, [conv, from, body, reply]);
+  const [{ id: hello }] = await send(Mo, "hello all");
+  const [{ id: answer }] = await send(Ni, "hi Moe", hello);
+  const [quoted] = await su(`select reply_to_id from public.messages where id = $1`, [answer]);
+  check("a reply in an event chat quotes its message", quoted.reply_to_id === hello, quoted);
+
+  const [{ can_moderate_conversation: hostCan }] = await q(Ha, `select public.can_moderate_conversation($1)`, [conv]);
+  const [{ can_moderate_conversation: memberCan }] = await q(Mo, `select public.can_moderate_conversation($1)`, [conv]);
+  check("only the host moderates the event chat", hostCan === true && memberCan === false);
+
+  await fails("members can't pin", Mo, `select public.pin_room_message($1, true)`, [hello], "Only the host");
+  await q(Ha, `select public.pin_room_message($1, true)`, [hello]);
+  await q(Ha, `select public.pin_room_message($1, true)`, [answer]);
+  const pins = await su(`select id from public.messages where conversation_id = $1 and pinned_at is not null`, [conv]);
+  check("one pinned message per conversation", pins.length === 1 && pins[0].id === answer, pins);
+  await fails("members can't set a pin directly", Mo, `update public.messages set pinned_at = now() where id = $1`, [hello], "permission");
+
+  await fails("a member can't delete someone else's message", Mo, `select public.delete_room_message($1)`, [answer], "can't delete");
+  await fails("an outsider can't delete anything", Ou, `select public.delete_room_message($1)`, [hello], "can't delete");
+  await q(Ha, `select public.delete_room_message($1)`, [answer]);
+  const [removed] = await su(`select body, deleted_at, deleted_by, pinned_at from public.messages where id = $1`, [answer]);
+  check(
+    "the host removes anyone's message: words cleared, pin off, marked by the host",
+    removed.deleted_at !== null && removed.body === "" && removed.deleted_by === Ha && removed.pinned_at === null,
+    removed,
+  );
+  await q(Mo, `select public.delete_room_message($1)`, [hello]);
+  const [own] = await su(`select deleted_by from public.messages where id = $1`, [hello]);
+  check("members delete their own", own.deleted_by === Mo, own);
+
+  await q(Ha, `update public.events set status = 'cancelled' where id = $1`, [ev]);
+  const told = await su(`select user_id from public.notifications where kind = 'event_cancelled' and entity_id = $1`, [ev]);
+  check("deleting the event tells everyone going, not the host", told.length === 2 && !told.some((n) => n.user_id === Ha), told);
+});
+
+await step("group chat: admins moderate like a host", async () => {
+  const [admin] = await su(`select g.conversation_id, m.user_id from public.group_members m join public.groups g on g.id = m.group_id where m.role = 'admin' limit 1`);
+  const moderates = await q(admin.user_id, `select public.can_moderate_conversation($1) as ok`, [admin.conversation_id]);
+  check("a group admin moderates its chat", moderates[0]?.ok === true, moderates);
+  const outsider = await q(D, `select public.can_moderate_conversation($1) as ok`, [admin.conversation_id]);
+  check("someone else doesn't", outsider[0]?.ok === false, outsider);
+});
+
+await step("profile audiences: bio, location, chapter, birthday for Everyone / circle / Bonds / only me", async () => {
+  const career = [{ slug: "career", phase: "Starting over" }];
+  const Pa = await person("Pria", career); // the owner
+  const Pb = await person("Pete", career); // a connection
+  const Pc = await person("Pell", career); // a Bond
+  const Pd = await person("Pim", career); // a stranger
+  await connect(Pa, Pb);
+  await connect(Pa, Pc);
+  await su(`insert into public.bonds (inviter_id, invitee_id, status, accepted_at) values ($1, $2, 'active', now())`, [Pa, Pc]);
+  await su(`update public.profiles set location_label = 'Lagos, Nigeria' where id = $1`, [Pa]);
+  await q(Pa, `insert into public.profile_details (user_id, bio, birthday) values ($1, 'Building slowly', '1994-03-03')`, [Pa]);
+
+  const view = async (uid) => (await q(uid, `select * from public.profile_for($1)`, [Pa]))[0];
+  const sees = (v) => [v.bio !== null, v.location_label !== null, v.show_chapter, v.birthday !== null];
+  const all = (v, on) => sees(v).every((x) => x === on);
+  const setAll = (audience) =>
+    q(
+      Pa,
+      `update public.profile_details set bio_audience = $2, location_audience = $2, chapter_audience = $2, birthday_audience = $2 where user_id = $1`,
+      [Pa, audience],
+    );
+
+  let v = await view(Pd);
+  check(
+    "defaults: a stranger sees bio, location and chapter, not the birthday",
+    v.bio === "Building slowly" && v.location_label === "Lagos, Nigeria" && v.show_chapter && v.birthday === null,
+    v,
+  );
+  check("defaults: a Bond sees the birthday", (await view(Pc)).birthday !== null);
+  check("defaults: a connection doesn't", (await view(Pb)).birthday === null);
+
+  await setAll("everyone");
+  check("everyone: a stranger sees every field", all(await view(Pd), true), await view(Pd));
+
+  await setAll("circle");
+  check("circle: a stranger sees none", all(await view(Pd), false), await view(Pd));
+  check("circle: a connection sees all", all(await view(Pb), true), await view(Pb));
+  check("circle: a Bond sees all", all(await view(Pc), true), await view(Pc));
+
+  await setAll("bonds");
+  check("bonds: a connection sees none", all(await view(Pb), false), await view(Pb));
+  check("bonds: a Bond sees all", all(await view(Pc), true), await view(Pc));
+
+  await setAll("only_me");
+  check("private: even a Bond sees none", all(await view(Pc), false), await view(Pc));
+  check("private: you always see your own", all(await view(Pa), true), await view(Pa));
+
+  // One field at a time.
+  await q(Pa, `update public.profile_details set location_audience = 'everyone' where user_id = $1`, [Pa]);
+  v = await view(Pd);
+  check("fields are independent", v.location_label === "Lagos, Nigeria" && v.bio === null && !v.show_chapter, v);
+
+  // Search shows the stage only to whom the chapter audience allows.
+  const hit = async (uid) => (await q(uid, `select subtitle, chapter_slug from public.search_everything('Pria') where id = $1`, [Pa]))[0];
+  let found = await hit(Pd);
+  check("search hides a private chapter", found && found.subtitle === null && found.chapter_slug === null, found);
+  await q(Pa, `update public.profile_details set chapter_audience = 'everyone' where user_id = $1`, [Pa]);
+  found = await hit(Pd);
+  check("search shows a public one", found?.subtitle === "Starting over", found);
+
+  // The table itself is the owner's alone.
+  check("others can't read the details row", (await q(Pc, `select * from public.profile_details where user_id = $1`, [Pa])).length === 0);
+  await fails("others can't write it", Pd, `insert into public.profile_details (user_id, bio) values ($1, 'x')`, [Pa], "row-level security");
+
+  // A block hides everything, whatever the audience.
+  await setAll("everyone");
+  await q(Pa, `select public.block_user($1)`, [Pd]);
+  check("blocked: nothing shows", all(await view(Pd), false), await view(Pd));
+
+  // Account deletion: scheduled a week out, kept on asking again, called off by signing in.
+  const [{ request_account_deletion: due }] = await q(Pb, `select public.request_account_deletion()`);
+  const days = (new Date(due).getTime() - Date.now()) / 86_400_000;
+  check("deletion is scheduled seven days out", days > 6.9 && days <= 7, due);
+  const [{ request_account_deletion: again }] = await q(Pb, `select public.request_account_deletion()`);
+  check("asking again keeps the first date", new Date(again).getTime() === new Date(due).getTime(), again);
+  check("others can't see it", (await q(Pc, `select * from public.account_deletions where user_id = $1`, [Pb])).length === 0);
+  const [{ cancel_account_deletion: cancelled }] = await q(Pb, `select public.cancel_account_deletion()`);
+  check("signing back in calls it off", cancelled === true && (await q(Pb, `select * from public.account_deletions`)).length === 0);
 });
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
+      // Signing back in calls off a scheduled account deletion.
+      await supabase.rpc("cancel_account_deletion");
       const { data: profile } = await supabase
         .from("profiles")
         .select("onboarded_at")

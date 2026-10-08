@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { GlowAvatar } from "@/components/app/BondChat";
+import { ConfirmDialog } from "@/components/app/bonds/ConfirmDialog";
 import { usePaywall } from "@/components/app/pass/PaywallProvider";
 import { useToast } from "@/components/app/ToastProvider";
 import { FormError } from "@/components/auth/FormError";
@@ -160,8 +161,9 @@ export function useRespondToInvite() {
 }
 
 /**
- * "End this Bond?" — Figma 1160:21879 (the Release ritual). The record stays
- * read-only for both people; the chat carries on as an ordinary connection.
+ * "Release this Bond?" — Figma 1610:39648 / 1798:58579 (the Release ritual),
+ * toast 1610:36758. The shared record stays read-only; the chat carries on
+ * as an ordinary connection.
  */
 export function EndBondModal({
   bondId,
@@ -178,35 +180,29 @@ export function EndBondModal({
   const [busy, start] = useTransition();
 
   return (
-    <Modal label="End this Bond?" onClose={onClose} width="max-w-[480px]">
-      <ModalHeader title="End this Bond?" onClose={onClose} />
-      <p className="border-b border-ink-50 pb-6 font-sans text-base text-ink-500">
-        Your shared goal, check-ins and Bond Log stay as a read-only record for you both — nothing new can be
-        added. The chat itself stays as an ordinary connection with {name}.
-      </p>
-      <div className="flex flex-col items-center gap-3">
-        <Button
-          size="sm"
-          fullWidth
-          loading={busy}
-          disabled={busy}
-          onClick={() =>
-            start(async () => {
-              const result = await endBond(bondId);
-              if (result.error) return void toast({ title: result.error, tone: "danger" });
-              onClose();
-              onEnded?.();
-              toast({ title: "Bond ended", description: `You and ${name} are still connected.` });
-            })
-          }
-        >
-          End Bond
-        </Button>
-        <Button size="sm" variant="tertiary" onClick={onClose}>
-          Close
-        </Button>
-      </div>
-    </Modal>
+    <ConfirmDialog
+      title="Release this Bond?"
+      action="Release Bond"
+      tone="warning"
+      busy={busy}
+      onClose={onClose}
+      onConfirm={() =>
+        start(async () => {
+          const result = await endBond(bondId);
+          if (result.error) return void toast({ title: result.error, tone: "danger" });
+          onClose();
+          onEnded?.();
+          toast({
+            title: "Bond released",
+            description: "Your shared history stays as a read-only record.",
+          });
+        })
+      }
+    >
+      Releasing this Bond ends your shared goal and check-ins, what you shared stays as a read-only record and
+      nothing new can be added. The chat itself stays as an ordinary connection with {name}. This can&rsquo;t be
+      undone.
+    </ConfirmDialog>
   );
 }
 

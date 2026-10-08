@@ -10,11 +10,16 @@ import { isBannerKey } from "@/lib/banners";
 import { getChapter } from "@/lib/chapters";
 import { AURAS, LOG_VISIBILITY, type Aura, type LogVisibility } from "@/lib/profile";
 import { sendEmail } from "@/lib/email/send";
-import { trialStartedEmail } from "@/lib/email/templates";
+import { accountDeletionEmail, dataExportEmail, trialStartedEmail } from "@/lib/email/templates";
+import {
+  FIELD_AUDIENCES,
+  PROFILE_FIELDS,
+  type FieldAudience,
+  type ProfileField,
+} from "@/lib/profile-audience";
 import { geocode } from "@/lib/geocode";
 import { siteUrl } from "@/lib/site-url";
-import { billingEnabled, billingState, deleteSubscriber, fetchSubscriber, syncBilling } from "@/lib/revenuecat";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { billingEnabled, billingState, fetchSubscriber, syncBilling } from "@/lib/revenuecat";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -40,6 +45,14 @@ const ProfileSchema = z.object({
   phases: z.array(z.object({ userChapterId: z.uuid(), slug: z.string(), phase: z.string() })).max(8),
   /** The space that leads under your name. */
   primaryChapterId: z.uuid().nullish(),
+  /** Optional profile fields with their own audience (profile_details). Left out, not touched. */
+  bio: z.string().max(300, "Keep your bio under 300 characters").optional(),
+  birthday: z
+    .string()
+    .refine((v) => v === "" || (/^\d{4}-\d{2}-\d{2}$/.test(v) && v >= "1900-01-01" && Date.parse(v) <= Date.now()), {
+      message: "Pick a real date in the past.",
+    })
+    .optional(),
   /** Optional; blank clears it. Left out, it is not touched. */
   username: z
     .string()
@@ -67,7 +80,7 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
     return { fieldErrors: { [String(issue.path[0])]: issue.message } };
   }
 
-  const { firstName, locationLabel, coordinates, aura, avatarUrl, prompts, phases, primaryChapterId, username } =
+  const { firstName, locationLabel, coordinates, aura, avatarUrl, prompts, phases, primaryChapterId, username, bio, birthday } =
     parsed.data;
   const folder = avatarFolderUrl(viewer.userId);
   const previousAvatar = viewer.profile.avatar_url;
@@ -110,6 +123,16 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
         .eq("user_id", viewer.userId)
         .eq("status", "open"),
     ),
+    ...(bio !== undefined || birthday !== undefined
+      ? [
+          supabase.from("profile_details").upsert({
+            user_id: viewer.userId,
+            ...(bio !== undefined && { bio: blankToNull(bio) }),
+            ...(birthday !== undefined && { birthday: birthday || null }),
+            updated_at: new Date().toISOString(),
+          }),
+        ]
+      : []),
   ]);
 
   const primary =
@@ -250,6 +273,52 @@ export async function updatePrivacy(input: z.input<typeof PrivacySchema>): Promi
   }
   refresh();
   return {};
+}
+
+const AudienceSchema = z.object({
+  field: z.enum(PROFILE_FIELDS.map((f) => f.key) as [ProfileField, ...ProfileField[]]),
+  audience: z.enum(FIELD_AUDIENCES.map((a) => a.value) as [FieldAudience, ...FieldAudience[]]),
+});
+
+/** "Save audience" (Figma 1587:23049…): who can see one profile field. */
+export async function updateProfileAudience(field: ProfileField, audience: FieldAudience): Promise<ActionResult> {
+  const viewer = await requireOnboardedViewer();
+  const parsed = AudienceSchema.safeParse({ field, audience });
+  if (!parsed.success) return { error: "That setting isn't one we recognise." };
+
+  const supabase = await createClient();
+  const column = `${parsed.data.field}_audience` as const;
+  const patch: Partial<Record<typeof column, FieldAudience>> = { [column]: parsed.data.audience };
+  const { error } = await supabase.from("profile_details").upsert({
+    user_id: viewer.userId,
+    ...patch,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) {
+    console.error("[settings] updateProfileAudience failed", error);
+    return { error: "We couldn't save that. Try again." };
+  }
+  refresh();
+  return {};
+}
+
+/**
+ * "Request export" (Figma 1593:23216): emails a link to /api/export, which
+ * builds the file when they open it while signed in. Without email set up
+ * (local dev) the caller downloads it straight away instead.
+ */
+export async function requestDataExport(): Promise<ActionResult & { emailed?: boolean }> {
+  const viewer = await requireOnboardedViewer();
+  if (!viewer.email) return { emailed: false };
+  try {
+    const { sent } = await sendEmail(
+      dataExportEmail({ to: viewer.email, firstName: viewer.profile.first_name, siteUrl: await siteUrl() }),
+    );
+    return { emailed: sent };
+  } catch (error) {
+    console.error("[settings] requestDataExport failed", error);
+    return { error: "We couldn't request your export. Try again." };
+  }
 }
 
 /**
@@ -451,19 +520,21 @@ async function savePassword(
 }
 
 /**
- * Danger zone. Deleting the auth user cascades through every table; uploaded
- * files aren't rows, so the viewer's folders are emptied first.
+ * Danger zone → "Account deletion requested" (Figma 1593:23224): the account
+ * is scheduled for deletion in seven days and they're signed out everywhere.
+ * Signing back in before then calls it off (cancel_account_deletion); after
+ * that, the account-deletions cron deletes everything (purgeAccount).
  */
 export async function deleteAccount(confirmation: string): Promise<ActionResult> {
   const viewer = await requireOnboardedViewer();
   if (confirmation !== "DELETE") return { error: "Type DELETE to confirm." };
 
-  const admin = createAdminClient();
+  const supabase = await createClient();
 
   // A plan that will renew keeps charging after the account is gone, and App
   // Store / Google Play plans can only be cancelled by the person themselves,
   // so they cancel first.
-  const { data: subscription } = await admin
+  const { data: subscription } = await supabase
     .from("subscriptions")
     .select("billing_store, status, cancel_at_period_end")
     .eq("user_id", viewer.userId)
@@ -476,29 +547,29 @@ export async function deleteAccount(confirmation: string): Promise<ActionResult>
     return { error: "Cancel your plan under Subscription → Manage billing first, then delete your account." };
   }
 
-  for (const bucket of ["avatars", "media"] as const) {
-    const { data: files } = await admin.storage.from(bucket).list(viewer.userId, { limit: 1000 });
-    if (files?.length) {
-      await admin.storage.from(bucket).remove(files.map((file) => `${viewer.userId}/${file.name}`));
-    }
-  }
-
-  const { error } = await admin.auth.admin.deleteUser(viewer.userId);
-  if (error) {
+  const { data: deleteAfter, error } = await supabase.rpc("request_account_deletion");
+  if (error || !deleteAfter) {
     console.error("[settings] deleteAccount failed", error);
-    return { error: "We couldn't delete your account. Try again, or contact us." };
+    return { error: "We couldn't schedule your account deletion. Try again, or contact us." };
   }
 
-  if (subscription?.billing_store && billingEnabled()) {
-    try {
-      await deleteSubscriber(viewer.userId);
-    } catch (error) {
-      console.warn("[settings] removing the RevenueCat customer failed", error);
-    }
+  if (viewer.email) {
+    const email = accountDeletionEmail({
+      to: viewer.email,
+      firstName: viewer.profile.first_name,
+      deleteAfter,
+      siteUrl: await siteUrl(),
+    });
+    after(async () => {
+      try {
+        await sendEmail(email);
+      } catch (e) {
+        console.warn("[settings] deletion email failed", e);
+      }
+    });
   }
 
-  // The session belongs to a user that no longer exists; clear its cookies.
-  const supabase = await createClient();
-  await supabase.auth.signOut({ scope: "local" });
-  redirect("/");
+  // Signed out everywhere, then the confirmation (outside the app).
+  await supabase.auth.signOut({ scope: "global" });
+  redirect(`/goodbye?on=${encodeURIComponent(deleteAfter)}`);
 }

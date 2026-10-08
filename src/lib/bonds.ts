@@ -78,6 +78,12 @@ export interface ChatMessage {
   durationSeconds?: number | null;
   /** Documents: what to call the download and how big it is. */
   file?: { name: string; size: number | null };
+  /** Edited by its sender ("edited" beside the time). */
+  editedAt?: string | null;
+  /** Deleted by its sender: shown as "This message was deleted". */
+  deleted?: boolean;
+  /** The message this one replies to, quoted above it. */
+  replyTo?: { id: string; fromMe: boolean; preview: string } | null;
 }
 
 /** A daily card: one Curio per active Space (up to four), one Wander. Live for 24 hours. */
@@ -221,8 +227,10 @@ export interface BondLogRound {
     /** The stored path, so replacing a draft photo can remove the old one. */
     photoPath: string | null;
     shared: boolean;
+    /** "Try something new together": the activity they named (1732:44501). */
+    heading: string | null;
   } | null;
-  theirs: { body: string | null; photoUrl: string | null } | null;
+  theirs: { body: string | null; photoUrl: string | null; heading: string | null } | null;
   theirShared: boolean;
 }
 

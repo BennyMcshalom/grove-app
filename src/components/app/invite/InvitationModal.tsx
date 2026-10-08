@@ -62,7 +62,11 @@ export function InvitationModal({
               if (status === "accepted") {
                 toast({ title: `You’re walking with ${invite.senderName}`, description: "Find their chapter under Chapters I’m walking with." });
               } else {
-                toast({ title: "Not now", description: `${invite.senderName} won’t be told.` });
+                // 1794:42612 — the sender isn't told.
+                toast({
+                  title: "You declined chapter invitation",
+                  description: `You’ve declined the invitation to ${invite.senderName}’s ${invite.title}. You can join later if you’re invited again.`,
+                });
               }
               onClose();
             }}

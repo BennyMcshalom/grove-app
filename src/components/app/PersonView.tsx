@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { IntroNote } from "@/components/app/BondsRail";
 import { GrouvHero, GrouvPage, GrouvTabs } from "@/components/app/GrouvProfile";
 import { GrouvRings, type RingPerson } from "@/components/app/GrouvRings";
-import { ReportPostModal } from "@/components/app/PostModals";
+import { BlockDialog, ReportPersonModal } from "@/components/app/bonds/SafetyDialogs";
 import { useToast } from "@/components/app/ToastProvider";
 import { Button } from "@/components/ui/Button";
 import {
@@ -26,8 +26,12 @@ export interface Person {
   aura: Aura;
   /** Their profile banner key; null is their default colour. */
   banner: string | null;
+  /** Null when their audience for it leaves the viewer out (profile_for). */
   locationLabel: string | null;
+  /** Empty when their current-chapter audience leaves the viewer out. */
   chapters: { slug: string; phase: string; shared: boolean }[];
+  bio?: string | null;
+  birthday?: string | null;
   relationship: "bond" | "circle" | "requested" | "asked_you" | "none";
   /** The pending request, when there is one. */
   connectionId: string | null;
@@ -150,6 +154,8 @@ export function PersonView({ person, posts, logs }: { person: Person; posts: Fee
               aura: person.aura,
               locationLabel: person.locationLabel,
               chapters: person.chapters,
+              bio: person.bio,
+              birthday: person.birthday,
               self: false,
             }}
             // Nothing of theirs shows while you've blocked them.
@@ -209,7 +215,7 @@ export function PersonView({ person, posts, logs }: { person: Person; posts: Fee
                 Report
               </Button>
             </div>
-            {confirming && (
+            {confirming && !(confirming === "block" && !blocked) && (
               <ConfirmBar
                 message={
                   confirming === "remove"
@@ -242,14 +248,20 @@ export function PersonView({ person, posts, logs }: { person: Person; posts: Fee
         </section>
       )}
 
-      {reporting && (
-        <ReportPostModal
-          postId={person.id}
-          targetType="profile"
-          onClose={() => setReporting(false)}
-          onReported={() => setReporting(false)}
+      {/* Block / Report — the same dialogs as Home's profile menu (1689:44046 / 1689:44028). */}
+      {confirming === "block" && !blocked && (
+        <BlockDialog
+          userId={person.id}
+          name={person.name}
+          context={relationship === "bond" ? "bond" : "circle"}
+          onClose={() => setConfirming(null)}
+          onBlocked={() => {
+            setBlocked(true);
+            setRelationship("none");
+          }}
         />
       )}
+      {reporting && <ReportPersonModal userId={person.id} what="profile" onClose={() => setReporting(false)} />}
     </GrouvPage>
   );
 }
