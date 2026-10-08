@@ -141,16 +141,7 @@ export function ChapterInviteModal({
             ask={ask.trim() || null}
             share={share}
             momentCount={storyCount}
-          >
-            <div className="pointer-events-none flex flex-col gap-3 opacity-80" aria-hidden="true">
-              <Button fullWidth tabIndex={-1}>
-                Accept invitation
-              </Button>
-              <Button variant="secondary" fullWidth tabIndex={-1}>
-                Not now
-              </Button>
-            </div>
-          </InvitationCard>
+          />
         </div>
         <div className="flex flex-col gap-3">
           <FormError message={error} />
