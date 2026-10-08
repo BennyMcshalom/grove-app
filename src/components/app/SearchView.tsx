@@ -1,5 +1,6 @@
 "use client";
 
+import { BackButton } from "@/components/app/BackButton";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -92,11 +93,10 @@ export function SearchView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-ivory-100">
-      {/* Frame 628:35194 — the phone gets a back/title bar. */}
-      <header className="flex shrink-0 items-center gap-4 bg-surface px-5 py-4 lg:hidden">
-        <Link href="/home" aria-label="Back" className="text-ink-800">
-          <BackIcon />
-        </Link>
+      {/* Frame 628:35194 — a back/title bar; desktop gets it too, so Search
+          always has a way back to where you were. */}
+      <header className="flex shrink-0 items-center gap-4 bg-surface px-5 py-4 lg:px-6 lg:pt-8">
+        <BackButton fallback="/home" className="rounded-full p-1 transition-colors hover:bg-ivory-200" />
         <h1 className="font-display text-xl font-semibold text-ink-600">
           Search
         </h1>
@@ -254,19 +254,6 @@ function ResultRow({ result, held }: { result: SearchResult; held: boolean }) {
   );
 }
 
-function BackIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
-      <path
-        d="M19 12H5m0 0 6-6m-6 6 6 6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 function SearchIcon({ className }: { className?: string }) {
   return (

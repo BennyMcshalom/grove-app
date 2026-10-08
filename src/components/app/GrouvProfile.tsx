@@ -90,7 +90,8 @@ export function GrouvTabs({
   return (
     <div className="flex flex-col gap-6">
       {/* Tab Group 71:5396 — bottom border, primary-600 when active. */}
-      <div role="tablist" className="flex">
+      {/* Tabs sit over the grid, the same width and centred with it. */}
+      <div role="tablist" className="mx-auto flex w-full max-w-[720px]">
         {(["posts", "logs"] as const).map((value, i) => (
           <button
             key={value}

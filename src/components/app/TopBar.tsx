@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import { BackButton, defaultBack } from "@/components/app/BackButton";
 import { NotificationsPanel } from "@/components/app/NotificationsPanel";
 import { useUnread } from "@/components/app/Unread";
 import { useViewer } from "@/components/app/ViewerProvider";
@@ -35,7 +36,10 @@ export function TopBar({
   title?: string;
   /** Event View (452:9877) prefixes its title with a primary-50 glyph. */
   icon?: React.ReactNode;
-  /** Titled phone frames lead with a back arrow; pass its destination. */
+  /**
+   * Where the back arrow goes when there's no in-app page to return to.
+   * Pages below a top-level destination get one by default (their parent).
+   */
   back?: string;
   /**
    * Chapter Groups (177:3542) puts its Admin Mode toggle where the feed puts
@@ -67,6 +71,8 @@ export function TopBar({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const router = useRouter();
+  const pathname = usePathname();
+  const backTo = back ?? defaultBack(pathname);
 
   const tabs = (
     /* The five chapter tabs don't fit a 390px phone, so the row scrolls
@@ -140,11 +146,7 @@ export function TopBar({
       </div>
       {title ? (
         <div className="flex items-center gap-3 pb-2">
-          {back && (
-            <Link href={back} aria-label="Back" className="shrink-0 text-ink-800">
-              <BackIcon />
-            </Link>
-          )}
+          {backTo && <BackButton fallback={backTo} />}
           {icon}
           <h1 className="truncate font-display text-2xl font-semibold text-ink-600">
             {title}
@@ -159,14 +161,8 @@ export function TopBar({
     <header className="hidden shrink-0 flex-wrap items-end justify-between gap-4 bg-surface px-6 pt-8 lg:flex lg:pr-12 lg:pt-13">
       {title ? (
         <div className="flex items-center gap-4 pb-2">
-          {back && (
-            <Link
-              href={back}
-              aria-label="Back"
-              className="shrink-0 rounded-full p-1 text-ink-800 transition-colors hover:bg-ivory-200"
-            >
-              <BackIcon />
-            </Link>
+          {backTo && (
+            <BackButton fallback={backTo} className="rounded-full p-1 transition-colors hover:bg-ivory-200" />
           )}
           {icon}
           <h1 className="font-display text-2xl font-semibold text-ink-600">
@@ -192,6 +188,11 @@ export function TopBar({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            // The header field is the way into Search: focusing it anywhere
+            // else opens the search screen, which takes over the typing.
+            onFocus={() => {
+              if (pathname !== "/search") router.push("/search");
+            }}
             placeholder="Search"
             className="w-full rounded-lg bg-ivory-100 py-2.5 pr-10 pl-3.5 font-sans text-sm text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
           />
@@ -224,19 +225,6 @@ export function TopBar({
   );
 }
 
-function BackIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="size-6" aria-hidden="true">
-      <path
-        d="M19 12H5m0 0 6-6m-6 6 6 6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 /** Icon/Moon (8:8644) — the phone header's appearance toggle. */
 function MoonIcon({ className }: { className?: string }) {

@@ -4,6 +4,7 @@ import { MobileNav } from "@/components/app/MobileNav";
 import { NotificationPopups } from "@/components/app/NotificationPopups";
 import { PaywallProvider } from "@/components/app/pass/PaywallProvider";
 import { ToastProvider } from "@/components/app/ToastProvider";
+import { NavDepthTracker } from "@/components/app/BackButton";
 import { SessionSync } from "@/components/app/SessionSync";
 import { ChapterInviteReturn } from "@/components/app/invite/ChapterInviteReturn";
 import { UnreadMessagesProvider } from "@/components/app/UnreadMessages";
@@ -32,6 +33,7 @@ export default async function AppLayout({
   return (
     <ViewerProvider viewer={viewer}>
       <SessionSync />
+      <NavDepthTracker />
       <ChapterInviteReturn />
       <NotificationPopups />
       <ToastProvider>

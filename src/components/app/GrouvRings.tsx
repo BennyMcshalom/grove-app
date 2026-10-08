@@ -122,7 +122,7 @@ export function GrouvRings({
   const badge = BADGES.find((b) => b.id === entered);
 
   return (
-    <section className="flex flex-col items-center gap-10 rounded-2xl bg-surface px-5 py-10 lg:flex-row lg:items-center lg:gap-[78px] lg:px-20">
+    <section className="flex flex-col items-center gap-10 rounded-2xl bg-surface px-5 py-10 lg:flex-row lg:items-center lg:justify-center lg:gap-[78px] lg:px-20">
       <div className="flex w-full max-w-[390px] shrink-0 flex-col gap-6">
         <div
           className="relative w-full"
