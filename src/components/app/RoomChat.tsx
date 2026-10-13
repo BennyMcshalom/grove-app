@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { PressMenu, type PressAction } from "@/components/app/PressMenu";
+import { useCallback, useEffect, useState } from "react";
 import { MessagesSkeleton } from "@/components/ui/Skeleton";
 import { Avatar } from "@/components/app/Avatar";
 import { MentionInput, useMentionPicks } from "@/components/app/MentionInput";
@@ -10,7 +11,6 @@ import type { MentionPerson } from "@/lib/mentions";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { useRealtimeChannel } from "@/lib/supabase/use-channel";
-import { cn } from "@/lib/cn";
 import {
   canModerateRoom,
   deleteRoomMessage,
@@ -250,7 +250,6 @@ function MessageRow({
   chat?: RoomChat;
 }) {
   const toast = useToast();
-  const [menu, setMenu] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [reporting, setReporting] = useState(false);
@@ -270,6 +269,34 @@ function MessageRow({
     document.getElementById(composerId(chat?.conversationId ?? ""))?.focus();
   };
 
+  // Figma: You → Edit, Delete, Reply, Copy text; Member → Reply, Copy text,
+  // Report; host on someone else's → Reply, Copy text, Pin to top | Report |
+  // Delete message. Opened by press-and-hold or right-click (PressMenu).
+  const text = message.kind === "text";
+  const pin: PressAction[] =
+    chat?.canModerate ? [{ label: message.pinnedAt ? "Unpin" : "Pin to top", run: () => void chat.pin(message, !message.pinnedAt) }] : [];
+  const copyItem: PressAction[] = text ? [{ label: "Copy text", run: () => void copy() }] : [];
+  const actions: PressAction[] =
+    !chat || message.deleted || editing
+      ? []
+      : message.mine
+        ? [
+            ...(text ? [{ label: "Edit", run: () => setEditing(true) }] : []),
+            { label: "Reply", run: reply },
+            ...copyItem,
+            ...pin,
+            { label: "Delete", run: () => setConfirming(true), danger: true, divider: true },
+          ]
+        : chat.canModerate
+          ? [
+              { label: "Reply", run: reply },
+              ...copyItem,
+              ...pin,
+              { label: "Report", run: () => setReporting(true), divider: true },
+              { label: "Delete message", run: () => setConfirming(true), danger: true, divider: true },
+            ]
+          : [{ label: "Reply", run: reply }, ...copyItem, { label: "Report", run: () => setReporting(true), danger: true }];
+
   return (
     <li id={`msg-${message.id}`} className="flex gap-4 rounded-lg transition-shadow">
       <Avatar
@@ -278,7 +305,7 @@ function MessageRow({
         userId={message.senderId ?? undefined}
         className="size-10"
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden rounded-lg bg-ivory-100 px-3 py-2">
+      <PressMenu actions={actions} className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden rounded-lg bg-ivory-100 px-3 py-2">
         {message.replyTo && !message.deleted && (
           <button
             type="button"
@@ -325,37 +352,7 @@ function MessageRow({
             {message.body && <MentionText text={message.body} source="messages" id={message.id} className="text-primary-600" />}
           </p>
         )}
-      </div>
-
-      {chat && !message.deleted && !editing ? (
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            aria-label="Message options"
-            aria-haspopup="menu"
-            aria-expanded={menu}
-            onClick={() => setMenu((v) => !v)}
-            className="grid size-8 place-items-center rounded-full text-ink-700 transition-colors hover:bg-ivory-200"
-          >
-            <DotsIcon />
-          </button>
-          {menu && (
-            <MessageMenu
-              message={message}
-              canModerate={chat.canModerate}
-              onClose={() => setMenu(false)}
-              onReply={reply}
-              onCopy={copy}
-              onEdit={() => setEditing(true)}
-              onPin={() => void chat.pin(message, !message.pinnedAt)}
-              onReport={() => setReporting(true)}
-              onDelete={() => setConfirming(true)}
-            />
-          )}
-        </div>
-      ) : (
-        chat && <span className="size-8 shrink-0" />
-      )}
+      </PressMenu>
 
       {confirming && chat && (
         <ConfirmDialog
@@ -385,102 +382,6 @@ function MessageRow({
         />
       )}
     </li>
-  );
-}
-
-/** The 245px menu from the post menu (115:6523), with the host's extras. */
-function MessageMenu({
-  message,
-  canModerate,
-  onClose,
-  onReply,
-  onCopy,
-  onEdit,
-  onPin,
-  onReport,
-  onDelete,
-}: {
-  message: RoomMessage;
-  canModerate: boolean;
-  onClose: () => void;
-  onReply: () => void;
-  onCopy: () => void;
-  onEdit: () => void;
-  onPin: () => void;
-  onReport: () => void;
-  onDelete: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onPointer = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    // Deferred so the click that opened the menu doesn't immediately close it.
-    const id = setTimeout(() => document.addEventListener("mousedown", onPointer));
-    document.addEventListener("keydown", onKey);
-    return () => {
-      clearTimeout(id);
-      document.removeEventListener("mousedown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [onClose]);
-
-  const text = message.kind === "text";
-  const pin = canModerate && { label: message.pinnedAt ? "Unpin" : "Pin to top", run: onPin };
-  // Figma: You → Edit, Delete, Reply, Copy text; Member → Reply, Copy text,
-  // Report; host on someone else's → Reply, Copy text, Pin to top | Report |
-  // Delete message.
-  const groups: { label: string; run: () => void; danger?: boolean }[][] = message.mine
-    ? [
-        [
-          ...(text ? [{ label: "Edit", run: onEdit }] : []),
-          { label: "Delete", run: onDelete, danger: true },
-          { label: "Reply", run: onReply },
-          ...(text ? [{ label: "Copy text", run: onCopy }] : []),
-          ...(pin ? [pin] : []),
-        ],
-      ]
-    : canModerate
-      ? [
-          [{ label: "Reply", run: onReply }, ...(text ? [{ label: "Copy text", run: onCopy }] : []), ...(pin ? [pin] : [])],
-          [{ label: "Report", run: onReport }],
-          [{ label: "Delete message", run: onDelete, danger: true }],
-        ]
-      : [[{ label: "Reply", run: onReply }, ...(text ? [{ label: "Copy text", run: onCopy }] : []), { label: "Report", run: onReport, danger: true }]];
-
-  return (
-    <div
-      ref={ref}
-      role="menu"
-      className="absolute top-full right-0 z-20 mt-1 flex w-[220px] flex-col rounded-lg bg-surface py-2 shadow-[0px_0px_36px_0px_rgba(0,0,0,0.15)]"
-    >
-      {groups.map((items, i) => (
-        <div key={i} className={cn("flex flex-col py-1", i > 0 && "mx-2.5 border-t border-ink-50")}>
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                onClose();
-                item.run();
-              }}
-              className={cn(
-                "px-4 py-2 text-left font-sans text-sm font-medium transition-colors hover:bg-ivory-200",
-                i > 0 && "-mx-2.5 px-[26px]",
-                item.danger ? "text-destructive-60" : "text-ink-500",
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -705,15 +606,6 @@ export function RoomComposer({
   );
 }
 
-function DotsIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="size-5" aria-hidden="true">
-      <circle cx="10" cy="4.5" r="1.6" />
-      <circle cx="10" cy="10" r="1.6" />
-      <circle cx="10" cy="15.5" r="1.6" />
-    </svg>
-  );
-}
 
 function PinIcon({ className }: { className?: string }) {
   return (

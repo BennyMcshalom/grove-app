@@ -83,8 +83,29 @@ export function CallScreen({
       if (secured || cancelled) return;
       secured = true;
       await room.setE2EEEnabled(true);
-      if (micWanted.current) await room.localParticipant.setMicrophoneEnabled(true);
-      if (cameraWanted.current) await room.localParticipant.setCameraEnabled(true);
+      // The call is secured from here. A microphone or camera that won't
+      // start is its own problem (no permission, no device, in use by another
+      // app or tab) — say which, and keep the call going without it.
+      if (micWanted.current) await startDevice("microphone", () => room.localParticipant.setMicrophoneEnabled(true));
+      if (cameraWanted.current) await startDevice("camera", () => room.localParticipant.setCameraEnabled(true));
+    };
+    const startDevice = async (device: "microphone" | "camera", start: () => Promise<unknown>) => {
+      try {
+        await start();
+      } catch (error) {
+        if (cancelled) return;
+        console.error(`[calls] couldn't start the ${device}`, error);
+        const name = error instanceof Error ? error.name : "";
+        handlers.current.onMediaError(
+          name === "NotAllowedError" || name === "SecurityError"
+            ? `Allow ${device} access in your browser to use it on this call.`
+            : name === "NotFoundError" || name === "OverconstrainedError"
+              ? `No ${device} was found on this device.`
+              : name === "NotReadableError" || name === "AbortError"
+                ? `Your ${device} is in use by another app or tab. Close it there and turn it on again.`
+                : `We couldn't start your ${device}. You can turn it on again from the call controls.`,
+        );
+      }
     };
     const secureSafely = (participant: Participant) =>
       void secure(participant).catch((error) => {
@@ -205,8 +226,14 @@ export function CallScreen({
     const next = !micOn;
     setMicOn(next);
     micWanted.current = next;
-    const room = roomRef.current;
-    if (room?.isE2EEEnabled) await room.localParticipant.setMicrophoneEnabled(next);
+    try {
+      const room = roomRef.current;
+      if (room?.isE2EEEnabled) await room.localParticipant.setMicrophoneEnabled(next);
+    } catch {
+      setMicOn(!next);
+      micWanted.current = !next;
+      onMediaError("Allow microphone access to be heard.");
+    }
   };
 
   const toggleCamera = async () => {

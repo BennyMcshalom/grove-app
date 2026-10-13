@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/app/bonds/ConfirmDialog";
 import { PeoplePicker, type PickablePerson } from "@/components/app/bonds/PeoplePicker";
 import { ChatMenu } from "@/components/app/ChatMenu";
 import { ReportPostModal } from "@/components/app/PostModals";
+import { PressMenu, usePressHint } from "@/components/app/PressMenu";
 import { Avatar } from "@/components/app/Avatar";
 import { MentionInput, useMentionPicks } from "@/components/app/MentionInput";
 import { MentionText, rememberMentions } from "@/components/app/MentionText";
@@ -185,6 +186,7 @@ export function BondChat({
   }, [messageCount]);
 
   // Per-message actions (Figma 1788:38139 mine / 1788:38148 theirs).
+  const pressHint = usePressHint();
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [editing, setEditing] = useState<ChatMessage | null>(null);
   const [deleting, setDeleting] = useState<ChatMessage | null>(null);
@@ -469,6 +471,7 @@ export function BondChat({
       </div>
 
       <div className="flex shrink-0 flex-col gap-2 p-5">
+        {pressHint && <p className="text-center font-sans text-xs text-ink-300">{pressHint}</p>}
         {(editing || replyingTo) && (
           <div className="flex items-center gap-3 rounded-lg border-l-2 border-primary-500 bg-ivory-200 px-3 py-2">
             <span className="flex min-w-0 flex-1 flex-col">
@@ -690,16 +693,18 @@ function Bubble({
         ...(hasText ? [{ action: "copy" as const, label: "Copy text" }] : []),
         { action: "report", label: "Report", danger: true },
       ];
-  const menu = <MessageMenu actions={actions} onAction={onAction} alignEnd={!mine} />;
 
   return (
-    <div className={cn("group flex gap-2", mine ? "justify-end" : "justify-start")}>
+    <div className={cn("flex gap-2", mine ? "justify-end" : "justify-start")}>
       {!mine && (
         <Avatar src={person.avatarUrl} name={person.name} userId={person.userId} className="size-10 self-end" />
       )}
-      {mine && menu}
 
-      <div className={cn("flex min-w-0 max-w-[334px] flex-col gap-1", mine && "items-end")}>
+      {/* Press and hold (phone) or right-click (desktop) opens the options. */}
+      <PressMenu
+        actions={actions.map((item) => ({ label: item.label, danger: item.danger, run: () => onAction(item.action) }))}
+        className={cn("flex min-w-0 max-w-[334px] flex-col gap-1 rounded-2xl", mine && "items-end")}
+      >
         {message.replyTo && (
           <span
             className={cn(
@@ -860,91 +865,7 @@ function Bubble({
             {read ? "Read" : "Sent"}
           </span>
         )}
-      </div>
-      {!mine && menu}
-    </div>
-  );
-}
-
-/**
- * The ⋮ beside a bubble (component set 1788:38348) and its menu. Shown on
- * hover or focus on desktop; always there, quietly, on touch screens.
- */
-function MessageMenu({
-  actions,
-  onAction,
-  alignEnd,
-}: {
-  actions: { action: MessageAction; label: string; danger?: boolean }[];
-  onAction: (action: MessageAction) => void;
-  alignEnd: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: MouseEvent | TouchEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", close);
-    document.addEventListener("touchstart", close);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("touchstart", close);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  return (
-    <div ref={ref} className="relative shrink-0 self-center">
-      <button
-        type="button"
-        aria-label="Message actions"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "grid size-8 place-items-center rounded-full text-ink-400 transition-opacity hover:bg-ivory-200 hover:text-ink-700 focus-visible:opacity-100",
-          open ? "opacity-100" : "opacity-60 md:opacity-0 md:group-hover:opacity-100",
-        )}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor" className="size-5" aria-hidden="true">
-          <circle cx="12" cy="5.5" r="1.8" />
-          <circle cx="12" cy="12" r="1.8" />
-          <circle cx="12" cy="18.5" r="1.8" />
-        </svg>
-      </button>
-      {open && (
-        <ul
-          role="menu"
-          className={cn(
-            "absolute bottom-full z-30 mb-1 flex w-48 flex-col rounded-xl bg-surface p-1.5 shadow-[0px_8px_24px_0px_rgba(0,0,0,0.12)]",
-            alignEnd ? "left-0" : "right-0",
-          )}
-        >
-          {actions.map((item) => (
-            <li key={item.action} role="none">
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  onAction(item.action);
-                }}
-                className={cn(
-                  "w-full rounded-lg px-3 py-2.5 text-left font-sans text-sm transition-colors hover:bg-ivory-100",
-                  item.danger ? "text-destructive-60" : "text-ink-700",
-                )}
-              >
-                {item.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      </PressMenu>
     </div>
   );
 }

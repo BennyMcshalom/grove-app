@@ -158,7 +158,7 @@ export async function connectWith(
 }
 
 const MESSAGE_COLUMNS =
-  "id, sender_id, kind, body, media_path, duration_seconds, file_name, file_size, created_at, edited_at, deleted_at, reply_to_id, reply:messages!reply_to_id(id, sender_id, kind, body, deleted_at), shared_post:posts!messages_shared_post_id_fkey(id, title, body, chapter_slug), card:content_cards!messages_card_id_fkey(kind, title, body)";
+  "id, sender_id, kind, body, media_path, duration_seconds, file_name, file_size, created_at, edited_at, deleted_at, reply_to_id, reply:reply_to_id(id, sender_id, kind, body, deleted_at), shared_post:posts!messages_shared_post_id_fkey(id, title, body, chapter_slug), card:content_cards!messages_card_id_fkey(kind, title, body)";
 
 type ReplyRow = { id: string; sender_id: string | null; kind: ChatMessage["kind"]; body: string | null; deleted_at: string | null };
 

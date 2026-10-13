@@ -142,11 +142,9 @@ export function SpaceView({
                 {/* 172:3169 — the stage as the heading, "Invite someone" and the ⋮ menu (172:4609) beside it. */}
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="min-w-0 font-display text-2xl font-semibold text-ink-700">{phase}</h2>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {/* The phone frame keeps only ⋮, so the invite moves into the menu there. */}
-                    <Button variant="secondary" size="sm" className="hidden sm:flex" onClick={() => setInviting(true)}>
-                      Invite someone to walk with me
-                    </Button>
+                  {/* Inviting lives in the ⋮ menu (and the Companions strip below), so
+                      the stage keeps the full width of the heading. */}
+                  <div className="shrink-0">
                     <SpaceMenu onInvite={() => setInviting(true)} onCloseChapter={() => setClosing(true)} />
                   </div>
                 </div>
@@ -402,7 +400,7 @@ function SpaceMenu({ onInvite, onCloseChapter }: { onInvite: () => void; onClose
           <button
             type="button"
             role="menuitem"
-            className={cn(item, "sm:hidden")}
+            className={item}
             onClick={() => {
               setOpen(false);
               onInvite();

@@ -41,6 +41,23 @@ export function MediaLightbox({
     };
   }, [onClose, step]);
 
+  // The phone's back gesture (and the browser's Back) closes the viewer
+  // instead of leaving the page behind it.
+  useEffect(() => {
+    window.history.pushState({ grouvLightbox: true }, "");
+    let closedByBack = false;
+    const onPop = () => {
+      closedByBack = true;
+      onClose();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      if (!closedByBack && window.history.state?.grouvLightbox) window.history.back();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one history entry per opening
+  }, []);
+
   if (!item || typeof document === "undefined") return null;
 
   return createPortal(
@@ -51,11 +68,26 @@ export function MediaLightbox({
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
       onClick={onClose}
     >
+      {/* Controls sit above the picture (z-10): a tall photo reaches the top
+          corners and used to cover them. Back on the left, where a phone
+          thumb expects it; × on the right. */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute left-3 z-10 flex h-10 items-center gap-1.5 rounded-full bg-black/55 pr-4 pl-2.5 font-sans text-sm font-medium text-white backdrop-blur transition-colors hover:bg-black/70"
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" className="size-5" aria-hidden="true">
+          <path d="M19 12H5m0 0 6-6m-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Back
+      </button>
       <button
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="absolute top-4 right-4 grid size-10 place-items-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+        className="absolute right-3 z-10 grid size-10 place-items-center rounded-full bg-black/55 text-white backdrop-blur transition-colors hover:bg-black/70"
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
       >
         <svg viewBox="0 0 16 16" fill="none" className="size-5" aria-hidden="true">
           <path d="m3.5 3.5 9 9m0-9-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -63,7 +95,7 @@ export function MediaLightbox({
       </button>
 
       {count > 1 && (
-        <span className="absolute top-5 left-1/2 -translate-x-1/2 font-sans text-sm font-medium text-white/80 tabular-nums">
+        <span className="absolute top-5 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/55 px-2.5 py-0.5 font-sans text-sm font-medium text-white tabular-nums">
           {index + 1} / {count}
         </span>
       )}

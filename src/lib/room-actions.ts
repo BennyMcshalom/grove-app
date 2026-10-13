@@ -33,7 +33,7 @@ export interface RoomMessage {
 const COLUMNS =
   "id, kind, body, created_at, sender_id, edited_at, deleted_at, deleted_by, pinned_at, " +
   "sender:profiles!messages_sender_id_fkey(first_name, avatar_url), " +
-  "reply:messages!reply_to_id(id, body, deleted_at, sender_id, sender:profiles!messages_sender_id_fkey(first_name))";
+  "reply:reply_to_id(id, body, deleted_at, sender_id, sender:profiles!messages_sender_id_fkey(first_name))";
 // What a sender gets back: the row plus who the database kept as mentioned.
 const SENT_COLUMNS = `${COLUMNS}, mentions`;
 
