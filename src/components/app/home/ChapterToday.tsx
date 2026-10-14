@@ -161,9 +161,11 @@ function TodayCard({
   onClose: () => void;
 }) {
   const button =
-    "relative shrink-0 rounded-full bg-surface px-4 py-2 font-ui text-sm font-medium text-primary-800 transition-colors hover:bg-primary-50";
+    "relative col-start-2 shrink-0 justify-self-start rounded-full bg-surface px-4 py-2 font-ui text-sm font-medium text-primary-800 transition-colors hover:bg-primary-50";
   return (
-    <article className="relative flex flex-wrap items-center gap-4 overflow-hidden rounded-2xl bg-primary-600 py-5 pr-12 pl-5 sm:flex-nowrap sm:pr-14 sm:pl-6">
+    // Phones: icon and words side by side, the button on its own line under the
+    // words. From sm up: one row, button at the end.
+    <article className="relative grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 overflow-hidden rounded-2xl bg-primary-600 py-5 pr-12 pl-5 sm:flex sm:pr-14 sm:pl-6">
       <CloseButton onClick={onClose} />
       <span className="relative grid size-11 shrink-0 place-items-center rounded-full bg-primary-100 text-primary-700">
         {icon}

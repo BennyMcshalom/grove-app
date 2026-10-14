@@ -27,7 +27,8 @@ export function WrappedReadyCard({
   return (
     <section
       className={cn(
-        "relative flex items-center gap-4 overflow-hidden rounded-2xl bg-primary-600 px-5 py-5 sm:px-6",
+        // Phones stack the button under the words, like the other Home cards.
+        "relative grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 overflow-hidden rounded-2xl bg-primary-600 px-5 py-5 sm:flex sm:px-6",
         className,
       )}
     >
@@ -52,7 +53,7 @@ export function WrappedReadyCard({
       </span>
       <Link
         href={wrapHref(wrap.id)}
-        className="relative shrink-0 rounded-full bg-surface px-4 py-2 font-ui text-sm font-medium text-primary-800 transition-colors hover:bg-primary-50"
+        className="relative col-start-2 shrink-0 justify-self-start rounded-full bg-surface px-4 py-2 font-ui text-sm font-medium text-primary-800 transition-colors hover:bg-primary-50"
       >
         View Wrap
       </Link>

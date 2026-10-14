@@ -367,3 +367,26 @@
     display: none;
   }
 }
+
+/* Splash backdrop: photo columns drifting slowly in opposite directions.
+   Each column holds its tiles twice, so moving it half its height loops. */
+@keyframes splash-up {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+@keyframes splash-down {
+  from { transform: translateY(-50%); }
+  to { transform: translateY(0); }
+}
+@utility splash-drift-up {
+  animation: splash-up 70s linear infinite;
+}
+@utility splash-drift-down {
+  animation: splash-down 85s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-drift-up,
+  .splash-drift-down {
+    animation: none;
+  }
+}

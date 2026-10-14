@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { ArrowRight } from "@/components/ui/ArrowRight";
+import { SplashBackdrop } from "@/components/app/SplashBackdrop";
 
 /**
  * Splash screen — Figma 31:551 (desktop 1440x1024) / 585:19636 (mobile 440x956).
@@ -9,15 +10,19 @@ import { ArrowRight } from "@/components/ui/ArrowRight";
  * Figma's 72px headline and 384px cluster are its 1440x1024 artboard sizes, so
  * they only apply from `xl` up. Below that everything steps down so the screen
  * fits a real laptop (1280x800) without scrolling.
+ *
+ * The flat orange background became photos of life chapters under a soft
+ * overlay (SplashBackdrop), at the owner's request.
  */
 export default function SplashPage() {
   return (
-    <main className="relative flex h-viewport flex-col overflow-hidden bg-primary-600">
-      <div className="shrink-0 px-6 pt-8 sm:px-10 lg:px-30 lg:pt-16">
+    <main className="relative flex h-viewport flex-col overflow-hidden bg-black">
+      <SplashBackdrop />
+      <div className="relative shrink-0 px-6 pt-8 sm:px-10 lg:px-30 lg:pt-16">
         <Logo priority tone="onDark" className="h-12 lg:h-20" />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-6 pb-10 sm:gap-8 lg:gap-12 xl:gap-16">
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-6 px-6 pb-10 sm:gap-8 lg:gap-12 xl:gap-16">
         <PhotoCluster />
 
         {/* Figma 32:703 — column, centred, 48px gap. */}
