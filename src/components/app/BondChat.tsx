@@ -489,14 +489,14 @@ export function BondChat({
         </div>
       </header>
 
-      <BondBanner person={person} />
+      {!blocked && <BondBanner person={person} />}
 
       <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-4 scroll-slim overflow-y-auto p-5">
         {messages === null ? (
           <MessagesSkeleton />
         ) : messages.length === 0 ? (
           <p className="m-auto text-center font-sans text-sm text-ink-300">
-            Say hello to {person.name}.
+            {blocked ? "No messages here." : `Say hello to ${person.name}.`}
           </p>
         ) : (
           groups.map((group) => (
