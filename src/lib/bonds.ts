@@ -34,6 +34,8 @@ export interface BondPerson {
   conversationId: string | null;
   lastMessage: { preview: string; at: string; fromMe: boolean } | null;
   unread: number;
+  /** You've blocked them: the chat stays, read-only, until you unblock. */
+  blockedByMe: boolean;
 }
 
 export interface PendingRequest {

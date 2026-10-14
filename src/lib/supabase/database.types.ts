@@ -219,6 +219,7 @@ export type Database = {
           joined_at: string;
           last_read_at: string | null;
           muted: boolean;
+          cleared_at: string | null;
         };
         Insert: never;
         Update: { last_read_at?: string | null };
@@ -1077,6 +1078,7 @@ export type Database = {
           last_message_at: string | null;
           last_message_from_me: boolean | null;
           unread_count: number;
+          blocked_by_me: boolean;
         }[];
       };
       invite_to_bond: { Args: { p_other: string; p_goal: string }; Returns: string };
@@ -1882,6 +1884,7 @@ export type Database = {
       set_chat_muted: { Args: { p_conversation_id: string; p_muted: boolean }; Returns: undefined };
       block_user: { Args: { p_user_id: string }; Returns: undefined };
       unblock_user: { Args: { p_user_id: string }; Returns: undefined };
+      clear_conversation: { Args: { p_conversation_id: string }; Returns: undefined };
       edit_my_message: { Args: { p_message: string; p_body: string }; Returns: string };
       delete_my_message: { Args: { p_message: string }; Returns: undefined };
       my_unread_messages: {

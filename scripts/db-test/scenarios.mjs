@@ -1233,17 +1233,36 @@ await step("remove, mute and block", async () => {
   check("a muted chat adds nothing to the badge", muted?.unread === 0, muted);
   await q(F, `select public.set_chat_muted($1, false)`, [ef]);
 
+  // WhatsApp-style: the chat and the connection stay, nobody can message
+  // either way, and unblocking puts it all back.
   await q(F, `select public.block_user($1)`, [E]);
   const conn = await su(`select 1 from public.connections where user_low = least($1::uuid, $2::uuid) and user_high = greatest($1::uuid, $2::uuid)`, [E, F]);
-  check("blocking ends the connection", conn.length === 0, conn);
+  check("blocking keeps the connection, so the chat stays", conn.length === 1, conn);
   await fails("blocked people can't message", E, `insert into public.messages (conversation_id, sender_id, body) values ($1, $2, 'hello?')`, [ef, E], "can't message");
-  await fails("or reconnect", E, `select public.request_connection($1)`, [F], "can't connect");
+  await fails("nor can the blocker", F, `insert into public.messages (conversation_id, sender_id, body) values ($1, $2, 'hello?')`, [ef, F], "can't message");
+  const [fRow] = await q(F, `select blocked_by_me, conversation_id from public.bonds_overview() where user_id = $1`, [E]);
+  const [eRow] = await q(E, `select blocked_by_me from public.bonds_overview() where user_id = $1`, [F]);
+  check("the blocker's chat list keeps them, marked blocked", fRow?.blocked_by_me === true && fRow.conversation_id === ef, fRow);
+  check("the blocked person isn't told", eRow?.blocked_by_me === false, eRow);
+  const [{ in_circle: circleWhileBlocked }] = await q(E, `select private.in_circle($1)`, [F]);
+  check("a block hides circle content both ways", circleWhileBlocked === false);
   const seen = await q(F, `select * from public.blocks`);
   const hidden = await q(E, `select * from public.blocks`);
   check("only the blocker sees the block", seen.length === 1 && hidden.length === 0, { seen, hidden });
   await q(F, `select public.unblock_user($1)`, [E]);
-  await fails("unblocking doesn't reconnect: the old chat stays read-only", E, `insert into public.messages (conversation_id, sender_id, body) values ($1, $2, 'hi')`, [ef, E], "no longer connected");
-  await connect(E, F);
+  await q(E, `insert into public.messages (conversation_id, sender_id, body) values ($1, $2, 'back again')`, [ef, E]);
+  check("unblocking puts the chat back", true);
+
+  // Delete chat: cleared for the one who deletes it only.
+  await q(F, `select public.clear_conversation($1)`, [ef]);
+  const [fAfter] = await q(F, `select last_message_at, unread_count from public.bonds_overview() where user_id = $1`, [E]);
+  const [eAfter] = await q(E, `select last_message_at from public.bonds_overview() where user_id = $1`, [F]);
+  check("delete chat clears it for you", fAfter?.last_message_at === null && fAfter.unread_count === 0, fAfter);
+  check("the other person keeps theirs", eAfter?.last_message_at !== null, eAfter);
+  await q(E, `insert into public.messages (conversation_id, sender_id, body) values ($1, $2, 'new one')`, [ef, E]);
+  const [fNew] = await q(F, `select last_message_body, unread_count from public.bonds_overview() where user_id = $1`, [E]);
+  check("new messages show up after", fNew?.last_message_body === "new one" && fNew.unread_count === 1, fNew);
+  await fails("only your own membership clears", E, `update public.conversation_members set cleared_at = now() where conversation_id = $1`, [ef], "permission denied");
 });
 
 await step("circle log chips follow the moment", async () => {

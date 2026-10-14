@@ -47,6 +47,7 @@ export async function loadBondPeople(): Promise<BondPerson[]> {
         }
       : null,
     unread: row.unread_count,
+    blockedByMe: Boolean(row.blocked_by_me),
   }));
 }
 

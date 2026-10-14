@@ -117,6 +117,19 @@ export async function unblockUser(userId: string): Promise<Result> {
   return {};
 }
 
+/** Chat menu → Delete chat: clears its history for the viewer only. */
+export async function clearConversation(conversationId: string): Promise<Result> {
+  await requireOnboardedViewer();
+  if (!isUuid(conversationId)) return { error: "That chat is no longer here." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("clear_conversation", { p_conversation_id: conversationId });
+  if (error) {
+    console.error("[bonds] clear_conversation failed", error);
+    return { error: "We couldn't delete that chat. Try again." };
+  }
+  return {};
+}
+
 /** Whether the viewer has muted a chat. */
 export async function chatMuted(conversationId: string): Promise<boolean> {
   const viewer = await requireOnboardedViewer();
@@ -233,20 +246,17 @@ export async function loadMessages(
   const viewer = await requireOnboardedViewer();
   const supabase = await createClient();
 
-  const [{ data, error }, { data: other }] = await Promise.all([
-    supabase
-      .from("messages")
-      .select(MESSAGE_COLUMNS)
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("conversation_members")
-      .select("last_read_at")
-      .eq("conversation_id", conversationId)
-      .neq("user_id", viewer.userId)
-      .maybeSingle(),
-  ]);
+  const { data: members } = await supabase
+    .from("conversation_members")
+    .select("user_id, last_read_at, cleared_at")
+    .eq("conversation_id", conversationId);
+  const mine = members?.find((m) => m.user_id === viewer.userId);
+  const other = members?.find((m) => m.user_id !== viewer.userId);
+
+  // "Delete chat" hides everything before it, for the viewer only.
+  let query = supabase.from("messages").select(MESSAGE_COLUMNS).eq("conversation_id", conversationId);
+  if (mine?.cleared_at) query = query.gt("created_at", mine.cleared_at);
+  const { data, error } = await query.order("created_at", { ascending: false }).limit(100);
 
   if (error) {
     console.error("[bonds] loadMessages failed", error);
@@ -325,7 +335,7 @@ export async function sendMediaMessage(
   if (error || !data) {
     await supabase.storage.from("chat").remove([mediaPath]);
     console.error("[bonds] sendMediaMessage failed", error);
-    if (error?.hint === "rate_limited") return { error: error.message };
+    if (error?.hint && ["rate_limited", "blocked", "not_connected"].includes(error.hint)) return { error: error.message };
     return { error: "That didn't send. Try again." };
   }
 
@@ -370,7 +380,7 @@ export async function sendMessage(
 
   if (error || !data) {
     console.error("[bonds] sendMessage failed", error);
-    if (error?.hint === "rate_limited") return { error: error.message };
+    if (error?.hint && ["rate_limited", "blocked", "not_connected"].includes(error.hint)) return { error: error.message };
     return { error: "Your message didn't send. Try again." };
   }
 

@@ -6,11 +6,11 @@ import { EndBondModal } from "@/components/app/bonds/BondModals";
 import { ConfirmDialog } from "@/components/app/bonds/ConfirmDialog";
 import { BlockDialog, ReportPersonModal } from "@/components/app/bonds/SafetyDialogs";
 import { useToast } from "@/components/app/ToastProvider";
-import { chatMuted, removeFromCircle, setChatMuted } from "@/lib/bond-actions";
+import { chatMuted, clearConversation, removeFromCircle, setChatMuted, unblockUser } from "@/lib/bond-actions";
 import type { BondPerson } from "@/lib/bonds";
 import { cn } from "@/lib/cn";
 
-type Dialog = "mute" | "release" | "remove" | "block" | "report";
+type Dialog = "mute" | "clear" | "release" | "remove" | "block" | "unblock" | "report";
 
 /**
  * The chat header's "…" — Figma "Bond actions" 1610:39540 / 1650:39710:
@@ -18,15 +18,22 @@ type Dialog = "mute" | "release" | "remove" | "block" | "report";
  * confirmed in its own dialog (1610:36719, 1645:23515, 1610:39648,
  * 1610:39615, 1610:36739) and answered with a toast. A circle chat has the
  * same shape with View profile and Remove from circle instead of Release.
+ *
+ * Delete chat clears the history for you only. Block keeps the chat (read
+ * only) and turns into Unblock, as on WhatsApp.
  */
 export function ChatMenu({
   person,
   conversationId,
   trigger,
+  onBlockedChange,
+  onCleared,
 }: {
   person: BondPerson;
   conversationId: string | null;
   trigger: React.ReactNode;
+  onBlockedChange?: (blocked: boolean) => void;
+  onCleared?: () => void;
 }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -94,6 +101,25 @@ export function ChatMenu({
       toast({ title: `${person.name} is no longer in your circle` });
     });
 
+  const clear = () =>
+    startBusy(async () => {
+      if (!conversationId) return;
+      const result = await clearConversation(conversationId);
+      if (result.error) return void toast({ title: result.error, tone: "danger" });
+      close();
+      onCleared?.();
+      toast({ title: "Chat deleted", description: `It’s cleared for you. ${first} still has their copy.` });
+    });
+
+  const unblock = () =>
+    startBusy(async () => {
+      const result = await unblockUser(person.userId);
+      if (result.error) return void toast({ title: result.error, tone: "danger" });
+      close();
+      onBlockedChange?.(false);
+      toast({ title: `${first} unblocked`, description: "You can message and call each other again." });
+    });
+
   const label = bondId ? " Bond" : "";
 
   return (
@@ -121,6 +147,11 @@ export function ChatMenu({
               {label}
             </MenuItem>
           )}
+          {conversationId && (
+            <MenuItem danger onClick={() => choose("clear")}>
+              Delete chat
+            </MenuItem>
+          )}
           <li role="separator" className="mx-1.5 my-1 h-px bg-ink-50" />
           {bondId ? (
             <MenuItem danger onClick={() => choose("release")}>
@@ -131,9 +162,13 @@ export function ChatMenu({
               Remove from circle
             </MenuItem>
           )}
-          <MenuItem danger onClick={() => choose("block")}>
-            Block
-          </MenuItem>
+          {person.blockedByMe ? (
+            <MenuItem onClick={() => choose("unblock")}>Unblock</MenuItem>
+          ) : (
+            <MenuItem danger onClick={() => choose("block")}>
+              Block
+            </MenuItem>
+          )}
           <MenuItem danger onClick={() => choose("report")}>
             Report
           </MenuItem>
@@ -151,6 +186,25 @@ export function ChatMenu({
           {muted
             ? `You’ll start getting notifications from ${first} again. Nothing else about the${label || " chat"} changes.`
             : `You won’t get notifications from ${first}, but the${label || " chat"} stays active and messages still arrive.`}
+        </ConfirmDialog>
+      )}
+
+      {dialog === "clear" && (
+        <ConfirmDialog
+          title="Delete this chat?"
+          action="Delete chat"
+          tone="danger"
+          busy={busy}
+          onConfirm={clear}
+          onClose={close}
+        >
+          Every message in this chat is cleared for you. {first} still has their copy, and new messages show up as usual.
+        </ConfirmDialog>
+      )}
+
+      {dialog === "unblock" && (
+        <ConfirmDialog title={`Unblock ${first}?`} action="Unblock" busy={busy} onConfirm={unblock} onClose={close}>
+          You&rsquo;ll be able to message and call each other again.
         </ConfirmDialog>
       )}
 
@@ -175,6 +229,7 @@ export function ChatMenu({
           name={person.name}
           context={bondId ? "bond" : "circle"}
           onClose={close}
+          onBlocked={() => onBlockedChange?.(true)}
         />
       )}
 

@@ -31,6 +31,7 @@ import {
   markConversationRead,
   sendMediaMessage,
   sendMessage,
+  unblockUser,
 } from "@/lib/bond-actions";
 import { bondDuration, messagePreview, type BondPerson, type ChatMessage } from "@/lib/bonds";
 import { getChapter } from "@/lib/chapters";
@@ -57,9 +58,11 @@ export function BondChat({
   onBack?: () => void;
   /** Keeps the conversation list's preview, unread count and id current. */
   onActivity?: (update: {
-    conversationId: string;
+    conversationId?: string;
     lastMessage?: BondPerson["lastMessage"];
     read?: boolean;
+    /** Blocked or unblocked from this chat. */
+    blocked?: boolean;
   }) => void;
 }) {
   const viewer = useViewer();
@@ -278,7 +281,9 @@ export function BondChat({
     });
   };
 
-  const send = () => {
+  const send = () => (pending ? void sendPending() : sendText());
+
+  const sendText = () => {
     const body = draft.trim();
     if (!body || sending) return;
     if (editing) return saveEdit(editing, body);
@@ -309,8 +314,49 @@ export function BondChat({
 
   const [attaching, setAttaching] = useState(false);
 
-  // Attachments upload straight to chat/<conversation>/<me>/, then send.
-  const attach = async (file: Blob, kind: "voice" | "video" | "image" | "file", seconds?: number) => {
+  const blocked = person.blockedByMe;
+  const [unblocking, startUnblocking] = useTransition();
+  const unblock = () =>
+    startUnblocking(async () => {
+      const result = await unblockUser(person.userId);
+      if (result.error) return void toast({ title: result.error, tone: "danger" });
+      onActivityRef.current?.({ blocked: false });
+      toast({ title: `${person.name} unblocked`, description: "You can message and call each other again." });
+    });
+
+  // A picked photo, video or document waits above the composer until Send,
+  // so it can be checked (or swapped, or dropped) first. Voice notes still
+  // send when the recording stops.
+  const [pending, setPending] = useState<{
+    file: File;
+    kind: "video" | "image" | "file";
+    previewUrl: string | null;
+  } | null>(null);
+  const pendingUrl = pending?.previewUrl;
+  useEffect(() => () => void (pendingUrl && URL.revokeObjectURL(pendingUrl)), [pendingUrl]);
+
+  const pick = (file: File) => {
+    const kind = isDocument(file)
+      ? "file"
+      : file.type.startsWith("video/")
+        ? "video"
+        : file.type.startsWith("image/")
+          ? "image"
+          : null;
+    if (!kind) return toast({ title: "Send photos, videos, PDFs or Office documents", tone: "danger" });
+    if (tooLarge(file, kind)) return;
+    setPending({ file, kind, previewUrl: kind === "file" ? null : URL.createObjectURL(file) });
+  };
+
+  // The file goes first, then anything typed with it (as its own message).
+  const sendPending = async () => {
+    if (!pending || attaching) return;
+    if (!(await attach(pending.file, pending.kind))) return; // keep it there to try again
+    setPending(null);
+    if (draft.trim()) sendText();
+  };
+
+  const tooLarge = (file: Blob, kind: "voice" | "video" | "image" | "file") => {
     const limit =
       kind === "image"
         ? UPLOAD_LIMITS.photoBytes
@@ -319,21 +365,25 @@ export function BondChat({
           : kind === "file"
             ? UPLOAD_LIMITS.documentBytes
             : UPLOAD_LIMITS.audioBytes;
-    if (file.size > limit) {
-      toast({
-        title:
-          kind === "image" ? "Choose a photo under 10MB" : kind === "file" ? "Documents can be up to 25MB" : "That file is too large",
-        tone: "danger",
-      });
-      return;
-    }
+    if (file.size <= limit) return false;
+    toast({
+      title:
+        kind === "image" ? "Choose a photo under 10MB" : kind === "file" ? "Documents can be up to 25MB" : "That file is too large",
+      tone: "danger",
+    });
+    return true;
+  };
 
+  // Attachments upload straight to chat/<conversation>/<me>/, then send.
+  // Resolves true once the message is in the conversation.
+  const attach = async (file: Blob, kind: "voice" | "video" | "image" | "file", seconds?: number) => {
+    if (tooLarge(file, kind)) return false;
     setAttaching(true);
     const opened = await ensureConversation(person.userId, conversationId);
     if (opened.error || !opened.conversationId) {
       setAttaching(false);
       toast({ title: opened.error ?? "We couldn't start this conversation.", tone: "danger" });
-      return;
+      return false;
     }
     const conversation = opened.conversationId;
     if (!conversationId) setConversationId(conversation);
@@ -345,7 +395,7 @@ export function BondChat({
     if ("error" in uploaded) {
       setAttaching(false);
       toast({ title: uploaded.error, tone: "danger" });
-      return;
+      return false;
     }
 
     const result = await sendMediaMessage(
@@ -358,7 +408,7 @@ export function BondChat({
     setAttaching(false);
     if (result.error || !result.message) {
       toast({ title: result.error ?? "That didn't send.", tone: "danger" });
-      return;
+      return false;
     }
     const message = result.message;
     setMessages((prev) => [...(prev ?? []), message]);
@@ -366,6 +416,7 @@ export function BondChat({
       conversationId: conversation,
       lastMessage: { preview: messagePreview(message.kind, message.body), at: message.createdAt, fromMe: true },
     });
+    return true;
   };
 
   const groups = groupByDay(messages ?? []);
@@ -406,15 +457,21 @@ export function BondChat({
           </div>
 
           <div className="flex items-center gap-2 text-ink-400">
-            <IconButton label="Call" ringed onClick={calls.enabled ? () => void call("audio") : undefined}>
+            <IconButton label="Call" ringed onClick={calls.enabled && !blocked ? () => void call("audio") : undefined}>
               <PhoneIcon />
             </IconButton>
-            <IconButton label="Video call" ringed onClick={calls.enabled ? () => void call("video") : undefined}>
+            <IconButton label="Video call" ringed onClick={calls.enabled && !blocked ? () => void call("video") : undefined}>
               <VideoIcon />
             </IconButton>
             <ChatMenu
               person={person}
               conversationId={conversationId}
+              onBlockedChange={(next) => onActivityRef.current?.({ blocked: next })}
+              onCleared={() => {
+                setMessages([]);
+                setReplyingTo(null);
+                onActivityRef.current?.({ lastMessage: null, read: true });
+              }}
               trigger={
                 <span className="grid size-10 place-items-center rounded-full border border-ink-100 bg-surface transition-colors hover:bg-ivory-200">
                   <DotsIcon />
@@ -471,92 +528,139 @@ export function BondChat({
       </div>
 
       <div className="flex shrink-0 flex-col gap-2 p-5">
-        {pressHint && <p className="text-center font-sans text-xs text-ink-300">{pressHint}</p>}
-        {(editing || replyingTo) && (
-          <div className="flex items-center gap-3 rounded-lg border-l-2 border-primary-500 bg-ivory-200 px-3 py-2">
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="font-sans text-xs font-semibold text-primary-700">
-                {editing ? "Editing message" : `Replying to ${replyingTo?.fromMe ? "yourself" : person.name}`}
-              </span>
-              <span className="truncate font-sans text-sm text-ink-500">
-                {editing ? editing.body : replyingTo ? messagePreview(replyingTo.kind, replyingTo.body) : ""}
-              </span>
-            </span>
+        {blocked ? (
+          // WhatsApp's way: the chat stays readable, and unblocking is one tap.
+          <div className="flex flex-col items-center gap-2 rounded-2xl bg-ivory-200 px-4 py-3 text-center">
+            <p className="font-sans text-sm text-ink-500">
+              You blocked {person.name}. Neither of you can message or call the other.
+            </p>
             <button
               type="button"
-              onClick={cancelCompose}
-              aria-label={editing ? "Cancel edit" : "Cancel reply"}
-              className="grid size-7 shrink-0 place-items-center rounded-full text-ink-500 hover:bg-ivory-300"
+              onClick={unblock}
+              disabled={unblocking}
+              className="font-sans text-sm font-semibold text-primary-700 hover:underline disabled:opacity-50"
             >
-              <svg viewBox="0 0 24 24" fill="none" className="size-4" aria-hidden="true">
-                <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
+              {unblocking ? "Unblocking…" : `Unblock ${person.name}`}
             </button>
           </div>
-        )}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send();
-          }}
-          className="flex items-center gap-4 rounded-full border border-ink-50 bg-surface p-3 shadow-[0px_2px_4px_-2px_rgba(23,23,23,0.06),0px_4px_8px_-2px_rgba(23,23,23,0.1)]"
-        >
-          <label
-            className={cn(
-              "relative grid size-8 shrink-0 cursor-pointer place-items-center rounded-full text-ink-400 transition-colors hover:bg-ivory-200",
-              attaching && "animate-pulse",
+        ) : (
+          <>
+            {pressHint && <p className="text-center font-sans text-xs text-ink-300">{pressHint}</p>}
+            {(editing || replyingTo) && (
+              <div className="flex items-center gap-3 rounded-lg border-l-2 border-primary-500 bg-ivory-200 px-3 py-2">
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="font-sans text-xs font-semibold text-primary-700">
+                    {editing ? "Editing message" : `Replying to ${replyingTo?.fromMe ? "yourself" : person.name}`}
+                  </span>
+                  <span className="truncate font-sans text-sm text-ink-500">
+                    {editing ? editing.body : replyingTo ? messagePreview(replyingTo.kind, replyingTo.body) : ""}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={cancelCompose}
+                  aria-label={editing ? "Cancel edit" : "Cancel reply"}
+                  className="grid size-7 shrink-0 place-items-center rounded-full text-ink-500 hover:bg-ivory-300"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" className="size-4" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
             )}
-          >
-            <PlusIcon />
-            <span className="sr-only">Attach a photo, video or document</span>
-            <input
-              type="file"
-              accept={["image/*", "video/*", ...Object.keys(DOCUMENT_TYPES), ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"].join(",")}
-              className="sr-only"
-              disabled={attaching}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  if (isDocument(file)) void attach(file, "file");
-                  else if (file.type.startsWith("video/")) void attach(file, "video");
-                  else if (file.type.startsWith("image/")) void attach(file, "image");
-                  else toast({ title: "Send photos, videos, PDFs or Office documents", tone: "danger" });
-                }
-                e.target.value = "";
+            {pending && (
+              <div className="flex items-center gap-3 rounded-2xl border border-ink-50 bg-surface p-2 pr-3">
+                {pending.kind === "image" && pending.previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a local blob preview
+                  <img src={pending.previewUrl} alt="" className="size-16 shrink-0 rounded-xl object-cover" />
+                ) : pending.kind === "video" && pending.previewUrl ? (
+                  <video src={pending.previewUrl} muted playsInline className="size-16 shrink-0 rounded-xl bg-ink-800 object-cover" />
+                ) : (
+                  <span className="grid size-16 shrink-0 place-items-center rounded-xl bg-primary-50 font-sans text-xs font-bold text-primary-700 uppercase">
+                    {pending.file.name.split(".").pop()?.slice(0, 4) ?? "doc"}
+                  </span>
+                )}
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate font-sans text-sm font-semibold text-ink-700">
+                    {pending.kind === "file" ? pending.file.name : pending.kind === "video" ? "Video" : "Photo"}
+                  </span>
+                  <span className="font-sans text-xs text-ink-400">
+                    {attaching ? "Sending…" : `${formatBytes(pending.file.size)} · Add a message or tap send`}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPending(null)}
+                  disabled={attaching}
+                  aria-label="Remove attachment"
+                  className="grid size-8 shrink-0 place-items-center rounded-full text-ink-500 hover:bg-ivory-200 disabled:opacity-40"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" className="size-4" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                send();
               }}
-            />
-          </label>
-          <label ref={inputWrap} className="min-w-0 flex-1">
-            <span className="sr-only">Message {person.name}</span>
-            <MentionInput
-              as="input"
-              value={draft}
-              onChange={setDraft}
-              context={mentionable}
-              picks={picks}
-              placement="above"
-              maxLength={4000}
-              placeholder="Write your message..."
-              className="w-full bg-transparent font-sans text-base text-ink-500 outline-none placeholder:text-ink-500"
-            />
-          </label>
-          <div className="flex shrink-0 items-center gap-1 text-ink-400">
-            <VoiceRecorder
-              compact
-              label="Record voice note"
-              disabled={attaching}
-              onRecorded={(audio, seconds) => void attach(audio, "voice", seconds)}
-            />
-            <button
-              type="submit"
-              aria-label={editing ? "Save edit" : "Send"}
-              disabled={!draft.trim() || sending}
-              className="grid size-8 place-items-center rounded-full transition-colors hover:bg-ivory-200 disabled:opacity-40"
+              className="flex items-center gap-4 rounded-full border border-ink-50 bg-surface p-3 shadow-[0px_2px_4px_-2px_rgba(23,23,23,0.06),0px_4px_8px_-2px_rgba(23,23,23,0.1)]"
             >
-              <SendIcon />
-            </button>
-          </div>
-        </form>
+              <label
+                className={cn(
+                  "relative grid size-8 shrink-0 cursor-pointer place-items-center rounded-full text-ink-400 transition-colors hover:bg-ivory-200",
+                  attaching && "animate-pulse",
+                )}
+              >
+                <PlusIcon />
+                <span className="sr-only">Attach a photo, video or document</span>
+                <input
+                  type="file"
+                  accept={["image/*", "video/*", ...Object.keys(DOCUMENT_TYPES), ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"].join(",")}
+                  className="sr-only"
+                  disabled={attaching || Boolean(editing)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) pick(file);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <label ref={inputWrap} className="min-w-0 flex-1">
+                <span className="sr-only">Message {person.name}</span>
+                <MentionInput
+                  as="input"
+                  value={draft}
+                  onChange={setDraft}
+                  context={mentionable}
+                  picks={picks}
+                  placement="above"
+                  maxLength={4000}
+                  placeholder="Write your message..."
+                  className="w-full bg-transparent font-sans text-base text-ink-500 outline-none placeholder:text-ink-500"
+                />
+              </label>
+              <div className="flex shrink-0 items-center gap-1 text-ink-400">
+                <VoiceRecorder
+                  compact
+                  label="Record voice note"
+                  disabled={attaching}
+                  onRecorded={(audio, seconds) => void attach(audio, "voice", seconds)}
+                />
+                <button
+                  type="submit"
+                  aria-label={editing ? "Save edit" : "Send"}
+                  disabled={(!draft.trim() && !pending) || sending || attaching}
+                  className="grid size-8 place-items-center rounded-full transition-colors hover:bg-ivory-200 disabled:opacity-40"
+                >
+                  <SendIcon />
+                </button>
+              </div>
+            </form>
+          </>
+        )}
       </div>
 
       {/* "Delete this message?" — Figma 1776:27862, toast 1776:27893. */}

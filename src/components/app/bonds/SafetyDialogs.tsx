@@ -42,17 +42,17 @@ export function BlockDialog({
           onBlocked?.();
           toast({
             title: `${first} blocked`,
-            description: "They can no longer message or find you. Unblock anytime from Privacy & AI controls.",
+            description: "Your chat stays. Unblock anytime from the chat or Privacy & AI controls.",
             tone: "danger",
           });
         })
       }
     >
       {context === "bond"
-        ? `This ends your Bond and ${first} won’t be able to message or find you again. What you shared stays as a read-only record, nothing new can be added.`
+        ? `This ends your Bond, and neither of you can message or call the other. Your chat stays, and you can unblock ${first} anytime.`
         : context === "match"
           ? `They won’t be able to message or find you, and this match will disappear from your suggestions.`
-          : `${first} won’t be able to message, call, connect with or find you. You can unblock them later from Privacy & AI controls.`}
+          : `${first} won’t be able to message, call or find you, and they won’t be told. Your chat stays, and you can unblock them anytime.`}
     </ConfirmDialog>
   );
 }

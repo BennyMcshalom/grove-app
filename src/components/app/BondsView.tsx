@@ -21,7 +21,7 @@ import { cn } from "@/lib/cn";
  * list first — with PENDING CONNECTION and PEOPLE YOU MIGHT KNOW above it —
  * and opens the chat full screen.
  */
-type Activity = Pick<BondPerson, "conversationId" | "lastMessage" | "unread">;
+type Activity = Pick<BondPerson, "conversationId" | "lastMessage" | "unread" | "blockedByMe">;
 
 export function BondsView({
   people,
@@ -284,14 +284,16 @@ export function BondsView({
               key={selected.userId}
               person={selected}
               onBack={() => setChatOpen(false)}
-              onActivity={({ conversationId, lastMessage, read }) =>
+              onActivity={({ conversationId, lastMessage, read, blocked }) =>
                 setActivity((prev) => ({
                   ...prev,
                   [selected.userId]: {
                     ...prev[selected.userId],
-                    conversationId,
-                    ...(lastMessage && { lastMessage }),
+                    ...(conversationId && { conversationId }),
+                    // null after "Delete chat"
+                    ...(lastMessage !== undefined && { lastMessage }),
                     ...(read && { unread: 0 }),
+                    ...(blocked !== undefined && { blockedByMe: blocked }),
                   },
                 }))
               }
