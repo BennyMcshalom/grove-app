@@ -38,7 +38,7 @@ export function SplashBackdrop() {
           >
             {/* Twice over, so the drift loops without a seam. */}
             {[...tiles, ...tiles].map((name, i) => (
-              <div key={`${name}-${i}`} className="relative aspect-square w-full overflow-hidden rounded-2xl">
+              <div key={`${name}-${i}`} className="relative aspect-square w-full shrink-0 overflow-hidden rounded-2xl">
                 <Image
                   src={`/images/splash/${name}.webp`}
                   alt=""
@@ -54,7 +54,7 @@ export function SplashBackdrop() {
       </div>
       {/* The soft overlay: dark enough for white words, warming to Grouv's
           orange at the foot so the brand still leads. */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/55 to-primary-600/80" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/70 to-primary-600/85" />
     </div>
   );
 }
