@@ -217,12 +217,12 @@ Suggestions come from `pg_cron`, though, so something has to call the sender on
 a schedule:
 
 ```bash
-curl -X POST https://<railway-domain>/api/cron/notification-emails \
+curl -X POST https://grouv.app/api/cron/notification-emails \
   -H "Authorization: Bearer $CRON_SECRET"
 ```
 
-On Railway, that's the `cron` service described under [Railway](#railway). Any
-external scheduler works too. A notification still unsent after a day is dropped, not sent late.
+The database does this itself every 10 minutes (see [Railway](#railway)), so
+nothing outside needs scheduling. A notification still unsent after a day is dropped, not sent late.
 
 ## RevenueCat (billing)
 
@@ -312,32 +312,43 @@ is compatible, and its free tier allows 5,000 lookups a day.
 
 ## Railway
 
-The project is **Grouv**, with two services in the `production` environment:
-`web` (the app) and `cron` (notification emails). The app is at
-<https://web-production-a8471.up.railway.app>.
+The app runs as one service, `web`, in the client's Railway workspace
+(project **passionate-nature**, `production` environment, Europe West). It is
+served at <https://grouv.app>, with the generated
+<https://web-production-1456f.up.railway.app> as a fallback. DNS is on
+Cloudflare: `@` is a DNS-only CNAME to Railway, plus a `_railway-verify`
+TXT record, and `www` redirects to the apex with a Cloudflare redirect rule.
 
-Railway no longer reads `railway.json` — config-as-code is deprecated in
-favour of `.railway/railway.ts`, which can't describe these two services
-without also taking over every variable. Both services are therefore
-configured in Railway itself, under **Settings → Build / Deploy**:
+The other services in that project (`grove-app` and `grove-api` on `main`,
+`Postgres`, `Redis`) belong to an older version of the app. Grouv uses none
+of them.
 
-| Setting | `web` | `cron` |
-| --- | --- | --- |
-| Build command | `npm run build` | `echo no build needed` |
-| Start command | `npm run start` | `node scripts/cron/notification-emails.mjs` |
-| Health check | `/api/health`, 120s | — |
-| Cron schedule | — | `*/10 * * * *` |
-| Restart policy | On failure, 5 retries | Never |
+Railway no longer reads `railway.json`; config-as-code is deprecated in
+favour of `.railway/railway.ts`, which can't describe the service without
+also taking over every variable. The service is therefore configured in
+Railway itself, under **Settings → Build / Deploy**:
+
+| Setting | `web` |
+| --- | --- |
+| Source | `BennyMcshalom/grove-app`, branch `backend` |
+| Build command | `npm run build` |
+| Start command | `npm run start` |
+| Health check | `/api/health`, 120s |
+| Restart policy | On failure, 5 retries |
+| Region | Europe West (`europe-west4`) |
 
 Railpack picks Node 22 from `engines`.
 
+There is no `cron` service any more. The two jobs it ran every 10 minutes
+(notification emails and account deletions) are scheduled in the database:
+see `supabase/migrations/20261015100100_app_cron_from_database.sql`. They
+call the app with `CRON_SECRET`, reading the site address and secret from
+Supabase Vault (`app_site_url`, `app_cron_secret`), and do nothing until
+both are set.
+
 ### Variables
 
-`web` holds every name in `.env.example`. `cron` needs only two, and takes
-them from `web`:
-
-- `NEXT_PUBLIC_SITE_URL=${{web.NEXT_PUBLIC_SITE_URL}}`
-- `CRON_SECRET=${{web.CRON_SECRET}}`
+`web` holds every name in `.env.example`.
 
 `NEXT_PUBLIC_*` values are baked in at build time, so redeploy after changing
 one. Secrets are stored literally here: don't escape a `$` as `\$` the way
@@ -348,12 +359,11 @@ one. Secrets are stored literally here: don't escape a `$` as `\$` the way
 This app lives on the `backend` branch. The repo's `main` branch holds a
 different app with its own history, so never deploy `main`.
 
-Both services are connected to the repo and deploy on every push to
-`backend`. To deploy uncommitted work from this machine instead:
+The service deploys on every push to `backend`. To deploy uncommitted work
+from this machine instead:
 
 ```bash
 railway up --service web
-railway up --service cron
 ```
 
 If Railway ever answers "no one in the project has access to it", the Railway
@@ -367,6 +377,7 @@ Under **Settings → Networking**, a generated domain already exists. If it
 changes, update all of these:
 
 - `NEXT_PUBLIC_SITE_URL` on the `web` service.
+- The Vault secret `app_site_url` that the database's cron jobs call.
 - `site_url` and `additional_redirect_urls` in `supabase/config.toml`, then
   `npx supabase config push`.
 - The RevenueCat and LiveKit webhook URLs.
@@ -418,7 +429,7 @@ Nobody is staff yet — add yourself with the SQL under
 
 ### Domains
 
-The app is on a generated `*.up.railway.app` domain. Moving to a real domain
-means updating `NEXT_PUBLIC_SITE_URL`, `supabase/config.toml`, and the
-RevenueCat and LiveKit webhook URLs — the list is under
+The app is on <https://grouv.app>. If the domain ever changes, update
+`NEXT_PUBLIC_SITE_URL`, `supabase/config.toml`, the Vault secret
+`app_site_url`, and the RevenueCat and LiveKit webhook URLs; the list is under
 [After the domain changes](#after-the-domain-changes).
