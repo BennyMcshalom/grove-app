@@ -36,6 +36,8 @@ export interface BondPerson {
   unread: number;
   /** You've blocked them: the chat stays, read-only, until you unblock. */
   blockedByMe: boolean;
+  /** The last Bond between you that one of you released; its Bond Log stays readable. */
+  released: { bondId: string; at: string; byMe: boolean } | null;
 }
 
 export interface PendingRequest {

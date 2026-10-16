@@ -1972,6 +1972,10 @@ await step("delete account", async () => {
     check("ending releases it and remembers who", row.status === "released" && row.ended_by === K2, row);
     const told = await q(K1, `select 1 from public.notifications where kind = 'bond_released'`);
     check("the other person is told", told.length === 1, told);
+    const [other] = await q(K1, `select relationship, released_bond_id, released_by_me from public.bonds_overview() where user_id = $1`, [K2]);
+    check("their Bonds list shows it released, not still a Bond", other?.relationship === "circle" && other.released_bond_id === invite && other.released_by_me === false, other);
+    const [mine] = await q(K2, `select released_by_me from public.bonds_overview() where user_id = $1`, [K1]);
+    check("and the releaser's list says they released it", mine?.released_by_me === true, mine);
     const log = await q(K1, `select * from public.bond_log($1)`, [invite]);
     check("the log stays readable", log.some((r) => r.their_body === "Slow coffee"), log);
     const [weekly] = await su(`select id from public.bond_activities where bond_id = $1 and kind = 'weekly'`, [invite]);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { GlowAvatar } from "@/components/app/BondChat";
 import { ConfirmDialog } from "@/components/app/bonds/ConfirmDialog";
@@ -177,6 +178,7 @@ export function EndBondModal({
   onEnded?: () => void;
 }) {
   const toast = useToast();
+  const router = useRouter();
   const [busy, start] = useTransition();
 
   return (
@@ -192,9 +194,10 @@ export function EndBondModal({
           if (result.error) return void toast({ title: result.error, tone: "danger" });
           onClose();
           onEnded?.();
+          router.refresh();
           toast({
             title: "Bond released",
-            description: "Your shared history stays as a read-only record.",
+            description: `${name} has been told. Your Bond Log stays in Grouv Log → Bonds.`,
           });
         })
       }

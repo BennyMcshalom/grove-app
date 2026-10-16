@@ -1079,6 +1079,9 @@ export type Database = {
           last_message_from_me: boolean | null;
           unread_count: number;
           blocked_by_me: boolean;
+          released_bond_id: string | null;
+          released_at: string | null;
+          released_by_me: boolean | null;
         }[];
       };
       invite_to_bond: { Args: { p_other: string; p_goal: string }; Returns: string };

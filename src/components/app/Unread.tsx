@@ -3,8 +3,8 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { useRealtimeChannel } from "@/lib/supabase/use-channel";
 
-/** Called with the new notification's id as it arrives. */
-type ArrivalListener = (notificationId: string) => void;
+/** Called with the new notification's id (and kind) as it arrives. */
+type ArrivalListener = (notificationId: string, kind: string | null) => void;
 
 /**
  * The bell's unread count: starts from the server's number and goes up as new
@@ -42,8 +42,9 @@ export function UnreadProvider({
           { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
           (payload) => {
             setUnread((n) => n + 1);
-            const id = (payload.new as { id?: unknown }).id;
-            if (typeof id === "string") for (const listener of listeners.current) listener(id);
+            const { id, kind } = payload.new as { id?: unknown; kind?: unknown };
+            if (typeof id === "string")
+              for (const listener of listeners.current) listener(id, typeof kind === "string" ? kind : null);
           },
         )
         .subscribe(),

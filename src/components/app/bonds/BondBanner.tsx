@@ -19,6 +19,30 @@ import { goalSpan, type BondPerson } from "@/lib/bonds";
  * flight between you.
  */
 export function BondBanner({ person }: { person: BondPerson }) {
+  const released = person.relationship !== "bond" && person.released;
+  return (
+    <>
+      {released && (
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-ink-50 bg-ivory-100 px-5 py-2.5">
+          <p className="font-sans text-sm text-ink-600">
+            {released.byMe ? "You released your Bond" : `${person.name} released your Bond`} on{" "}
+            {new Date(released.at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}. Everything you
+            shared is still in your Bond Log.
+          </p>
+          <Link
+            href={`/log/bonds/${released.bondId}`}
+            className="font-sans text-sm font-medium text-primary-600 hover:underline"
+          >
+            Open Bond Log
+          </Link>
+        </div>
+      )}
+      <BondStrip person={person} />
+    </>
+  );
+}
+
+function BondStrip({ person }: { person: BondPerson }) {
   const { hasPass } = useViewer();
   const paywall = usePaywall();
   const toast = useToast();

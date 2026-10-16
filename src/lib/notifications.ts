@@ -71,9 +71,9 @@ export function toInboxItem(row: NotificationRow): InboxItem {
     case "bond_released":
       return {
         ...base,
-        title: `${who} ended your Bond`,
-        body: "What you shared stays readable. You're still connected.",
-        href: row.entity_id ? `/bonds/${row.entity_id}` : "/bonds",
+        title: `${who} released your Bond`,
+        body: "Your Bond Log is still in Grouv Log → Bonds. You're still connected.",
+        href: row.entity_id ? `/log/bonds/${row.entity_id}` : "/log",
       };
     case "bond_log_shared":
       return {

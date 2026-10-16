@@ -48,6 +48,10 @@ export async function loadBondPeople(): Promise<BondPerson[]> {
       : null,
     unread: row.unread_count,
     blockedByMe: Boolean(row.blocked_by_me),
+    released:
+      row.released_bond_id && row.released_at
+        ? { bondId: row.released_bond_id, at: row.released_at, byMe: Boolean(row.released_by_me) }
+        : null,
   }));
 }
 

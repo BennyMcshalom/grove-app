@@ -139,6 +139,8 @@ function actionLabel(item: InboxItem): string | null {
     case "bond_invitation":
     case "chapter_invite":
       return "See invite";
+    case "bond_released":
+      return "Open Bond Log";
     case "post_rooted":
     case "post_commented":
       return "View post";

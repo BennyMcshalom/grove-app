@@ -1,7 +1,8 @@
 "use client";
 
 import { BondMark } from "@/components/app/BondMark";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { BondChat, GlowAvatar, ChapterBadge } from "@/components/app/BondChat";
 import { BondInviteCard, BondsRail, PendingCard, SuggestionCard } from "@/components/app/BondsRail";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { WalkingWithLink } from "@/components/app/companions/WalkingWithLink";
 import { useIsOnline } from "@/components/app/Presence";
 import { useCollapsedSidebar } from "@/components/app/SidebarProvider";
+import { useUnread } from "@/components/app/Unread";
 import { bondDuration, type BondInvite, type BondPerson, type PendingRequest, type Suggestion } from "@/lib/bonds";
 import { cn } from "@/lib/cn";
 
@@ -39,6 +41,7 @@ export function BondsView({
   // Three columns of our own — the list, the chat and the rail — so the app
   // sidebar starts as a rail here. The toggle in it still overrides this.
   useCollapsedSidebar();
+  useBondNewsRefresh();
 
   // The server list refreshes after accepting requests; what happens in an
   // open chat (new previews, cleared unread) is layered on top until then.
@@ -96,7 +99,7 @@ export function BondsView({
           )}
         >
           {invites.length > 0 && (
-            <section className="flex flex-col gap-4 bg-ivory-100 px-4 py-4 md:hidden">
+            <section className="flex flex-col gap-4 bg-ivory-100 px-4 py-4 lg:hidden">
               <h2 className="font-sans text-base font-medium text-ink-600">
                 YOUR BOND INVITES
               </h2>
@@ -112,7 +115,7 @@ export function BondsView({
 
           {/* Frame 635:18535 — the phone leads with these two sections. */}
           {pending.length > 0 && (
-            <section className="flex flex-col gap-4 bg-ivory-100 px-4 py-4 md:hidden">
+            <section className="flex flex-col gap-4 bg-ivory-100 px-4 py-4 lg:hidden">
               <h2 className="font-sans text-base font-medium text-ink-600">
                 PENDING CONNECTION
               </h2>
@@ -144,7 +147,7 @@ export function BondsView({
           )}
 
           {firstSuggestion && (
-            <section className="flex flex-col gap-4 bg-ivory-100 px-4 pb-4 md:hidden">
+            <section className="flex flex-col gap-4 bg-ivory-100 px-4 pb-4 lg:hidden">
               <div className="flex items-center justify-between gap-4 pt-4">
                 <h2 className="font-sans text-base font-medium text-ink-600">
                   PEOPLE YOU MIGHT KNOW
@@ -435,7 +438,11 @@ function CircleRow({
         </span>
         <span className="flex min-w-0 items-center justify-between gap-3">
           <span className="flex min-w-0">
-            {person.phase && <ChapterBadge chapterSlug={person.chapterSlug} label={person.phase} />}
+            {person.invite && !person.invite.fromMe ? (
+              <span className="truncate font-sans text-xs font-semibold text-primary-600">Invited you to a Bond</span>
+            ) : (
+              person.phase && <ChapterBadge chapterSlug={person.chapterSlug} label={person.phase} />
+            )}
           </span>
           {person.unread > 0 && <UnreadBadge count={person.unread} />}
         </span>
@@ -459,4 +466,16 @@ const monthDay = new Intl.DateTimeFormat(undefined, { month: "short", day: "nume
 function shortTime(iso: string) {
   const date = new Date(iso);
   return date.toDateString() === new Date().toDateString() ? clock.format(date) : monthDay.format(date);
+}
+
+/**
+ * Invites, acceptances and releases change both people's lists. The page is
+ * server-rendered, so when one of those notifications arrives the list is
+ * re-read: a Bond released on one side disappears on the other without a reload.
+ */
+const BOND_NEWS = new Set(["bond_invitation", "bond_accepted", "bond_declined", "bond_released", "connection_accepted"]);
+function useBondNewsRefresh() {
+  const router = useRouter();
+  const { onArrival } = useUnread();
+  useEffect(() => onArrival((_id, kind) => kind && BOND_NEWS.has(kind) && router.refresh()), [onArrival, router]);
 }
