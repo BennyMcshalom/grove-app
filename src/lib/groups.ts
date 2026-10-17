@@ -24,6 +24,17 @@ export interface Group {
   memberAvatars: string[];
 }
 
+/** Someone in a group, for the admins' Manage group panel. */
+export interface GroupMember {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  role: "admin" | "member";
+  joinedAt: string;
+  /** Started the group: always an admin, can't be removed. */
+  isCreator: boolean;
+}
+
 export interface Truth {
   id: string;
   body: string;

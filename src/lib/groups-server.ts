@@ -1,6 +1,6 @@
 import "server-only";
 import { isGroupArt } from "@/lib/group-look";
-import type { Group, JoinRequest, Truth, VideoTruth } from "@/lib/groups";
+import type { Group, JoinRequest, Truth, VideoTruth, GroupMember } from "@/lib/groups";
 import type { Database } from "@/lib/supabase/database.types";
 import { signPaths } from "@/lib/storage-server";
 import { createClient } from "@/lib/supabase/server";
@@ -120,4 +120,40 @@ export async function loadRequestOutcome(groupId: string): Promise<"approved" | 
   const { data, error } = await supabase.rpc("group_request_outcome", { p_group_id: groupId });
   if (error) console.error("[groups] group_request_outcome failed", error);
   return data === "approved" || data === "declined" ? data : null;
+}
+
+/** Everyone in a group, admins first, for the Manage group panel. */
+export async function loadGroupMembers(groupId: string): Promise<GroupMember[]> {
+  const supabase = await createClient();
+  const [{ data, error }, { data: group }] = await Promise.all([
+    supabase
+      .from("group_members")
+      .select("user_id, role, joined_at, member:profiles!group_members_user_id_fkey(first_name, avatar_url)")
+      .eq("group_id", groupId)
+      .order("joined_at"),
+    supabase.from("groups").select("created_by").eq("id", groupId).maybeSingle(),
+  ]);
+  if (error) console.error("[groups] members failed", error);
+  return (data ?? [])
+    .map((row) => ({
+      userId: row.user_id,
+      name: row.member?.first_name ?? "Someone",
+      avatarUrl: row.member?.avatar_url ?? null,
+      role: row.role,
+      joinedAt: row.joined_at,
+      isCreator: row.user_id === group?.created_by,
+    }))
+    .sort((a, b) => Number(b.isCreator) - Number(a.isCreator) || (a.role === b.role ? 0 : a.role === "admin" ? -1 : 1));
+}
+
+/** When an admin asked support to delete the group, if that's still open. */
+export async function loadDeletionRequest(groupId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("group_deletion_requests")
+    .select("created_at")
+    .eq("group_id", groupId)
+    .eq("status", "pending")
+    .maybeSingle();
+  return data?.created_at ?? null;
 }

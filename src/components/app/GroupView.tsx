@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { GroupArt } from "@/components/app/GroupArt";
 import { GroupLookModal } from "@/components/app/GroupLookPicker";
+import { ManageGroupModal } from "@/components/app/ManageGroupModal";
 import { RoomComposer, RoomMessageList, useRoomMessages } from "@/components/app/RoomChat";
 import { SuggestedRail } from "@/components/app/SuggestedRail";
 import { useToast } from "@/components/app/ToastProvider";
@@ -28,7 +29,7 @@ import {
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
 import { inkOn } from "@/lib/group-look";
-import type { Group, JoinRequest, Truth, VideoTruth } from "@/lib/groups";
+import type { Group, GroupMember, JoinRequest, Truth, VideoTruth } from "@/lib/groups";
 import { timeAgo } from "@/lib/time";
 import { mediaDuration, removeUploads, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
 
@@ -49,11 +50,17 @@ export function GroupView({
   videos,
   requests,
   outcome = null,
+  members = [],
+  deletionRequestedAt = null,
 }: {
   group: Group;
   truths: Truth[];
   videos: VideoTruth[];
   requests: JoinRequest[];
+  /** Admins only: everyone in the group, for Manage group. */
+  members?: GroupMember[];
+  /** Admins only: support was asked to delete it. */
+  deletionRequestedAt?: string | null;
   /** An admin answered your request since you last looked (PRD §8). */
   outcome?: "approved" | "declined" | null;
 }) {
@@ -62,6 +69,8 @@ export function GroupView({
   const [requested, setRequested] = useState(group.requestPending);
   const [joining, startJoining] = useTransition();
   const [editingLook, setEditingLook] = useState(false);
+  const [managing, setManaging] = useState(false);
+  const viewer = useViewer();
   const member = group.myRole !== null;
   const admin = group.myRole === "admin";
   const chat = useRoomMessages(group.conversationId, member);
@@ -155,10 +164,10 @@ export function GroupView({
                       </p>
                       <button
                         type="button"
-                        onClick={() => setEditingLook(true)}
-                        className="w-fit font-sans text-sm font-medium text-primary-600 underline-offset-2 hover:underline"
+                        onClick={() => setManaging(true)}
+                        className="w-fit rounded-full bg-primary-500 px-4 py-1.5 font-ui text-sm font-medium text-white transition-colors hover:bg-primary-400"
                       >
-                        Change the group&rsquo;s art and colour
+                        Manage group
                       </button>
                     </div>
                   </div>
@@ -278,6 +287,19 @@ export function GroupView({
 
       {outcome && <RequestOutcome group={group} outcome={outcome} />}
       {editingLook && <GroupLookModal group={group} onClose={() => setEditingLook(false)} />}
+      {managing && (
+        <ManageGroupModal
+          group={group}
+          members={members}
+          deletionRequestedAt={deletionRequestedAt}
+          viewerId={viewer.id}
+          onEditLook={() => {
+            setManaging(false);
+            setEditingLook(true);
+          }}
+          onClose={() => setManaging(false)}
+        />
+      )}
     </div>
   );
 }

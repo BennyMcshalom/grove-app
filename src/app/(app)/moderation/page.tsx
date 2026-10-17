@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ModerationView, type QueueItem } from "@/components/app/ModerationView";
+import { ModerationView, type GroupDeletionItem, type QueueItem } from "@/components/app/ModerationView";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,8 +14,12 @@ export default async function ModerationPage() {
   const { data: isStaff } = await supabase.rpc("am_i_staff");
   if (isStaff !== true) notFound();
 
-  const { data, error } = await supabase.rpc("moderation_queue", { p_limit: 100 });
+  const [{ data, error }, { data: deletions, error: deletionsError }] = await Promise.all([
+    supabase.rpc("moderation_queue", { p_limit: 100 }),
+    supabase.rpc("group_deletion_queue"),
+  ]);
   if (error) console.error("[moderation] queue failed", error);
+  if (deletionsError) console.error("[moderation] group deletions failed", deletionsError);
 
   const items: QueueItem[] = (data ?? []).map((row) => ({
     targetType: row.target_type,
@@ -30,5 +34,15 @@ export default async function ModerationPage() {
     gone: row.target_gone,
   }));
 
-  return <ModerationView items={items} />;
+  const groupDeletions: GroupDeletionItem[] = (deletions ?? []).map((row) => ({
+    requestId: row.request_id,
+    groupTitle: row.group_title,
+    groupSlug: row.group_slug,
+    memberCount: row.member_count,
+    requestedBy: row.requested_by_name,
+    reason: row.reason,
+    createdAt: row.created_at,
+  }));
+
+  return <ModerationView items={items} groupDeletions={groupDeletions} />;
 }

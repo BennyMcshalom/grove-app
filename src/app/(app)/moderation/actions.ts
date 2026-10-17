@@ -37,3 +37,18 @@ export async function moderate(input: z.input<typeof ModerateSchema>): Promise<{
   refresh();
   return {};
 }
+
+/** A group admin asked support to delete their group → Delete it / Keep it. */
+export async function resolveGroupDeletion(requestId: string, remove: boolean): Promise<{ error?: string }> {
+  await requireOnboardedViewer();
+  if (!z.uuid().safeParse(requestId).success) return { error: "That request doesn't look right." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("resolve_group_deletion", { p_request: requestId, p_delete: remove });
+  if (error) {
+    if (error.hint === "gone" || error.hint === "not_staff") return { error: error.message };
+    console.error("[moderation] resolve_group_deletion failed", error);
+    return { error: "That didn't go through. Try again." };
+  }
+  refresh();
+  return {};
+}

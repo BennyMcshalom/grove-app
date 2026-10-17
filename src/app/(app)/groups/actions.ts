@@ -8,6 +8,8 @@ import { ART_ICON, GROUP_ARTS, type GroupArtKey } from "@/lib/group-look";
 import type { Group } from "@/lib/groups";
 import { loadGroups } from "@/lib/groups-server";
 import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
+import { sendEmail } from "@/lib/email/send";
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 type Result = { error?: string };
@@ -255,5 +257,103 @@ export async function acknowledgeGroupRequest(groupId: string): Promise<Result> 
   const supabase = await createClient();
   const { error } = await supabase.rpc("acknowledge_group_request", { p_group_id: groupId });
   if (error) console.error("[groups] acknowledge_group_request failed", error);
+  return {};
+}
+
+// ---------------------------------------------------------------------------
+// Manage group (admins). The database checks every one of these.
+// ---------------------------------------------------------------------------
+
+const DetailsSchema = CreateGroupSchema.pick({ title: true, label: true, description: true }).extend({
+  joinPolicy: z.enum(["open", "approval"]),
+});
+
+/** Name, label, description and who can join. */
+export async function updateGroupDetails(groupId: string, input: z.input<typeof DetailsSchema>): Promise<Result> {
+  await requireOnboardedViewer();
+  const parsed = DetailsSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the group's details." };
+  const { title, label, description, joinPolicy } = parsed.data;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("groups")
+    .update({ title, label: label || null, description: description || null, join_policy: joinPolicy })
+    .eq("id", groupId)
+    .select("id");
+  if (error || !data?.length) {
+    if (error) console.error("[groups] updateGroupDetails failed", error);
+    return { error: "Only the group's admins can change that." };
+  }
+  refresh();
+  return {};
+}
+
+/** Make a member a co-admin, or back to member. */
+export async function setGroupMemberRole(groupId: string, userId: string, role: "admin" | "member"): Promise<Result> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_group_member_role", { p_group: groupId, p_user: userId, p_role: role });
+  if (error) {
+    if (error.hint && ["not_admin", "not_member", "creator", "last_admin"].includes(error.hint)) return { error: error.message };
+    console.error("[groups] set_group_member_role failed", error);
+    return { error: "That didn't save. Try again." };
+  }
+  refresh();
+  return {};
+}
+
+/** Take someone out of the group (never its creator). */
+export async function removeGroupMember(groupId: string, userId: string): Promise<Result> {
+  await requireOnboardedViewer();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("group_members")
+    .delete()
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .select("user_id");
+  if (error || !data?.length) {
+    if (error) console.error("[groups] removeGroupMember failed", error);
+    return { error: "They couldn't be removed. The group's creator always stays." };
+  }
+  refresh();
+  return {};
+}
+
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "info@grouv.app";
+
+/**
+ * Delete group → "Ask support". Admins can't delete a group themselves (a
+ * whole group's conversation would go with it); support gets an email and the
+ * request waits on /moderation.
+ */
+export async function requestGroupDeletion(groupId: string, reason: string): Promise<Result> {
+  const viewer = await requireOnboardedViewer();
+  const text = reason.trim().slice(0, 1000);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("request_group_deletion", { p_group: groupId, p_reason: text || null });
+  if (error) {
+    if (error.hint === "not_admin") return { error: error.message };
+    console.error("[groups] request_group_deletion failed", error);
+    return { error: "We couldn't send that. Try again." };
+  }
+
+  const { data: group } = await supabase.from("groups").select("title, slug, member_count").eq("id", groupId).maybeSingle();
+  if (group) {
+    const site = await siteUrl();
+    const lines = [
+      `${viewer.profile.first_name} asked to delete the group "${group.title}" (${group.member_count} members).`,
+      text ? `Reason: ${text}` : "No reason given.",
+      `Group: ${site}/groups/${group.slug}`,
+      `Review it in the moderation queue: ${site}/moderation`,
+    ];
+    void sendEmail({
+      to: SUPPORT_EMAIL,
+      subject: `Group deletion request: ${group.title}`,
+      text: lines.join("\n\n"),
+      html: lines.map((l) => `<p>${l.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p>`).join(""),
+    });
+  }
+  refresh();
   return {};
 }

@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { TopBar } from "@/components/app/TopBar";
 import { useToast } from "@/components/app/ToastProvider";
 import { Button } from "@/components/ui/Button";
-import { moderate } from "@/app/(app)/moderation/actions";
+import Link from "next/link";
+import { ConfirmDialog } from "@/components/app/bonds/ConfirmDialog";
+import { moderate, resolveGroupDeletion } from "@/app/(app)/moderation/actions";
 import { timeAgo } from "@/lib/time";
 
 export interface QueueItem {
@@ -18,6 +20,17 @@ export interface QueueItem {
   authorId: string | null;
   authorName: string | null;
   gone: boolean;
+}
+
+/** A group admin asked support to delete their group. */
+export interface GroupDeletionItem {
+  requestId: string;
+  groupTitle: string;
+  groupSlug: string;
+  memberCount: number;
+  requestedBy: string | null;
+  reason: string | null;
+  createdAt: string;
 }
 
 const TARGET_LABEL: Record<QueueItem["targetType"], string> = {
@@ -45,13 +58,21 @@ function linkFor(item: QueueItem) {
 }
 
 /** Open reports, grouped by what they point at, most-reported first. */
-export function ModerationView({ items }: { items: QueueItem[] }) {
+export function ModerationView({ items, groupDeletions = [] }: { items: QueueItem[]; groupDeletions?: GroupDeletionItem[] }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <TopBar title="Moderation" back="/settings" />
 
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[1096px] flex-col gap-4 pb-10">
+          {groupDeletions.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="font-sans text-base font-semibold text-ink-700">Group deletion requests</h2>
+              {groupDeletions.map((item) => (
+                <GroupDeletionCard key={item.requestId} item={item} />
+              ))}
+            </section>
+          )}
           <p className="font-sans text-sm text-ink-300">
             {items.length === 0
               ? "Nothing waiting. Reports people send show up here."
@@ -63,6 +84,60 @@ export function ModerationView({ items }: { items: QueueItem[] }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function GroupDeletionCard({ item }: { item: GroupDeletionItem }) {
+  const toast = useToast();
+  const [pending, start] = useTransition();
+  const [confirming, setConfirming] = useState(false);
+  const resolve = (remove: boolean) =>
+    start(async () => {
+      const result = await resolveGroupDeletion(item.requestId, remove);
+      toast(
+        result.error
+          ? { title: result.error, tone: "danger" }
+          : { title: remove ? `${item.groupTitle} was deleted` : "Request declined; the group stays" },
+      );
+    });
+
+  return (
+    <article className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <Link href={`/groups/${item.groupSlug}`} className="font-sans text-base font-semibold text-ink-700 hover:underline">
+          {item.groupTitle}
+        </Link>
+        <span className="font-sans text-xs text-ink-300">{timeAgo(item.createdAt)}</span>
+      </div>
+      <p className="font-sans text-sm text-ink-500">
+        {item.requestedBy ?? "An admin"} asked to delete it · {item.memberCount}{" "}
+        {item.memberCount === 1 ? "member" : "members"}
+      </p>
+      {item.reason && <p className="rounded-lg bg-ivory-200 p-3 font-sans text-sm text-ink-600">{item.reason}</p>}
+      <div className="flex flex-wrap gap-3">
+        <Button size="sm" variant="secondary" disabled={pending} onClick={() => resolve(false)}>
+          Keep the group
+        </Button>
+        <Button size="sm" disabled={pending} onClick={() => setConfirming(true)}>
+          Delete group
+        </Button>
+      </div>
+      {confirming && (
+        <ConfirmDialog
+          title={`Delete ${item.groupTitle}?`}
+          action="Delete group"
+          tone="danger"
+          busy={pending}
+          onClose={() => setConfirming(false)}
+          onConfirm={() => {
+            setConfirming(false);
+            resolve(true);
+          }}
+        >
+          Its conversation, Truth Board and video truths go for every member. This can&rsquo;t be undone.
+        </ConfirmDialog>
+      )}
+    </article>
   );
 }
 

@@ -749,6 +749,16 @@ export type Database = {
         };
         Relationships: [];
       };
+      group_deletion_requests: ReadOnlyTable<{
+        id: string;
+        group_id: string;
+        requested_by: string;
+        reason: string | null;
+        status: "pending" | "declined";
+        created_at: string;
+        resolved_at: string | null;
+        resolved_by: string | null;
+      }>;
       group_members: {
         Row: { group_id: string; user_id: string; role: GroupRole; joined_at: string };
         Insert: { group_id: string; user_id: string };
@@ -1887,6 +1897,22 @@ export type Database = {
       set_chat_muted: { Args: { p_conversation_id: string; p_muted: boolean }; Returns: undefined };
       block_user: { Args: { p_user_id: string }; Returns: undefined };
       unblock_user: { Args: { p_user_id: string }; Returns: undefined };
+      set_group_member_role: { Args: { p_group: string; p_user: string; p_role: GroupRole }; Returns: undefined };
+      request_group_deletion: { Args: { p_group: string; p_reason?: string | null }; Returns: string };
+      group_deletion_queue: {
+        Args: Record<string, never>;
+        Returns: {
+          request_id: string;
+          group_id: string;
+          group_title: string;
+          group_slug: string;
+          member_count: number;
+          requested_by_name: string | null;
+          reason: string | null;
+          created_at: string;
+        }[];
+      };
+      resolve_group_deletion: { Args: { p_request: string; p_delete: boolean }; Returns: undefined };
       clear_conversation: { Args: { p_conversation_id: string }; Returns: undefined };
       edit_my_message: { Args: { p_message: string; p_body: string }; Returns: string };
       delete_my_message: { Args: { p_message: string }; Returns: undefined };

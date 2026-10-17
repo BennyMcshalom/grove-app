@@ -2588,6 +2588,59 @@ await step("profile audiences: bio, location, chapter, birthday for Everyone / c
   check("signing back in calls it off", cancelled === true && (await q(Pb, `select * from public.account_deletions`)).length === 0);
 });
 
+// --- Group admins manage; support deletes (20261017100100_group_admin) -------
+await step("group admins: manage, never delete", async () => {
+  const career = [{ slug: "career", phase: "Starting over" }];
+  const Cr = await person("Cora", career);
+  const M1 = await person("Mo", career);
+  const M2 = await person("Ngo", career);
+  const St = await person("Staffy", career);
+  await su(`insert into public.staff (user_id) values ($1)`, [St]);
+  const [{ id: g }] = await withPass(Cr, () => q(Cr, `insert into public.groups (title, join_policy) values ('Pivoters', 'open') returning id`));
+  await q(M1, `insert into public.group_members (group_id, user_id) values ($1, $2)`, [g, M1]);
+  await q(M2, `insert into public.group_members (group_id, user_id) values ($1, $2)`, [g, M2]);
+
+  // Details: admins edit, members can't.
+  await q(Cr, `update public.groups set title = 'Career pivoters', description = 'New', join_policy = 'approval' where id = $1`, [g]);
+  const [edited] = await su(`select title, join_policy from public.groups where id = $1`, [g]);
+  check("the creator edits the details", edited.title === "Career pivoters" && edited.join_policy === "approval", edited);
+  await q(M1, `update public.groups set title = 'Hijacked' where id = $1`, [g]);
+  const [kept] = await su(`select title from public.groups where id = $1`, [g]);
+  check("a member can't", kept.title === "Career pivoters", kept);
+
+  // Co-admins.
+  await fails("members can't promote", M1, `select public.set_group_member_role($1, $2, 'admin')`, [g, M1], "Only a group admin");
+  await q(Cr, `select public.set_group_member_role($1, $2, 'admin')`, [g, M1]);
+  const [role] = await su(`select role from public.group_members where group_id = $1 and user_id = $2`, [g, M1]);
+  check("the creator makes a co-admin", role.role === "admin", role);
+  await fails("a co-admin can't demote the creator", M1, `select public.set_group_member_role($1, $2, 'member')`, [g, Cr], "stays an admin");
+
+  // Removing: a co-admin removes a member, but not the creator.
+  await q(M1, `delete from public.group_members where group_id = $1 and user_id = $2`, [g, Cr]);
+  const creatorStill = await su(`select 1 from public.group_members where group_id = $1 and user_id = $2`, [g, Cr]);
+  check("nobody can remove the creator", creatorStill.length === 1, creatorStill);
+  await q(M1, `delete from public.group_members where group_id = $1 and user_id = $2`, [g, M2]);
+  const gone = await su(`select 1 from public.group_members where group_id = $1 and user_id = $2`, [g, M2]);
+  check("an admin removes a member", gone.length === 0, gone);
+
+  // Deleting goes through support.
+  await q(Cr, `delete from public.groups where id = $1`, [g]);
+  const stillThere = await su(`select 1 from public.groups where id = $1`, [g]);
+  check("admins can't delete a group themselves", stillThere.length === 1, stillThere);
+  await fails("members can't ask", M2, `select public.request_group_deletion($1, 'x')`, [g], "Only a group admin");
+  const [{ request_group_deletion: req }] = await q(Cr, `select public.request_group_deletion($1, 'We wrapped up')`, [g]);
+  const [{ request_group_deletion: again }] = await q(M1, `select public.request_group_deletion($1, 'dup')`, [g]);
+  check("one open request per group", again === req, { req, again });
+  const nobody = await q(M2, `select * from public.group_deletion_queue()`);
+  check("only staff see the queue", nobody.length === 0, nobody);
+  const [queued] = await q(St, `select * from public.group_deletion_queue()`);
+  check("staff see it, with the reason", queued?.request_id === req && queued.reason === "We wrapped up" && queued.requested_by_name === "Cora", queued);
+  await fails("admins can't approve their own", Cr, `select public.resolve_group_deletion($1, true)`, [req], "Staff only");
+  await q(St, `select public.resolve_group_deletion($1, true)`, [req]);
+  const deleted = await su(`select 1 from public.groups where id = $1`, [g]);
+  check("staff delete the group", deleted.length === 0, deleted);
+});
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);
 process.exit(failures.length ? 1 : 0);

@@ -223,6 +223,7 @@ export function SuggestionCard({ person }: { person: Suggestion }) {
         avatarUrl={person.avatarUrl}
         chapterSlug={person.sharedChapter}
         label={person.phase}
+        linked
       />
       {person.mutualCount > 0 && (
         <span className="font-sans text-xs text-ink-400">

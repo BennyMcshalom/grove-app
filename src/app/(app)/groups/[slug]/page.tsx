@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { GroupView } from "@/components/app/GroupView";
 import { getShellViewer } from "@/lib/auth/viewer";
 import {
+  loadDeletionRequest,
+  loadGroupMembers,
   loadGroups,
   loadJoinRequests,
   loadRequestOutcome,
@@ -20,11 +22,14 @@ export default async function GroupPage({ params }: PageProps<"/groups/[slug]">)
   if (!group) notFound();
 
   const member = group.myRole !== null;
-  const [truths, videos, requests, outcome] = await Promise.all([
+  const admin = group.myRole === "admin";
+  const [truths, videos, requests, outcome, members, deletionRequestedAt] = await Promise.all([
     member ? loadTruths(group.id) : Promise.resolve([]),
     member ? loadVideoTruths(group.id, viewer.id) : Promise.resolve([]),
-    group.myRole === "admin" ? loadJoinRequests(group.id) : Promise.resolve([]),
-    group.myRole === "admin" ? Promise.resolve(null) : loadRequestOutcome(group.id),
+    admin ? loadJoinRequests(group.id) : Promise.resolve([]),
+    admin ? Promise.resolve(null) : loadRequestOutcome(group.id),
+    admin ? loadGroupMembers(group.id) : Promise.resolve([]),
+    admin ? loadDeletionRequest(group.id) : Promise.resolve(null),
   ]);
 
   return (
@@ -35,6 +40,8 @@ export default async function GroupPage({ params }: PageProps<"/groups/[slug]">)
       videos={videos}
       requests={requests}
       outcome={outcome}
+      members={members}
+      deletionRequestedAt={deletionRequestedAt}
     />
   );
 }

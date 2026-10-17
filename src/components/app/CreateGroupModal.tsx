@@ -204,10 +204,10 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
 }
 
 /** Input 1088:4 — ivory-100, 8px radius, 10/14 padding, xs shadow. */
-const FIELD =
+export const FIELD =
   "flex w-full items-center gap-2 rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-300 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]";
 
-function Labelled({
+export function Labelled({
   label,
   children,
 }: {
