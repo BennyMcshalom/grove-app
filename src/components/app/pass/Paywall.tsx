@@ -351,6 +351,10 @@ export function Paywall({
           <Link href="/privacy" onClick={onClose} className="hover:text-ink-500 hover:underline">
             Privacy
           </Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/refunds" onClick={onClose} className="hover:text-ink-500 hover:underline">
+            Refunds
+          </Link>
         </p>
       </div>
     </Modal>

@@ -3,7 +3,7 @@ import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 // "/goodbye" confirms a scheduled account deletion after signing out.
 /** Pages a signed-out visitor may open. Everything else needs a session. */
-const PUBLIC_PATHS = new Set(["/", "/landing", "/terms", "/privacy", "/verify", "/sign-in", "/sign-up", "/forgot-password", "/goodbye"]);
+const PUBLIC_PATHS = new Set(["/", "/landing", "/terms", "/privacy", "/refunds", "/verify", "/sign-in", "/sign-up", "/forgot-password", "/goodbye"]);
 // "/landing" and "/landing/…" are the marketing site (public/landing): its CSS
 // and JS aren't skipped by the matcher below, so the prefix covers them.
 // "/r/" is the invite-link landing (grouv.app/r/amara92).

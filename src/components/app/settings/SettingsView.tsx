@@ -273,12 +273,15 @@ export function SettingsView({
           </Card>
 
           <div className="flex flex-col items-center">
-            <div className="flex gap-2.5">
+            <div className="flex flex-wrap justify-center gap-x-2.5">
               <Link href="/privacy" className="rounded-full px-5 py-2 font-sans text-sm text-ink-300 hover:bg-ivory-200">
                 Privacy
               </Link>
               <Link href="/terms" className="rounded-full px-5 py-2 font-sans text-sm text-ink-300 hover:bg-ivory-200">
                 Terms
+              </Link>
+              <Link href="/refunds" className="rounded-full px-5 py-2 font-sans text-sm text-ink-300 hover:bg-ivory-200">
+                Refunds
               </Link>
               <Link
                 href="/privacy"
