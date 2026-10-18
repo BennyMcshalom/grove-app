@@ -185,6 +185,12 @@ export function SettingsView({
               title="Change password"
               body="Update your password to keep your account secure."
               onClick={() => setChangingPassword(true)}
+              divider
+            />
+            <Row
+              title="Security"
+              body="Two-step verification and signing out other devices."
+              href="/settings/security"
               divider={isStaff}
             />
             {isStaff && (

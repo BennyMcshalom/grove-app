@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import type { CompanionMessage } from "@/lib/invites";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnMediaPath } from "@/lib/media-path";
 
 /**
  * Chapter Companions, after the invitation: check-ins and replies, mute,
@@ -75,11 +76,12 @@ const UpdateSchema = z.object({
 
 /** "Share an update" — only to the companions picked. */
 export async function shareCompanionUpdate(input: z.input<typeof UpdateSchema>): Promise<Result> {
-  await requireOnboardedViewer();
+  const viewer = await requireOnboardedViewer();
   const parsed = UpdateSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check your update." };
   const { userChapterId, body, photoPath, companionIds } = parsed.data;
   if (!body && !photoPath) return { error: "Write something or add a photo." };
+  if (photoPath && !isOwnMediaPath(photoPath, viewer.userId)) return { error: "That photo didn't finish uploading. Try again." };
   if (companionIds && companionIds.length === 0) return { error: "Pick at least one person." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("share_companion_update", {
@@ -161,7 +163,7 @@ export async function revokeCompanionInvite(inviteId: string): Promise<Result> {
   await requireOnboardedViewer();
   const supabase = await createClient();
   const { error } = await supabase.rpc("revoke_companion_invite", { p_invite_id: inviteId });
-  if (error) return fail("revoke_companion_invite", error, "We couldn't cancel that invitation. Try again.");
+  if (error && error.hint !== "gone") return fail("revoke_companion_invite", error, "We couldn't cancel that invitation. Try again.");
   refresh();
   return {};
 }

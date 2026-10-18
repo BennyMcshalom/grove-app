@@ -23,6 +23,7 @@ import { billingEnabled, billingState, fetchSubscriber, syncBilling } from "@/li
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { LIMITS, TOO_MANY, withinLimits } from "@/lib/rate-limit";
 
 export type ActionResult = { error?: string; fieldErrors?: Record<string, string> };
 
@@ -87,7 +88,11 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
 
   // Only our own upload folder, or keeping the photo they already have (which
   // may be their Google picture).
-  if (avatarUrl && avatarUrl !== previousAvatar && !avatarUrl.startsWith(folder)) {
+  // Exactly <folder><uuid>.<ext>: the URL is reused later as a storage path to remove.
+  const ownUpload =
+    avatarUrl?.startsWith(folder) &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/i.test(avatarUrl.slice(folder.length));
+  if (avatarUrl && avatarUrl !== previousAvatar && !ownUpload) {
     return { error: "That photo didn't upload properly. Try choosing it again." };
   }
 
@@ -180,6 +185,9 @@ async function updateRegion(
   } else if (label) {
     const { data: hasRegion } = await supabase.rpc("has_region");
     if (label === previousLabel && hasRegion) return;
+    // One shared, rate-limited geocoding queue: past the limit, keep the old region.
+    const { data: claims } = await supabase.auth.getClaims();
+    if (!(await withinLimits([LIMITS.geocode(claims?.claims?.sub ?? "unknown")]))) return;
     region = await geocode(label);
   }
 
@@ -310,6 +318,9 @@ export async function updateProfileAudience(field: ProfileField, audience: Field
 export async function requestDataExport(): Promise<ActionResult & { emailed?: boolean }> {
   const viewer = await requireOnboardedViewer();
   if (!viewer.email) return { emailed: false };
+  if (!(await withinLimits([LIMITS.supportEmail(viewer.userId, "export")]))) {
+    return { error: "You've asked for your data a few times today. Check your inbox, or try again tomorrow." };
+  }
   try {
     const { sent } = await sendEmail(
       dataExportEmail({ to: viewer.email, firstName: viewer.profile.first_name, siteUrl: await siteUrl() }),
@@ -402,6 +413,7 @@ export async function refreshBilling(): Promise<
 > {
   const viewer = await requireOnboardedViewer();
   if (!billingEnabled()) return { error: "Subscriptions aren't open yet." };
+  if (!(await withinLimits([LIMITS.billing(viewer.userId)]))) return { error: TOO_MANY };
 
   try {
     const state = await syncBilling(viewer.userId);
@@ -449,7 +461,8 @@ export async function passwordStatus(): Promise<{ hasPassword: boolean; email: s
 
 /** Change it by proving the current password. */
 export async function changePassword(current: string, next: string): Promise<ActionResult> {
-  await requireOnboardedViewer();
+  const viewer = await requireOnboardedViewer();
+  if (!(await withinLimits([LIMITS.passwordChange(viewer.userId)]))) return { error: TOO_MANY };
   const parsed = newPasswordSchema.safeParse(next);
   if (!parsed.success) return { fieldErrors: { password: parsed.error.issues[0].message } };
   if (!current) return { fieldErrors: { current: "Enter your current password." } };
@@ -476,7 +489,8 @@ export async function changePassword(current: string, next: string): Promise<Act
 
 /** "Forgot your current password?" — emails a 6-digit code to the account. */
 export async function sendPasswordCode(): Promise<ActionResult> {
-  await requireOnboardedViewer();
+  const viewer = await requireOnboardedViewer();
+  if (!(await withinLimits([LIMITS.passwordChange(viewer.userId)]))) return { error: TOO_MANY };
   const supabase = await createClient();
   const { error } = await supabase.auth.reauthenticate();
   if (error) {
@@ -493,7 +507,8 @@ export async function sendPasswordCode(): Promise<ActionResult> {
 
 /** Change it with the emailed code instead of the current password. */
 export async function changePasswordWithCode(code: string, next: string): Promise<ActionResult> {
-  await requireOnboardedViewer();
+  const viewer = await requireOnboardedViewer();
+  if (!(await withinLimits([LIMITS.passwordChange(viewer.userId)]))) return { error: TOO_MANY };
   const parsed = newPasswordSchema.safeParse(next);
   if (!parsed.success) return { fieldErrors: { password: parsed.error.issues[0].message } };
   const nonce = code.replace(/\s/g, "");

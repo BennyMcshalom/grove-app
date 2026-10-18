@@ -26,8 +26,8 @@ export function InvitationCard({
   children,
 }: {
   senderName: string;
-  chapterSlug: string;
-  phase: string;
+  chapterSlug: string | null;
+  phase: string | null;
   title: string;
   why: string | null;
   ask: string | null;
@@ -37,7 +37,7 @@ export function InvitationCard({
   audience?: "owner" | "invitee";
   children?: React.ReactNode;
 }) {
-  const chapter = getChapter(chapterSlug);
+  const chapter = chapterSlug ? getChapter(chapterSlug) : undefined;
   const chapterName = chapter?.name ?? "life";
   const access = [
     share.story && momentCount > 0 && `${senderName}’s ${momentCount} selected ${momentCount === 1 ? "moment" : "moments"}`,
@@ -66,7 +66,8 @@ export function InvitationCard({
             {senderName}&rsquo;s {chapterName} chapter
           </span>
         </span>
-        <p className="font-display text-2xl font-semibold text-ink-800">{phase}</p>
+        {/* Hidden when the sender keeps their stage private from this viewer. */}
+        {phase && <p className="font-display text-2xl font-semibold text-ink-800">{phase}</p>}
       </div>
 
       {why && (

@@ -43,7 +43,8 @@ import { getChapter } from "@/lib/chapters";
 const APPROXIMATE_M = 1000;
 const STAGE_W = 511;
 const STAGE_H = 461;
-const RINGS_KM = [0.5, 1, 2, 5, 10, 25, 50, 100] as const;
+// The database answers in whole kilometres, up to 25 (privacy: no fine-grained distances).
+const RINGS_KM = [1, 2, 5, 10, 25] as const;
 const HEARTBEAT_MS = 60_000;
 const LOOK_AROUND_MS = 30_000;
 
@@ -236,7 +237,7 @@ export default function NearbyPage() {
                         : "You're open to your stage. Only people at your exact stage nearby can see you."
                       : ring < RINGS_KM.length - 1
                         ? `No one within ${formatKm(RINGS_KM[ring])} yet. We'll look a little further every 30 seconds while this page is open.`
-                        : "No one is nearby within 100 km right now. That's the honest answer. Try again another time."
+                        : "No one is nearby within 25 km right now. That's the honest answer. Try again another time."
                     : "See who’s in your chapter, right here, right now. No background tracking, ever."}
                 </p>
               </div>
@@ -483,7 +484,7 @@ function PeopleList({
 
 /** Whole kilometres (or "under 1 km"): never finer than the orbit shows. */
 function roundedKm(km: number) {
-  return km < 1 ? "under 1 km" : `${Math.round(km)} km`;
+  return km <= 1 ? "1 km or less" : `${Math.round(km)} km`;
 }
 
 function formatKm(km: number) {

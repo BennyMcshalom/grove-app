@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { FormError } from "@/components/auth/FormError";
@@ -128,6 +129,14 @@ export function VerifyForm({ email }: { email: string }) {
             Wrong email? Go back
           </Button>
         </div>
+        {/* Sign-up doesn't say whether an address already has an account, so
+            someone who already signed up gets no code: point them home. */}
+        <p className="text-center font-sans text-sm text-ink-300">
+          Already have an account with this email?{" "}
+          <Link href="/sign-in" className="font-semibold text-primary-500 hover:underline">
+            Sign in instead
+          </Link>
+        </p>
       </form>
     </AuthSplitLayout>
   );

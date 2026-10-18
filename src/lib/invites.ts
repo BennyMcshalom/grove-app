@@ -18,12 +18,14 @@ export interface CompanionShare {
 export interface CompanionInvitation {
   id: string;
   token: string;
-  senderId: string;
+  /** Null for signed-out visitors. */
+  senderId: string | null;
   senderName: string;
   senderAvatar: string | null;
-  chapterSlug: string;
-  /** The owner's stage in that chapter. */
-  phase: string;
+  /** Null when the sender keeps their chapter from this viewer (its audience setting). */
+  chapterSlug: string | null;
+  /** The owner's stage in that chapter; null like chapterSlug. */
+  phase: string | null;
   /** The chapter's headline: "Trying to find a balance". */
   title: string;
   /** "Why Victor?" */

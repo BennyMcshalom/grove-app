@@ -11,6 +11,8 @@ import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
 import { sendEmail } from "@/lib/email/send";
 import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnMediaPath } from "@/lib/media-path";
+import { LIMITS, TOO_MANY, withinLimits } from "@/lib/rate-limit";
 
 type Result = { error?: string };
 
@@ -216,7 +218,7 @@ export async function addVideoTruth(
   durationSeconds: number | null,
 ): Promise<Result> {
   const viewer = await requireOnboardedViewer();
-  if (!storagePath.startsWith(`${viewer.userId}/`)) return { error: "Your video didn't finish uploading." };
+  if (!isOwnMediaPath(storagePath, viewer.userId)) return { error: "Your video didn't finish uploading." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("video_truths").insert({
@@ -329,6 +331,7 @@ const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "info@grouv.app";
  */
 export async function requestGroupDeletion(groupId: string, reason: string): Promise<Result> {
   const viewer = await requireOnboardedViewer();
+  if (!(await withinLimits([LIMITS.supportEmail(viewer.userId, "group-deletion")]))) return { error: TOO_MANY };
   const text = reason.trim().slice(0, 1000);
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_group_deletion", { p_group: groupId, p_reason: text || null });

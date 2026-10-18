@@ -1,12 +1,12 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { billingEnabled, syncBilling } from "@/lib/revenuecat";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Constant time, and doesn't reveal the secret's length: compares fixed-size digests. */
 function safeEqual(a: string, b: string) {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  return left.length === right.length && timingSafeEqual(left, right);
+  const digest = (s: string) => createHash("sha256").update(s).digest();
+  return timingSafeEqual(digest(a), digest(b));
 }
 
 /** `X-RevenueCat-Webhook-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "t.body">`, within 5 minutes. */

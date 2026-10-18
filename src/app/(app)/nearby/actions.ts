@@ -27,8 +27,9 @@ export type ProximityMode = "open" | "stage_only";
 const SESSION_SECONDS = 120;
 
 /**
- * Proximity on / heartbeat. The database rounds the fix to ~100m and never
- * shows it to anyone; only rounded distances come back out.
+ * Proximity on / heartbeat. The database rounds the fix to about 1 km, never
+ * shows it to anyone, and only gives out whole-kilometre distances. A jump
+ * no one could travel is refused (hint implausible_move).
  */
 export async function shareProximity(
   latitude: number,
@@ -50,6 +51,9 @@ export async function shareProximity(
   });
 
   if (error) {
+    if (error.hint === "implausible_move") {
+      return { error: "Your location jumped further than anyone could travel. Try again in a few minutes." };
+    }
     console.error("[nearby] shareProximity failed", error);
     return { error: "We couldn't turn on Proximity. Try again." };
   }
@@ -63,7 +67,7 @@ export async function stopProximity(): Promise<void> {
   await supabase.from("proximity_sessions").delete().eq("user_id", viewer.userId);
 }
 
-export async function findNearby(radiusKm = 0.5): Promise<{ people: NearbyMatch[]; error?: string }> {
+export async function findNearby(radiusKm = 1): Promise<{ people: NearbyMatch[]; error?: string }> {
   await requireOnboardedViewer();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("nearby_people", { p_radius_km: radiusKm });

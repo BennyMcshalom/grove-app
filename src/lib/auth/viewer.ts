@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { ShellViewer } from "@/components/app/ViewerProvider";
 import { FREE_ACTIVE_SPACES } from "@/lib/chapters";
+import { sessionNeedsTwoStep } from "@/lib/auth/two-step-check";
 import { callsEnabled } from "@/lib/livekit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,14 +18,23 @@ export const getViewer = cache(async () => {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims?.sub) return null;
+  // Password (or Google) done but the two-step code isn't: not signed in yet.
+  // The proxy sends them to /two-step.
+  if (await sessionNeedsTwoStep(supabase)) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, first_name, avatar_url, aura, location_label, onboarded_at, theme, banner")
-    .eq("id", claims.sub)
-    .single();
+  // location_label isn't readable on profiles (others see it only through its
+  // audience setting); the owner reads theirs through my_location_label().
+  const [{ data: row }, { data: locationLabel }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, first_name, avatar_url, aura, onboarded_at, theme, banner")
+      .eq("id", claims.sub)
+      .single(),
+    supabase.rpc("my_location_label"),
+  ]);
 
-  if (!profile) return null;
+  if (!row) return null;
+  const profile = { ...row, location_label: (locationLabel as string | null) ?? null };
   return { userId: claims.sub, email: claims.email, profile };
 });
 

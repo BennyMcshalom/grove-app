@@ -7,6 +7,8 @@ import { getChapter } from "@/lib/chapters";
 import { signPaths } from "@/lib/storage-server";
 import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnMediaPath } from "@/lib/media-path";
+import { relocateForAnonymity, removeAnonFiles } from "@/lib/anon-media";
 
 export type SpaceActionResult = { error?: string; limit?: boolean };
 
@@ -156,20 +158,27 @@ export async function replyToQuestion(
   const audioPath = reply.audioPath ?? null;
   if (!body && !audioPath) return { error: "Record or write a reply first." };
   if (body && body.length > 2000) return { error: "Keep replies under 2,000 characters." };
-  if (audioPath && !audioPath.startsWith(`${viewer.userId}/`)) {
+  if (audioPath && !isOwnMediaPath(audioPath, viewer.userId)) {
     return { error: "Your recording didn't finish uploading." };
+  }
+
+  // Replies are anonymous to the asker: keep the recording out of the replier's folder.
+  let storedAudio = audioPath;
+  if (audioPath) {
+    storedAudio = (await relocateForAnonymity([audioPath]))?.[0] ?? null;
+    if (!storedAudio) return { error: "We couldn't send your reply. Try again." };
   }
 
   const supabase = await createClient();
   const { error } = await supabase.from("space_question_replies").insert({
     question_id: questionId,
     body,
-    audio_path: audioPath,
+    audio_path: storedAudio,
     duration_seconds: reply.durationSeconds ?? null,
   });
 
   if (error) {
-    if (audioPath) await supabase.storage.from("media").remove([audioPath]);
+    if (storedAudio) await removeAnonFiles([storedAudio]);
     if (error.code === "42501") return { error: "This question is no longer taking replies." };
     console.error("[spaces] replyToQuestion failed", error);
     if (error?.hint === "rate_limited") return { error: error.message };

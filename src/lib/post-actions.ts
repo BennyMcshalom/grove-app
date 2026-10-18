@@ -19,6 +19,8 @@ import {
 } from "@/lib/posts";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
+import { isOwnMediaPath } from "@/lib/media-path";
+import { isAnonPath, relocateForAnonymity, removeAnonFiles } from "@/lib/anon-media";
 
 type Result = { error?: string };
 
@@ -100,7 +102,7 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   if (audience === "selected_bonds" && audienceIds.length === 0) {
     return { error: "Choose at least one Bond to share with." };
   }
-  if (media.some((m) => !m.path.startsWith(`${viewer.userId}/`))) {
+  if (media.some((m) => !isOwnMediaPath(m.path, viewer.userId))) {
     return { error: "One of your uploads didn't finish. Try attaching it again." };
   }
 
@@ -147,11 +149,17 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   }
 
   if (media.length > 0) {
+    // An anonymous post's files must not sit in the author's folder.
+    const paths = anonymous ? await relocateForAnonymity(media.map((m) => m.path)) : media.map((m) => m.path);
+    if (!paths) {
+      await supabase.from("posts").delete().eq("id", post.id);
+      return { error: "We couldn't attach your media. Try again." };
+    }
     const { error: mediaError } = await supabase.from("post_media").insert(
       media.map((m, position) => ({
         post_id: post.id,
         kind: m.kind,
-        storage_path: m.path,
+        storage_path: paths[position],
         position,
         trim_start: m.kind === "video" ? (m.trimStart ?? null) : null,
         trim_end: m.kind === "video" ? (m.trimEnd ?? null) : null,
@@ -162,6 +170,7 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
     if (mediaError) {
       console.error("[posts] attaching media failed", mediaError);
       await supabase.from("posts").delete().eq("id", post.id);
+      if (anonymous) await removeAnonFiles(paths);
       return { error: "We couldn't attach your media. Try again." };
     }
   }
@@ -258,10 +267,14 @@ export async function deletePost(postId: string): Promise<Result> {
   }
 
   if (media?.length) {
-    const { error: storageError } = await supabase.storage
-      .from("media")
-      .remove(media.map((m) => m.storage_path));
-    if (storageError) console.warn("[posts] couldn't remove post media", storageError);
+    const paths = media.map((m) => m.storage_path);
+    const own = paths.filter((p) => !isAnonPath(p));
+    if (own.length) {
+      const { error: storageError } = await supabase.storage.from("media").remove(own);
+      if (storageError) console.warn("[posts] couldn't remove post media", storageError);
+    }
+    // The post was deleted through RLS above, so it was theirs.
+    await removeAnonFiles(paths);
   }
   return {};
 }

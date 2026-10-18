@@ -161,7 +161,9 @@ site_url = "https://grouv.app"
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 # Add the Railway domain's /auth/callback in the hosted project's URL configuration.
-additional_redirect_urls = ["https://grouv.app/auth/callback", "https://web-production-1456f.up.railway.app/auth/callback", "https://web-production-a8471.up.railway.app/auth/callback", "http://localhost:3000/auth/callback", "http://127.0.0.1:3000/auth/callback"]
+# Production only (2026-10-18): auth codes may only be sent back to grouv.app.
+# Leaked-password protection (HaveIBeenPwned) is on in the hosted project; it has no setting here.
+additional_redirect_urls = ["https://grouv.app/auth/callback"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -312,8 +314,9 @@ max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+# Settings → Security → Two-step verification (on since 2026-10-18).
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]

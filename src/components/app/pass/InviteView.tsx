@@ -89,8 +89,8 @@ export function InviteView({
             <header className="flex flex-col gap-3">
               <h1 className="font-display text-2xl font-semibold text-ink-800">Bring someone into your next chapter.</h1>
               <p className="font-sans text-sm text-ink-400">
-                Everyone you invite starts with 14 days of Season Pass, free. When they complete their first chapter,
-                you get a month of Season Pass on us.
+                Everyone you invite starts with 14 days of Season Pass, free. When they complete their first chapter
+                (one they&rsquo;ve lived in for at least a week), you get a month of Season Pass on us.
               </p>
             </header>
 

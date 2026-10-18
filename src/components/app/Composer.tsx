@@ -18,7 +18,7 @@ import { MediaTiles } from "@/components/app/media/MediaTiles";
 import { clearDraft as forgetDraft, draftHasContent, readDraft, writeDraft, type ComposerDraft } from "@/lib/composer-draft";
 import type { MediaDraft } from "@/lib/media-draft";
 import { createClient } from "@/lib/supabase/client";
-import { mediaSize, uploadWithProgress } from "@/lib/upload";
+import { mediaExtension, mediaSize, uploadWithProgress } from "@/lib/upload";
 
 /**
  * Post composer — Figma frame 100:1206 (660px card, 32px padding, 16px radius).
@@ -263,11 +263,8 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const upload = async (id: string, file: Blob, kind: "photo" | "video", name?: string) => {
     // The type is the truth: a cropped picture comes back as a JPEG whatever
     // the file was called when it was picked.
-    const fromType = /^(?:image|video)\/([a-z0-9.+-]+)$/.exec(file.type)?.[1]?.replace("jpeg", "jpg");
-    const extension =
-      fromType?.replace(/[^a-z0-9]/g, "").slice(0, 5) ||
-      ((name ?? "").split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) ||
-      (kind === "photo" ? "jpg" : "mp4");
+    // Only extensions createPost accepts (see lib/media-path.ts).
+    const extension = mediaExtension(file, name) ?? (kind === "photo" ? "jpg" : "mp4");
     const path = `${viewer.id}/${crypto.randomUUID()}.${extension}`;
     const result = await uploadWithProgress("media", path, file, (progress) =>
       setAttachments((prev) => prev.map((a) => (a.id === id ? { ...a, progress } : a))),

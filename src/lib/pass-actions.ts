@@ -8,6 +8,7 @@ import { referralInviteEmail } from "@/lib/email/templates";
 import { billingEnabled, syncBilling } from "@/lib/revenuecat";
 import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
+import { LIMITS, TOO_MANY, withinLimits } from "@/lib/rate-limit";
 
 export type PassActionResult = { error?: string };
 
@@ -19,6 +20,7 @@ export type PassActionResult = { error?: string };
 export async function restorePurchase(): Promise<PassActionResult & { restored?: boolean }> {
   const viewer = await requireOnboardedViewer();
   if (!billingEnabled()) return { error: "Subscriptions aren't open yet." };
+  if (!(await withinLimits([LIMITS.billing(viewer.userId)]))) return { error: TOO_MANY };
 
   try {
     const state = await syncBilling(viewer.userId);
@@ -91,6 +93,13 @@ export async function sendReferralEmail(
   if (parsed.data.email.toLowerCase() === viewer.email?.toLowerCase()) {
     return { fieldErrors: { email: "That's your own email." } };
   }
+  // Grouv's domain sends these, so keep them from being used for spam:
+  // 10 a day per member, and one invite per address a month from anyone.
+  const ok = await withinLimits([
+    { key: `referral-email:${viewer.userId}`, max: 10, perSeconds: 24 * 60 * 60 },
+    { key: `referral-to:${parsed.data.email.toLowerCase()}`, max: 1, perSeconds: 30 * 24 * 60 * 60 },
+  ]);
+  if (!ok) return { error: "That address was invited recently, or you've sent a lot of invites today. Try again later." };
 
   const supabase = await createClient();
   const [{ data: referral, error: codeError }, { error: countError }] = await Promise.all([
@@ -109,7 +118,8 @@ export async function sendReferralEmail(
       referralInviteEmail({
         to: parsed.data.email,
         friendName: parsed.data.name || null,
-        inviterName: viewer.profile.first_name,
+        // Letters only in the subject and greeting: a "name" can't smuggle in a link.
+        inviterName: viewer.profile.first_name.replace(/[^\p{L}\p{M}' -]/gu, "").trim().slice(0, 30) || "A friend",
         link: `${await siteUrl()}/r/${code}`,
       }),
     );

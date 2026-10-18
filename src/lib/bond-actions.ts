@@ -8,6 +8,7 @@ import { isUuid } from "@/lib/mentions";
 import { signPaths } from "@/lib/storage-server";
 import { sendNotificationEmailsSoon } from "@/lib/email/notifications";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnChatPath, isOwnMediaPath } from "@/lib/media-path";
 
 type Result = { error?: string };
 
@@ -80,6 +81,8 @@ export async function cancelConnectionRequest(userId: string): Promise<Result> {
 /** Chat menu / profile → "Remove from circle". Ends a bond with them too. */
 export async function removeFromCircle(userId: string): Promise<Result> {
   const viewer = await requireOnboardedViewer();
+  // It goes into a filter string below, so it must be exactly a user id.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return { error: "That person couldn't be found." };
   const supabase = await createClient();
   const { error } = await supabase
     .from("connections")
@@ -313,7 +316,14 @@ export async function sendMediaMessage(
   file?: { name: string; size: number },
 ): Promise<Result & { message?: ChatMessage }> {
   const viewer = await requireOnboardedViewer();
-  if (!mediaPath.startsWith(`${conversationId}/${viewer.userId}/`)) {
+  if (!["voice", "video", "image", "file"].includes(kind)) return { error: "That file can't be sent." };
+  if (durationSeconds !== null && !(Number.isFinite(durationSeconds) && durationSeconds >= 0 && durationSeconds <= 3600)) {
+    return { error: "That recording is too long." };
+  }
+  if (file && !(typeof file.name === "string" && file.name.length <= 255 && Number.isInteger(file.size) && file.size >= 0 && file.size <= 52428800)) {
+    return { error: "That file can't be sent." };
+  }
+  if (!isOwnChatPath(mediaPath, conversationId, viewer.userId)) {
     return { error: "That file didn't finish uploading." };
   }
 
@@ -730,7 +740,7 @@ export async function saveBondResponse(
 ): Promise<PassResult> {
   const viewer = await requireOnboardedViewer();
   const own = (path: string | null | undefined): path is string =>
-    Boolean(path && path.startsWith(`${viewer.userId}/`) && !path.includes(".."));
+    isOwnMediaPath(path, viewer.userId);
   if (photo.path && !own(photo.path)) return { error: "That photo can't be used." };
   const text = body.trim().slice(0, 2000);
   if (!text && !photo.path) return { error: "Write something or add a photo first." };

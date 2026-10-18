@@ -10,6 +10,7 @@ import { loadAuras } from "@/lib/auras-server";
 import { geocode } from "@/lib/geocode";
 import { PICKER_ICONS } from "@/lib/icons";
 import { createClient } from "@/lib/supabase/server";
+import { LIMITS, TOO_MANY, withinLimits } from "@/lib/rate-limit";
 
 type Result = { error?: string };
 
@@ -28,7 +29,7 @@ export type CreateEventInput = z.input<typeof CreateEventSchema>;
 
 /** Create an Event → "Create event". The host is going, and the chat opens. */
 export async function createEvent(input: CreateEventInput): Promise<Result & { id?: string }> {
-  await requireOnboardedViewer();
+  const viewer = await requireOnboardedViewer();
   const parsed = CreateEventSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the event details." };
 
@@ -38,6 +39,8 @@ export async function createEvent(input: CreateEventInput): Promise<Result & { i
 
   // Best effort: an event whose venue can't be found still gets created, it
   // just isn't ranked by distance or given a map link.
+  // Geocoding goes through one shared, rate-limited queue; one person mustn't fill it.
+  if (!(await withinLimits([LIMITS.geocode(viewer.userId)]))) return { error: TOO_MANY };
   const place = await geocode(venueName);
 
   const supabase = await createClient();

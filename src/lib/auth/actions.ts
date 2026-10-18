@@ -4,9 +4,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { emailSchema, newPasswordSchema } from "@/lib/auth/schemas";
+import { safeNext } from "@/lib/auth/safe-next";
+import { sessionNeedsTwoStep } from "@/lib/auth/two-step-check";
 import { landingPath } from "@/lib/auth/viewer";
 import { requestOrigin, siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
+import { LIMITS, TOO_MANY, clientIp, withinLimits } from "@/lib/rate-limit";
 
 /** Remembers which address the verify screen is confirming. */
 const PENDING_EMAIL_COOKIE = "grouv_pending_email";
@@ -53,11 +56,6 @@ export async function getPendingEmail() {
   return (await cookies()).get(PENDING_EMAIL_COOKIE)?.value ?? null;
 }
 
-/** Only same-site paths, so `?next=` can't bounce users off-site. */
-function safeNext(value: FormDataEntryValue | null) {
-  return typeof value === "string" && /^\/(?![/\\])/.test(value) ? value : null;
-}
-
 export async function signUp(_state: AuthFormState, formData: FormData): Promise<AuthFormState> {
   const values = {
     firstName: String(formData.get("firstName") ?? ""),
@@ -65,9 +63,10 @@ export async function signUp(_state: AuthFormState, formData: FormData): Promise
   };
   const parsed = SignUpSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: firstErrors(parsed.error), values };
+  if (!(await withinLimits([LIMITS.signUpIp(await clientIp())]))) return { error: TOO_MANY, values };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
@@ -84,12 +83,9 @@ export async function signUp(_state: AuthFormState, formData: FormData): Promise
     return { error: "We couldn't create your account. Try again in a moment.", values };
   }
 
-  // With email confirmation on, Supabase answers an existing address with a
-  // user that has no identities, and sends nothing.
-  if (data.user && data.user.identities?.length === 0) {
-    return { fieldErrors: { email: "An account already uses this email. Sign in instead." }, values };
-  }
-
+  // An address that already has an account gets no code (Supabase sends
+  // nothing), but the screen looks the same either way, so sign-up can't be
+  // used to find out who's on Grouv. The code screen points to sign-in.
   await rememberPendingEmail(parsed.data.email);
   redirect("/verify");
 }
@@ -98,6 +94,9 @@ export async function signIn(_state: AuthFormState, formData: FormData): Promise
   const values = { email: String(formData.get("email") ?? "") };
   const parsed = SignInSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: firstErrors(parsed.error), values };
+  if (!(await withinLimits([LIMITS.signInIp(await clientIp()), LIMITS.signInEmail(parsed.data.email)]))) {
+    return { error: TOO_MANY, values };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
@@ -119,6 +118,13 @@ export async function signIn(_state: AuthFormState, formData: FormData): Promise
     return { error: "We couldn't sign you in. Try again in a moment.", values };
   }
 
+  const next = safeNext(formData.get("next"));
+
+  // Two-step verification on: the code comes next; /two-step finishes signing in.
+  if (await sessionNeedsTwoStep(supabase)) {
+    redirect(next ? `/two-step?next=${encodeURIComponent(next)}` : "/two-step");
+  }
+
   // Signing back in calls off a scheduled account deletion.
   await supabase.rpc("cancel_account_deletion");
 
@@ -128,7 +134,6 @@ export async function signIn(_state: AuthFormState, formData: FormData): Promise
     .eq("id", data.user.id)
     .single();
 
-  const next = safeNext(formData.get("next"));
   redirect(profile?.onboarded_at && next ? next : landingPath(profile));
 }
 
@@ -140,6 +145,7 @@ export async function verifyCode(code: string): Promise<{ error?: string }> {
   if (!/^\d{6}$/.test(code)) {
     return { error: "Enter all 6 digits." };
   }
+  if (!(await withinLimits([LIMITS.codeCheck(pendingEmail)]))) return { error: TOO_MANY };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.verifyOtp({
@@ -172,6 +178,10 @@ export async function resendCode(): Promise<{ error?: string }> {
   const pendingEmail = await getPendingEmail();
   if (!pendingEmail) {
     return { error: "This code screen has expired. Go back and start again." };
+  }
+
+  if (!(await withinLimits([LIMITS.codeSendIp(await clientIp()), LIMITS.codeSendEmail(pendingEmail)]))) {
+    return { error: "Wait a few minutes before asking for another code." };
   }
 
   const supabase = await createClient();
@@ -207,6 +217,9 @@ export async function abandonVerification() {
 export async function requestPasswordReset(email: string): Promise<{ error?: string; email?: string }> {
   const parsed = emailSchema.safeParse(email);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!(await withinLimits([LIMITS.codeSendIp(await clientIp()), LIMITS.codeSendEmail(parsed.data)]))) {
+    return { error: "Wait a few minutes before asking for another code." };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data);
@@ -226,12 +239,13 @@ export async function resetPassword(
   email: string,
   code: string,
   password: string,
-): Promise<{ error?: string; fieldErrors?: { code?: string; password?: string } }> {
+): Promise<{ error?: string; needTwoStep?: boolean; fieldErrors?: { code?: string; password?: string } }> {
   const parsedEmail = emailSchema.safeParse(email);
   if (!parsedEmail.success) return { error: "Start again and enter your email." };
   const parsedPassword = newPasswordSchema.safeParse(password);
   if (!parsedPassword.success) return { fieldErrors: { password: parsedPassword.error.issues[0].message } };
   if (!/^\d{6}$/.test(code)) return { fieldErrors: { code: "Enter all 6 digits." } };
+  if (!(await withinLimits([LIMITS.codeCheck(parsedEmail.data)]))) return { error: TOO_MANY };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.verifyOtp({ email: parsedEmail.data, token: code, type: "recovery" });
@@ -246,7 +260,43 @@ export async function resetPassword(
     };
   }
 
-  const { error: saveError } = await supabase.auth.updateUser({ password: parsedPassword.data });
+  // With two-step verification on, the emailed code alone isn't enough: the
+  // authenticator code comes next (finishResetWithTwoStep), then the save.
+  if (await sessionNeedsTwoStep(supabase)) return { needTwoStep: true };
+
+  return saveResetPassword(supabase, data.user.id, parsedPassword.data);
+}
+
+/** Reset step 3, for accounts with two-step verification: the authenticator code, then the new password. */
+export async function finishResetWithTwoStep(
+  totp: string,
+  password: string,
+): Promise<{ error?: string; fieldErrors?: { password?: string; totp?: string } }> {
+  const parsedPassword = newPasswordSchema.safeParse(password);
+  if (!parsedPassword.success) return { fieldErrors: { password: parsedPassword.error.issues[0].message } };
+  if (!/^\d{6}$/.test(totp)) return { fieldErrors: { totp: "Enter the 6-digit code from your authenticator app." } };
+
+  const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) return { error: "This reset has expired. Start again from sign in." };
+  if (!(await withinLimits([LIMITS.twoStep(userId)]))) return { error: TOO_MANY };
+
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const factorId = factors?.totp.find((f) => f.status === "verified")?.id;
+  if (factorId) {
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: totp });
+    if (error) return { fieldErrors: { totp: "That code isn't right. Check your authenticator app and try again." } };
+  }
+  return saveResetPassword(supabase, userId, parsedPassword.data);
+}
+
+async function saveResetPassword(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  password: string,
+): Promise<{ error?: string; fieldErrors?: { password?: string } }> {
+  const { error: saveError } = await supabase.auth.updateUser({ password });
   if (saveError && saveError.code !== "same_password") {
     console.error("[auth] password reset save failed", saveError.code);
     if (saveError.code === "weak_password") return { fieldErrors: { password: saveError.message } };
@@ -255,7 +305,7 @@ export async function resetPassword(
 
   // Like signing in, this calls off a scheduled account deletion.
   await supabase.rpc("cancel_account_deletion");
-  const { data: profile } = await supabase.from("profiles").select("onboarded_at").eq("id", data.user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("onboarded_at").eq("id", userId).single();
   redirect(landingPath(profile));
 }
 

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { sessionNeedsTwoStep } from "@/lib/auth/two-step-check";
 import type { Database } from "./database.types";
 import { supabasePublishableKey, supabaseUrl } from "./env";
 
@@ -8,8 +9,16 @@ import { supabasePublishableKey, supabaseUrl } from "./env";
  * in. Returns the response carrying any refreshed auth cookies; callers that
  * redirect must copy those cookies across (see `redirectWithSession`).
  */
-export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+export async function updateSession(request: NextRequest, extraRequestHeaders: Record<string, string> = {}) {
+  // Passes the request on with any extra headers (the CSP nonce) and its
+  // current cookies (request.cookies.set below writes into request.headers).
+  const next = () => {
+    if (!Object.keys(extraRequestHeaders).length) return NextResponse.next({ request });
+    const headers = new Headers(request.headers);
+    for (const [name, value] of Object.entries(extraRequestHeaders)) headers.set(name, value);
+    return NextResponse.next({ request: { headers } });
+  };
+  let response = next();
 
   const supabase = createServerClient<Database>(supabaseUrl(), supabasePublishableKey(), {
     cookies: {
@@ -18,7 +27,7 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet, headers) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        response = next();
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options),
         );
@@ -31,8 +40,9 @@ export async function updateSession(request: NextRequest) {
   // Keep this call immediately after creating the client: the token refresh has
   // to land before anything reads the session.
   const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub ?? null;
 
-  return { response, userId: data?.claims?.sub ?? null };
+  return { response, userId, needsTwoStep: userId ? await sessionNeedsTwoStep(supabase) : false };
 }
 
 export function redirectWithSession(
@@ -48,7 +58,8 @@ export function redirectWithSession(
   const redirect = NextResponse.redirect(url);
   sessionResponse.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
   sessionResponse.headers.forEach((value, key) => {
-    if (key.toLowerCase() !== "set-cookie" && key.toLowerCase() !== "x-middleware-next") {
+    // Not cookies (copied above) and not Next's internal x-middleware-* signals.
+    if (key.toLowerCase() !== "set-cookie" && !key.toLowerCase().startsWith("x-middleware-")) {
       redirect.headers.set(key, value);
     }
   });

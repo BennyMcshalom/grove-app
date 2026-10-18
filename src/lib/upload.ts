@@ -48,6 +48,14 @@ const EXTENSIONS: Record<string, string> = {
   "audio/ogg": "ogg",
 };
 
+/** A photo, video or audio file's extension from its type (or name), or null if it isn't one we take. */
+export function mediaExtension(file: Blob, name?: string): string | null {
+  const type = file.type.split(";")[0];
+  if (EXTENSIONS[type]) return EXTENSIONS[type];
+  const fromName = (name ?? ("name" in file ? String((file as File).name) : "")).split(".").pop()?.toLowerCase() ?? "";
+  return Object.values(EXTENSIONS).includes(fromName) || fromName === "jpeg" ? fromName : null;
+}
+
 function extensionFor(file: Blob, fallback: string) {
   const type = file.type.split(";")[0];
   if (EXTENSIONS[type]) return EXTENSIONS[type];

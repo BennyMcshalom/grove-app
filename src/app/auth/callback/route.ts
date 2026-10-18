@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { sessionNeedsTwoStep } from "@/lib/auth/two-step-check";
 import { landingPath } from "@/lib/auth/viewer";
 import { requestOrigin } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
@@ -17,6 +18,9 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
+      // Two-step verification on: the code comes next; /two-step finishes signing in.
+      if (await sessionNeedsTwoStep(supabase)) return NextResponse.redirect(`${origin}/two-step`);
+
       // Signing back in calls off a scheduled account deletion.
       await supabase.rpc("cancel_account_deletion");
       const { data: profile } = await supabase

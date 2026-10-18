@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { LANDING_CSP, appCsp } from "@/lib/csp";
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 // "/goodbye" confirms a scheduled account deletion after signing out.
@@ -9,7 +10,7 @@ const PUBLIC_PATHS = new Set(["/", "/landing", "/terms", "/privacy", "/refunds",
 // "/r/" is the invite-link landing (grouv.app/r/amara92).
 // "/w/" is a shared Life Wrapped card (grouv.app/w/9f3k2p).
 // "/i/" is a chapter invitation card (grouv.app/i/<token>).
-const PUBLIC_PREFIXES = ["/landing/", "/r/", "/w/", "/i/","/auth/","/api/health", "/api/cron/", "/api/revenuecat/webhook", "/api/livekit/webhook"];
+const PUBLIC_PREFIXES = ["/landing/", "/r/", "/w/", "/i/","/auth/","/api/health", "/api/cron/", "/api/revenuecat/webhook", "/api/livekit/webhook", "/api/csp-report"];
 
 /** Signed-in users skip these and go straight into the app. */
 const AUTH_PAGES = new Set(["/sign-in", "/sign-up", "/forgot-password"]);
@@ -20,6 +21,19 @@ const AUTH_PAGES = new Set(["/sign-in", "/sign-up", "/forgot-password"]);
  * `getViewer()` guards), so a matcher change here can't open anything up.
  */
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  // A fresh nonce per request: Next reads it from the request header and puts
+  // it on its own scripts, and the policy only lets nonce-carrying scripts run.
+  const landing = pathname === "/landing" || pathname.startsWith("/landing/");
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const policy = landing ? LANDING_CSP : appCsp(nonce);
+
+  const response = await route(request, landing ? {} : { "x-nonce": nonce, "content-security-policy": policy });
+  response.headers.set("Content-Security-Policy", policy);
+  return response;
+}
+
+async function route(request: NextRequest, requestHeaders: Record<string, string>) {
   const { pathname, search, searchParams } = request.nextUrl;
 
   // When Supabase can't use the callback we asked for, it falls back to the
@@ -33,10 +47,21 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const { response, userId } = await updateSession(request);
+  const { response, userId, needsTwoStep } = await updateSession(request, requestHeaders);
 
   const isPublic =
     PUBLIC_PATHS.has(pathname) || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+
+  // Password or Google done, two-step code still owed: only /two-step (and
+  // public pages) until it's entered. The database refuses these sessions too.
+  if (userId && needsTwoStep) {
+    if (pathname === "/two-step" || (isPublic && !AUTH_PAGES.has(pathname))) return response;
+    const next = AUTH_PAGES.has(pathname) ? null : pathname + search;
+    return redirectWithSession(request, response, "/two-step", next ? { next } : undefined);
+  }
+  if (pathname === "/two-step") {
+    return redirectWithSession(request, response, userId ? "/home" : "/sign-in");
+  }
 
   if (!userId && !isPublic) {
     return redirectWithSession(request, response, "/sign-in", { next: pathname + search });

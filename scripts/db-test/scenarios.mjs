@@ -49,7 +49,7 @@ const [{ id: A }] = await su(
 );
 const [{ id: B }] = await su(`insert into auth.users (email, raw_user_meta_data) values ('bo@x.com', '{"first_name":"Bo"}') returning id`);
 const [{ id: C }] = await su(
-  `insert into auth.users (email, raw_user_meta_data) values ('cy@x.com', '{"full_name":"Cy Lane","picture":"https://img/cy.png"}') returning id`,
+  `insert into auth.users (email, raw_user_meta_data) values ('cy@x.com', '{"full_name":"Cy Lane","picture":"https://lh3.googleusercontent.com/a/cy"}') returning id`,
 );
 const [{ id: D }] = await su(`insert into auth.users (email) values ('dee@x.com') returning id`);
 
@@ -61,18 +61,21 @@ await step("new user trigger", async () => {
   const d = p.find((r) => r.id === D);
   check("first_name from metadata", a.first_name === "Ada");
   check("terms accepted recorded", a.terms_accepted_at !== null);
-  check("google name split", c.first_name === "Cy" && c.avatar_url === "https://img/cy.png", c);
+  check("google name split", c.first_name === "Cy" && c.avatar_url === "https://lh3.googleusercontent.com/a/cy", c);
   check("email fallback name", d.first_name === "dee", d.first_name);
   const subs = await su(`select count(*)::int n from public.subscriptions`);
   check("subscription rows", subs[0].n === 4);
 });
 
 await step("anon reads", async () => {
-  const rows = await db.transaction(async (tx) => {
-    await tx.exec("set local role anon");
-    return (await tx.query("select * from public.profiles")).rows;
-  });
-  check("anon sees no profiles", rows.length === 0, rows.length);
+  // Signed out has no table privileges at all now (20261018100500).
+  const denied = await db
+    .transaction(async (tx) => {
+      await tx.exec("set local role anon");
+      return (await tx.query("select id from public.profiles")).rows;
+    })
+    .then((rows) => (rows.length === 0 ? "empty" : "rows"), (e) => e.message);
+  check("anon sees no profiles", denied === "empty" || denied.includes("permission denied"), denied);
   const chapters = await db.transaction(async (tx) => {
     await tx.exec("set local role anon");
     return (await tx.query("select * from public.chapters")).rows;
@@ -479,9 +482,9 @@ await step("nearby", async () => {
   await q(C, `insert into public.proximity_sessions (user_id, latitude, longitude) values ($1, 6.45531, 3.39581)`, [C]);
   const near = await q(A, `select * from public.nearby_people(5)`);
   check("A sees B (shared career), not C (no shared chapter)", near.length === 1 && near[0].user_id === B, near);
-  check("distance rounded", String(near[0]?.distance_km) === "1.3", near[0]?.distance_km);
+  check("distance in whole km", String(near[0]?.distance_km) === "3", near[0]?.distance_km);
   const [raw] = await su(`select latitude from public.proximity_sessions where user_id = $1`, [A]);
-  check("location coarsened", raw.latitude === 6.454, raw.latitude);
+  check("location coarsened to ~1 km", raw.latitude === 6.45, raw.latitude);
   const peek = await q(B, `select * from public.proximity_sessions`);
   check("can't read others' sessions", peek.length === 1 && peek[0].user_id === B);
 });
@@ -509,13 +512,14 @@ await step("close chapter", async () => {
 });
 await fails("can't close someone else's chapter", B, `select public.close_chapter((select id from public.user_chapters where user_id = '${A}' limit 1))`, [], "not open");
 
+const adaAvatar = `https://p.supabase.co/storage/v1/object/public/avatars/${A}/ada.png`;
 await step("space summaries and chapter tallies", async () => {
-  await su(`update public.profiles set avatar_url = 'https://x/ada.png' where id = $1`, [A]);
+  await su(`update public.profiles set avatar_url = $2 where id = $1`, [A, adaAvatar]);
   const sums = await q(B, `select * from public.space_summaries(array['career', 'health'])`);
   const career = sums.find((s) => s.chapter_slug === "career");
   const health = sums.find((s) => s.chapter_slug === "health");
   check("closed chapters leave the member count", career?.member_count === 1, career);
-  check("member faces come from profiles", health?.member_avatars?.includes("https://x/ada.png"), health);
+  check("member faces come from profiles", health?.member_avatars?.includes(adaAvatar), health);
   const [{ id: uc }] = await su(
     `select id from public.user_chapters where user_id = $1 and chapter_slug = 'career' and status = 'closed'`,
     [A],
@@ -1449,7 +1453,7 @@ await step("trial reminder", async () => {
 
 await step("referrals", async () => {
   const [{ code, invites_sent }] = await q(passT, `select * from public.my_referral()`);
-  check("a code from the first name", /^tomi\d+$/.test(code) && invites_sent === 0, code);
+  check("a code from the first name", /^tomi[0-9a-f]{8}$/.test(code) && invites_sent === 0, code);
   const [{ code: same }] = await q(passT, `select code from public.my_referral()`);
   check("the code is stable", same === code, same);
   const inviter = await db.transaction(async (tx) => {
@@ -1486,6 +1490,8 @@ await step("referrals", async () => {
 
   await q(passN, `select public.complete_onboarding($1::jsonb)`, [JSON.stringify([{ slug: "career", phase: "Starting over" }])]);
   const [{ id: nChapter }] = await su(`select id from public.user_chapters where user_id = $1`, [passN]);
+  // A chapter has to have been open a week to qualify (20261018100400).
+  await su(`update public.user_chapters set opened_at = now() - interval '8 days' where id = $1`, [nChapter]);
   await q(passN, `select public.close_chapter($1)`, [nChapter]);
   const [qualified] = await q(passT, `select status from public.my_referrals()`);
   check("closing a first chapter qualifies the referral", qualified.status === "qualified", qualified);
@@ -1664,11 +1670,13 @@ await step("life wrapped", async () => {
   });
   check("the card opens signed out", card.length === 1, card);
   check("hide names swaps people and chapters", card[0]?.body === "Coffee with someone, and this chapter talk" && card[0]?.sharer_name === null, card[0]);
-  const direct = await db.transaction(async (tx) => {
-    await tx.exec("set local role anon");
-    return (await tx.query(`select * from public.wrap_shares`)).rows;
-  });
-  check("signed out, only the card function reads links", direct.length === 0, direct.length);
+  const direct = await db
+    .transaction(async (tx) => {
+      await tx.exec("set local role anon");
+      return (await tx.query(`select * from public.wrap_shares`)).rows;
+    })
+    .then((rows) => rows.length, (e) => e.message);
+  check("signed out, only the card function reads links", direct === 0 || String(direct).includes("permission denied"), direct);
   const photoMoment = moments.find((m) => m.photo_path);
   await fails("a photo-only moment can't share with photos hidden", W, `select * from public.create_wrap_share($1, false, true)`, [photoMoment.id], "only a photo");
   const [named] = await q(W, `select * from public.create_wrap_share($1, false, false)`, [photoMoment.id]);
@@ -2640,6 +2648,155 @@ await step("group admins: manage, never delete", async () => {
   const deleted = await su(`select 1 from public.groups where id = $1`, [g]);
   check("staff delete the group", deleted.length === 0, deleted);
 });
+
+// --- security hardening (20261018100100 … 20261018100500) ---------------------
+{
+  const P1 = await person("Pia", learning);
+  const P2 = await person("Pax", learning);
+  const P3 = await person("Pim", learning);
+  const P4 = await person("Pru", learning);
+  await connect(P2, P3);
+
+  await step("hardening: media follows the row that holds it", async () => {
+    const [{ id: post }] = await q(P2, `insert into public.posts (chapter_slug, body) values ('learning', 'With a photo') returning id`);
+    await q(P2, `insert into public.post_media (post_id, kind, storage_path) values ($1, 'photo', $2)`, [post, `${P2}/post-1.jpg`]);
+    const [{ id: uc }] = await su(`select id from public.user_chapters where user_id = $1`, [P2]);
+    await q(
+      P2,
+      `insert into public.log_entries (user_chapter_id, body, photo_path, visibility) values ($1, 'private', $2, 'only_me')`,
+      [uc, `${P2}/log-1.jpg`],
+    );
+    const [{ id: anonPostId }] = await q(
+      P2,
+      `insert into public.posts (chapter_slug, body, is_anonymous) values ('learning', 'Anon with photo', true) returning id`,
+    );
+    // The app relocates anonymous files to anon/<uuid>/ with the service role.
+    await su(`insert into public.post_media (post_id, kind, storage_path) values ($1, 'photo', 'anon/0f0f/a.jpg')`, [anonPostId]);
+    for (const name of [`${P2}/post-1.jpg`, `${P2}/log-1.jpg`, `${P2}/stray.jpg`, "anon/0f0f/a.jpg"]) {
+      await su(`insert into storage.objects (bucket_id, name) values ('media', $1)`, [name]);
+    }
+    const names = async (who) =>
+      (await q(who, `select name from storage.objects where bucket_id = 'media' order by name`)).map((r) => r.name);
+    const owner = await names(P2);
+    check("uploaders read everything in their folder", owner.includes(`${P2}/stray.jpg`) && owner.includes(`${P2}/log-1.jpg`), owner);
+    const circle = await names(P3);
+    check("a reader of the post reads its photo", circle.includes(`${P2}/post-1.jpg`), circle);
+    check("an anon/ path is readable through its row", circle.includes("anon/0f0f/a.jpg"), circle);
+    check("an only-me log photo stays private", !circle.includes(`${P2}/log-1.jpg`) && !circle.includes(`${P2}/stray.jpg`), circle);
+    const stranger = await names(P4);
+    check("strangers can't list someone's media", stranger.length === 0, stranger);
+    const [{ allowed_mime_types: mimes }] = await su(`select allowed_mime_types from storage.buckets where id = 'media'`);
+    check("no SVG or wildcards in media", !mimes.some((m) => m.includes("svg") || m.includes("*")), mimes);
+  });
+
+  await step("hardening: profiles, location and chapters", async () => {
+    await q(P4, `select public.block_user($1)`, [P1]);
+    const hidden = await q(P1, `select id from public.profiles where id = $1`, [P4]);
+    check("someone who blocked you is gone for you", hidden.length === 0, hidden);
+    const blockerSees = await q(P4, `select id from public.profiles where id = $1`, [P1]);
+    check("the blocker still sees who they blocked", blockerSees.length === 1, blockerSees);
+    const chapters = await q(P1, `select id from public.user_chapters where user_id = $1`, [P4]);
+    check("nor their chapters", chapters.length === 0, chapters);
+
+    await q(P2, `update public.profiles set location_label = 'Lagos, Nigeria' where id = $1`, [P2]);
+    await fails("location_label isn't selectable", P3, `select location_label from public.profiles where id = $1`, [P2], "permission denied");
+    const [{ my_location_label: mine }] = await q(P2, `select public.my_location_label()`);
+    check("the owner reads their own location", mine === "Lagos, Nigeria", mine);
+
+    await q(P2, `insert into public.profile_details (user_id, chapter_audience) values ($1, 'circle')`, [P2]);
+    const circleSees = await q(P3, `select id from public.user_chapters where user_id = $1`, [P2]);
+    const strangerSees = await q(P1, `select id from public.user_chapters where user_id = $1`, [P2]);
+    check("a circle-only chapter reaches the circle", circleSees.length === 1, circleSees);
+    check("and not strangers", strangerSees.length === 0, strangerSees);
+
+    const [{ onboarded_at: before, created_at: born }] = await su(`select onboarded_at, created_at from public.profiles where id = $1`, [P1]);
+    await q(P1, `update public.profiles set onboarded_at = null where id = $1`, [P1]);
+    const [{ onboarded_at: after, created_at: still }] = await su(`select onboarded_at, created_at from public.profiles where id = $1`, [P1]);
+    check("onboarding can't be undone", String(after) === String(before) && String(still) === String(born), { before, after });
+    await fails("created_at isn't writable", P1, `update public.profiles set created_at = now() - interval '1 year' where id = $1`, [P1], "permission denied");
+    await fails("avatars come from our bucket or Google", P1, `update public.profiles set avatar_url = 'https://evil.example/x.png' where id = $1`, [P1], "profiles_avatar_url_allowed");
+  });
+
+  await step("hardening: server timestamps and clean messages", async () => {
+    const [{ created_at: postAt }] = await q(
+      P2,
+      `insert into public.posts (chapter_slug, body, created_at) values ('learning', 'From the future', '2099-01-01') returning created_at`,
+    );
+    check("a forged post date is replaced", new Date(postAt).getFullYear() < 2099, postAt);
+    const [{ open_direct_conversation: chat }] = await q(P2, `select public.open_direct_conversation($1)`, [P3]);
+    const [msg] = await q(
+      P2,
+      `insert into public.messages (conversation_id, sender_id, body, created_at, pinned_at, pinned_by, deleted_by)
+       values ($1, $2, 'pinned?', '2000-01-01', now(), $3, $3) returning created_at, pinned_at, pinned_by, deleted_by`,
+      [chat, P2, P3],
+    );
+    check(
+      "a message can't arrive pinned or backdated",
+      new Date(msg.created_at).getFullYear() > 2000 && msg.pinned_at === null && msg.pinned_by === null && msg.deleted_by === null,
+      msg,
+    );
+    const [{ opened_at }] = await q(
+      P1,
+      `insert into public.user_chapters (user_id, chapter_slug, phase, opened_at) values ($1, 'health', 'Building a habit', '2020-01-01') returning opened_at`,
+      [P1],
+    );
+    check("a chapter opens now, whatever the client says", new Date(opened_at).getFullYear() > 2020, opened_at);
+  });
+
+  await step("hardening: time zones", async () => {
+    await fails("members can't write the time zone column", P1, `update public.notification_preferences set timezone = 'Nope/Zone' where user_id = $1`, [P1], "permission denied");
+    await fails("set_my_timezone checks the name", P1, `select public.set_my_timezone('Nope/Zone')`, [], "Unknown time zone");
+    let refused = false;
+    try {
+      await su(`update public.notification_preferences set timezone = 'Nope/Zone' where user_id = $1`, [P1]);
+    } catch (e) {
+      refused = e.message.includes("Unknown time zone");
+    }
+    check("not even the server can store a bad zone", refused);
+    await q(P1, `update public.notification_preferences set email_updates = false where user_id = $1`, [P1]);
+  });
+
+  await step("hardening: blocks and discovery", async () => {
+    await su(`select private.notify($1, 'wave_received', $2, null)`, [P4, P1]);
+    const notes = await su(`select 1 from public.notifications where user_id = $1 and actor_id = $2`, [P4, P1]);
+    check("nothing reaches you from someone across a block", notes.length === 0, notes);
+
+    const before = (await q(P1, `select user_id from public.potential_matches(12)`)).map((m) => m.user_id);
+    await q(P3, `insert into public.privacy_settings (user_id, discoverable) values ($1, false)`, [P3]);
+    const after = (await q(P1, `select user_id from public.potential_matches(12)`)).map((m) => m.user_id);
+    check("potential matches honour 'Show me in suggestions'", before.includes(P3) && !after.includes(P3), { before, after });
+  });
+
+  await step("hardening: nearby can't be steered", async () => {
+    await q(P1, `insert into public.proximity_sessions (user_id, latitude, longitude) values ($1, 6.45, 3.39)`, [P1]);
+    // Past the 30-second window, but seen a moment ago in Lagos.
+    await su(`update private.last_fix set changed_at = now() - interval '1 minute' where user_id = $1`, [P1]);
+    await fails(
+      "no jumping across the world",
+      P1,
+      `update public.proximity_sessions set latitude = 51.5, longitude = -0.12 where user_id = $1`,
+      [P1],
+      "doesn't look right",
+    );
+    await q(P2, `insert into public.proximity_sessions (user_id, latitude, longitude) values ($1, 6.45, 3.39)`, [P2]);
+    await q(P2, `update public.proximity_sessions set latitude = 6.47 where user_id = $1`, [P2]);
+    const [{ latitude }] = await su(`select latitude from public.proximity_sessions where user_id = $1`, [P2]);
+    check("one move per 30 seconds: the earlier spot is kept", latitude === 6.45, latitude);
+  });
+
+  await step("hardening: referrals need a real chapter", async () => {
+    const [{ code }] = await q(P1, `select code from public.my_referral()`);
+    const [{ id: friend }] = await su(
+      `insert into auth.users (email, raw_user_meta_data, email_confirmed_at) values ('quick@x.com', '{"first_name":"Quin"}', now()) returning id`,
+    );
+    await q(friend, `select public.claim_referral($1)`, [code]);
+    await q(friend, `select public.complete_onboarding($1::jsonb)`, [JSON.stringify(learning)]);
+    const [{ id: uc }] = await su(`select id from public.user_chapters where user_id = $1`, [friend]);
+    await q(friend, `select public.close_chapter($1)`, [uc]);
+    const [{ status }] = await su(`select status from public.referrals where invitee_id = $1`, [friend]);
+    check("closing a chapter opened today doesn't qualify", status === "joined", status);
+  });
+}
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);

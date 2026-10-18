@@ -1283,6 +1283,8 @@ export type Database = {
       };
       request_account_deletion: { Args: Record<string, never>; Returns: string };
       cancel_account_deletion: { Args: Record<string, never>; Returns: boolean };
+      rate_limit_hit: { Args: { p_key: string; p_max: number; p_window_seconds: number }; Returns: boolean };
+      my_location_label: { Args: Record<string, never>; Returns: string | null };
       grouv_people: {
         Args: { p_user_id: string };
         Returns: { user_id: string; first_name: string; avatar_url: string | null; aura: Aura; relationship: "bond" | "circle" }[];

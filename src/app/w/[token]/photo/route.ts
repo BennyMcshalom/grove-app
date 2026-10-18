@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+const SAFE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
+
 /**
  * The photo on a shared Wrapped card. The link's snapshot says which object
  * (if any) it carries; this streams just that one with the secret key, so a
@@ -23,9 +25,18 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return new Response(null, { status: 404 });
   }
 
+  // Only plain raster images. An SVG (or anything else) served from grouv.app
+  // could run script on our origin, so it is never served, whatever the
+  // bucket accepted.
+  const type = (file.type || "").split(";")[0].trim().toLowerCase();
+  if (!SAFE_IMAGE_TYPES.has(type)) return new Response(null, { status: 404 });
+
   return new Response(file, {
     headers: {
-      "Content-Type": file.type || "image/jpeg",
+      "Content-Type": type,
+      "Content-Disposition": "inline",
+      // Even if a browser tried to treat it as a document, it gets no script and no origin.
+      "Content-Security-Policy": "default-src 'none'; img-src 'self'; sandbox",
       // Short, private caching: a revoke should take effect quickly.
       "Cache-Control": "private, max-age=300",
       "X-Content-Type-Options": "nosniff",

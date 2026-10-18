@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnMediaPath } from "@/lib/media-path";
 
 const EntrySchema = z.object({
   userChapterId: z.uuid(),
@@ -27,7 +28,7 @@ export async function saveLogEntry(input: LogEntryInput): Promise<{ error?: stri
   const { userChapterId, promptId, body, photoPath, scope, bondId, entryDate } = parsed.data;
   if (!body && !photoPath) return { error: "Write something or add a photo first." };
   if (scope === "bond" && !bondId) return { error: "Choose which bond to share this with." };
-  if (photoPath && !photoPath.startsWith(`${viewer.userId}/`)) {
+  if (photoPath && !isOwnMediaPath(photoPath, viewer.userId)) {
     return { error: "Your photo didn't finish uploading. Try adding it again." };
   }
 
