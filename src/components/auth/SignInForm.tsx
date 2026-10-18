@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { FormError } from "@/components/auth/FormError";
@@ -19,6 +20,7 @@ export function SignInForm({
   initialError?: string;
 }) {
   const [state, formAction, pending] = useActionState(signIn, undefined);
+  const router = useRouter();
   const error = state ? state.error : initialError;
 
   return (
@@ -54,15 +56,30 @@ export function SignInForm({
               error={state?.fieldErrors?.email}
               required
             />
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              error={state?.fieldErrors?.password}
-              required
-            />
+            <div className="flex flex-col gap-2">
+              <Input
+                label="Password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                error={state?.fieldErrors?.password}
+                required
+              />
+              {/* Carries over whatever email is typed so it needn't be entered twice. */}
+              <Link
+                href="/forgot-password"
+                onClick={(e) => {
+                  const typed = (e.currentTarget.closest("form")?.elements.namedItem("email") as HTMLInputElement | null)?.value.trim();
+                  if (!typed) return;
+                  e.preventDefault();
+                  router.push(`/forgot-password?email=${encodeURIComponent(typed)}`);
+                }}
+                className="self-end font-sans text-sm font-semibold text-primary-500 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <Button

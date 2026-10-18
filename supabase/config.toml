@@ -254,6 +254,11 @@ content_path = "./supabase/templates/confirmation.html"
 subject = "Your Grouv password code"
 content_path = "./supabase/templates/reauthentication.html"
 
+# "Forgot password?" on the sign-in screen. Also a 6-digit code, not a link.
+[auth.email.template.recovery]
+subject = "Reset your Grouv password"
+content_path = "./supabase/templates/recovery.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true

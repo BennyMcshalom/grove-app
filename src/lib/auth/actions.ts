@@ -199,6 +199,66 @@ export async function abandonVerification() {
   redirect(pendingEmail ? `/sign-up?email=${encodeURIComponent(pendingEmail)}` : "/sign-up");
 }
 
+/**
+ * "Forgot password?" step 1: email a 6-digit code (the recovery template).
+ * Answers the same whether or not the address has an account, so the form
+ * can't be used to find out who's on Grouv.
+ */
+export async function requestPasswordReset(email: string): Promise<{ error?: string; email?: string }> {
+  const parsed = emailSchema.safeParse(email);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data);
+  if (error?.code === "over_email_send_rate_limit") {
+    return { error: "Wait a minute before asking for another code." };
+  }
+  if (error) console.error("[auth] resetPasswordForEmail failed", error.code);
+  return { email: parsed.data };
+}
+
+/**
+ * Step 2: the code plus a new password. The password is checked first so a
+ * typo in it doesn't use up the code. A good code signs them in, then the
+ * new password is saved.
+ */
+export async function resetPassword(
+  email: string,
+  code: string,
+  password: string,
+): Promise<{ error?: string; fieldErrors?: { code?: string; password?: string } }> {
+  const parsedEmail = emailSchema.safeParse(email);
+  if (!parsedEmail.success) return { error: "Start again and enter your email." };
+  const parsedPassword = newPasswordSchema.safeParse(password);
+  if (!parsedPassword.success) return { fieldErrors: { password: parsedPassword.error.issues[0].message } };
+  if (!/^\d{6}$/.test(code)) return { fieldErrors: { code: "Enter all 6 digits." } };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.verifyOtp({ email: parsedEmail.data, token: code, type: "recovery" });
+  if (error || !data.user) {
+    return {
+      fieldErrors: {
+        code:
+          error?.code === "otp_expired"
+            ? "That code is wrong or has expired. Check it, or send a new one."
+            : "We couldn't check that code. Try again.",
+      },
+    };
+  }
+
+  const { error: saveError } = await supabase.auth.updateUser({ password: parsedPassword.data });
+  if (saveError && saveError.code !== "same_password") {
+    console.error("[auth] password reset save failed", saveError.code);
+    if (saveError.code === "weak_password") return { fieldErrors: { password: saveError.message } };
+    return { error: "We couldn't save your new password. Try again." };
+  }
+
+  // Like signing in, this calls off a scheduled account deletion.
+  await supabase.rpc("cancel_account_deletion");
+  const { data: profile } = await supabase.from("profiles").select("onboarded_at").eq("id", data.user.id).single();
+  redirect(landingPath(profile));
+}
+
 export async function signInWithGoogle() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
