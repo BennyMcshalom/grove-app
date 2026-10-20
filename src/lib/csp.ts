@@ -72,14 +72,18 @@ export function appCsp(nonce: string) {
   return dev ? policy : `${policy}; upgrade-insecure-requests`;
 }
 
-/** The static marketing page (public/landing): its own files and Google Fonts, no scripts from anywhere else. */
+/**
+ * The static marketing page (public/landing): its own files, Google Fonts and
+ * Google Analytics (the client's tag G-LWNT84KN3K; origins per Google's CSP
+ * guidance for GA4). No other outside scripts.
+ */
 export const LANDING_CSP = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data:",
-  "connect-src 'self'",
+  "img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com",
+  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "object-src 'none'",
