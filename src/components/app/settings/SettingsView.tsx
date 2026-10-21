@@ -49,6 +49,7 @@ export interface SettingsPreferences {
   chapterPrompt: boolean;
   waveReceived: boolean;
   emailUpdates: boolean;
+  messageEmails: boolean;
 }
 
 export interface SettingsBilling {
@@ -121,6 +122,13 @@ export function SettingsView({
       body: "Requests, invitations and suggestions by email",
       on: prefs.emailUpdates,
       onChange: () => savePreference({ emailUpdates: !prefs.emailUpdates }),
+    },
+    // Not in Figma: there are no push notifications, so unread messages arrive by email.
+    {
+      title: "Message emails",
+      body: "An email when someone messages you and you haven't seen it yet",
+      on: prefs.messageEmails,
+      onChange: () => savePreference({ messageEmails: !prefs.messageEmails }),
     },
   ];
 

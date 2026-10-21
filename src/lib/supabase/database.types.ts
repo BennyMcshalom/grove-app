@@ -220,6 +220,7 @@ export type Database = {
           last_read_at: string | null;
           muted: boolean;
           cleared_at: string | null;
+          emailed_until: string | null;
         };
         Insert: never;
         Update: { last_read_at?: string | null };
@@ -345,11 +346,12 @@ export type Database = {
           wave_received: boolean;
           bond_invitation: boolean;
           email_updates: boolean;
+          message_emails: boolean;
           timezone: string;
           updated_at: string;
         };
         Insert: never;
-        Update: { chapter_prompt?: boolean; wave_received?: boolean; email_updates?: boolean };
+        Update: { chapter_prompt?: boolean; wave_received?: boolean; email_updates?: boolean; message_emails?: boolean };
         Relationships: [];
       };
       subscriptions: ReadOnlyTable<{
@@ -1861,6 +1863,25 @@ export type Database = {
           data: Json;
           group_slug: string | null;
           group_title: string | null;
+        }[];
+      };
+      claim_message_emails: {
+        Args: { p_limit?: number };
+        Returns: {
+          conversation_id: string;
+          conversation_kind: "direct" | "group" | "event";
+          recipient_email: string;
+          recipient_name: string;
+          unread_count: number;
+          sender_count: number;
+          latest_sender_id: string | null;
+          latest_sender_name: string | null;
+          latest_kind: string;
+          latest_preview: string | null;
+          group_slug: string | null;
+          group_title: string | null;
+          event_id: string | null;
+          event_title: string | null;
         }[];
       };
       nearby_people: {

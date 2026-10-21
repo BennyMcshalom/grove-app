@@ -253,3 +253,96 @@ export function accountDeletionEmail({
     `),
   };
 }
+
+export interface MessageEmailInput {
+  to: string;
+  recipientName: string;
+  conversationKind: "direct" | "group" | "event";
+  unreadCount: number;
+  senderCount: number;
+  latestSenderId: string | null;
+  latestSenderName: string | null;
+  latestKind: string;
+  /** Text and link messages only; null for media. */
+  latestPreview: string | null;
+  groupSlug: string | null;
+  groupTitle: string | null;
+  eventId: string | null;
+  eventTitle: string | null;
+  siteUrl: string;
+}
+
+/** What the newest message was, when there's no text to quote. */
+function describeMessage(kind: string) {
+  switch (kind) {
+    case "voice":
+      return "a voice note";
+    case "video":
+      return "a video";
+    case "image":
+      return "a photo";
+    case "file":
+      return "a file";
+    case "post_share":
+      return "a post";
+    default:
+      return "a message";
+  }
+}
+
+/**
+ * Unread messages, one email per chat until it's opened again (see
+ * claim_message_emails). The site has no push notifications, so this is how
+ * someone away from Grouv learns they've been messaged.
+ */
+export function messageEmail(input: MessageEmailInput): Email {
+  const sender = input.latestSenderName ?? "Someone";
+  const n = input.unreadCount;
+  const more = n === 1 ? "a message" : `${n} messages`;
+  const place =
+    input.conversationKind === "group"
+      ? input.groupTitle ?? "your group"
+      : input.conversationKind === "event"
+        ? input.eventTitle ?? "an event chat"
+        : null;
+
+  const subject = place
+    ? `${n === 1 ? `${sender} sent a message` : `${n} new messages`} in ${place}`
+    : `${sender} sent you ${more} on Grouv`;
+
+  const intro = place
+    ? n === 1
+      ? `${sender} sent a message in ${place}:`
+      : `There are ${n} new messages in ${place}${input.senderCount > 1 ? "" : ` from ${sender}`}. The latest, from ${sender}:`
+    : n === 1
+      ? `${sender} sent you a message:`
+      : `${sender} sent you ${n} messages. The latest:`;
+
+  const quote = input.latestPreview?.trim()
+    ? `“${input.latestPreview.trim()}${input.latestPreview.length >= 140 ? "…" : ""}”`
+    : `They sent ${describeMessage(input.latestKind)}.`;
+
+  const path =
+    input.conversationKind === "group" && input.groupSlug
+      ? `/groups/${input.groupSlug}`
+      : input.conversationKind === "event" && input.eventId
+        ? `/events/${input.eventId}`
+        : input.latestSenderId
+          ? `/bonds?with=${input.latestSenderId}`
+          : "/bonds";
+  const href = `${input.siteUrl}${path}`;
+  const settings = `${input.siteUrl}/settings`;
+
+  return {
+    to: input.to,
+    subject,
+    text: `Hi ${input.recipientName},\n\n${intro}\n\n${quote}\n\nReply on Grouv: ${href}\n\nYou're getting this because you have unread messages on Grouv. We send one email per chat until you open it. Turn message emails off in Settings: ${settings}`,
+    html: layout(`
+      <p style="margin:0 0 16px;">Hi ${escapeHtml(input.recipientName)},</p>
+      <p style="margin:0 0 12px;">${escapeHtml(intro)}</p>
+      <p style="margin:0 0 24px;padding:12px 16px;background:#FBF8F3;border-left:4px solid #F57E16;border-radius:8px;color:#374151;">${escapeHtml(quote)}</p>
+      <a href="${href}" style="display:inline-block;background:#F57E16;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;">Reply on Grouv</a>
+      <p style="margin:24px 0 0;font-size:13px;color:#6B7280;">You're getting this because you have unread messages on Grouv. We send one email per chat until you open it. <a href="${settings}" style="color:#6B7280;">Turn message emails off</a> in Settings.</p>
+    `),
+  };
+}

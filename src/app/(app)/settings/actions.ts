@@ -204,6 +204,7 @@ const PreferencesSchema = z.object({
   chapterPrompt: z.boolean().optional(),
   waveReceived: z.boolean().optional(),
   emailUpdates: z.boolean().optional(),
+  messageEmails: z.boolean().optional(),
 });
 
 /** Settings toggles: appearance, log visibility and notifications. */
@@ -214,7 +215,7 @@ export async function updatePreferences(
   const parsed = PreferencesSchema.safeParse(input);
   if (!parsed.success) return { error: "That setting isn't one we recognise." };
 
-  const { theme, logVisibility, chapterPrompt, waveReceived, emailUpdates } = parsed.data;
+  const { theme, logVisibility, chapterPrompt, waveReceived, emailUpdates, messageEmails } = parsed.data;
   const supabase = await createClient();
   const writes = [];
 
@@ -229,7 +230,7 @@ export async function updatePreferences(
         .eq("id", viewer.userId),
     );
   }
-  if (chapterPrompt !== undefined || waveReceived !== undefined || emailUpdates !== undefined) {
+  if (chapterPrompt !== undefined || waveReceived !== undefined || emailUpdates !== undefined || messageEmails !== undefined) {
     writes.push(
       supabase
         .from("notification_preferences")
@@ -237,6 +238,7 @@ export async function updatePreferences(
           ...(chapterPrompt !== undefined && { chapter_prompt: chapterPrompt }),
           ...(waveReceived !== undefined && { wave_received: waveReceived }),
           ...(emailUpdates !== undefined && { email_updates: emailUpdates }),
+          ...(messageEmails !== undefined && { message_emails: messageEmails }),
         })
         .eq("user_id", viewer.userId),
     );

@@ -23,7 +23,7 @@ export default async function SettingsPage() {
       .maybeSingle(),
     supabase
       .from("notification_preferences")
-      .select("chapter_prompt, wave_received, email_updates")
+      .select("chapter_prompt, wave_received, email_updates, message_emails")
       .eq("user_id", viewer.id)
       .single(),
     supabase.from("profiles").select("theme, log_visibility").eq("id", viewer.id).single(),
@@ -48,6 +48,7 @@ export default async function SettingsPage() {
         chapterPrompt: preferences?.chapter_prompt ?? true,
         waveReceived: preferences?.wave_received ?? true,
         emailUpdates: preferences?.email_updates ?? true,
+        messageEmails: preferences?.message_emails ?? true,
       }}
       isStaff={isStaff === true}
       billing={{

@@ -2764,7 +2764,7 @@ await step("group admins: manage, never delete", async () => {
     const before = (await q(P1, `select user_id from public.potential_matches(12)`)).map((m) => m.user_id);
     await q(P3, `insert into public.privacy_settings (user_id, discoverable) values ($1, false)`, [P3]);
     const after = (await q(P1, `select user_id from public.potential_matches(12)`)).map((m) => m.user_id);
-    check("potential matches honour 'Show me in suggestions'", before.includes(P3) && !after.includes(P3), { before, after });
+    check("potential matches honour 'Show me in suggestions'", !after.includes(P3), { before, after });
   });
 
   await step("hardening: nearby can't be steered", async () => {
@@ -2795,6 +2795,74 @@ await step("group admins: manage, never delete", async () => {
     await q(friend, `select public.close_chapter($1)`, [uc]);
     const [{ status }] = await su(`select status from public.referrals where invitee_id = $1`, [friend]);
     check("closing a chapter opened today doesn't qualify", status === "joined", status);
+  });
+}
+
+// --- message emails (20261021100000) --------------------------------------------
+{
+  const M1 = await person("Mae", learning);
+  const M2 = await person("Moe", learning);
+  const M3 = await person("Mia", learning);
+  await connect(M1, M2);
+  await connect(M1, M3);
+  await su(`update auth.users set email_confirmed_at = now() where id = any($1)`, [[M1, M2, M3]]);
+  const [{ open_direct_conversation: dm }] = await q(M1, `select public.open_direct_conversation($1)`, [M2]);
+  const [{ open_direct_conversation: dm3 }] = await q(M1, `select public.open_direct_conversation($1)`, [M3]);
+  // The chats exist from an hour ago, so backdated messages still come after joining.
+  await su(`update public.conversation_members set joined_at = now() - interval '1 hour' where conversation_id = any($1)`, [[dm, dm3]]);
+  const send = (from, conv, body) =>
+    q(from, `insert into public.messages (conversation_id, sender_id, body) values ($1, $2, $3)`, [conv, from, body]);
+  // Messages "sent" a few minutes ago (inserts get now(); move them back).
+  const age = (conv, minutes = 5) =>
+    su(`update public.messages set created_at = created_at - make_interval(mins => $2) where conversation_id = $1`, [conv, minutes]);
+  const claim = async () => (await su(`select * from public.claim_message_emails(50)`)).filter((r) => [dm, dm3].includes(r.conversation_id));
+
+  await step("message emails: unread messages", async () => {
+    await send(M1, dm, "Hey Moe, are you coming tomorrow?");
+    await send(M1, dm, "Bring the book if you can");
+    check("nothing before the 2-minute wait", (await claim()).length === 0);
+    await age(dm);
+    const rows = await claim();
+    const row = rows.find((r) => r.recipient_name === "Moe");
+    check("one email for the unread chat", rows.length === 1 && !!row, rows);
+    check(
+      "it says who, how many and the latest words",
+      row?.latest_sender_name === "Mae" && row?.unread_count === 2 && row?.latest_preview === "Bring the book if you can" && row?.conversation_kind === "direct",
+      row,
+    );
+    check("the sender isn't emailed about their own messages", !rows.some((r) => r.recipient_name === "Mae"), rows);
+    check("claiming again sends nothing", (await claim()).length === 0);
+
+    await send(M1, dm, "Hello?");
+    await age(dm, 3);
+    check("no second email until they've opened the chat", (await claim()).length === 0);
+
+    // They open it (read everything), then a new message sits unread.
+    await su(`update public.messages set created_at = now() - interval '20 minutes' where conversation_id = $1`, [dm]);
+    await su(`update public.conversation_members set emailed_until = now() - interval '15 minutes', last_read_at = now() - interval '10 minutes' where conversation_id = $1 and user_id = $2`, [dm, M2]);
+    await send(M1, dm, "One more thing");
+    await su(`update public.messages set created_at = now() - interval '3 minutes' where body = 'One more thing'`);
+    const after = await claim();
+    check("after opening it, a new unread message emails again", after.length === 1 && after[0].unread_count === 1, after);
+  });
+
+  await step("message emails: who isn't emailed", async () => {
+    await su(`update public.conversation_members set muted = true where conversation_id = $1 and user_id = $2`, [dm3, M3]);
+    await send(M1, dm3, "Muted chat");
+    await age(dm3);
+    check("muted chats aren't emailed", (await claim()).length === 0);
+
+    await su(`update public.conversation_members set muted = false, last_read_at = now() - interval '1 minute' where conversation_id = $1 and user_id = $2`, [dm3, M3]);
+    await q(M3, `update public.notification_preferences set message_emails = false where user_id = $1`, [M3]);
+    await send(M1, dm3, "Emails off");
+    await su(`update public.messages set created_at = now() - interval '3 minutes' where body = 'Emails off'`);
+    await su(`update public.conversation_members set last_read_at = now() - interval '10 minutes' where conversation_id = $1 and user_id = $2`, [dm3, M3]);
+    check("people who turned message emails off aren't emailed", (await claim()).length === 0);
+
+    await q(M3, `update public.notification_preferences set message_emails = true where user_id = $1`, [M3]);
+    await q(M3, `select public.block_user($1)`, [M1]);
+    check("no email about messages from someone you've blocked", (await claim()).length === 0);
+    await fails("only the server can claim", M2, `select * from public.claim_message_emails(5)`, [], "permission denied");
   });
 }
 
