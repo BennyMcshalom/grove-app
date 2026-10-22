@@ -2866,6 +2866,49 @@ await step("group admins: manage, never delete", async () => {
   });
 }
 
+// --- hardening, 2026-10-22 ------------------------------------------------------
+{
+  const Za = await person("Zed", learning);
+  const Zb = await person("Zia", learning);
+  const Zc = await person("Zoe", learning);
+  await connect(Za, Zb);
+  await connect(Za, Zc);
+  await connect(Zb, Zc);
+
+  await step("account purge finds chat and anonymous files", async () => {
+    const [{ open_direct_conversation: dm }] = await q(Za, `select public.open_direct_conversation($1)`, [Zb]);
+    await q(Za, `insert into storage.objects (bucket_id, name) values ('chat', $1)`, [`${dm}/${Za}/voice.m4a`]);
+    await q(Zb, `insert into storage.objects (bucket_id, name) values ('chat', $1)`, [`${dm}/${Zb}/photo.jpg`]);
+    const [{ id: post }] = await q(
+      Za,
+      `insert into public.posts (chapter_slug, body, is_anonymous) values ('learning', 'Quietly', true) returning id`,
+    );
+    await su(`insert into public.post_media (post_id, kind, storage_path) values ($1, 'photo', 'anon/zed.jpg')`, [post]);
+    const files = await su(`select bucket, path from public.files_left_by($1) order by bucket`, [Za]);
+    check(
+      "their chat files and anonymous photos are listed, nobody else's",
+      files.length === 2 && files[0].path === `${dm}/${Za}/voice.m4a` && files[1].path === "anon/zed.jpg",
+      files,
+    );
+    await fails("only the server can list them", Zb, `select * from public.files_left_by($1)`, [Za], "permission denied");
+  });
+
+  await step("realtime deletes don't name people", async () => {
+    const rows = await su(
+      `select relname, relreplident from pg_class where relname in ('live_room_presence', 'conversation_members') and relnamespace = 'public'::regnamespace`,
+    );
+    check("presence and chat members use a random id as replica identity", rows.length === 2 && rows.every((r) => r.relreplident === "i"), rows);
+  });
+
+  await step("someone's Grouv keeps other people's bonds private", async () => {
+    await su(`insert into public.bonds (inviter_id, invitee_id, status, accepted_at) values ($1, $2, 'active', now())`, [Za, Zb]);
+    const fromC = await q(Zc, `select user_id, relationship from public.grouv_people($1)`, [Za]);
+    check("a mutual friend sees the bond as circle", fromC.find((r) => r.user_id === Zb)?.relationship === "circle", fromC);
+    const fromB = await q(Zb, `select user_id, relationship from public.grouv_people($1)`, [Za]);
+    check("the bonded person still sees their bond", fromB.find((r) => r.user_id === Zb)?.relationship === "bond", fromB);
+  });
+}
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);
 process.exit(failures.length ? 1 : 0);

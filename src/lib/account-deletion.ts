@@ -4,17 +4,38 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Deletes an account for good. Deleting the auth user cascades through every
- * table; uploaded files aren't rows, so their folders are emptied first, and
- * the RevenueCat customer goes last.
+ * table; uploaded files aren't rows, so their folders are emptied first (plus
+ * chat attachments and anonymous files, which live outside them), and the
+ * RevenueCat customer goes last.
  */
 export async function purgeAccount(userId: string): Promise<{ error?: string }> {
   const admin = createAdminClient();
   const { data: subscription } = await admin.from("subscriptions").select("billing_store").eq("user_id", userId).maybeSingle();
 
   for (const bucket of ["avatars", "media"] as const) {
-    const { data: files } = await admin.storage.from(bucket).list(userId, { limit: 1000 });
-    if (files?.length) {
-      await admin.storage.from(bucket).remove(files.map((file) => `${userId}/${file.name}`));
+    // Pages of 1000 until the folder is empty.
+    for (let page = 0; page < 20; page++) {
+      const { data: files } = await admin.storage.from(bucket).list(userId, { limit: 1000 });
+      if (!files?.length) break;
+      const { error } = await admin.storage.from(bucket).remove(files.map((file) => `${userId}/${file.name}`));
+      if (error) {
+        console.warn("[account-deletion] couldn't empty a folder", bucket, error.message);
+        break;
+      }
+    }
+  }
+
+  // Must run before deleteUser: the cascade removes the rows that say whose these were.
+  const { data: leftovers, error: leftoversError } = await admin.rpc("files_left_by", { p_user: userId });
+  if (leftoversError) {
+    console.error("[account-deletion] listing chat and anonymous files failed", userId, leftoversError);
+    return { error: leftoversError.message };
+  }
+  for (const bucket of ["chat", "media"] as const) {
+    const paths = (leftovers ?? []).filter((f) => f.bucket === bucket).map((f) => f.path);
+    for (let i = 0; i < paths.length; i += 500) {
+      const { error } = await admin.storage.from(bucket).remove(paths.slice(i, i + 500));
+      if (error) console.warn("[account-deletion] couldn't remove files", bucket, error.message);
     }
   }
 

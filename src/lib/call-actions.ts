@@ -12,12 +12,16 @@ type CallResult = {
   connection?: CallConnection;
 };
 
-/** A LiveKit token for one call's room, valid long enough for a long call. */
+/**
+ * A LiveKit token for one call's room. It only needs to last until the join:
+ * LiveKit hands connected clients fresh tokens for reconnects, so a leaked
+ * one is useless after a few minutes.
+ */
 async function connectionFor(callId: string, userId: string, name: string): Promise<CallConnection> {
   const token = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
     identity: userId,
     name,
-    ttl: "6h",
+    ttl: "10m",
   });
   // canUpdateOwnMetadata lets each side publish its public E2EE key (see call-e2ee.ts).
   token.addGrant({
