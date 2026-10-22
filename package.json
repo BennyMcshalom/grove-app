@@ -12,7 +12,7 @@
     "db:test": "node --max-opt=1 scripts/db-test/scenarios.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": "26.x"
   },
   "dependencies": {
     "@revenuecat/purchases-js": "^1.60.1",
