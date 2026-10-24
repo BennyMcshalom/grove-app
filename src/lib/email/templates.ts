@@ -346,3 +346,38 @@ export function messageEmail(input: MessageEmailInput): Email {
     `),
   };
 }
+
+export type AuthCodePurpose = "signup" | "recovery" | "password_change";
+
+const AUTH_CODE_COPY: Record<AuthCodePurpose, { subject: string; lead: string; ignore: string }> = {
+  signup: {
+    subject: "Your Grouv code",
+    lead: "Here's your code to begin your chapter:",
+    ignore: "If you didn't try to join Grouv, you can ignore this email.",
+  },
+  recovery: {
+    subject: "Reset your Grouv password",
+    lead: "Here's your code to reset your Grouv password:",
+    ignore: "If you didn't ask to reset your password, ignore this email — your password stays as it is.",
+  },
+  password_change: {
+    subject: "Your Grouv password code",
+    lead: "Here's your code to change your Grouv password:",
+    ignore: "If you didn't ask to change your password, don't share this code with anyone — your password stays as it is.",
+  },
+};
+
+/** The 6-digit codes for sign-up and passwords (same words as supabase/templates). */
+export function authCodeEmail({ to, code, purpose }: { to: string; code: string; purpose: AuthCodePurpose }): Email {
+  const copy = AUTH_CODE_COPY[purpose];
+  return {
+    to,
+    subject: copy.subject,
+    text: `${copy.lead} ${code}\n\nIt expires in 8 minutes. ${copy.ignore}`,
+    html: layout(`
+      <p style="margin:0 0 16px;">${escapeHtml(copy.lead)}</p>
+      <p style="margin:0 0 16px;font-size:32px;font-weight:700;letter-spacing:8px;">${escapeHtml(code)}</p>
+      <p style="margin:0;color:#6B7280;font-size:14px;">It expires in 8 minutes. ${escapeHtml(copy.ignore)}</p>
+    `),
+  };
+}

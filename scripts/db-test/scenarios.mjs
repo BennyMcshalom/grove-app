@@ -240,9 +240,10 @@ await step("feed reads", async () => {
     `insert into public.posts (chapter_slug, title, body, progress) values ('career', 'Named in career', 'Honest', 'almost_done') returning id`,
   );
   const bHome = await q(B, `select id from public.feed_posts('home')`);
-  check("home: a shared space alone brings nothing", bHome.length === 0, bHome);
+  // Since 20261024100000 a named post reaches everyone holding its Space.
+  check("home: a shared space brings its named posts", bHome.length === 1, bHome);
   const bRoots = await q(B, `select id from public.feed_posts('roots', 'career')`);
-  check("roots: non-connections stay out, anonymous or not", bRoots.length === 0, bRoots);
+  check("roots: named posts reach everyone in the space", bRoots.length === 1, bRoots);
 
   // Open Grouv: posts that reach past your connections, as often as you like
   // (no longer once a month — see 20261002100100).
@@ -2659,6 +2660,7 @@ await step("group admins: manage, never delete", async () => {
 
   await step("hardening: media follows the row that holds it", async () => {
     const [{ id: post }] = await q(P2, `insert into public.posts (chapter_slug, body) values ('learning', 'With a photo') returning id`);
+    await su(`update public.posts set space_wide = false where id = $1`, [post]);
     await q(P2, `insert into public.post_media (post_id, kind, storage_path) values ($1, 'photo', $2)`, [post, `${P2}/post-1.jpg`]);
     const [{ id: uc }] = await su(`select id from public.user_chapters where user_id = $1`, [P2]);
     await q(
@@ -2908,6 +2910,35 @@ await step("group admins: manage, never delete", async () => {
     check("the bonded person still sees their bond", fromB.find((r) => r.user_id === Zb)?.relationship === "bond", fromB);
   });
 }
+
+// --- posts reach the whole Space (20261024100000) --------------------------------
+await step("home shows posts from everyone in your Spaces", async () => {
+  const Sa = await person("Suki", learning);
+  const Sb = await person("Sam", learning);
+  const Sc = await person("Sid", [{ slug: "career", phase: "Starting over" }]);
+  const Sd = await person("Sky", learning);
+  const post = async (body, extra = "") =>
+    (await q(Sa, `insert into public.posts (chapter_slug, body${extra ? ", is_anonymous" : ""}) values ('learning', $1${extra ? ", true" : ""}) returning id`, [body]))[0].id;
+  const named = await post("Hello learners");
+  const anon = await post("Quiet one", "anon");
+  const old = await post("Before the change");
+  await su(`update public.posts set space_wide = false where id = $1`, [old]);
+  const home = async (who) => (await q(who, `select id from public.feed_posts('home')`)).map((r) => r.id);
+
+  const forB = await home(Sb);
+  check("a stranger in the same Space sees a new post on Home", forB.includes(named), forB);
+  check("posts from before the change stay with the circle", !forB.includes(old), forB);
+  check("anonymous posts stay with the circle", !forB.includes(anon), forB);
+  check("the post reads directly too", (await q(Sb, `select id from public.posts where id = $1`, [named])).length === 1);
+  check("someone outside the Space doesn't see it", !(await home(Sc)).includes(named));
+
+  await q(Sd, `select public.block_user($1)`, [Sa]);
+  check("blocking hides it", !(await home(Sd)).includes(named));
+  check("and the post itself", (await q(Sd, `select id from public.posts where id = $1`, [named])).length === 0);
+
+  await su(`update public.posts set created_at = now() - interval '49 hours' where id = $1`, [named]);
+  check("it leaves strangers' Home after 48 hours", !(await home(Sb)).includes(named));
+});
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);

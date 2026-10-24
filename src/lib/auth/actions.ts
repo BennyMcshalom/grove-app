@@ -4,10 +4,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { emailSchema, newPasswordSchema } from "@/lib/auth/schemas";
+import { resendSignUpCode, sendPasswordCode, startSignUp } from "@/lib/auth/codes";
 import { safeNext } from "@/lib/auth/safe-next";
 import { sessionNeedsTwoStep } from "@/lib/auth/two-step-check";
 import { landingPath } from "@/lib/auth/viewer";
-import { requestOrigin, siteUrl } from "@/lib/site-url";
+import { requestOrigin } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import { LIMITS, TOO_MANY, clientIp, withinLimits } from "@/lib/rate-limit";
 
@@ -63,29 +64,21 @@ export async function signUp(_state: AuthFormState, formData: FormData): Promise
   };
   const parsed = SignUpSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: firstErrors(parsed.error), values };
-  if (!(await withinLimits([LIMITS.signUpIp(await clientIp())]))) return { error: TOO_MANY, values };
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      data: { first_name: parsed.data.firstName, terms_accepted: true },
-      emailRedirectTo: `${await siteUrl()}/auth/callback`,
-    },
-  });
-
-  if (error) {
-    if (error.code === "weak_password") return { fieldErrors: { password: error.message }, values };
-    if (error.code === "over_email_send_rate_limit") {
-      return { error: "Too many codes sent. Wait a minute and try again.", values };
-    }
-    return { error: "We couldn't create your account. Try again in a moment.", values };
+  if (!(await withinLimits([LIMITS.signUpIp(await clientIp()), LIMITS.codeSendEmail(parsed.data.email)]))) {
+    return { error: TOO_MANY, values };
   }
 
-  // An address that already has an account gets no code (Supabase sends
-  // nothing), but the screen looks the same either way, so sign-up can't be
-  // used to find out who's on Grouv. The code screen points to sign-in.
+  const result = await startSignUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    data: { first_name: parsed.data.firstName, terms_accepted: true },
+  });
+  if (result.weakPassword) return { fieldErrors: { password: result.weakPassword }, values };
+  if (result.error) return { error: result.error, values };
+
+  // An address that already has an account gets no code, but the screen
+  // looks the same either way, so sign-up can't be used to find out who's on
+  // Grouv. The code screen points to sign-in.
   await rememberPendingEmail(parsed.data.email);
   redirect("/verify");
 }
@@ -103,7 +96,7 @@ export async function signIn(_state: AuthFormState, formData: FormData): Promise
 
   if (error?.code === "email_not_confirmed") {
     // They signed up but never entered the code; send a fresh one.
-    await supabase.auth.resend({ type: "signup", email: parsed.data.email });
+    if (await withinLimits([LIMITS.codeSendEmail(parsed.data.email)])) await resendSignUpCode(parsed.data.email);
     await rememberPendingEmail(parsed.data.email);
     redirect("/verify");
   }
@@ -184,18 +177,7 @@ export async function resendCode(): Promise<{ error?: string }> {
     return { error: "Wait a few minutes before asking for another code." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.resend({ type: "signup", email: pendingEmail });
-
-  if (error) {
-    return {
-      error:
-        error.code === "over_email_send_rate_limit"
-          ? "Wait a minute before asking for another code."
-          : "We couldn't send a new code. Try again shortly.",
-    };
-  }
-  return {};
+  return resendSignUpCode(pendingEmail);
 }
 
 /**
@@ -221,12 +203,8 @@ export async function requestPasswordReset(email: string): Promise<{ error?: str
     return { error: "Wait a few minutes before asking for another code." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data);
-  if (error?.code === "over_email_send_rate_limit") {
-    return { error: "Wait a minute before asking for another code." };
-  }
-  if (error) console.error("[auth] resetPasswordForEmail failed", error.code);
+  const { error } = await sendPasswordCode(parsed.data, "recovery");
+  if (error) return { error };
   return { email: parsed.data };
 }
 

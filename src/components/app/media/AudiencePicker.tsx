@@ -24,7 +24,7 @@ export type ShareChoice = "selected_bonds" | "everyone" | "anonymous" | "open";
 
 export const SHARE_OPTIONS: { value: ShareChoice; label: string; hint: string }[] = [
   { value: "selected_bonds", label: "Selected Bonds", hint: "Choose specific Bonds to share with" },
-  { value: "everyone", label: "Everyone", hint: "Your whole Grouv circle" },
+  { value: "everyone", label: "Everyone", hint: "Your circle and everyone in this Space" },
   { value: "anonymous", label: "Anonymously", hint: "Your circle sees it without your name or photo" },
   { value: "open", label: "Open Grouv", hint: "Reach people at your stage beyond your circle" },
 ];

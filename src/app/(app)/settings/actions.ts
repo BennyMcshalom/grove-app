@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { sendPasswordCode as emailPasswordCode } from "@/lib/auth/codes";
 import { newPasswordSchema } from "@/lib/auth/schemas";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { isBannerKey } from "@/lib/banners";
@@ -22,6 +23,7 @@ import { siteUrl } from "@/lib/site-url";
 import { billingEnabled, billingState, fetchSubscriber, syncBilling } from "@/lib/revenuecat";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/env";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { LIMITS, TOO_MANY, withinLimits } from "@/lib/rate-limit";
 
@@ -489,22 +491,14 @@ export async function changePassword(current: string, next: string): Promise<Act
   return savePassword(supabase, { password: parsed.data });
 }
 
-/** "Forgot your current password?" — emails a 6-digit code to the account. */
+/** "Forgot your current password?" — emails a 6-digit code to the account (see lib/auth/codes). */
 export async function sendPasswordCode(): Promise<ActionResult> {
   const viewer = await requireOnboardedViewer();
   if (!(await withinLimits([LIMITS.passwordChange(viewer.userId)]))) return { error: TOO_MANY };
   const supabase = await createClient();
-  const { error } = await supabase.auth.reauthenticate();
-  if (error) {
-    console.error("[settings] reauthenticate failed", error);
-    return {
-      error:
-        error.code === "over_email_send_rate_limit"
-          ? "Wait a minute before asking for another code."
-          : "We couldn't send a code. Try again shortly.",
-    };
-  }
-  return {};
+  const { data } = await supabase.auth.getUser();
+  if (!data.user?.email) return { error: "We couldn't find your account's email." };
+  return emailPasswordCode(data.user.email, "password_change");
 }
 
 /** Change it with the emailed code instead of the current password. */
@@ -513,16 +507,39 @@ export async function changePasswordWithCode(code: string, next: string): Promis
   if (!(await withinLimits([LIMITS.passwordChange(viewer.userId)]))) return { error: TOO_MANY };
   const parsed = newPasswordSchema.safeParse(next);
   if (!parsed.success) return { fieldErrors: { password: parsed.error.issues[0].message } };
-  const nonce = code.replace(/\s/g, "");
-  if (!/^\d{6,10}$/.test(nonce)) return { fieldErrors: { code: "Enter the code from the email." } };
+  const token = code.replace(/\s/g, "");
+  if (!/^\d{6}$/.test(token)) return { fieldErrors: { code: "Enter the 6-digit code from the email." } };
 
   const supabase = await createClient();
-  return savePassword(supabase, { password: parsed.data, nonce });
+  const { data } = await supabase.auth.getUser();
+  const email = data.user?.email;
+  if (!email) return { error: "We couldn't find your account's email." };
+
+  // The code is checked on a throwaway client, so the viewer's own session is
+  // untouched; the extra session it makes is signed out straight away.
+  const checker = createSupabaseClient(supabaseUrl(), supabasePublishableKey(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: checked, error: wrong } = await checker.auth.verifyOtp({ email, token, type: "recovery" });
+  if (wrong || checked.user?.id !== viewer.userId) {
+    return { fieldErrors: { code: "That code is wrong or has expired. Ask for a new one." } };
+  }
+
+  // The code proved it's them, which is what Supabase's own reauthentication
+  // nonce was for, so the new password is saved with the server key.
+  const { error } = await createAdminClient().auth.admin.updateUserById(viewer.userId, { password: parsed.data });
+  await checker.auth.signOut({ scope: "local" });
+  if (error) {
+    if (error.code === "weak_password") return { fieldErrors: { password: error.message } };
+    console.error("[settings] updateUserById(password) failed", error);
+    return { error: "We couldn't change your password. Try again." };
+  }
+  return {};
 }
 
 async function savePassword(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  attributes: { password: string; nonce?: string },
+  attributes: { password: string },
 ): Promise<ActionResult> {
   const { error } = await supabase.auth.updateUser(attributes);
   if (!error) return {};

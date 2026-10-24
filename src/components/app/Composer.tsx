@@ -357,7 +357,12 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
                 title: isRoot ? "Post rooted." : "Post Grouved.",
                 description: `Only the ${audienceIds.length === 1 ? "Bond" : `${audienceIds.length} Bonds`} you chose will see this post.`,
               }
-            : { title: isRoot ? "Post rooted. Your Circle will see this post." : "Post Grouved. Your Circle will see this post." },
+            : share === "everyone"
+              ? {
+                  title: isRoot ? "Post rooted." : "Post Grouved.",
+                  description: "Your Circle and everyone in this Space will see this post.",
+                }
+              : { title: isRoot ? "Post rooted. Your Circle will see this post." : "Post Grouved. Your Circle will see this post." },
       );
       clearDraft();
       onClose?.();
