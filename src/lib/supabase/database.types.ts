@@ -516,7 +516,7 @@ export type Database = {
           body: string | null;
           is_anonymous: boolean;
           open_grove: boolean;
-          /** Reaches everyone holding the Space for 48 hours (posts from 2026-10-24 on). */
+          /** Reaches everyone holding the Space for 48 hours. */
           space_wide: boolean;
           audience: Audience;
           roots_count: number;
