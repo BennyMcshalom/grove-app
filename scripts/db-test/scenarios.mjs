@@ -2940,6 +2940,20 @@ await step("home shows posts from everyone in your Spaces", async () => {
   check("it leaves strangers' Home after 48 hours", !(await home(Sb)).includes(named));
 });
 
+// --- waitlist trial (20261027100000) ----------------------------------------------
+await step("waitlist members get a 30-day trial", async () => {
+  await su(`insert into private.waitlist (email) values ('early@x.com')`);
+  const make = async (email) => {
+    const [{ id }] = await su(`insert into auth.users (email, raw_user_meta_data) values ($1, '{"first_name":"W"}') returning id`, [email]);
+    await su(`update auth.users set email_confirmed_at = now() where id = $1`, [id]);
+    const [row] = await su(`select round(extract(epoch from trial_ends_at - trial_started_at) / 86400) days from public.subscriptions where user_id = $1`, [id]);
+    return Number(row.days);
+  };
+  check("an address from the waitlist starts 30 days", (await make("Early@X.com")) === 30);
+  check("everyone else starts 14", (await make("late@x.com")) === 14);
+  await fails("nobody can read the waitlist", A, `select * from private.waitlist`, [], "permission denied");
+});
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);
 process.exit(failures.length ? 1 : 0);
