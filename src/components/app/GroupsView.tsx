@@ -47,6 +47,7 @@ export function GroupsView({
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       <TopBar
         title="Chapter Groups"
+        guide="groups-events"
         back="/spaces"
         desktopActions={<AdminToggle on={adminMode} onChange={setAdminMode} />}
       />

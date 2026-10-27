@@ -66,7 +66,7 @@ export function LogView({
   if (!held || !chapter) {
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <TopBar title="Grouv Log" />
+        <TopBar title="Grouv Log" guide="log" />
         {/* Wraps outlive chapters: keep them reachable with none open. */}
         <div className="mx-auto w-full max-w-[708px] px-4 pt-6 lg:px-0">
           <WrappedLogCard />
@@ -94,7 +94,7 @@ export function LogView({
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBar title="Grouv Log" />
+        <TopBar title="Grouv Log" guide="log" />
 
         <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
           <div className="mx-auto flex w-full max-w-[708px] flex-col items-center gap-8 pb-10">

@@ -1,5 +1,6 @@
 "use client";
 
+import { FeatureGuide } from "@/components/app/FeatureGuide";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
 import { BlockDialog, ReportPersonModal } from "@/components/app/bonds/SafetyDialogs";
@@ -113,7 +114,10 @@ export function MatchesModal({ onClose }: { onClose: () => void }) {
           ) : (
             <>
               <header className="flex flex-col items-center gap-2 text-center text-white">
-                <h2 className="font-display text-2xl font-semibold lg:text-4xl">We found some potential connections</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-display text-2xl font-semibold lg:text-4xl">We found some potential connections</h2>
+                  <FeatureGuide id="people-discovery" className="border-white/60 text-white hover:text-primary-800" />
+                </div>
                 <p className="font-sans text-base lg:text-lg">
                   We found a few people who may be a good fit for where you are right now.
                 </p>

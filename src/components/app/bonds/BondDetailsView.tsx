@@ -46,7 +46,7 @@ export function BondDetailsView({ details, checkins }: { details: BondDetails; c
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <TopBar title="Bond Details" back="/bonds" />
+      <TopBar title="Bond Details" back="/bonds" guide="bonds" />
 
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto bg-ivory-100 px-4 py-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[1088px] flex-col gap-6 pb-10">

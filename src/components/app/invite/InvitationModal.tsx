@@ -1,5 +1,6 @@
 "use client";
 
+import { FeatureGuide } from "@/components/app/FeatureGuide";
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/app/ToastProvider";
 import { InvitationActions } from "@/components/app/invite/InvitationActions";
@@ -38,7 +39,8 @@ export function InvitationModal({
 
   return (
     <Modal label="Chapter invitation" onClose={onClose}>
-      <div className="-mb-4 flex justify-end">
+      <div className="-mb-4 flex items-center justify-between">
+        {invite ? <FeatureGuide id="chapter-invitation" name={invite.senderName} /> : <span />}
         <ModalClose onClose={onClose} className="-mt-3 -mr-3" />
       </div>
       {invite === undefined ? (

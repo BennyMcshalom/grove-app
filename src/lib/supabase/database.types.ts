@@ -544,6 +544,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      guide_views: {
+        Row: { user_id: string; guide: string; seen_at: string };
+        Insert: { user_id?: string; guide: string };
+        Update: never;
+        Relationships: [];
+      };
       match_preferences: ReadOnlyTable<{
         user_id: string;
         life_stages: string[];

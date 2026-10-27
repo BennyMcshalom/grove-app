@@ -1,5 +1,6 @@
 "use client";
 
+import { FeatureGuide } from "@/components/app/FeatureGuide";
 import { BondMark } from "@/components/app/BondMark";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -88,7 +89,10 @@ export function BondsView({
           chatOpen ? "hidden" : "flex",
         )}
       >
-        <h1 className="font-display text-2xl font-semibold text-ink-600">Bonds</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-display text-2xl font-semibold text-ink-600">Bonds</h1>
+          <FeatureGuide id="bonds" />
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">

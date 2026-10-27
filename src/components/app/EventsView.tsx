@@ -65,7 +65,7 @@ export function EventsView({ events, rooms }: { events: EventCard[]; rooms: Live
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBar title="Events" back="/home" />
+        <TopBar title="Events" back="/home" guide="groups-events" />
 
         <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-4 lg:px-8">
           <div className="mx-auto flex w-full max-w-[724px] flex-col gap-6 pb-10">

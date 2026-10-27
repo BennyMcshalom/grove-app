@@ -79,7 +79,7 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
       .eq("user_id", userId)
       .single();
 
-  const [firstChapters, firstSubscription, unread, focus, messages] = await Promise.all([
+  const [firstChapters, firstSubscription, unread, focus, messages, guides] = await Promise.all([
     loadChapters(),
     loadSubscription(),
     supabase
@@ -98,6 +98,7 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
       .limit(1)
       .maybeSingle(),
     supabase.rpc("my_unread_messages"),
+    supabase.from("guide_views").select("guide").eq("user_id", userId),
   ]);
 
   const focusRunning =
@@ -145,6 +146,7 @@ export const getShellViewer = cache(async (): Promise<ShellViewer> => {
     focusReturnPending: Boolean(focus.data) && !focusRunning,
     theme: viewer.profile.theme,
     callsEnabled: callsEnabled(),
+    seenGuides: (guides.data ?? []).map((g) => g.guide),
   };
 });
 

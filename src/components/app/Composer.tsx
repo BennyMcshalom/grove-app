@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Avatar } from "@/components/app/Avatar";
+import { FeatureGuide } from "@/components/app/FeatureGuide";
 import { MentionInput, useMentionPicks, type MentionPicks } from "@/components/app/MentionInput";
 import { PostingToMenu } from "@/components/app/PostMenu";
 import { useToast } from "@/components/app/ToastProvider";
@@ -505,24 +506,28 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         </button>
       </header>
 
-      <div role="tablist" className="flex">
-        {MODES.map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={m === mode}
-            onClick={() => setMode(m)}
-            className={cn(
-              "h-10 flex-1 border-b-2 px-4 py-2 font-sans text-sm font-medium transition-colors",
-              m === mode
-                ? "border-primary-600 text-ink-500"
-                : "border-ivory-600 text-ink-400 hover:text-ink-500",
-            )}
-          >
-            {m}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <div role="tablist" className="flex flex-1">
+          {MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={m === mode}
+              onClick={() => setMode(m)}
+              className={cn(
+                "h-10 flex-1 border-b-2 px-4 py-2 font-sans text-sm font-medium transition-colors",
+                m === mode
+                  ? "border-primary-600 text-ink-500"
+                  : "border-ivory-600 text-ink-400 hover:text-ink-500",
+              )}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        {/* Opens by itself the first time they switch to Just Grouv. */}
+        <FeatureGuide id="just-grouv" auto={mode === "Just Grouv"} afterAction />
       </div>
 
       {savedDraft && (

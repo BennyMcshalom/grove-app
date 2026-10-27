@@ -4,6 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { BackButton, defaultBack } from "@/components/app/BackButton";
+import { FeatureGuide } from "@/components/app/FeatureGuide";
+import type { GuideId } from "@/lib/guides";
 import { NotificationsPanel } from "@/components/app/NotificationsPanel";
 import { useUnread } from "@/components/app/Unread";
 import { useViewer } from "@/components/app/ViewerProvider";
@@ -23,6 +25,7 @@ export function TopBar({
   unread: unreadOverride,
   title,
   icon,
+  guide,
   back,
   desktopActions,
   phoneOnly = false,
@@ -36,6 +39,8 @@ export function TopBar({
   title?: string;
   /** Event View (452:9877) prefixes its title with a primary-50 glyph. */
   icon?: React.ReactNode;
+  /** A "?" after the title that explains the screen (src/lib/guides.ts). */
+  guide?: GuideId;
   /**
    * Where the back arrow goes when there's no in-app page to return to.
    * Pages below a top-level destination get one by default (their parent).
@@ -151,6 +156,7 @@ export function TopBar({
           <h1 className="truncate font-display text-2xl font-semibold text-ink-600">
             {title}
           </h1>
+          {guide && <FeatureGuide id={guide} />}
         </div>
       ) : (
         tabs
@@ -168,6 +174,7 @@ export function TopBar({
           <h1 className="font-display text-2xl font-semibold text-ink-600">
             {title}
           </h1>
+          {guide && <FeatureGuide id={guide} />}
         </div>
       ) : (
         tabs

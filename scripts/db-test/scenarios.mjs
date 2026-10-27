@@ -2954,6 +2954,18 @@ await step("waitlist members get a 30-day trial", async () => {
   await fails("nobody can read the waitlist", A, `select * from private.waitlist`, [], "permission denied");
 });
 
+// --- feature guides (20261027100100) ---------------------------------------------
+await step("feature guides remember who closed what", async () => {
+  const Ga = await person("Gwen", learning);
+  const Gb = await person("Gil", learning);
+  await q(Ga, `insert into public.guide_views (guide) values ('spaces')`);
+  const mine = await q(Ga, `select guide from public.guide_views`);
+  check("they see the guide they closed", mine.length === 1 && mine[0].guide === "spaces", mine);
+  check("nobody else sees it", (await q(Gb, `select guide from public.guide_views`)).length === 0);
+  await fails("can't mark one for someone else", Gb, `insert into public.guide_views (user_id, guide) values ($1, 'log')`, [Ga], "row-level security");
+  await fails("guide names are short slugs", Ga, `insert into public.guide_views (guide) values ('<script>')`, [], "check constraint");
+});
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);
 process.exit(failures.length ? 1 : 0);

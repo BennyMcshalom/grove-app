@@ -1,5 +1,6 @@
 "use client";
 
+import { FeatureGuide } from "@/components/app/FeatureGuide";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/app/TopBar";
@@ -69,6 +70,7 @@ function ChooseDuration() {
             <h1 className="font-display text-xl leading-[1.04] font-semibold text-ink-800 sm:text-2xl lg:text-3xl">
               Go into Deep Focus
             </h1>
+            <FeatureGuide id="deep-focus" />
             <p className="max-w-[505px] font-sans text-sm text-ink-400">
               Grouv locks until you choose to return. No counter waiting for you when you come back.
             </p>

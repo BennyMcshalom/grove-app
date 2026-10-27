@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { FeatureGuide } from "@/components/app/FeatureGuide";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { WrappedReadyCard } from "@/components/app/wrapped/WrappedReadyCard";
 import type { Introduction } from "@/lib/matches";
@@ -96,6 +97,10 @@ export function ChapterToday({
 
   return (
     <section aria-label="Chapter today" className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <h2 className="font-sans text-xs font-semibold uppercase tracking-wide text-ink-400">Your chapter today</h2>
+        <FeatureGuide id="chapter-today" />
+      </div>
       {replyCards.map((intro) => (
         <TodayCard
           key={intro.connectionId}

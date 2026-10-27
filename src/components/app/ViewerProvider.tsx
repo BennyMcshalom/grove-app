@@ -55,6 +55,8 @@ export interface ShellViewer {
   theme: "light" | "dark";
   /** LiveKit is configured, so bond chats can place calls. */
   callsEnabled: boolean;
+  /** Feature guides they've closed (src/lib/guides.ts); those don't open by themselves again. */
+  seenGuides: string[];
 }
 
 const ViewerContext = createContext<ShellViewer | null>(null);

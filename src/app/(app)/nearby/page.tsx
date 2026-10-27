@@ -182,7 +182,7 @@ export default function NearbyPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <TopBar title="Nearby" back="/home" />
+      <TopBar title="Nearby" back="/home" guide="nearby" />
 
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto p-4 lg:p-8">
         {denied ? (

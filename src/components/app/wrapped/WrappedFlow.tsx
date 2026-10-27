@@ -1,5 +1,6 @@
 "use client";
 
+import { FeatureGuide } from "@/components/app/FeatureGuide";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { usePaywall } from "@/components/app/pass/PaywallProvider";
@@ -131,7 +132,14 @@ export function WrappedFlow({ start, onClose }: { start: WrappedStart; onClose: 
     <Modal label="Life Wrapped" onClose={onClose}>
       {step.name === "range" && (
         <>
-          <ModalHeader title="Choose a time range" onClose={onClose} />
+          <ModalHeader
+            title={
+              <span className="flex items-center gap-2">
+                Choose a time range <FeatureGuide id="wrapped" />
+              </span>
+            }
+            onClose={onClose}
+          />
           <p className="-mt-2 font-sans text-sm text-ink-300">Pick what your Life Wrapped should cover.</p>
           <div className="flex flex-col gap-4">
             {RANGES.map((r) => (
