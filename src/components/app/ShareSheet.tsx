@@ -14,7 +14,8 @@ export type ShareChannel =
   | "telegram"
   | "email"
   | "sms"
-  | "copy";
+  | "copy"
+  | "image";
 
 /**
  * The one way Grouv shares a link. On a phone with a system share sheet it
@@ -22,12 +23,14 @@ export type ShareChannel =
  * desktop browsers mostly have no `navigator.share`, or one that opens an
  * empty OS dialog — it opens our own sheet of apps.
  *
- * `trigger` renders whatever button the screen draws and gets `open`.
+ * `trigger` renders whatever button the screen draws and gets `open`. With
+ * `image`, our sheet always opens so "Save image" is there to pick.
  */
 export function ShareSheet({
   url,
   title,
   text,
+  image,
   onShared,
   trigger,
 }: {
@@ -36,6 +39,8 @@ export function ShareSheet({
   title: string;
   /** A line to go with the link (the link is added for each app). */
   text?: string;
+  /** Draws what's shared as a PNG, for "Save image". */
+  image?: () => Promise<File>;
   /** Told which way the link left, e.g. to count referral invites. */
   onShared?: (channel: ShareChannel) => void;
   trigger: (open: () => void) => React.ReactNode;
@@ -43,7 +48,7 @@ export function ShareSheet({
   const [sheet, setSheet] = useState(false);
 
   const open = async () => {
-    if (isPhone() && typeof navigator.share === "function") {
+    if (!image && isPhone() && typeof navigator.share === "function") {
       try {
         await navigator.share({ title, text, url });
         onShared?.("native");
@@ -60,7 +65,14 @@ export function ShareSheet({
     <>
       {trigger(() => void open())}
       {sheet && (
-        <SharePanel url={url} title={title} text={text} onShared={onShared} onClose={() => setSheet(false)} />
+        <SharePanel
+          url={url}
+          title={title}
+          text={text}
+          image={image}
+          onShared={onShared}
+          onClose={() => setSheet(false)}
+        />
       )}
     </>
   );
@@ -75,17 +87,20 @@ function SharePanel({
   url,
   title,
   text,
+  image,
   onShared,
   onClose,
 }: {
   url: string;
   title: string;
   text?: string;
+  image?: () => Promise<File>;
   onShared?: (channel: ShareChannel) => void;
   onClose: () => void;
 }) {
   const toast = useToast();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [drawing, setDrawing] = useState(false);
   const message = text ? `${text} ${url}` : url;
   const e = encodeURIComponent;
 
@@ -117,7 +132,54 @@ function SharePanel({
     onClose();
   };
 
+  // Phones hand the PNG to the system sheet (Save to Photos, Instagram…);
+  // elsewhere, or if that's refused, it downloads.
+  const saveImage = async (make: () => Promise<File>) => {
+    if (drawing) return;
+    setDrawing(true);
+    try {
+      const file = await make();
+      let shared = false;
+      if (isPhone() && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title });
+          shared = true;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+        }
+      }
+      if (!shared) {
+        const href = URL.createObjectURL(file);
+        const a = document.createElement("a");
+        a.href = href;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(href), 1000);
+        toast({ title: "Image saved", tone: "confirm" });
+      }
+      onShared?.("image");
+      onClose();
+    } catch {
+      toast({ title: "Couldn’t make the image", tone: "danger" });
+    } finally {
+      setDrawing(false);
+    }
+  };
+
   const targets: { channel: ShareChannel; label: string; icon: React.ReactNode; tile: string; run: () => void }[] = [
+    ...(image
+      ? [
+          {
+            channel: "image" as const,
+            label: drawing ? "Saving…" : "Save image",
+            icon: <ImageIcon />,
+            tile: "bg-primary-600 text-white",
+            run: () => void saveImage(image),
+          },
+        ]
+      : []),
     {
       channel: "whatsapp",
       label: "WhatsApp",
@@ -255,8 +317,9 @@ function SharePanel({
           ))}
         </ul>
 
-        {/* A desktop that does have a system sheet (Safari, Edge on Windows). */}
-        {canNative && !isPhone() && (
+        {/* A desktop that does have a system sheet (Safari, Edge on Windows),
+            or a phone whose sheet we skipped to offer the image. */}
+        {canNative && (!isPhone() || image) && (
           <button
             type="button"
             onClick={() => {
@@ -343,6 +406,16 @@ function MessageIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V5.5Z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ImageIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <rect x="3.5" y="4" width="17" height="16" rx="2.5" />
+      <circle cx="9" cy="9.5" r="1.6" />
+      <path d="m4 17 4.5-4.5 3.5 3.5 2.5-2.5L20 19" strokeLinejoin="round" />
     </svg>
   );
 }

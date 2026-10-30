@@ -1251,6 +1251,8 @@ export type Database = {
           seen_at: string | null;
           created_at: string;
           responded_at: string | null;
+          their_message_at: string | null;
+          my_message_at: string | null;
         }[];
       };
       mark_introductions_seen: { Args: Record<string, never>; Returns: number };

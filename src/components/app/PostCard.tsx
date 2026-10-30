@@ -189,6 +189,12 @@ export function PostCard({
           <ShareSheet
             url={`${typeof window === "undefined" ? "" : window.location.origin}/posts/${post.id}`}
             title="A post on Grouv"
+            // A post kept to a few people isn't drawn to share onwards.
+            image={
+              post.mine || post.audience === "everyone"
+                ? () => import("@/components/app/postImage").then(({ postImage }) => postImage(post))
+                : undefined
+            }
             trigger={(open) => (
               <Action icon={<ShareIcon className="size-6" />} label="Share" tone="outline" onClick={open} />
             )}

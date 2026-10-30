@@ -1814,6 +1814,14 @@ await step("home: matches, introductions and post audience", async () => {
   check("the sender hears yes", yes.length === 1);
   const [{ open_direct_conversation: chat }] = await q(H, `select public.open_direct_conversation($1)`, [I]);
   check("chat unlocks after acceptance", Boolean(chat));
+  const [accepted] = await q(H, `select * from public.my_introductions()`);
+  check("a yes alone isn't a reply", accepted.status === "accepted" && accepted.their_message_at === null && accepted.my_message_at === null, accepted);
+  await q(I, `insert into public.messages (conversation_id, sender_id, body) values ($1, $2, 'Hey Hana!')`, [chat, I]);
+  const [replied] = await q(H, `select * from public.my_introductions()`);
+  check("their message is the reply", replied.their_message_at !== null && replied.my_message_at === null, replied);
+  await q(H, `insert into public.messages (conversation_id, sender_id, body) values ($1, $2, 'Hi Ivo')`, [chat, H]);
+  const [answered] = await q(H, `select * from public.my_introductions()`);
+  check("your answer is seen too", answered.my_message_at !== null && answered.my_message_at >= answered.their_message_at, answered);
 
   const [second] = await q(H, `select * from public.introduce_yourself($1, 'Hello Jae')`, [J]);
   await q(J, `select public.respond_to_connection($1, false)`, [second.id]);

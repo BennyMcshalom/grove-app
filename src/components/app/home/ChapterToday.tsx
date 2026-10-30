@@ -74,19 +74,26 @@ export function ChapterToday({
   // eslint-disable-next-line react-hooks/purity -- a render-time clock is fine for "this week"
   const now = Date.now();
   const waiting = introductions.filter((i) => i.direction === "received" && i.status === "pending").slice(0, 2);
-  const replies = introductions
-    .filter(
-      (i) =>
-        i.direction === "sent" &&
-        i.status === "accepted" &&
-        i.respondedAt &&
-        now - new Date(i.respondedAt).getTime() < REPLY_WINDOW_MS,
-    )
+  const recent = (at: string | null) => at !== null && now - new Date(at).getTime() < REPLY_WINDOW_MS;
+  // Accepting isn't replying: "replied" needs a message from them you haven't
+  // answered yet; a bare yes says so, until either of you writes.
+  const answered = introductions
+    .filter((i) => i.direction === "sent" && i.status === "accepted")
+    .flatMap((i) => {
+      if (i.theirMessageAt) {
+        const unanswered = !i.myMessageAt || Date.parse(i.myMessageAt) < Date.parse(i.theirMessageAt);
+        return unanswered && recent(i.theirMessageAt) ? [{ intro: i, replied: true }] : [];
+      }
+      return !i.myMessageAt && recent(i.respondedAt) ? [{ intro: i, replied: false }] : [];
+    })
     .slice(0, 2);
 
   // Until the memory is read, show nothing rather than flash cards that go.
   if (!cards.ready) return null;
-  const replyCards = replies.filter((i) => !cards.hidden(`reply:${i.connectionId}`));
+  // Keys changed with the meaning ("reply:" was the old accept-only card).
+  const answerKey = ({ intro, replied }: (typeof answered)[number]) =>
+    `${replied ? "replied" : "yes"}:${intro.connectionId}`;
+  const replyCards = answered.filter((a) => !cards.hidden(answerKey(a)));
   const waitingCards = waiting.filter((i) => !cards.hidden(`intro:${i.connectionId}`));
   const wrapKey = wrap ? `wrap:${wrap.id}` : "";
   const showWrap = Boolean(wrap) && !cards.hidden(wrapKey);
@@ -101,15 +108,21 @@ export function ChapterToday({
         <h2 className="font-sans text-xs font-semibold uppercase tracking-wide text-ink-400">Your chapter today</h2>
         <FeatureGuide id="chapter-today" />
       </div>
-      {replyCards.map((intro) => (
+      {replyCards.map((a) => (
         <TodayCard
-          key={intro.connectionId}
+          key={a.intro.connectionId}
           icon={<ChatIcon />}
-          title={`${intro.name} replied to your introduction.`}
-          body="You’re now connected. You can now start your conversation."
-          action={{ label: "Open conversation", href: `/bonds?with=${intro.userId}` }}
-          onAct={() => cards.done(`reply:${intro.connectionId}`)}
-          onClose={() => cards.snooze(`reply:${intro.connectionId}`)}
+          title={
+            a.replied ? `${a.intro.name} replied to your introduction.` : `${a.intro.name} said yes to your introduction.`
+          }
+          body={
+            a.replied
+              ? "They sent you a message. Pick up the conversation."
+              : "You’re now connected. Say hello and start your conversation."
+          }
+          action={{ label: a.replied ? "Open conversation" : "Say hello", href: `/bonds?with=${a.intro.userId}` }}
+          onAct={() => cards.done(answerKey(a))}
+          onClose={() => cards.snooze(answerKey(a))}
         />
       ))}
       {waitingCards.map((intro) => (

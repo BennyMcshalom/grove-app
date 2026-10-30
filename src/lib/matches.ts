@@ -66,6 +66,10 @@ export interface Introduction {
   seen: boolean;
   createdAt: string;
   respondedAt: string | null;
+  /** Their latest message in your direct chat, once connected. */
+  theirMessageAt: string | null;
+  /** Your latest message in that chat. */
+  myMessageAt: string | null;
 }
 
 export function lookingForLabel(value: string) {

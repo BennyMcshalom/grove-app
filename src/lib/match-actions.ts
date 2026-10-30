@@ -171,6 +171,8 @@ export async function loadIntroductions(): Promise<Introduction[]> {
     seen: row.seen_at !== null,
     createdAt: row.created_at,
     respondedAt: row.responded_at,
+    theirMessageAt: row.their_message_at,
+    myMessageAt: row.my_message_at,
   }));
 }
 

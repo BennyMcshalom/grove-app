@@ -11,7 +11,7 @@ import { momentDateLabel, type ShareCardData } from "@/lib/wrapped";
  * (the same values as the primary / ink / ivory tokens in globals.css)
  * whatever theme the member has on.
  */
-const PALETTE = {
+export const PALETTE = {
   page: "#faf9f7", // ivory-100
   eyebrow: "#dd661b", // primary-600
   title: "#0f0f0e", // ink-800
@@ -31,14 +31,14 @@ const CARD_PAD = 56;
 const RADIUS = 56;
 const LOGO_HEIGHT = 72;
 // The high-resolution wordmark (2565x720), not the 572px sidebar export.
-const LOGO_SRC = "/images/logo-wordmark-36814b.png";
+export const LOGO_SRC = "/images/logo-wordmark-36814b.png";
 
-function fontFamily(variable: string, fallback: string) {
+export function fontFamily(variable: string, fallback: string) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
   return value ? `${value}, ${fallback}` : fallback;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement | null> {
+export function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -49,7 +49,7 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
 }
 
 /** Word-wraps `text` to `width`, keeping the member's own line breaks. */
-function wrapLines(ctx: CanvasRenderingContext2D, text: string, width: number) {
+export function wrapLines(ctx: CanvasRenderingContext2D, text: string, width: number) {
   const lines: string[] = [];
   for (const paragraph of text.split("\n")) {
     let line = "";
@@ -68,14 +68,14 @@ function wrapLines(ctx: CanvasRenderingContext2D, text: string, width: number) {
 }
 
 /** Cuts `text` with an ellipsis so it fits `width`. */
-function fit(ctx: CanvasRenderingContext2D, text: string, width: number) {
+export function fit(ctx: CanvasRenderingContext2D, text: string, width: number) {
   if (ctx.measureText(text).width <= width) return text;
   let out = text;
   while (out.length > 1 && ctx.measureText(`${out}…`).width > width) out = out.slice(0, -1);
   return `${out}…`;
 }
 
-function drawCover(ctx: CanvasRenderingContext2D, img: CanvasImageSource & { width: number; height: number }, x: number, y: number, w: number, h: number) {
+export function drawCover(ctx: CanvasRenderingContext2D, img: CanvasImageSource & { width: number; height: number }, x: number, y: number, w: number, h: number) {
   const scale = Math.max(w / img.width, h / img.height);
   const sw = w / scale;
   const sh = h / scale;
@@ -86,7 +86,7 @@ function drawCover(ctx: CanvasRenderingContext2D, img: CanvasImageSource & { wid
  * A big image squeezed in one drawImage comes out jagged; halving step by
  * step keeps the wordmark's outline smooth.
  */
-function downscale(img: HTMLImageElement, targetWidth: number): CanvasImageSource {
+export function downscale(img: HTMLImageElement, targetWidth: number): CanvasImageSource {
   let source: HTMLImageElement | HTMLCanvasElement = img;
   let w = img.width;
   let h = img.height;
