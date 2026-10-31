@@ -14,7 +14,7 @@ import {
 } from "@/components/app/PostModals";
 import { SendToBondModal } from "@/components/app/SendToBondModal";
 import { SpaceFrame, useSpaceLabelStyle } from "@/components/app/SpaceLabel";
-import { ShareSheet } from "@/components/app/ShareSheet";
+import { ShareSheet, downloadFile } from "@/components/app/ShareSheet";
 import { useToast } from "@/components/app/ToastProvider";
 import { setRooted } from "@/lib/post-actions";
 import { progressLabel, type Post } from "@/lib/posts";
@@ -54,6 +54,17 @@ export function PostCard({
   const badge = progressLabel(post.progress);
   // Just Grouv: the caption sits inside the picture (Figma 110:3891).
   const captionInImage = post.kind === "grouv" && post.media.length > 0;
+  // A post kept to a few people isn't drawn to share onwards.
+  const canDownload = post.mine || post.audience === "everyone";
+  const makeImage = () => import("@/components/app/postImage").then(({ postImage }) => postImage(post));
+  const downloadImage = async () => {
+    try {
+      downloadFile(await makeImage());
+      toast({ title: "PNG downloaded", tone: "confirm" });
+    } catch {
+      toast({ title: "Couldn’t make the image", tone: "danger" });
+    }
+  };
 
   const toggleRoot = async () => {
     const next = !rooted;
@@ -129,10 +140,12 @@ export function PostCard({
               <PostMenu
                 mine={post.mine}
                 canSendToBond
+                canDownload={canDownload}
                 onClose={() => setMenuOpen(false)}
                 onSelect={(action) => {
                   setMenuOpen(false);
-                  setDialog(action);
+                  if (action === "Download as PNG") void downloadImage();
+                  else setDialog(action);
                 }}
               />
             )}
@@ -189,12 +202,7 @@ export function PostCard({
           <ShareSheet
             url={`${typeof window === "undefined" ? "" : window.location.origin}/posts/${post.id}`}
             title="A post on Grouv"
-            // A post kept to a few people isn't drawn to share onwards.
-            image={
-              post.mine || post.audience === "everyone"
-                ? () => import("@/components/app/postImage").then(({ postImage }) => postImage(post))
-                : undefined
-            }
+            image={canDownload ? makeImage : undefined}
             trigger={(open) => (
               <Action icon={<ShareIcon className="size-6" />} label="Share" tone="outline" onClick={open} />
             )}

@@ -78,6 +78,18 @@ export function ShareSheet({
   );
 }
 
+/** Saves a file to the device's downloads. */
+export function downloadFile(file: File) {
+  const href = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = file.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+
 /** A touch-first device, where `sms:` and the system sheet make sense. */
 function isPhone() {
   return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
@@ -132,32 +144,23 @@ function SharePanel({
     onClose();
   };
 
-  // Phones hand the PNG to the system sheet (Save to Photos, Instagram…);
-  // elsewhere, or if that's refused, it downloads.
-  const saveImage = async (make: () => Promise<File>) => {
+  // "Download PNG" always saves the file; "Share image" (phones that can
+  // share files) hands it to the system sheet — Instagram, WhatsApp…
+  const withImage = async (make: () => Promise<File>, use: "download" | "share") => {
     if (drawing) return;
     setDrawing(true);
     try {
       const file = await make();
-      let shared = false;
-      if (isPhone() && navigator.canShare?.({ files: [file] })) {
+      if (use === "share") {
         try {
           await navigator.share({ files: [file], title });
-          shared = true;
         } catch (error) {
           if (error instanceof DOMException && error.name === "AbortError") return;
+          throw error;
         }
-      }
-      if (!shared) {
-        const href = URL.createObjectURL(file);
-        const a = document.createElement("a");
-        a.href = href;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(href), 1000);
-        toast({ title: "Image saved", tone: "confirm" });
+      } else {
+        downloadFile(file);
+        toast({ title: "PNG downloaded", tone: "confirm" });
       }
       onShared?.("image");
       onClose();
@@ -167,17 +170,32 @@ function SharePanel({
       setDrawing(false);
     }
   };
+  const canShareFiles =
+    isPhone() &&
+    typeof navigator.canShare === "function" &&
+    navigator.canShare({ files: [new File([], "grouv.png", { type: "image/png" })] });
 
   const targets: { channel: ShareChannel; label: string; icon: React.ReactNode; tile: string; run: () => void }[] = [
     ...(image
       ? [
           {
             channel: "image" as const,
-            label: drawing ? "Saving…" : "Save image",
-            icon: <ImageIcon />,
+            label: drawing ? "Making…" : "Download PNG",
+            icon: <DownloadIcon />,
             tile: "bg-primary-600 text-white",
-            run: () => void saveImage(image),
+            run: () => void withImage(image, "download"),
           },
+          ...(canShareFiles
+            ? [
+                {
+                  channel: "native" as const,
+                  label: "Share image",
+                  icon: <ImageIcon />,
+                  tile: "bg-primary-100 text-primary-700",
+                  run: () => void withImage(image, "share"),
+                },
+              ]
+            : []),
         ]
       : []),
     {
@@ -406,6 +424,14 @@ function MessageIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V5.5Z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
