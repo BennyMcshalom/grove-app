@@ -17,6 +17,9 @@ import { progressLabel, type Post } from "@/lib/posts";
  * canvas like the Wrapped share card, and always the light palette.
  */
 const WIDTH = 1080;
+// Laid out at 1080 but drawn at 2x: stored photos are up to 2560px, and the
+// extra pixels survive WhatsApp/Instagram recompressing the upload.
+const SCALE = 2;
 const PAD = 64;
 const INNER = WIDTH - PAD * 2;
 const CARD_PAD = 56;
@@ -51,8 +54,6 @@ async function renderPost(post: Post): Promise<Blob> {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas unavailable");
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
   ctx.textBaseline = "top";
 
   const space = getChapter(post.chapterSlug)?.name;
@@ -77,8 +78,13 @@ async function renderPost(post: Post): Promise<Blob> {
   const footerHeight = 72;
   const height = PAD + cardHeight + 48 + footerHeight + PAD;
 
-  canvas.width = WIDTH;
-  canvas.height = height;
+  // Sizing the canvas resets its context, so the drawing state goes on after.
+  canvas.width = WIDTH * SCALE;
+  canvas.height = height * SCALE;
+  ctx.scale(SCALE, SCALE);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.textBaseline = "top";
   ctx.fillStyle = PALETTE.page;
   ctx.fillRect(0, 0, WIDTH, height);
 
@@ -170,7 +176,7 @@ async function renderPost(post: Post): Promise<Blob> {
   const footerTop = top + cardHeight + 48;
   if (logo) {
     const logoWidth = Math.round((logo.width / logo.height) * 60);
-    ctx.drawImage(downscale(logo, logoWidth * 2), PAD, footerTop + 6, logoWidth, 60);
+    ctx.drawImage(downscale(logo, logoWidth * SCALE * 2), PAD, footerTop + 6, logoWidth, 60);
   }
   ctx.fillStyle = PALETTE.eyebrow;
   ctx.font = `600 30px ${sans}`;

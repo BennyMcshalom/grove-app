@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps<"/w/[token]">): Pro
       ? `${body.slice(0, 157)}…`
       : body
     : "A moment from a Life Wrapped on Grouv.";
-  const image = card.photo_path ? `${origin}/w/${token}/photo` : `${origin}/images/logo-wordmark-36814b.png`;
+  const image = card.photo_path ? `${origin}/w/${token}/photo` : `${origin}/images/og-wordmark-dark.png`;
 
   return {
     title,

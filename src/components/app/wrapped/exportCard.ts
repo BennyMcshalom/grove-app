@@ -29,9 +29,9 @@ const PAD = 64;
 const INNER = WIDTH - PAD * 2;
 const CARD_PAD = 56;
 const RADIUS = 56;
-const LOGO_HEIGHT = 72;
+const LOGO_HEIGHT = 60;
 // The high-resolution wordmark (2565x720), not the 572px sidebar export.
-export const LOGO_SRC = "/images/logo-wordmark-36814b.png";
+export const LOGO_SRC = "/images/logo-wordmark-dark.png";
 
 export function fontFamily(variable: string, fallback: string) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
@@ -118,8 +118,6 @@ async function renderCard(card: ShareCardData): Promise<Blob> {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas unavailable");
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
 
   const name = card.sharerName;
   const meta = `From ${name ? `${name}’s` : "a"} Grouv Log · ${momentDateLabel(card.date)}`;
@@ -142,11 +140,14 @@ async function renderCard(card: ShareCardData): Promise<Blob> {
 
   canvas.width = WIDTH;
   canvas.height = height;
+  // Sizing the canvas resets its context, so the drawing state goes on after.
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.fillStyle = PALETTE.page;
   ctx.fillRect(0, 0, WIDTH, height);
   ctx.textBaseline = "top";
 
-  // Header: who shared it, with the logo at its native 2565:720 ratio.
+  // Header: who shared it, with the logo at its native ratio.
   let logoWidth = 0;
   if (logo) {
     logoWidth = Math.round((logo.width / logo.height) * LOGO_HEIGHT);
