@@ -8,6 +8,8 @@ import { cn } from "@/lib/cn";
  * fills: the raw fill has no stroke, so on a white surface it disappears.
  *   onDark  — splash instance 36:854, sits on primary-600
  *   onLight — sidebar instance I65:1853;60:2562, outlined for white surfaces
+ *   ink     — the black wordmark the exported share images carry; in the dark
+ *             theme it would vanish, so there it falls back to onLight
  *
  * No default height: `cn` is a plain joiner, so a baked-in `lg:h-20` would
  * out-specify a caller's `h-10` at that breakpoint and silently render the
@@ -21,9 +23,32 @@ export function Logo({
   priority = false,
 }: {
   className?: string;
-  tone?: "onLight" | "onDark";
+  tone?: "onLight" | "onDark" | "ink";
   priority?: boolean;
 }) {
+  if (tone === "ink") {
+    return (
+      <>
+        <Image
+          src="/images/logo-wordmark-dark.png"
+          alt="Grouv"
+          width={2711}
+          height={717}
+          priority={priority}
+          className={cn("w-auto [[data-theme=dark]_&]:hidden", className)}
+        />
+        <Image
+          src="/images/logo-sidebar.png"
+          alt="Grouv"
+          width={285}
+          height={80}
+          priority={priority}
+          className={cn("hidden w-auto [[data-theme=dark]_&]:block", className)}
+        />
+      </>
+    );
+  }
+
   const src =
     tone === "onDark" ? "/images/logo-splash.png" : "/images/logo-sidebar.png";
 

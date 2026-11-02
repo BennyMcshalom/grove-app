@@ -41,7 +41,7 @@ export function ShareCard({
           </p>
         </div>
         {/* self-start: in a stretch layout the img widened and looked smeared. */}
-        <Logo className="h-7 shrink-0 self-start" />
+        <Logo tone="ink" className="h-6 shrink-0 self-start" />
       </header>
 
       {/* aspect-ratio is only a minimum here: overflow-clip (not hidden) keeps
