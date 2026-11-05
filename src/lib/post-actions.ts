@@ -422,3 +422,17 @@ export async function deleteComment(commentId: string): Promise<Result> {
   }
   return {};
 }
+
+/**
+ * Share on a post. Sharing your own named "Everyone" post opens its link to
+ * anyone (posts from before link sharing open this way); answers whether the
+ * link reads signed out, for the share sheet's note.
+ */
+export async function sharePostLink(postId: string): Promise<{ public: boolean }> {
+  await requireOnboardedViewer();
+  if (!isUuid(postId)) return { public: false };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("share_post_link", { p_post_id: postId });
+  if (error) console.error("[posts] sharePostLink failed", error);
+  return { public: data === true };
+}

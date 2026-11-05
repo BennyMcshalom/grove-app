@@ -32,11 +32,17 @@ export function ShareSheet({
   text,
   image,
   onShared,
+  onOpen,
+  note,
   trigger,
 }: {
   url: string;
   /** Subject line for email and the system sheet's title. */
   title: string;
+  /** Called each time someone starts sharing (before any sheet shows). */
+  onOpen?: () => void;
+  /** A line under the sheet's title, e.g. who the link opens for. */
+  note?: React.ReactNode;
   /** A line to go with the link (the link is added for each app). */
   text?: string;
   /** Draws what's shared as a PNG, for "Save image". */
@@ -48,6 +54,7 @@ export function ShareSheet({
   const [sheet, setSheet] = useState(false);
 
   const open = async () => {
+    onOpen?.();
     if (!image && isPhone() && typeof navigator.share === "function") {
       try {
         await navigator.share({ title, text, url });
@@ -70,6 +77,7 @@ export function ShareSheet({
           title={title}
           text={text}
           image={image}
+          note={note}
           onShared={onShared}
           onClose={() => setSheet(false)}
         />
@@ -100,6 +108,7 @@ function SharePanel({
   title,
   text,
   image,
+  note,
   onShared,
   onClose,
 }: {
@@ -107,6 +116,7 @@ function SharePanel({
   title: string;
   text?: string;
   image?: () => Promise<File>;
+  note?: React.ReactNode;
   onShared?: (channel: ShareChannel) => void;
   onClose: () => void;
 }) {
@@ -312,6 +322,8 @@ function SharePanel({
             </svg>
           </button>
         </header>
+
+        {note && <p className="-mt-2 font-sans text-sm text-ink-400">{note}</p>}
 
         <ul className="grid grid-cols-4 gap-x-2 gap-y-4">
           {targets.map((target) => (

@@ -2974,6 +2974,48 @@ await step("feature guides remember who closed what", async () => {
   await fails("guide names are short slugs", Ga, `insert into public.guide_views (guide) values ('<script>')`, [], "check constraint");
 });
 
+// --- public post links (20261105100000) ----------------------------------------
+await step("shared post links read signed out", async () => {
+  const Pa = await person("Pia", learning);
+  const Pb = await person("Pol", learning);
+  const anon = (sql, params) =>
+    db.transaction(async (tx) => {
+      await tx.exec("set local role anon");
+      return (await tx.query(sql, params)).rows;
+    });
+
+  const [{ id: open }] = await q(Pa, `insert into public.posts (chapter_slug, body) values ('learning', 'Open to the link') returning id`);
+  const [{ id: anonPost }] = await q(Pa, `insert into public.posts (chapter_slug, body, is_anonymous) values ('learning', 'No name', true) returning id`);
+  const [{ id: onlyMe }] = await q(Pa, `insert into public.posts (chapter_slug, body, audience) values ('learning', 'Just me', 'only_me') returning id`);
+  const [{ id: old }] = await q(Pa, `insert into public.posts (chapter_slug, body) values ('learning', 'From before links') returning id`);
+  await su(`update public.posts set link_public = false where id = $1`, [old]);
+
+  const seen = await anon(`select * from public.public_post($1)`, [open]);
+  check("anyone reads a named Everyone post", seen.length === 1 && seen[0].author_name === "Pia" && seen[0].body === "Open to the link", seen);
+  check("anonymous posts never open", (await anon(`select * from public.public_post($1)`, [anonPost])).length === 0);
+  check("only-me posts never open", (await anon(`select * from public.public_post($1)`, [onlyMe])).length === 0);
+  check("older posts stay closed", (await anon(`select * from public.public_post($1)`, [old])).length === 0);
+  check("anon still can't read posts", await anon(`select id from public.posts`).then(() => false, (e) => e.message.includes("permission denied")));
+
+  for (let i = 0; i < 7; i++) {
+    await q(Pb, `insert into public.comments (post_id, body) values ($1, $2)`, [open, `c${i}`]);
+  }
+  const [{ id: first }] = await su(`select id from public.comments where post_id = $1 and body = 'c0'`, [open]);
+  await q(Pa, `insert into public.comments (post_id, body, parent_id) values ($1, 'a reply', $2)`, [open, first]);
+  const top = await anon(`select * from public.public_post_comments($1)`, [open]);
+  check("the first three comments show", top.length === 3 && top.map((c) => c.body).join() === "c0,c1,c2", top.map((c) => c.body));
+  check("with their reply counts", top[0].reply_count === 1 && top[0].author_name === "Pol", top[0]);
+  const greedy = await anon(`select * from public.public_post_comments($1, 100)`, [open]);
+  check("never more than five", greedy.length === 5, greedy.length);
+  check("no comments for closed posts", (await anon(`select * from public.public_post_comments($1)`, [old])).length === 0);
+
+  check("someone else sharing doesn't open it", (await q(Pb, `select public.share_post_link($1) ok`, [old]))[0].ok === false);
+  check("the author sharing opens it", (await q(Pa, `select public.share_post_link($1) ok`, [old]))[0].ok === true);
+  check("and then it reads signed out", (await anon(`select * from public.public_post($1)`, [old])).length === 1);
+  check("sharing an anonymous post keeps it closed", (await q(Pa, `select public.share_post_link($1) ok`, [anonPost]))[0].ok === false);
+  check("signed out can't open links", await anon(`select public.share_post_link($1)`, [old]).then(() => false, (e) => e.message.includes("permission denied")));
+});
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);
 process.exit(failures.length ? 1 : 0);

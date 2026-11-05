@@ -16,7 +16,7 @@ import { SendToBondModal } from "@/components/app/SendToBondModal";
 import { SpaceFrame, useSpaceLabelStyle } from "@/components/app/SpaceLabel";
 import { ShareSheet, downloadFile } from "@/components/app/ShareSheet";
 import { useToast } from "@/components/app/ToastProvider";
-import { setRooted } from "@/lib/post-actions";
+import { setRooted, sharePostLink } from "@/lib/post-actions";
 import { progressLabel, type Post } from "@/lib/posts";
 import { spaceCardClass } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
@@ -46,6 +46,8 @@ export function PostCard({
   // Figma pairs each menu item with a modal and a confirming alert.
   const [dialog, setDialog] = useState<PostMenuAction | null>(null);
   const [deleted, setDeleted] = useState(false);
+  // Who the share link reads for, once Share has asked.
+  const [linkPublic, setLinkPublic] = useState<boolean | null>(null);
   const toast = useToast();
   const labelStyle = useSpaceLabelStyle();
 
@@ -203,6 +205,17 @@ export function PostCard({
             url={`${typeof window === "undefined" ? "" : window.location.origin}/posts/${post.id}`}
             title="A post on Grouv"
             image={canDownload ? makeImage : undefined}
+            onOpen={() => {
+              // Sharing your own post opens its link; ask who it reads for.
+              void sharePostLink(post.id).then((result) => setLinkPublic(result.public));
+            }}
+            note={
+              linkPublic === null
+                ? undefined
+                : linkPublic
+                  ? "Anyone with this link can read the post and the first few comments, without an account."
+                  : "Only people on Grouv who can already see this post can open the link."
+            }
             trigger={(open) => (
               <Action icon={<ShareIcon className="size-6" />} label="Share" tone="outline" onClick={open} />
             )}

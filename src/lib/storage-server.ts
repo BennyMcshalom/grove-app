@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -38,13 +39,20 @@ const viewerKey = cache(async () => {
 export async function signPaths(
   bucket: "media" | "chat",
   paths: (string | null | undefined)[],
-  options: { width?: number } = {},
+  options: {
+    width?: number;
+    /**
+     * Sign with the secret key instead of the viewer's session. Only for paths
+     * the database has already said this viewer may see (a public post link).
+     */
+    asService?: boolean;
+  } = {},
 ): Promise<Map<string, string>> {
   const unique = [...new Set(paths.filter((p): p is string => Boolean(p)))];
   const signed = new Map<string, string>();
   if (unique.length === 0) return signed;
 
-  const viewer = await viewerKey();
+  const viewer = options.asService ? "service" : await viewerKey();
   const now = Date.now();
   const keyOf = (path: string) => `${viewer}|${bucket}|${path}|${resizedWidth(path, options.width) ?? 0}`;
 
@@ -56,7 +64,7 @@ export async function signPaths(
   }
   if (missing.length === 0) return signed;
 
-  const supabase = await createClient();
+  const supabase = options.asService ? createAdminClient() : await createClient();
   const storage = supabase.storage.from(bucket);
   const plain = missing.filter((p) => !resizedWidth(p, options.width));
   const resized = missing.filter((p) => resizedWidth(p, options.width));

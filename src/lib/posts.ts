@@ -43,7 +43,7 @@ export const MEDIA_LIMITS = {
 export const AUDIENCES = [
   { value: "only_me", label: "Only me", hint: "Visible only to you" },
   { value: "selected_bonds", label: "Selected Bonds", hint: "Choose specific Bonds to share with" },
-  { value: "everyone", label: "Everyone", hint: "Visible to your whole Grouv circle" },
+  { value: "everyone", label: "Everyone", hint: "Your circle, your Space, and anyone you send the link" },
 ] as const;
 
 export type PostAudience = (typeof AUDIENCES)[number]["value"];

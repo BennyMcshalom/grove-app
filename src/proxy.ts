@@ -10,7 +10,8 @@ const PUBLIC_PATHS = new Set(["/", "/landing", "/terms", "/privacy", "/refunds",
 // "/r/" is the invite-link landing (grouv.app/r/amara92).
 // "/w/" is a shared Life Wrapped card (grouv.app/w/9f3k2p).
 // "/i/" is a chapter invitation card (grouv.app/i/<token>).
-const PUBLIC_PREFIXES = ["/landing/", "/r/", "/w/", "/i/","/auth/","/api/health", "/api/cron/", "/api/revenuecat/webhook", "/api/livekit/webhook", "/api/csp-report"];
+// "/p/" is a shared post read signed out (grouv.app/posts/<id> lands there).
+const PUBLIC_PREFIXES = ["/landing/", "/r/", "/w/", "/i/", "/p/","/auth/","/api/health", "/api/cron/", "/api/revenuecat/webhook", "/api/livekit/webhook", "/api/csp-report"];
 
 /** Signed-in users skip these and go straight into the app. */
 const AUTH_PAGES = new Set(["/sign-in", "/sign-up", "/forgot-password"]);
@@ -61,6 +62,17 @@ async function route(request: NextRequest, requestHeaders: Record<string, string
   }
   if (pathname === "/two-step") {
     return redirectWithSession(request, response, userId ? "/home" : "/sign-in");
+  }
+
+  // A shared post link: signed out, read the public preview (X-style: the
+  // post and the start of the conversation); signed in, the real post.
+  const postLink = /^\/posts\/([0-9a-f-]{36})\/?$/i.exec(pathname);
+  if (!userId && postLink) {
+    return redirectWithSession(request, response, `/p/${postLink[1]}`);
+  }
+  const publicPost = /^\/p\/([0-9a-f-]{36})\/?$/i.exec(pathname);
+  if (userId && publicPost) {
+    return redirectWithSession(request, response, `/posts/${publicPost[1]}`);
   }
 
   if (!userId && !isPublic) {

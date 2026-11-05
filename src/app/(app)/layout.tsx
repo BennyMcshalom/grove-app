@@ -7,6 +7,7 @@ import { ToastProvider } from "@/components/app/ToastProvider";
 import { NavDepthTracker } from "@/components/app/BackButton";
 import { SessionSync } from "@/components/app/SessionSync";
 import { ChapterInviteReturn } from "@/components/app/invite/ChapterInviteReturn";
+import { PostReturn } from "@/components/app/PostReturn";
 import { UnreadMessagesProvider } from "@/components/app/UnreadMessages";
 import { SidebarProvider } from "@/components/app/SidebarProvider";
 import { ViewerProvider } from "@/components/app/ViewerProvider";
@@ -35,6 +36,7 @@ export default async function AppLayout({
       <SessionSync />
       <NavDepthTracker />
       <ChapterInviteReturn />
+      <PostReturn />
       <NotificationPopups />
       <ToastProvider>
         <PaywallProvider>

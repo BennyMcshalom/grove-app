@@ -518,6 +518,8 @@ export type Database = {
           open_grove: boolean;
           /** Reaches everyone holding the Space for 48 hours. */
           space_wide: boolean;
+          /** Anyone with the link can read it signed out (with audience everyone, named). */
+          link_public: boolean;
           audience: Audience;
           roots_count: number;
           comments_count: number;
@@ -1070,6 +1072,45 @@ export type Database = {
           moment_date: string;
         }[];
       };
+      public_post: {
+        Args: { p_post_id: string };
+        Returns: {
+          id: string;
+          chapter_slug: string;
+          chapter_name: string | null;
+          kind: PostKind;
+          title: string | null;
+          progress: PostProgress | null;
+          body: string | null;
+          created_at: string;
+          author_name: string;
+          author_avatar: string | null;
+          author_phase: string | null;
+          roots_count: number;
+          comments_count: number;
+          media: {
+            kind: MediaKind;
+            path: string;
+            trim_start: number | null;
+            trim_end: number | null;
+            width: number | null;
+            height: number | null;
+          }[];
+        }[];
+      };
+      public_post_comments: {
+        Args: { p_post_id: string; p_limit?: number };
+        Returns: {
+          id: string;
+          author_name: string;
+          author_avatar: string | null;
+          body: string;
+          created_at: string;
+          roots_count: number;
+          reply_count: number;
+        }[];
+      };
+      share_post_link: { Args: { p_post_id: string }; Returns: boolean };
       reopen_chapter: { Args: { p_user_chapter_id: string }; Returns: undefined };
       bonds_overview: {
         Args: Record<string, never>;
