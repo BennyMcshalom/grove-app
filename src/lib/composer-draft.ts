@@ -1,5 +1,6 @@
 "use client";
 
+import type { Conversation } from "@/lib/conversations";
 import type { MediaKind } from "@/lib/media-draft";
 import type { PostAudience, PostProgress } from "@/lib/posts";
 
@@ -22,6 +23,9 @@ export interface ComposerDraft {
   audienceIds: string[];
   /** Shared to Open Grouv (missing in older drafts). */
   openGrouv?: boolean;
+  /** The conversation type and topic (missing in older drafts). */
+  conversation?: Conversation | null;
+  topic?: string | null;
   media: {
     path: string;
     kind: MediaKind;

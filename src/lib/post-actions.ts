@@ -6,6 +6,7 @@ import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { loadBondPeople } from "@/lib/bonds-server";
 import { loadFeed, loadPost } from "@/lib/feed";
 import { isUuid } from "@/lib/mentions";
+import { topicsFor } from "@/lib/conversations";
 import {
   MEDIA_LIMITS,
   PROGRESS,
@@ -16,6 +17,7 @@ import {
   type PostComment,
   type PostProgress,
   type ReportReason,
+  type StoryUpdate,
 } from "@/lib/posts";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
@@ -27,7 +29,7 @@ type Result = { error?: string };
 const progressValues = PROGRESS.map((p) => p.value) as [PostProgress, ...PostProgress[]];
 
 const FeedQuerySchema = z.object({
-  scope: z.enum(["home", "all", "roots", "open", "mine", "person"]),
+  scope: z.enum(["home", "all", "roots", "open", "mine", "person", "kept"]),
   chapterSlug: z.string().nullish(),
   from: z.string().nullish(),
   to: z.string().nullish(),
@@ -57,6 +59,10 @@ const CreatePostSchema = z.object({
   title: z.string().trim().max(500),
   progress: z.enum(progressValues).nullable(),
   body: z.string().trim().max(4000),
+  /** Unspoken / Unfiltered / Unfinished; Root a thought only, optional. */
+  conversation: z.enum(["unspoken", "unfiltered", "unfinished"]).nullish(),
+  /** A topic from the Space's list (src/lib/conversations.ts). */
+  topic: z.string().max(40).nullish(),
   anonymous: z.boolean(),
   /** Share to Open Grouv: reaches people at the same stage beyond the circle. */
   openGrove: z.boolean().default(false),
@@ -92,6 +98,12 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
   const { chapterSlug, kind, title, progress, body, anonymous, openGrove, media, audience, audienceIds, mentions } =
     parsed.data;
   const isRoot = kind === "root";
+  const conversation = isRoot ? (parsed.data.conversation ?? null) : null;
+  // A topic only goes with a type, and only one from this Space's list.
+  const topic =
+    conversation && parsed.data.topic && topicsFor(chapterSlug).some((t) => t.slug === parsed.data.topic)
+      ? parsed.data.topic
+      : null;
 
   if (isRoot && !title && !body && media.length === 0) {
     return { error: "Write something before you root it." };
@@ -118,6 +130,8 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
       is_anonymous: anonymous,
       open_grove: openGrove && !anonymous && audience === "everyone",
       audience,
+      conversation,
+      topic,
     })
     .select("id")
     .single();
@@ -435,4 +449,74 @@ export async function sharePostLink(postId: string): Promise<{ public: boolean }
   const { data, error } = await supabase.rpc("share_post_link", { p_post_id: postId });
   if (error) console.error("[posts] sharePostLink failed", error);
   return { public: data === true };
+}
+
+/** Keep / let go: the post's place in the viewer's Kept list. */
+export async function setKept(postId: string, kept: boolean): Promise<Result> {
+  const viewer = await requireOnboardedViewer();
+  if (!isUuid(postId)) return { error: "That post isn't available." };
+  const supabase = await createClient();
+  const { error } = kept
+    ? await supabase.from("kept_posts").insert({ post_id: postId })
+    : await supabase.from("kept_posts").delete().eq("post_id", postId).eq("user_id", viewer.userId);
+  // Keeping twice (double tap, two tabs) is fine.
+  if (error && error.code !== "23505") {
+    console.error("[posts] setKept failed", error);
+    return { error: "That didn't go through. Try again." };
+  }
+  return {};
+}
+
+/** Follow story / Unfollow, on an Unfinished post. */
+export async function setFollowingStory(postId: string, following: boolean): Promise<Result> {
+  const viewer = await requireOnboardedViewer();
+  if (!isUuid(postId)) return { error: "That story isn't available." };
+  const supabase = await createClient();
+  const { error } = following
+    ? await supabase.from("story_follows").insert({ post_id: postId })
+    : await supabase.from("story_follows").delete().eq("post_id", postId).eq("user_id", viewer.userId);
+  if (error && error.code !== "23505") {
+    console.error("[posts] setFollowingStory failed", error);
+    return { error: "That didn't go through. Try again." };
+  }
+  return {};
+}
+
+const UpdateBodySchema = z.string().trim().min(1, "Write the update first.").max(2000, "That update is too long.");
+
+/** "Add an update" on your own Unfinished post; followers are notified. */
+export async function addStoryUpdate(
+  postId: string,
+  body: string,
+): Promise<{ error?: string; update?: StoryUpdate }> {
+  await requireOnboardedViewer();
+  if (!isUuid(postId)) return { error: "That story isn't available." };
+  const parsed = UpdateBodySchema.safeParse(body);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("post_updates")
+    .insert({ post_id: postId, body: parsed.data })
+    .select("id, body, created_at")
+    .single();
+  if (error || !data) {
+    if (error?.hint === "too_many_updates") return { error: "This story already has 30 updates." };
+    if (error?.code === "42501") return { error: "You can only add updates to your own Unfinished posts." };
+    console.error("[posts] addStoryUpdate failed", error);
+    return { error: "We couldn't add that update. Try again." };
+  }
+  return { update: { id: data.id, body: data.body, time: timeAgo(data.created_at), createdAt: data.created_at } };
+}
+
+/** Remove one of your updates. */
+export async function deleteStoryUpdate(updateId: string): Promise<Result> {
+  await requireOnboardedViewer();
+  if (!isUuid(updateId)) return { error: "That update isn't available." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("post_updates").delete().eq("id", updateId).select("id");
+  if (error || !data?.length) {
+    if (error) console.error("[posts] deleteStoryUpdate failed", error);
+    return { error: "We couldn't remove that update." };
+  }
+  return {};
 }

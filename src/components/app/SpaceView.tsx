@@ -11,6 +11,13 @@ import { ChapterInviteModal } from "@/components/app/invite/ChapterInviteModal";
 import { SpaceCompanionsStrip } from "@/components/app/companions/SpaceCompanionsStrip";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { FeedEnd, FeedList } from "@/components/app/FeedList";
+import {
+  ConversationFilter,
+  FilteredEmpty,
+  matchesConversation,
+  type ConversationChoice,
+} from "@/components/app/ConversationFilter";
+import { getConversation, topicLabel, topicsFor } from "@/lib/conversations";
 import { RightRail } from "@/components/app/RightRail";
 import { useToast } from "@/components/app/ToastProvider";
 import { FormError } from "@/components/auth/FormError";
@@ -84,6 +91,9 @@ export function SpaceView({
   const chapter = getChapter(slug)!;
   const toast = useToast();
   const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0]);
+  // Roots tab: the conversation chips and a topic inside this Space.
+  const [conversation, setConversation] = useState<ConversationChoice>("all");
+  const [topic, setTopic] = useState<string | null>(null);
   const [members, setMembers] = useState(initialMembers);
   const [questions, setQuestions] = useState(initialQuestions);
   const [acrossRegions, setAcrossRegions] = useState(!hasRegion);
@@ -200,12 +210,35 @@ export function SpaceView({
             </div>
 
             {tab === "Roots" && (
-              <FeedList
-                query={{ scope: "roots", chapterSlug: slug }}
-                initial={roots}
-                empty={<EmptyFeed />}
-                ending={<FeedEnd />}
-              />
+              <div className="flex flex-col gap-4">
+                <ConversationFilter
+                  value={conversation}
+                  onChange={setConversation}
+                  topics={topicsFor(slug)}
+                  topic={topic}
+                  onTopicChange={setTopic}
+                />
+                <FeedList
+                  query={{ scope: "roots", chapterSlug: slug }}
+                  initial={roots}
+                  empty={<EmptyFeed />}
+                  ending={<FeedEnd />}
+                  filter={
+                    conversation === "all" && !topic
+                      ? undefined
+                      : (post) => matchesConversation(post, conversation, topic)
+                  }
+                  filteredEmpty={
+                    <FilteredEmpty
+                      label={[getConversation(conversation)?.label, topicLabel(slug, topic)].filter(Boolean).join(" · ")}
+                      onReset={() => {
+                        setConversation("all");
+                        setTopic(null);
+                      }}
+                    />
+                  }
+                />
+              </div>
             )}
 
             {tab === "Open" && (

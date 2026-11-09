@@ -14,12 +14,20 @@ import { getChapter } from "@/lib/chapters";
  * on your own posts and Report only on someone else's, so the menu shows the
  * ones that apply. "Send to a Bond" shows where the host can open the picker.
  */
-export type PostMenuAction = "Edit Post" | "Send to a Bond" | "Download as PNG" | "Delete Post" | "Report Post";
+export type PostMenuAction =
+  | "Edit Post"
+  | "Keep Post"
+  | "Remove from Kept"
+  | "Send to a Bond"
+  | "Download as PNG"
+  | "Delete Post"
+  | "Report Post";
 
 export function PostMenu({
   mine,
   canSendToBond = false,
   canDownload = false,
+  kept,
   onClose,
   onSelect,
 }: {
@@ -27,6 +35,8 @@ export function PostMenu({
   canSendToBond?: boolean;
   /** The post can be saved as an image (public, or your own). */
   canDownload?: boolean;
+  /** Shows Keep / Remove from Kept when given. */
+  kept?: boolean;
   onClose: () => void;
   /** Figma pairs each item with a modal or an alert; the card wires them up. */
   onSelect?: (action: PostMenuAction) => void;
@@ -35,6 +45,7 @@ export function PostMenu({
 
   const groupOne = [
     mine && { label: "Edit Post" as const, danger: false },
+    kept !== undefined && { label: kept ? ("Remove from Kept" as const) : ("Keep Post" as const), danger: false },
     canSendToBond && { label: "Send to a Bond" as const, danger: false },
     canDownload && { label: "Download as PNG" as const, danger: false },
   ].filter(Boolean) as { label: PostMenuAction; danger: boolean }[];

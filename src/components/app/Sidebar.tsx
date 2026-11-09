@@ -23,6 +23,7 @@ import {
   NearbyIcon,
   ArchiveIcon,
   FocusIcon,
+  KeptIcon,
   SettingsIcon,
 } from "@/components/icons/nav";
 
@@ -44,6 +45,12 @@ const PRIMARY = [
 
 // "Dark mode" is rendered separately below: the theme switch lives in Settings.
 const SECONDARY = [
+  {
+    href: "/kept",
+    label: "Kept",
+    Icon: KeptIcon,
+    outline: "kept",
+  },
   {
     href: "/deep-focus",
     label: "Deep Focus",

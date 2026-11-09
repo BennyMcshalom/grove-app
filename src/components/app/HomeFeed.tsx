@@ -7,6 +7,13 @@ import { Composer } from "@/components/app/Composer";
 import { DailyCards } from "@/components/app/DailyCards";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { FeedEnd, FeedList } from "@/components/app/FeedList";
+import {
+  ConversationFilter,
+  FilteredEmpty,
+  matchesConversation,
+  type ConversationChoice,
+} from "@/components/app/ConversationFilter";
+import { getConversation } from "@/lib/conversations";
 import { RightRail } from "@/components/app/RightRail";
 import { ChapterToday } from "@/components/app/home/ChapterToday";
 import { IntroStatusModal } from "@/components/app/home/IntroStatusModal";
@@ -65,6 +72,8 @@ export function HomeFeed({
   // orange FAB above the tab bar.
   const [composing, setComposing] = useState(false);
   const [chapterSlug, setChapterSlug] = useState<string | null>(null);
+  // All · Unspoken · Unfiltered · Unfinished, over the posts already loaded.
+  const [conversation, setConversation] = useState<ConversationChoice>("all");
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -86,12 +95,20 @@ export function HomeFeed({
               <Composer />
             </div>
             <DailyCards cards={cards} />
+            <ConversationFilter value={conversation} onChange={setConversation} />
             <FeedList
               key={chapterSlug ?? "all"}
               query={{ scope: "home", chapterSlug }}
               initial={chapterSlug === null ? firstPage : undefined}
               empty={<EmptyFeed onCompose={() => setComposing(true)} />}
               ending={<FeedEnd />}
+              filter={conversation === "all" ? undefined : (post) => matchesConversation(post, conversation)}
+              filteredEmpty={
+                <FilteredEmpty
+                  label={getConversation(conversation)?.label ?? ""}
+                  onReset={() => setConversation("all")}
+                />
+              }
             />
           </div>
         </div>

@@ -1,3 +1,5 @@
+import type { Conversation } from "@/lib/conversations";
+
 /**
  * Post option lists — the database stores the `value`, the UI shows the
  * `label`. Values match the enums in supabase/migrations.
@@ -90,6 +92,23 @@ export interface Post {
   audience: PostAudience;
   mine: boolean;
   createdAt: string;
+  /** What kind of conversation it starts; null for posts without a type. */
+  conversation: Conversation | null;
+  /** A topic inside its Space (src/lib/conversations.ts). */
+  topic: string | null;
+  /** In the viewer's Kept list. */
+  kept: boolean;
+  /** The viewer follows this Unfinished story. */
+  following: boolean;
+  /** An Unfinished story's updates from its author, oldest first. */
+  updates: StoryUpdate[];
+}
+
+export interface StoryUpdate {
+  id: string;
+  body: string;
+  time: string;
+  createdAt: string;
 }
 
 export interface PostComment {
@@ -122,7 +141,7 @@ export interface FeedCursor {
  *
  * home and roots end: 48 hours, no next page, no ranking of any kind.
  */
-export type FeedScope = "home" | "all" | "roots" | "open" | "mine" | "person";
+export type FeedScope = "home" | "all" | "roots" | "open" | "mine" | "person" | "kept";
 
 /** Scopes that stop at 48 hours and never load more. */
 export const ENDING_SCOPES: FeedScope[] = ["home", "roots"];

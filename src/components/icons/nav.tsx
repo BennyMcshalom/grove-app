@@ -59,6 +59,15 @@ export function ArchiveIcon({ className }: IconProps) {
   );
 }
 
+/** Kept — a bookmark, in the same 20px filled style as the others. */
+export function KeptIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={className ?? "size-5"} aria-hidden="true">
+      <path d="M14.375 2.5H5.625C5.29348 2.5 4.97554 2.6317 4.74112 2.86612C4.5067 3.10054 4.375 3.41848 4.375 3.75V17.5C4.37504 17.6115 4.40493 17.7209 4.4615 17.817C4.51817 17.913 4.59948 17.9922 4.69704 18.0463C4.79459 18.1003 4.90485 18.1272 5.01633 18.1243C5.1278 18.1214 5.23649 18.0886 5.33109 18.0297L10 15.1117L14.6695 18.0297C14.7641 18.0885 14.8728 18.1211 14.9842 18.1239C15.0956 18.1268 15.2058 18.0998 15.3032 18.0457C15.4006 17.9917 15.4819 17.9126 15.5384 17.8166C15.595 17.7206 15.6249 17.6112 15.625 17.5V3.75C15.625 3.41848 15.4933 3.10054 15.2589 2.86612C15.0245 2.6317 14.7065 2.5 14.375 2.5Z" fill="currentColor"/>
+    </svg>
+  );
+}
+
 export function DarkModeIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={className ?? "size-5"} aria-hidden="true">

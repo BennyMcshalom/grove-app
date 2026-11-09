@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import type { Post } from "@/lib/posts";
+import type { Conversation } from "@/lib/conversations";
+import type { Post, StoryUpdate } from "@/lib/posts";
 import { signPaths } from "@/lib/storage-server";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
@@ -20,7 +21,11 @@ export interface PublicComment {
 
 export interface PublicPost {
   id: string;
+  chapterSlug: string;
   chapterName: string | null;
+  conversation: Conversation | null;
+  topic: string | null;
+  updates: StoryUpdate[];
   kind: Post["kind"];
   author: string;
   avatar: string | null;
@@ -67,7 +72,16 @@ export const loadPublicPost = cache(async (postId: string): Promise<PublicPost |
 
   return {
     id: row.id,
+    chapterSlug: row.chapter_slug,
     chapterName: row.chapter_name,
+    conversation: row.conversation,
+    topic: row.topic,
+    updates: (row.updates ?? []).map((u) => ({
+      id: u.id,
+      body: u.body,
+      time: timeAgo(u.created_at, now),
+      createdAt: u.created_at,
+    })),
     kind: row.kind,
     author: row.author_name || "Someone",
     avatar: row.author_avatar,

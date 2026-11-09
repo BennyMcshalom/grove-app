@@ -11,6 +11,7 @@ import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
 import { createPost } from "@/lib/post-actions";
 import { getChapter } from "@/lib/chapters";
+import { CONVERSATIONS, getConversation, topicsFor, type Conversation } from "@/lib/conversations";
 import { cn } from "@/lib/cn";
 import { MEDIA_LIMITS, PROGRESS, type PostProgress } from "@/lib/posts";
 import { AudiencePicker, type ShareChoice } from "@/components/app/media/AudiencePicker";
@@ -31,6 +32,11 @@ import { mediaExtension, mediaSize, uploadWithProgress } from "@/lib/upload";
  * Files upload to Storage as soon as they're picked, so posting is quick and
  * a failed upload shows before the post is written ("Uploading… 62%", h05).
  *
+ * Conversation types (2026-11-09): "Root a thought" can optionally say
+ * what kind of conversation it starts (Unspoken, Unfiltered or Unfinished)
+ * and a topic inside the Space. The prompts follow the type; with none
+ * picked the card is exactly as Figma draws it.
+ *
  * PRD §6 additions: one "Who can see this" choice (AudiencePicker — Selected
  * Bonds, Everyone, Anonymously, Open Grouv) with the exact audience previewed
  * before publishing; the anonymity warning
@@ -50,6 +56,8 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
 
   const [mode, setMode] = useState<(typeof MODES)[number]>(MODES[0]);
   const [stage, setStage] = useState<PostProgress | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [topic, setTopic] = useState<string | null>(null);
   const [chapter, setChapter] = useState(viewer.chapters[0]?.slug ?? "");
   const [chapterMenuOpen, setChapterMenuOpen] = useState(false);
   const [doing, setDoing] = useState("");
@@ -87,6 +95,8 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     audience,
     audienceIds,
     openGrouv,
+    conversation,
+    topic,
     media: attachments.flatMap((a) =>
       a.path && a.status === "done"
         ? [
@@ -127,7 +137,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     }, 400);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- currentDraft reads exactly these
-  }, [mode, chapter, stage, share, doing, honest, caption, audienceIds, attachments, savedDraft, viewer.id]);
+  }, [mode, chapter, stage, conversation, topic, share, doing, honest, caption, audienceIds, attachments, savedDraft, viewer.id]);
 
   /** "Resume draft": fields come back as they were, media from Storage. */
   const resumeDraft = async () => {
@@ -137,6 +147,8 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     setMode(draft.mode === "root" ? MODES[0] : MODES[1]);
     if (viewer.chapters.some((c) => c.slug === draft.chapter)) setChapter(draft.chapter);
     setStage(draft.stage);
+    setConversation(draft.conversation ?? null);
+    setTopic(draft.topic ?? null);
     setDoing(draft.doing);
     setHonest(draft.honest);
     setCaption(draft.caption);
@@ -178,6 +190,8 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const clearDraft = () => {
     setMode(MODES[0]);
     setStage(null);
+    setConversation(null);
+    setTopic(null);
     setDoing("");
     setHonest("");
     setCaption("");
@@ -330,6 +344,8 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         title: isRoot ? doing : "",
         progress: isRoot ? stage : null,
         body: isRoot ? honest : caption,
+        conversation: isRoot ? conversation : null,
+        topic: isRoot ? topic : null,
         anonymous,
         openGrove: openGrouv,
         audience,
@@ -369,6 +385,11 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
       onClose?.();
     });
   };
+
+  const type = getConversation(conversation);
+  const topics = topicsFor(chapter);
+  // One of the type's examples as the placeholder, changing day to day.
+  const exampleIndex = new Date().getDate();
 
   if (viewer.chapters.length === 0) {
     return (
@@ -488,7 +509,11 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
               {chapterMenuOpen && (
                 <PostingToMenu
                   value={chapter}
-                  onSelect={setChapter}
+                  onSelect={(next) => {
+                    // Each Space has its own topics.
+                    if (next !== chapter) setTopic(null);
+                    setChapter(next);
+                  }}
                   onClose={() => setChapterMenuOpen(false)}
                 />
               )}
@@ -618,15 +643,72 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
       {attachments.length > 0 && <MediaPreview drafts={attachments} onAdd={attachAny} />}
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-6">
+          <fieldset className="flex flex-col gap-3">
+            <legend className="pb-1 font-sans text-sm font-medium tracking-wide text-ink-500 uppercase">
+              What kind of conversation? · Optional
+            </legend>
+            <div className="flex flex-wrap gap-3">
+              {CONVERSATIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={conversation === option.value}
+                  onClick={() => {
+                    const next = conversation === option.value ? null : option.value;
+                    setConversation(next);
+                    if (!next) setTopic(null);
+                  }}
+                  className={cn(
+                    "rounded-full px-4 py-2 font-sans text-sm font-semibold transition-colors",
+                    conversation === option.value
+                      ? "bg-primary-500 text-white"
+                      : "bg-primary-50 text-primary-600 hover:bg-primary-100",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            {type && <p className="font-sans text-sm text-ink-300">{type.hint}.</p>}
+          </fieldset>
+
+          {type && topics.length > 0 && (
+            <fieldset className="flex flex-col gap-3">
+              <legend className="pb-1 font-sans text-sm font-medium tracking-wide text-ink-500 uppercase">
+                Topic · Optional
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {topics.map((option) => (
+                  <button
+                    key={option.slug}
+                    type="button"
+                    aria-pressed={topic === option.slug}
+                    onClick={() => setTopic(topic === option.slug ? null : option.slug)}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 font-sans text-sm transition-colors",
+                      topic === option.slug
+                        ? "bg-ink-700 text-ivory-100"
+                        : "bg-ivory-400 text-ink-500 hover:bg-ivory-500",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
           <Field
-            label="What are you doing right now?"
+            label={type ? type.prompt : "What are you doing right now?"}
             name="doing"
             rows={2}
             value={doing}
             onChange={setDoing}
             maxLength={500}
+            placeholder={type ? `e.g. “${type.examples[exampleIndex % type.examples.length]}”` : undefined}
           />
 
+          {(!type || type.value === "unfinished") && (
           <fieldset className="flex flex-col gap-4">
             <legend className="font-sans text-sm font-medium tracking-wide text-ink-500 uppercase">
               Where are you in it? · Optional
@@ -650,9 +732,10 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
               ))}
             </div>
           </fieldset>
+          )}
 
           <Field
-            label="One honest thing about where you are"
+            label={type ? type.detailPrompt : "One honest thing about where you are"}
             name="honest"
             rows={3}
             value={honest}
@@ -743,6 +826,7 @@ function Field({
   maxLength,
   plainLabel = false,
   mention,
+  placeholder,
 }: {
   label: string;
   name: string;
@@ -754,6 +838,7 @@ function Field({
   plainLabel?: boolean;
   /** Offers people to tag with @: the circle and people holding this Space. */
   mention?: { chapterSlug: string; picks: MentionPicks };
+  placeholder?: string;
 }) {
   const fieldClass =
     "w-full resize-y rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]";
@@ -788,6 +873,9 @@ function Field({
           value={value}
           maxLength={maxLength}
           onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          // The example changes by day; the server's day can differ from the browser's.
+          suppressHydrationWarning
           className={fieldClass}
         />
       )}

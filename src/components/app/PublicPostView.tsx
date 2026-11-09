@@ -4,6 +4,7 @@ import { PostMedia } from "@/components/app/PostMedia";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight } from "@/components/ui/ArrowRight";
 import { Linkify } from "@/components/ui/Linkify";
+import { conversationLine, getConversation } from "@/lib/conversations";
 import { progressLabel } from "@/lib/posts";
 import type { PublicComment, PublicPost } from "@/lib/public-post";
 
@@ -26,6 +27,9 @@ export function PublicPostView({ post, signedIn }: { post: PublicPost; signedIn:
   const signInHref = `/sign-in?next=${encodeURIComponent(`/posts/${post.id}`)}`;
   // Every action that needs an account goes to the same place.
   const actionHref = signedIn ? "/spaces" : joinHref;
+  const type = post.kind === "root" ? getConversation(post.conversation) : undefined;
+  const typeLine = type ? conversationLine(post.chapterSlug, post.conversation, post.topic) : undefined;
+  const isStory = type?.value === "unfinished";
 
   return (
     <div className="flex flex-col gap-4">
@@ -42,6 +46,7 @@ export function PublicPostView({ post, signedIn }: { post: PublicPost; signedIn:
               )}
             </div>
             <span className="font-sans text-sm text-ink-300" suppressHydrationWarning>
+              {typeLine && <>{typeLine} · </>}
               {post.time}
               {post.chapterName && <> · in {post.chapterName}</>}
             </span>
@@ -52,7 +57,9 @@ export function PublicPostView({ post, signedIn }: { post: PublicPost; signedIn:
           <div className="flex flex-col gap-1 py-1">
             {post.title && (
               <h1 className="font-sans text-xl font-semibold text-ink-700">
+                {type && "“"}
                 <Linkify text={post.title} className="text-primary-600" />
+                {type && "”"}
               </h1>
             )}
             {post.body && !captionInImage && (
@@ -71,24 +78,55 @@ export function PublicPostView({ post, signedIn }: { post: PublicPost; signedIn:
           />
         )}
 
+        {isStory && post.updates.length > 0 && (
+          <ol aria-label="Story updates" className="flex flex-col gap-3 border-l-2 border-primary-100 pl-4">
+            {post.updates.map((update, index) => (
+              <li key={update.id} className="flex flex-col gap-1">
+                <span className="font-sans text-xs font-semibold tracking-wide text-primary-600 uppercase">
+                  Update {index + 1}
+                  <span className="font-normal tracking-normal text-ink-300 normal-case" suppressHydrationWarning>
+                    {" "}
+                    · {update.time}
+                  </span>
+                </span>
+                <p className="font-sans text-base break-words whitespace-pre-line text-ink-500">
+                  <Linkify text={update.body} className="text-primary-600" />
+                </p>
+              </li>
+            ))}
+          </ol>
+        )}
+
         <hr className="border-ink-50" />
 
         {/* The counts show; acting on them needs an account. */}
         <footer className="flex flex-wrap gap-3">
-          <Link
-            href={actionHref}
-            className="flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 font-sans text-sm text-primary-500 transition-colors hover:bg-primary-100"
-          >
-            <PlantIcon className="size-5" />
-            Root {post.roots}
-          </Link>
+          {!isStory && (
+            <Link
+              href={actionHref}
+              className="flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 font-sans text-sm text-primary-500 transition-colors hover:bg-primary-100"
+            >
+              <PlantIcon className="size-5" />
+              {type?.rootLabel ?? "Root"} {post.roots}
+            </Link>
+          )}
           <Link
             href={actionHref}
             className="flex items-center gap-2 rounded-full bg-ivory-400 px-4 py-2 font-sans text-sm text-ink-400 transition-colors hover:bg-ivory-500"
           >
             <ChatIcon className="size-5" />
-            {post.comments} {post.comments === 1 ? "comment" : "comments"}
+            {type
+              ? `${type.replyLabel} · ${post.comments}`
+              : `${post.comments} ${post.comments === 1 ? "comment" : "comments"}`}
           </Link>
+          {isStory && (
+            <Link
+              href={actionHref}
+              className="flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 font-sans text-sm text-primary-500 transition-colors hover:bg-primary-100"
+            >
+              Follow story
+            </Link>
+          )}
         </footer>
       </article>
 

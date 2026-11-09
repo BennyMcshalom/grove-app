@@ -15,6 +15,7 @@ const ITEMS = [
   { href: "/events", label: "Events", icon: "events" },
   { href: "/nearby", label: "Nearby", icon: "nearby" },
   { href: "/archive", label: "Archive", icon: "archive" },
+  { href: "/kept", label: "Kept", icon: "kept" },
   { href: "/deep-focus", label: "Deep Focus", icon: "deep-focus" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];

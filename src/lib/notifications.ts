@@ -192,6 +192,16 @@ export function toInboxItem(row: NotificationRow): InboxItem {
       return { ...base, title: `${who} rooted your post`, body: "Your post took root with them.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
     case "post_commented":
       return { ...base, title: `${who} commented on your post`, body: "See what they said.", href: row.entity_id ? `/posts/${row.entity_id}` : "/home" };
+    // Follow story: the author of an Unfinished post added an update.
+    case "story_update": {
+      const excerpt = typeof data.excerpt === "string" && data.excerpt ? `"${data.excerpt}"` : "See where it is now.";
+      return {
+        ...base,
+        title: data.anonymous === true ? "A story you follow has an update" : `${who} added an update to their story`,
+        body: excerpt,
+        href: row.entity_id ? `/posts/${row.entity_id}` : "/home",
+      };
+    }
     // @mentions: in a post, a comment, or a chat (direct, group or event).
     case "mentioned": {
       const excerpt = typeof data.excerpt === "string" && data.excerpt ? `"${data.excerpt}"` : null;

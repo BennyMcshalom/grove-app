@@ -20,9 +20,12 @@ import { cn } from "@/lib/cn";
 export function PostComments({
   postId,
   onCountChange,
+  placeholder = "Add a comment",
 }: {
   postId: string;
   onCountChange: (delta: number) => void;
+  /** The comment box's prompt, which follows the post's type. */
+  placeholder?: string;
 }) {
   const toast = useToast();
   const [comments, setComments] = useState<PostComment[] | null>(null);
@@ -151,7 +154,7 @@ export function PostComments({
         </ul>
       )}
 
-      <CommentBox placeholder="Add a comment" postId={postId} onSend={(body, mentioned) => post(body, null, mentioned)} />
+      <CommentBox placeholder={placeholder} postId={postId} onSend={(body, mentioned) => post(body, null, mentioned)} />
     </section>
   );
 }

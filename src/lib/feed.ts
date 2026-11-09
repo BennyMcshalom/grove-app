@@ -90,6 +90,16 @@ async function toPosts(rows: FeedRow[], viewerName: string): Promise<Post[]> {
     roots: roots.get(row.id) ?? (row.rooted ? 1 : 0),
     mine: row.is_mine,
     createdAt: row.created_at,
+    conversation: row.conversation,
+    topic: row.topic,
+    kept: row.kept,
+    following: row.following,
+    updates: (row.updates ?? []).map((u) => ({
+      id: u.id,
+      body: u.body,
+      time: timeAgo(u.created_at, now),
+      createdAt: u.created_at,
+    })),
   }));
 }
 

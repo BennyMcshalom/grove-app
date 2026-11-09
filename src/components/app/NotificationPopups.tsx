@@ -144,6 +144,8 @@ function actionLabel(item: InboxItem): string | null {
     case "post_rooted":
     case "post_commented":
       return "View post";
+    case "story_update":
+      return "See the update";
     case "match_available":
     case "connection_suggested":
     case "introduction_suggested":

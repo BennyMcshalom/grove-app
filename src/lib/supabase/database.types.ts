@@ -97,7 +97,10 @@ type NotificationKind =
   | "companion_update"
   | "companion_checkin"
   | "mentioned"
-  | "event_cancelled";
+  | "event_cancelled"
+  | "story_update";
+/** What kind of conversation a post starts (optional). */
+type PostConversation = "unspoken" | "unfiltered" | "unfinished";
 /** A chapter invitation recipient's answer. */
 type InviteResponse = "pending" | "accepted" | "declined";
 /** Who a post is for (composer "Visible to"). */
@@ -520,6 +523,9 @@ export type Database = {
           space_wide: boolean;
           /** Anyone with the link can read it signed out (with audience everyone, named). */
           link_public: boolean;
+          conversation: PostConversation | null;
+          /** A topic inside the Space (src/lib/conversations.ts). */
+          topic: string | null;
           audience: Audience;
           roots_count: number;
           comments_count: number;
@@ -536,8 +542,28 @@ export type Database = {
           is_anonymous?: boolean;
           open_grove?: boolean;
           audience?: Audience;
+          conversation?: PostConversation | null;
+          topic?: string | null;
         };
         Update: { title?: string | null; progress?: PostProgress | null; body?: string | null };
+        Relationships: [];
+      };
+      kept_posts: {
+        Row: { user_id: string; post_id: string; created_at: string };
+        Insert: { user_id?: string; post_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      story_follows: {
+        Row: { user_id: string; post_id: string; created_at: string };
+        Insert: { user_id?: string; post_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      post_updates: {
+        Row: { id: string; post_id: string; body: string; created_at: string };
+        Insert: { post_id: string; body: string };
+        Update: never;
         Relationships: [];
       };
       post_audience: {
@@ -1096,6 +1122,9 @@ export type Database = {
             width: number | null;
             height: number | null;
           }[];
+          conversation: PostConversation | null;
+          topic: string | null;
+          updates: { id: string; body: string; created_at: string }[];
         }[];
       };
       public_post_comments: {
@@ -1588,7 +1617,7 @@ export type Database = {
       };
       feed_posts: {
         Args: {
-          p_scope?: "home" | "all" | "roots" | "open" | "mine" | "person";
+          p_scope?: "home" | "all" | "roots" | "open" | "mine" | "person" | "kept";
           p_chapter_slug?: string | null;
           p_from?: string | null;
           p_to?: string | null;
@@ -1625,6 +1654,11 @@ export type Database = {
             height: number | null;
           }[];
           audience: Audience;
+          conversation: PostConversation | null;
+          topic: string | null;
+          kept: boolean;
+          following: boolean;
+          updates: { id: string; body: string; created_at: string }[];
         }[];
       };
       space_members: {

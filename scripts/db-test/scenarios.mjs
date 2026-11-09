@@ -3016,6 +3016,67 @@ await step("shared post links read signed out", async () => {
   check("signed out can't open links", await anon(`select public.share_post_link($1)`, [old]).then(() => false, (e) => e.message.includes("permission denied")));
 });
 
+// --- conversation types, Keep, Follow story (20261109100100) ------------------------
+await step("conversation types, Keep and Follow story", async () => {
+  const Ca = await person("Cara", learning);
+  const Cb = await person("Cole", learning);
+  const Cc = await person("Cass", learning);
+
+  const [{ id: unspoken }] = await q(Ca, `insert into public.posts (chapter_slug, title, conversation, topic) values ('learning', 'Rarely said', 'unspoken', 'study') returning id`);
+  const [{ id: story }] = await q(Ca, `insert into public.posts (chapter_slug, title, conversation) values ('learning', 'Learning to swim', 'unfinished') returning id`);
+  const [{ id: plain }] = await q(Ca, `insert into public.posts (chapter_slug, body) values ('learning', 'No type') returning id`);
+  await fails("a topic needs a type", Ca, `insert into public.posts (chapter_slug, body, topic) values ('learning', 'x', 'study')`, [], "posts_topic_needs_conversation");
+  await fails("Just Grouv has no type", Ca, `insert into public.posts (chapter_slug, kind, body, conversation) values ('learning', 'grouv', 'x', 'unspoken')`, [], "posts_conversation_is_a_root");
+  await fails("topics are slugs", Ca, `insert into public.posts (chapter_slug, title, conversation, topic) values ('learning', 'x', 'unspoken', 'Bad Topic!')`, [], "check constraint");
+
+  const feed = await q(Cb, `select id, conversation, topic, kept, following, updates from public.feed_posts('home')`);
+  const row = feed.find((r) => r.id === unspoken);
+  check("the feed carries type and topic", row?.conversation === "unspoken" && row?.topic === "study", row);
+
+  // Keep
+  await q(Cb, `insert into public.kept_posts (post_id) values ($1)`, [unspoken]);
+  check("kept shows on the post", (await q(Cb, `select kept from public.feed_posts('all', p_post_id => $1)`, [unspoken]))[0]?.kept === true);
+  check("nobody else sees your Kept list", (await q(Cc, `select * from public.kept_posts`)).length === 0);
+  const keptScope = await q(Cb, `select id from public.feed_posts('kept')`);
+  check("the kept scope lists it", keptScope.length === 1 && keptScope[0].id === unspoken, keptScope);
+
+  // A kept post outlives the 48 hours for its keeper only.
+  await su(`update public.posts set created_at = now() - interval '5 days' where id = $1`, [unspoken]);
+  check("kept post still readable to the keeper", (await q(Cb, `select id from public.posts where id = $1`, [unspoken])).length === 1);
+  check("but not to someone who didn't keep it", (await q(Cc, `select id from public.posts where id = $1`, [unspoken])).length === 0);
+  await fails("can't keep a post you can't see", Cc, `insert into public.kept_posts (post_id) values ($1)`, [unspoken], "row-level security");
+  await su(`insert into public.blocks (blocker_id, blocked_id) values ($1, $2)`, [Ca, Cb]);
+  check("a block ends it", (await q(Cb, `select id from public.posts where id = $1`, [unspoken])).length === 0);
+  await su(`delete from public.blocks where blocker_id = $1 and blocked_id = $2`, [Ca, Cb]);
+
+  // Follow story
+  await fails("only Unfinished posts are followed", Cb, `insert into public.story_follows (post_id) values ($1)`, [plain], "row-level security");
+  await fails("nobody follows their own story", Ca, `insert into public.story_follows (post_id) values ($1)`, [story], "row-level security");
+  await q(Cb, `insert into public.story_follows (post_id) values ($1)`, [story]);
+  check("following shows on the post", (await q(Cb, `select following from public.feed_posts('all', p_post_id => $1)`, [story]))[0]?.following === true);
+
+  await fails("only the author adds updates", Cb, `insert into public.post_updates (post_id, body) values ($1, 'mine now')`, [story], "row-level security");
+  await fails("updates only on Unfinished posts", Ca, `insert into public.post_updates (post_id, body) values ($1, 'x')`, [plain], "row-level security");
+  await q(Ca, `insert into public.post_updates (post_id, body) values ($1, 'Week two: floated for ten seconds')`, [story]);
+  const note = await su(`select kind, actor_id, entity_id, data from public.notifications where user_id = $1 and kind = 'story_update'`, [Cb]);
+  check("followers hear about the update", note.length === 1 && note[0].entity_id === story && note[0].actor_id === Ca && note[0].data.excerpt.startsWith("Week two"), note);
+  check("the author isn't notified", (await su(`select 1 from public.notifications where user_id = $1 and kind = 'story_update'`, [Ca])).length === 0);
+  const updates = (await q(Cb, `select updates from public.feed_posts('all', p_post_id => $1)`, [story]))[0]?.updates;
+  check("updates come with the post", updates?.length === 1 && updates[0].body.startsWith("Week two"), updates);
+
+  // A followed story outlives the 48 hours for its follower.
+  await su(`update public.posts set created_at = now() - interval '5 days' where id = $1`, [story]);
+  check("followed story still readable", (await q(Cb, `select id from public.posts where id = $1`, [story])).length === 1);
+  check("and its updates", (await q(Cb, `select id from public.post_updates where post_id = $1`, [story])).length === 1);
+
+  // The signed-out page carries the type and the updates.
+  const pub = await db.transaction(async (tx) => {
+    await tx.exec("set local role anon");
+    return (await tx.query(`select conversation, updates from public.public_post($1)`, [story])).rows;
+  });
+  check("public page shows the type and updates", pub[0]?.conversation === "unfinished" && pub[0]?.updates.length === 1, pub);
+});
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);
 process.exit(failures.length ? 1 : 0);
