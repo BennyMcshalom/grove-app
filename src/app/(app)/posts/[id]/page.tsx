@@ -27,7 +27,7 @@ export default async function PostPage({ params }: PageProps<"/posts/[id]">) {
       <div className="min-h-0 flex-1 scroll-slim overflow-y-auto px-4 py-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[724px] flex-col gap-6 pb-10">
           {post ? (
-            <PostCard post={post} />
+            <PostCard post={post} full />
           ) : preview ? (
             <PublicPostView post={preview} signedIn />
           ) : (

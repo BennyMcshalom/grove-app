@@ -15,6 +15,7 @@ import { getChapter } from "@/lib/chapters";
  * ones that apply. "Send to a Bond" shows where the host can open the picker.
  */
 export type PostMenuAction =
+  | "Share Post"
   | "Edit Post"
   | "Keep Post"
   | "Remove from Kept"
@@ -44,6 +45,7 @@ export function PostMenu({
   const ref = useDismiss(onClose);
 
   const groupOne = [
+    { label: "Share Post" as const, danger: false },
     mine && { label: "Edit Post" as const, danger: false },
     kept !== undefined && { label: kept ? ("Remove from Kept" as const) : ("Keep Post" as const), danger: false },
     canSendToBond && { label: "Send to a Bond" as const, danger: false },

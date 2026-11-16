@@ -115,7 +115,7 @@ export function PostModal({ postId, initial, onClose }: { postId: string; initia
 
         {post ? (
           <div className="rounded-2xl bg-surface">
-            <PostCard post={post} defaultCommentsOpen onDeleted={onClose} />
+            <PostCard post={post} defaultCommentsOpen full onDeleted={onClose} />
           </div>
         ) : post === null ? (
           <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface px-6 py-12 text-center">

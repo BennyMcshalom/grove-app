@@ -133,17 +133,18 @@ export interface FeedCursor {
 
 /**
  * Which posts a feed shows:
- *   home  — you, your circle and your bonds, last 48 hours, newest first
+ *   home  — public posts (7 days) plus your circle and bonds (48 hours), ranked
  *   roots — the same, in one space
  *   open  — Open Grouv posts from people outside the circle at your stage
  *   mine  — the viewer's own posts, anonymous ones included (pages)
  *   all   — whatever the viewer may see (permalinks)
  *
- * home and roots end: 48 hours, no next page, no ranking of any kind.
+ * home and roots are ranked (private.feed_score): engagement over age, lifted
+ * for your circle, bonds and Spaces. One page of up to 100, then they end.
  */
 export type FeedScope = "home" | "all" | "roots" | "open" | "mine" | "person" | "kept";
 
-/** Scopes that stop at 48 hours and never load more. */
+/** Ranked scopes: one page, never load more. */
 export const ENDING_SCOPES: FeedScope[] = ["home", "roots"];
 
 export interface FeedQuery {

@@ -105,7 +105,7 @@ export function ConversationFilter({
 export function FilteredEmpty({ onReset, label }: { onReset: () => void; label: string }) {
   return (
     <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface px-6 py-10 text-center">
-      <p className="font-sans text-base text-ink-500">No {label} posts in the last 48 hours.</p>
+      <p className="font-sans text-base text-ink-500">No {label} posts right now.</p>
       <button type="button" onClick={onReset} className="font-sans text-sm font-medium text-primary-600 hover:underline">
         Show everything
       </button>

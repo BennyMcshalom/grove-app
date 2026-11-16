@@ -24,7 +24,7 @@ export function FeedEnd() {
     <div className="flex flex-col items-center gap-1 py-8 text-center">
       <span aria-hidden="true" className="h-px w-16 bg-ink-100" />
       <p className="pt-4 font-sans text-base font-medium text-ink-500">You&apos;re all caught up</p>
-      <p className="font-sans text-sm text-ink-300">That&apos;s everything from the last 48 hours.</p>
+      <p className="font-sans text-sm text-ink-300">You&apos;re all caught up.</p>
     </div>
   );
 }

@@ -37,7 +37,7 @@ export async function loadFeed(query: FeedQuery, viewerName: string): Promise<Fe
 
   return {
     posts: await toPosts(rows, viewerName),
-    // The feed ends at 48 hours: no next page, ever.
+    // Ranked feeds come as one page: no next page, ever.
     nextCursor:
       !ENDING_SCOPES.includes(query.scope) && rows.length === FEED_PAGE_SIZE && last
         ? { before: last.created_at, beforeId: last.id }

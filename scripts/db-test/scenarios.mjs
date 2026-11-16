@@ -1,6 +1,10 @@
 import { freshDb } from "./run.mjs";
 
 const db = await freshDb();
+// The scenarios below were written for posts with a chosen audience. Every
+// post is public from 20261116100000; until its own block, posts are made as
+// they were before it (public_reach false), so the older rules stay tested.
+await db.query("alter table public.posts alter column public_reach set default false");
 let passed = 0;
 const failures = [];
 
@@ -3075,6 +3079,50 @@ await step("conversation types, Keep and Follow story", async () => {
     return (await tx.query(`select conversation, updates from public.public_post($1)`, [story])).rows;
   });
   check("public page shows the type and updates", pub[0]?.conversation === "unfinished" && pub[0]?.updates.length === 1, pub);
+});
+
+// --- every post is public, the feed is ranked (20261116100000) --------------------
+await step("public posts reach everyone, ranked", async () => {
+  await su("alter table public.posts alter column public_reach set default true");
+  const Pa = await person("Pia", learning);
+  const Pb = await person("Pat", [{ slug: "career", phase: "Starting over" }]);
+  const Pc = await person("Poe", learning);
+  const Pd = await person("Pax", [{ slug: "career", phase: "Starting over" }]);
+  const post = async (who, body, extra = {}) =>
+    (await q(who, `insert into public.posts (chapter_slug, body, is_anonymous) values ($1, $2, $3) returning id, public_reach`, [extra.slug ?? "learning", body, extra.anon ?? false]))[0];
+  const named = await post(Pa, "Open to all");
+  check("new posts are public", named.public_reach === true);
+  const anon = await post(Pa, "Quiet", { anon: true });
+  const home = async (who, scope = "home", slug = null) =>
+    (await q(who, `select id from public.feed_posts($1, $2)`, [scope, slug])).map((r) => r.id);
+
+  check("someone outside the Space sees it on Home", (await home(Pb)).includes(named.id));
+  check("and can open it", (await q(Pb, `select id from public.posts where id = $1`, [named.id])).length === 1);
+  check("and reply to it", (await q(Pb, `insert into public.comments (post_id, body) values ($1, 'Same here') returning id`, [named.id])).length === 1);
+  check("anonymous posts don't go public", !(await home(Pb)).includes(anon.id));
+  check("the Space's Roots shows it to outsiders browsing it", (await home(Pb, "roots", "learning")).includes(named.id));
+  check("and not in another Space", !(await home(Pb, "roots", "career")).includes(named.id));
+
+  await q(Pd, `select public.block_user($1)`, [Pa]);
+  check("blocks still hide it", !(await home(Pd)).includes(named.id));
+  check("and the post itself", (await q(Pd, `select id from public.posts where id = $1`, [named.id])).length === 0);
+
+  await su(`update public.posts set created_at = now() - interval '3 days' where id = $1`, [named.id]);
+  check("public posts stay on Home past 48 hours", (await home(Pb)).includes(named.id));
+  await su(`update public.posts set created_at = now() - interval '8 days' where id = $1`, [named.id]);
+  check("and leave the feed after 7 days", !(await home(Pb)).includes(named.id));
+  check("but the post still opens from a link", (await q(Pb, `select id from public.posts where id = $1`, [named.id])).length === 1);
+
+  // Ranking: engagement lifts an older post over a newer quiet one.
+  const quiet = await post(Pc, "Nobody saw this");
+  const loved = await post(Pc, "Everyone saw this");
+  await su(`update public.posts set created_at = now() - interval '6 hours' where id = $1`, [loved.id]);
+  await su(`update public.posts set created_at = now() - interval '1 hour' where id = $1`, [quiet.id]);
+  await su(`update public.posts set roots_count = 30, comments_count = 12 where id = $1`, [loved.id]);
+  const ranked = await home(Pb);
+  check("a well-loved post ranks above a newer quiet one", ranked.includes(loved.id) && ranked.indexOf(loved.id) < ranked.indexOf(quiet.id), ranked);
+  const mine = await q(Pc, `select id from public.feed_posts('mine')`);
+  check("other scopes stay newest first", mine[0]?.id === quiet.id, mine);
 });
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

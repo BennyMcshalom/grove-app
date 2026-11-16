@@ -3,7 +3,7 @@
 import { PostMedia } from "@/components/app/PostMedia";
 import { Linkify } from "@/components/ui/Linkify";
 import { MentionText } from "@/components/app/MentionText";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/app/Avatar";
 import { PostComments } from "@/components/app/PostComments";
@@ -44,11 +44,14 @@ import { cn } from "@/lib/cn";
 export function PostCard({
   post: initial,
   defaultCommentsOpen = false,
+  full = false,
   onDeleted,
 }: {
   post: Post;
   /** The post modal opens with its thread showing. */
   defaultCommentsOpen?: boolean;
+  /** The whole body (permalink, modal); feeds show its first three lines. */
+  full?: boolean;
   onDeleted?: () => void;
 }) {
   const [post, setPost] = useState(initial);
@@ -66,6 +69,9 @@ export function PostCard({
   const [following, setFollowing] = useState(initial.following);
   const [updates, setUpdates] = useState<StoryUpdate[]>(initial.updates);
   const [addingUpdate, setAddingUpdate] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  // Share lives in the ⋯ menu; the sheet opens from there.
+  const shareButton = useRef<HTMLButtonElement>(null);
   const toast = useToast();
   const router = useRouter();
   const labelStyle = useSpaceLabelStyle();
@@ -153,16 +159,16 @@ export function PostCard({
           header so text and media get the card's full width (as X and
           LinkedIn do). */}
       <span className="hidden shrink-0 sm:block">
-        <Avatar src={post.avatar} name={post.author} userId={post.anonymous ? null : post.authorId} className="size-10" />
+        <Avatar src={post.avatar} name={post.author} userId={post.anonymous ? null : post.authorId} className="size-9" />
       </span>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
         <header className="flex items-start justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-3">
-          <Avatar src={post.avatar} name={post.author} userId={post.anonymous ? null : post.authorId} className="size-10 shrink-0 sm:hidden" />
+          <div className="flex min-w-0 items-center gap-2.5">
+          <Avatar src={post.avatar} name={post.author} userId={post.anonymous ? null : post.authorId} className="size-8 shrink-0 sm:hidden" />
           <div className="flex min-w-0 flex-col justify-center">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-sans text-lg font-semibold text-ink-700">
+              <span className="font-sans text-sm font-semibold text-ink-700">
                 {post.author}
               </span>
               {badge && (
@@ -172,7 +178,7 @@ export function PostCard({
                 </span>
               )}
             </div>
-            <span className="font-sans text-base text-ink-300">
+            <span className="font-sans text-xs text-ink-300">
               {typeLine && <>{typeLine} · </>}
               {post.time}
               {/* Only the author sees who a narrower post was for. */}
@@ -192,7 +198,7 @@ export function PostCard({
               onClick={() => setMenuOpen((open) => !open)}
               className="rounded p-1 text-ink-400 transition-colors hover:bg-ivory-200"
             >
-              <DotsIcon className="size-6" />
+              <DotsIcon className="size-5" />
             </button>
             {menuOpen && (
               <PostMenu
@@ -203,7 +209,8 @@ export function PostCard({
                 onClose={() => setMenuOpen(false)}
                 onSelect={(action) => {
                   setMenuOpen(false);
-                  if (action === "Download as PNG") void downloadImage();
+                  if (action === "Share Post") shareButton.current?.click();
+                  else if (action === "Download as PNG") void downloadImage();
                   else if (action === "Keep Post" || action === "Remove from Kept") void toggleKept();
                   else setDialog(action);
                 }}
@@ -213,9 +220,9 @@ export function PostCard({
         </header>
 
         {(post.title || (post.body && !captionInImage)) && (
-          <div className="flex flex-col gap-1 py-2">
+          <div className="flex flex-col gap-1">
             {post.title && (
-              <h2 className="font-sans text-xl font-semibold text-ink-700">
+              <h2 className="font-sans text-[17px] leading-snug font-semibold text-ink-700">
                 {/* A typed post's headline reads as something said. */}
                 {type && "“"}
                 <Linkify text={post.title} className="text-primary-600" />
@@ -223,9 +230,25 @@ export function PostCard({
               </h2>
             )}
             {post.body && !captionInImage && (
-              <p className="font-sans text-base whitespace-pre-line text-ink-400">
-                <MentionText text={post.body} source="posts" id={post.id} className="text-primary-600" />
-              </p>
+              <>
+                <p
+                  className={cn(
+                    "font-sans text-[15px] leading-normal whitespace-pre-line text-ink-400",
+                    !full && !expanded && "line-clamp-3",
+                  )}
+                >
+                  <MentionText text={post.body} source="posts" id={post.id} className="text-primary-600" />
+                </p>
+                {!full && !expanded && looksLong(post.body) && (
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(true)}
+                    className="self-start font-sans text-sm font-medium text-ink-500 hover:underline"
+                  >
+                    …more
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -254,19 +277,17 @@ export function PostCard({
           />
         )}
 
-        <hr className="border-ink-50" />
-
-        <footer className="flex flex-wrap gap-3 py-3 sm:gap-5">
+        <footer className="flex flex-wrap gap-2 pt-1 sm:gap-3">
           {/* Unfinished stories are followed rather than rooted. */}
           {!isStory && (
             <Action
               icon={
                 type?.value === "unspoken" ? (
-                  <HeartIcon className="size-6" />
+                  <HeartIcon className="size-5" />
                 ) : type?.value === "unfiltered" ? (
-                  <AgreeIcon className="size-6" />
+                  <AgreeIcon className="size-5" />
                 ) : (
-                  <PlantIcon className="size-6" />
+                  <PlantIcon className="size-5" />
                 )
               }
               // "Root 22", as comments show it. It never changes what
@@ -274,8 +295,7 @@ export function PostCard({
               label={
                 type ? (
                   <>
-                    {/* The heart / thumb says it on phones. */}
-                    <span className="hidden sm:inline">{type.rootLabel} </span>
+                    <span>{type.rootLabel} </span>
                     {roots}
                   </>
                 ) : (
@@ -290,7 +310,7 @@ export function PostCard({
             />
           )}
           <Action
-            icon={type?.value === "unfiltered" ? <PerspectiveIcon className="size-6" /> : <ChatIcon className="size-6" />}
+            icon={type?.value === "unfiltered" ? <PerspectiveIcon className="size-5" /> : <ChatIcon className="size-5" />}
             label={
               <>
                 <span className="hidden sm:inline">{type?.replyLabel ?? "Comment"} </span>
@@ -304,7 +324,7 @@ export function PostCard({
           {isStory &&
             (post.mine ? (
               <Action
-                icon={<PlusIcon className="size-6" />}
+                icon={<PlusIcon className="size-5" />}
                 label="Add an update"
                 tone="root"
                 active={addingUpdate}
@@ -312,7 +332,7 @@ export function PostCard({
               />
             ) : (
               <Action
-                icon={<BellIcon className="size-6" />}
+                icon={<BellIcon className="size-5" />}
                 label={following ? "Following" : "Follow story"}
                 tone="root"
                 active={following}
@@ -321,8 +341,8 @@ export function PostCard({
             ))}
           {type && !isStory && (
             <Action
-              icon={<BookmarkIcon className="size-6" filled={kept} />}
-              label={<span className="hidden sm:inline">{kept ? "Kept" : "Keep"}</span>}
+              icon={<BookmarkIcon className="size-5" filled={kept} />}
+              label={kept ? "Kept" : "Keep"}
               ariaLabel={kept ? "Kept" : "Keep"}
               compact
               tone="muted"
@@ -346,15 +366,7 @@ export function PostCard({
                   : "Only people on Grouv who can already see this post can open the link."
             }
             trigger={(open) => (
-              <Action
-                icon={<ShareIcon className="size-6" />}
-                // A typed post has more actions: on phones Share is its icon.
-                label={type ? <span className="hidden sm:inline">Share</span> : "Share"}
-                ariaLabel={type ? "Share" : undefined}
-                compact={Boolean(type)}
-                tone="outline"
-                onClick={open}
-              />
+              <button ref={shareButton} type="button" hidden tabIndex={-1} aria-hidden="true" onClick={open} />
             )}
           />
         </footer>
@@ -413,6 +425,11 @@ export function PostCard({
   );
 }
 
+/** Long enough that three lines likely cut it off. */
+function looksLong(body: string) {
+  return body.length > 220 || body.split("\n").length > 3;
+}
+
 function Action({
   icon,
   label,
@@ -439,8 +456,8 @@ function Action({
       aria-pressed={active || undefined}
       aria-label={ariaLabel}
       className={cn(
-        "flex items-center gap-2 rounded-full py-2 font-sans text-sm transition-colors",
-        compact ? "px-3 sm:px-4" : "px-4",
+        "flex items-center gap-1.5 rounded-full py-1.5 font-sans text-[13px] font-medium transition-colors",
+        compact ? "px-2.5 sm:px-3" : "px-3",
         tone === "root" &&
           (active
             ? "bg-primary-500 text-white hover:bg-primary-400"
@@ -526,7 +543,7 @@ function StoryUpdates({
                   </button>
                 )}
               </span>
-              <p className="font-sans text-base break-words whitespace-pre-line text-ink-500">
+              <p className="font-sans text-[15px] break-words whitespace-pre-line text-ink-500">
                 <Linkify text={update.body} className="text-primary-600" />
               </p>
             </li>
@@ -692,20 +709,6 @@ function ChatIcon({ className }: { className?: string }) {
   );
 }
 
-function ShareIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <circle cx="18" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="6" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="18" cy="18.5" r="2.5" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="m8.3 10.8 7.4-4M8.3 13.2l7.4 4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
-}
 
 function DotsIcon({ className }: { className?: string }) {
   return (

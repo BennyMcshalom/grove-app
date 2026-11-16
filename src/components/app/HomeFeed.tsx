@@ -27,7 +27,8 @@ import type { FeedPage } from "@/lib/posts";
  * Home feed — Figma frame 58:2301.
  *
  * A 724px scrolling feed column beside the 396px right rail (94:2684). "All"
- * is the last 48 hours from you, your circle and your bonds, newest first,
+ * is every public post from the last 7 days plus your circle and bonds,
+ * ranked (engagement over age, lifted for people and Spaces close to you),
  * and then it ends; each chapter tab narrows it to one space and falls back
  * to the empty state Figma draws (650:37394 / 664:16902).
  */

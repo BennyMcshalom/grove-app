@@ -523,6 +523,8 @@ export type Database = {
           space_wide: boolean;
           /** Anyone with the link can read it signed out (with audience everyone, named). */
           link_public: boolean;
+          /** Reaches everyone on Grouv, ranked in the feed (new posts from 2026-11-16). */
+          public_reach: boolean;
           conversation: PostConversation | null;
           /** A topic inside the Space (src/lib/conversations.ts). */
           topic: string | null;

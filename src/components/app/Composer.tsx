@@ -14,7 +14,6 @@ import { getChapter } from "@/lib/chapters";
 import { CONVERSATIONS, getConversation, topicsFor, type Conversation } from "@/lib/conversations";
 import { cn } from "@/lib/cn";
 import { MEDIA_LIMITS, PROGRESS, type PostProgress } from "@/lib/posts";
-import { AudiencePicker, type ShareChoice } from "@/components/app/media/AudiencePicker";
 import { MediaPreview } from "@/components/app/media/MediaPreview";
 import { MediaTiles } from "@/components/app/media/MediaTiles";
 import { clearDraft as forgetDraft, draftHasContent, readDraft, writeDraft, type ComposerDraft } from "@/lib/composer-draft";
@@ -37,16 +36,13 @@ import { mediaExtension, mediaSize, uploadWithProgress } from "@/lib/upload";
  * and a topic inside the Space. The prompts follow the type; with none
  * picked the card is exactly as Figma draws it.
  *
- * PRD §6 additions: one "Who can see this" choice (AudiencePicker — Selected
- * Bonds, Everyone, Anonymously, Open Grouv) with the exact audience previewed
- * before publishing; the anonymity warning
- * (Figma h06/h14); a large preview of attached media with the caption over it
+ * Every post is public (2026-11-16): there's no "Who can see this" choice.
+ * PRD §6 additions: a large preview of attached media with the caption over it
  * (h07/h14); and a draft that's kept in this browser and can be resumed or
  * discarded. A failed upload or post keeps the whole draft for Retry.
  */
 const MODES = ["Root a thought", "Just Grouv"] as const;
 
-const ANONYMITY_WARNING = "Even without your name, a photo, video, or voice clip can still identify you.";
 
 
 
@@ -66,13 +62,12 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const [attachments, setAttachments] = useState<MediaDraft[]>([]);
   const [error, setError] = useState<string>();
   const [posting, startPosting] = useTransition();
-  // Exactly one way of sharing. Anonymously and Open Grouv both go to the
-  // whole circle; Open Grouv (no limit) also reaches people at your stage.
-  const [share, setShare] = useState<ShareChoice>("everyone");
-  const [audienceIds, setAudienceIds] = useState<string[]>([]);
-  const audience = share === "selected_bonds" ? "selected_bonds" : "everyone";
-  const anonymous = share === "anonymous";
-  const openGrouv = share === "open";
+  // Every post is public: it reaches everyone on Grouv as soon as it's
+  // posted, and the feed's ranking decides who sees it first.
+  const audience = "everyone" as const;
+  const audienceIds: string[] = [];
+  const anonymous = false;
+  const openGrouv = false;
   // A draft from an earlier visit, offered until it's resumed or discarded.
   const [savedDraft, setSavedDraft] = useState<ComposerDraft | null>(null);
   // People tagged with @ in the words; checked again by the database.
@@ -137,7 +132,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     }, 400);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- currentDraft reads exactly these
-  }, [mode, chapter, stage, conversation, topic, share, doing, honest, caption, audienceIds, attachments, savedDraft, viewer.id]);
+  }, [mode, chapter, stage, conversation, topic, doing, honest, caption, attachments, savedDraft, viewer.id]);
 
   /** "Resume draft": fields come back as they were, media from Storage. */
   const resumeDraft = async () => {
@@ -152,17 +147,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     setDoing(draft.doing);
     setHonest(draft.honest);
     setCaption(draft.caption);
-    // "Only me" left the composer: those drafts come back as Everyone.
-    setShare(
-      draft.audience === "selected_bonds"
-        ? "selected_bonds"
-        : draft.anonymous
-          ? "anonymous"
-          : draft.openGrouv
-            ? "open"
-            : "everyone",
-    );
-    setAudienceIds(draft.audience === "selected_bonds" ? draft.audienceIds : []);
+    // Older drafts may name a narrower audience; every post is public now.
     if (draft.media.length === 0) return;
     const { data } = await createClient()
       .storage.from("media")
@@ -198,8 +183,6 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
     setAttachments([]);
     setChapterMenuOpen(false);
     setError(undefined);
-    setShare("everyone");
-    setAudienceIds([]);
     forgetDraft(viewer.id);
   };
 
@@ -349,7 +332,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         anonymous,
         openGrove: openGrouv,
         audience,
-        audienceIds: audience === "selected_bonds" ? audienceIds : [],
+        audienceIds,
         mentions: picks.idsIn(isRoot ? honest : caption),
         media: attachments.flatMap((a) =>
           a.path
@@ -362,25 +345,11 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         setError(result.error);
         return;
       }
-      // Figma 599:23020 / 599:23021, and where it went for the narrower audiences.
-      toast(
-        share === "open"
-          ? {
-              title: isRoot ? "Post rooted." : "Post Grouved.",
-              description: "Your Circle and people at your stage in Open Grouv will see this post.",
-            }
-          : share === "selected_bonds"
-            ? {
-                title: isRoot ? "Post rooted." : "Post Grouved.",
-                description: `Only the ${audienceIds.length === 1 ? "Bond" : `${audienceIds.length} Bonds`} you chose will see this post.`,
-              }
-            : share === "everyone"
-              ? {
-                  title: isRoot ? "Post rooted." : "Post Grouved.",
-                  description: "Your Circle and everyone in this Space will see this post.",
-                }
-              : { title: isRoot ? "Post rooted. Your Circle will see this post." : "Post Grouved. Your Circle will see this post." },
-      );
+      // Figma 599:23020 / 599:23021.
+      toast({
+        title: isRoot ? "Post rooted." : "Post Grouved.",
+        description: "Everyone on Grouv can see this post.",
+      });
       clearDraft();
       onClose?.();
     });
@@ -417,32 +386,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
 
   const submitDisabled =
     uploading ||
-    attachments.some((a) => a.status === "failed") ||
-    (audience === "selected_bonds" && audienceIds.length === 0);
-
-  // One "Who can see this" row: the pill opens the four choices. Media can
-  // identify someone even without a name, so Just Grouv always carries the
-  // warning; Root shows it once Anonymously is picked.
-  const postSettings = (warnAlways: boolean) => (
-    <div className="flex flex-col gap-3">
-      <div className="rounded-xl border border-ink-50 px-4 py-3">
-        <AudiencePicker
-          choice={share}
-          selected={audienceIds}
-          onChange={(next, ids) => {
-            setShare(next);
-            setAudienceIds(ids);
-          }}
-        />
-      </div>
-      {(warnAlways || anonymous) && (
-        <p className="flex items-start gap-2 font-sans text-xs text-ink-300">
-          <InfoIcon className="mt-px size-3.5 shrink-0" />
-          {ANONYMITY_WARNING}
-        </p>
-      )}
-    </div>
-  );
+    attachments.some((a) => a.status === "failed");
 
   return (
     <article
@@ -627,8 +571,6 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
             />
           </div>
 
-          {postSettings(true)}
-
           <FormError message={error} />
 
           <div className="flex items-center justify-end gap-4 border-t border-ink-50 pt-6">
@@ -745,7 +687,6 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
           />
         </div>
 
-        {postSettings(false)}
       </div>
 
       {attachmentRow}
@@ -1000,11 +941,3 @@ function VideoIcon({ className }: { className?: string }) {
   );
 }
 
-function InfoIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" className={className} aria-hidden="true">
-      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M8 7.25v3.5M8 5.25v.01" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
