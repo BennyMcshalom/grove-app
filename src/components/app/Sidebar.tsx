@@ -30,8 +30,9 @@ import {
 /**
  * Sidebar — Figma component 59:7471 (instance 65:1853).
  *
- * 272px column: logo, the signed-in user, a 7-item primary menu, the trial
- * promo card, then a 3-item secondary menu pinned to the bottom.
+ * 272px column: logo, the signed-in user, a 6-item primary menu (what you do
+ * every day), the trial promo card, then the places you look back — Archive,
+ * Kept — with Deep Focus and Settings, pinned to the bottom.
  */
 const PRIMARY = [
   { href: "/home", label: "Home", Icon: HomeIcon, outline: "home" },
@@ -40,11 +41,11 @@ const PRIMARY = [
   { href: "/bonds", label: "Bonds", Icon: BondsIcon, outline: "bonds" },
   { href: "/events", label: "Events", Icon: EventsIcon, outline: "events" },
   { href: "/nearby", label: "Nearby", Icon: NearbyIcon, outline: "nearby" },
-  { href: "/archive", label: "Archive", Icon: ArchiveIcon, outline: "archive" },
 ];
 
 // "Dark mode" is rendered separately below: the theme switch lives in Settings.
 const SECONDARY = [
+  { href: "/archive", label: "Archive", Icon: ArchiveIcon, outline: "archive" },
   {
     href: "/kept",
     label: "Kept",

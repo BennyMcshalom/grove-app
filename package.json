@@ -20,7 +20,7 @@
     "@supabase/supabase-js": "^2.116.0",
     "livekit-client": "^2.22.3",
     "livekit-server-sdk": "^2.19.0",
-    "next": "^16.4.3",
+    "next": "^16.4.6",
     "react": "19.2.9",
     "react-dom": "19.2.9",
     "resend": "^6.27.0",
@@ -35,7 +35,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^16.4.3",
+    "eslint-config-next": "^16.4.6",
     "supabase": "^2.117.0",
     "tailwindcss": "^4",
     "typescript": "^5"

@@ -204,7 +204,6 @@ export function PostCard({
               <PostMenu
                 mine={post.mine}
                 canSendToBond
-                canDownload={canDownload}
                 kept={kept}
                 onClose={() => setMenuOpen(false)}
                 onSelect={(action) => {

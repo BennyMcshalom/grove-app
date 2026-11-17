@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/app/TopBar";
+import { Avatar } from "@/components/app/Avatar";
 import { Composer } from "@/components/app/Composer";
+import { useViewer } from "@/components/app/ViewerProvider";
 import { DailyCards } from "@/components/app/DailyCards";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { FeedEnd, FeedList } from "@/components/app/FeedList";
@@ -71,7 +73,8 @@ export function HomeFeed({
   };
   // Figma's phone Home (601:30182) has no inline composer: it sits behind the
   // orange FAB above the tab bar.
-  const [composing, setComposing] = useState(false);
+  // Desktop shows a one-line prompt instead of the whole form; both open it here.
+  const [composing, setComposing] = useState<false | "root" | "grouv">(false);
   const [chapterSlug, setChapterSlug] = useState<string | null>(null);
   // All · Unspoken · Unfiltered · Unfinished, over the posts already loaded.
   const [conversation, setConversation] = useState<ConversationChoice>("all");
@@ -92,16 +95,14 @@ export function HomeFeed({
               onOpenIntro={setIntro}
               onOpenMatches={() => setMatchesOpen(true)}
             />
-            <div className="hidden lg:block">
-              <Composer />
-            </div>
+            <ComposePrompt onOpen={setComposing} />
             <DailyCards cards={cards} />
             <ConversationFilter value={conversation} onChange={setConversation} />
             <FeedList
               key={chapterSlug ?? "all"}
               query={{ scope: "home", chapterSlug }}
               initial={chapterSlug === null ? firstPage : undefined}
-              empty={<EmptyFeed onCompose={() => setComposing(true)} />}
+              empty={<EmptyFeed onCompose={() => setComposing("root")} />}
               ending={<FeedEnd />}
               filter={conversation === "all" ? undefined : (post) => matchesConversation(post, conversation)}
               filteredEmpty={
@@ -120,7 +121,7 @@ export function HomeFeed({
       {/* The composer FAB, above the phone tab bar. */}
       <button
         type="button"
-        onClick={() => setComposing(true)}
+        onClick={() => setComposing("root")}
         aria-label="Root a thought"
         className="fixed right-5 bottom-24 z-30 grid size-14 place-items-center rounded-full bg-primary-500 text-white shadow-[0px_4px_16px_0px_rgba(0,0,0,0.2)] transition-colors hover:bg-primary-400 lg:hidden"
       >
@@ -165,10 +166,42 @@ export function HomeFeed({
             className="my-auto w-full max-w-[440px] lg:max-w-[660px]"
             onClick={(e) => e.stopPropagation()}
           >
-            <Composer onClose={() => setComposing(false)} />
+            <Composer initialMode={composing} onClose={() => setComposing(false)} />
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Desktop's way in to posting: one line, like Reddit's "Create post", that
+ * opens the full composer. Phones use the orange button above the tab bar.
+ */
+function ComposePrompt({ onOpen }: { onOpen: (mode: "root" | "grouv") => void }) {
+  const viewer = useViewer();
+  return (
+    <div className="hidden items-center gap-3 rounded-2xl bg-surface p-3 shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] lg:flex">
+      <Avatar src={viewer.avatarUrl} name={viewer.firstName} userId={viewer.id} sizes="40px" className="size-10 shrink-0" />
+      <button
+        type="button"
+        onClick={() => onOpen("root")}
+        className="min-w-0 flex-1 rounded-full bg-ivory-200 px-4 py-2.5 text-left font-sans text-[15px] text-ink-300 transition-colors hover:bg-ivory-300"
+      >
+        Root a thought, {viewer.firstName}…
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpen("grouv")}
+        className="flex shrink-0 items-center gap-2 rounded-full px-3 py-2 font-sans text-sm font-medium text-ink-400 transition-colors hover:bg-ivory-200"
+      >
+        <svg viewBox="0 0 20 20" fill="none" className="size-5" aria-hidden="true">
+          <rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="7" cy="8.5" r="1.5" fill="currentColor" />
+          <path d="m4 15 4.5-4 3 2.5 2.5-2 2.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
+        Just Grouv
+      </button>
     </div>
   );
 }

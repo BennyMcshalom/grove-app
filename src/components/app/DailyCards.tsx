@@ -26,7 +26,7 @@ export function DailyCards({ cards }: { cards: DailyCard[] }) {
   return (
     <section aria-label="Today's Curio" className="flex flex-col gap-3">
       <h2 className="font-sans text-sm font-medium tracking-wide text-ink-400 uppercase">
-        Today&rsquo;s Curio · for the next 24 hours
+        Today&rsquo;s Curio
       </h2>
       <div className="flex snap-x gap-4 scroll-slim overflow-x-auto pb-1">
         {cards.map((card) => {

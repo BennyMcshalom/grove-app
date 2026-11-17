@@ -46,16 +46,25 @@ const MODES = ["Root a thought", "Just Grouv"] as const;
 
 
 
-export function Composer({ onClose }: { onClose?: () => void } = {}) {
+export function Composer({
+  onClose,
+  initialMode = "root",
+}: {
+  onClose?: () => void;
+  /** Which tab it opens on (Home's "Just Grouv" shortcut opens the second). */
+  initialMode?: "root" | "grouv";
+} = {}) {
   const viewer = useViewer();
   const toast = useToast();
 
-  const [mode, setMode] = useState<(typeof MODES)[number]>(MODES[0]);
+  const [mode, setMode] = useState<(typeof MODES)[number]>(initialMode === "grouv" ? MODES[1] : MODES[0]);
   const [stage, setStage] = useState<PostProgress | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [topic, setTopic] = useState<string | null>(null);
   const [chapter, setChapter] = useState(viewer.chapters[0]?.slug ?? "");
   const [chapterMenuOpen, setChapterMenuOpen] = useState(false);
+  // "Where are you in it?" stays one link until it is wanted.
+  const [stageOpen, setStageOpen] = useState(false);
   const [doing, setDoing] = useState("");
   const [honest, setHonest] = useState("");
   const [caption, setCaption] = useState("");
@@ -175,6 +184,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   const clearDraft = () => {
     setMode(MODES[0]);
     setStage(null);
+    setStageOpen(false);
     setConversation(null);
     setTopic(null);
     setDoing("");
@@ -391,7 +401,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
   return (
     <article
       className={cn(
-        "relative flex flex-col gap-6 rounded-2xl bg-surface p-6 lg:p-8",
+        "relative flex flex-col gap-5 rounded-2xl bg-surface p-5 lg:p-6",
         dragging && "ring-2 ring-primary-400 ring-offset-2 ring-offset-ivory-100",
       )}
       onDragOver={(e) => {
@@ -421,20 +431,20 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
         </div>
       )}
       <header className="flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <span className="relative size-12 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="relative size-10 shrink-0">
             <Avatar
               src={viewer.avatarUrl}
               name={viewer.firstName}
               userId={viewer.id}
-              sizes="48px"
-              className="size-12 border-[1.5px] border-surface"
+              sizes="40px"
+              className="size-10 border-[1.5px] border-surface"
             />
             <span className="absolute right-0 bottom-0 size-3 rounded-full border border-surface bg-[#04802E]" />
           </span>
 
-          <div className="flex flex-col gap-3">
-            <span className="font-sans text-base font-bold text-ink-700">
+          <div className="flex flex-col gap-1">
+            <span className="font-sans text-sm font-semibold text-ink-700">
               {viewer.firstName}
             </span>
             {/* Figma 110:3828 — this chip opens the "POSTING TO" chapter menu. */}
@@ -444,7 +454,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
                 aria-haspopup="menu"
                 aria-expanded={chapterMenuOpen}
                 onClick={() => setChapterMenuOpen((open) => !open)}
-                className="flex w-fit items-center gap-2 rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm font-semibold text-primary-600"
+                className="flex w-fit items-center gap-1.5 rounded-full bg-primary-50 px-2.5 py-1 font-sans text-xs font-semibold text-primary-600"
               >
                 <BagIcon className="size-4" />
                 {getChapter(chapter)?.name ?? "Choose a chapter"}
@@ -469,7 +479,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
           type="button"
           aria-label="Close"
           onClick={close}
-          className="rounded p-3 text-ink-800 transition-colors hover:bg-ivory-200"
+          className="rounded p-2 text-ink-800 transition-colors hover:bg-ivory-200"
         >
           <CloseIcon className="size-5" />
         </button>
@@ -539,36 +549,33 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
             {attachments.length > 0 && (
               <MediaPreview drafts={attachments} caption={caption} onAdd={attachAny} />
             )}
-            {/* Frame 112:6433 — two upload tiles side by side. */}
-            <div className={cn("flex flex-col gap-6 sm:flex-row", attachments.length > 0 && "hidden")}>
+            {/* One tile for both: photos and videos sort themselves. */}
+            <div className={cn("flex", attachments.length > 0 && "hidden")}>
               <UploadTile
-                title="Photo"
-                body="Upload a photo"
-                accept="image/*"
+                title="Add photos or videos"
+                body="Tap to choose, or drag them here"
+                accept="image/*,video/*"
                 icon={<ImagesIcon className="size-6" />}
-                onPick={(files) => attach(files, "photo")}
-              />
-              <UploadTile
-                title="Video"
-                body="Upload a video"
-                accept="video/*"
-                icon={<VideoIcon className="size-6" />}
-                onPick={(files) => attach(files, "video")}
+                onPick={attachAny}
               />
             </div>
 
             {attachmentRow}
 
-            <Field
-              label="Caption"
-              name="caption"
-              rows={4}
-              value={caption}
-              onChange={setCaption}
-              maxLength={4000}
-              plainLabel
-              mention={{ chapterSlug: chapter, picks }}
-            />
+            <div className="rounded-xl border border-ink-50 bg-ivory-100 focus-within:border-primary-200 focus-within:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]">
+              <Field
+                bare
+                label="Caption"
+                name="caption"
+                rows={4}
+                value={caption}
+                onChange={setCaption}
+                maxLength={4000}
+                mention={{ chapterSlug: chapter, picks }}
+                placeholder="Add a caption (optional)"
+                className="text-[15px]"
+              />
+            </div>
           </div>
 
           <FormError message={error} />
@@ -583,79 +590,106 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
       <>
       {/* Root - Preview (Figma h07): attached media leads the card. */}
       {attachments.length > 0 && <MediaPreview drafts={attachments} onAdd={attachAny} />}
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-6">
-          <fieldset className="flex flex-col gap-3">
-            <legend className="pb-1 font-sans text-sm font-medium tracking-wide text-ink-500 uppercase">
-              What kind of conversation? · Optional
-            </legend>
-            <div className="flex flex-wrap gap-3">
-              {CONVERSATIONS.map((option) => (
+      {/* One writing box (headline + the honest part), like Reddit or X;
+          the extras below it are optional. */}
+      <div className="flex flex-col rounded-xl border border-ink-50 bg-ivory-100 focus-within:border-primary-200 focus-within:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]">
+        <Field
+          bare
+          label={type ? type.prompt : "What are you doing right now?"}
+          name="doing"
+          rows={2}
+          value={doing}
+          onChange={setDoing}
+          maxLength={500}
+          placeholder={type ? type.prompt : "What are you doing right now?"}
+          className="text-[17px] font-semibold text-ink-700"
+        />
+        <hr className="mx-3.5 border-ink-50" />
+        <Field
+          bare
+          label={type ? type.detailPrompt : "One honest thing about where you are"}
+          name="honest"
+          rows={3}
+          value={honest}
+          onChange={setHonest}
+          maxLength={4000}
+          mention={{ chapterSlug: chapter, picks }}
+          placeholder={type ? type.detailPrompt : "One honest thing about where you are"}
+          className="text-[15px]"
+        />
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <fieldset className="flex flex-col gap-2">
+          <legend className="pb-1 font-sans text-sm text-ink-400">Kind of conversation (optional)</legend>
+          <div className="flex flex-wrap gap-2">
+            {CONVERSATIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={conversation === option.value}
+                onClick={() => {
+                  const next = conversation === option.value ? null : option.value;
+                  setConversation(next);
+                  if (!next) setTopic(null);
+                }}
+                className={cn(
+                  "rounded-full px-3.5 py-1.5 font-sans text-sm font-semibold transition-colors",
+                  conversation === option.value
+                    ? "bg-primary-500 text-white"
+                    : "bg-primary-50 text-primary-600 hover:bg-primary-100",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {type && (
+            // The example changes by day; the server's day can differ from the browser's.
+            <p className="font-sans text-sm text-ink-300" suppressHydrationWarning>
+              {type.hint}. For example: “{type.examples[exampleIndex % type.examples.length]}”
+            </p>
+          )}
+        </fieldset>
+
+        {type && topics.length > 0 && (
+          <fieldset className="flex flex-col gap-2">
+            <legend className="pb-1 font-sans text-sm text-ink-400">Topic (optional)</legend>
+            <div className="flex flex-wrap gap-2">
+              {topics.map((option) => (
                 <button
-                  key={option.value}
+                  key={option.slug}
                   type="button"
-                  aria-pressed={conversation === option.value}
-                  onClick={() => {
-                    const next = conversation === option.value ? null : option.value;
-                    setConversation(next);
-                    if (!next) setTopic(null);
-                  }}
+                  aria-pressed={topic === option.slug}
+                  onClick={() => setTopic(topic === option.slug ? null : option.slug)}
                   className={cn(
-                    "rounded-full px-4 py-2 font-sans text-sm font-semibold transition-colors",
-                    conversation === option.value
-                      ? "bg-primary-500 text-white"
-                      : "bg-primary-50 text-primary-600 hover:bg-primary-100",
+                    "rounded-full px-3 py-1.5 font-sans text-sm transition-colors",
+                    topic === option.slug
+                      ? "bg-ink-700 text-ivory-100"
+                      : "bg-ivory-400 text-ink-500 hover:bg-ivory-500",
                   )}
                 >
                   {option.label}
                 </button>
               ))}
             </div>
-            {type && <p className="font-sans text-sm text-ink-300">{type.hint}.</p>}
           </fieldset>
+        )}
 
-          {type && topics.length > 0 && (
-            <fieldset className="flex flex-col gap-3">
-              <legend className="pb-1 font-sans text-sm font-medium tracking-wide text-ink-500 uppercase">
-                Topic · Optional
-              </legend>
-              <div className="flex flex-wrap gap-2">
-                {topics.map((option) => (
-                  <button
-                    key={option.slug}
-                    type="button"
-                    aria-pressed={topic === option.slug}
-                    onClick={() => setTopic(topic === option.slug ? null : option.slug)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 font-sans text-sm transition-colors",
-                      topic === option.slug
-                        ? "bg-ink-700 text-ivory-100"
-                        : "bg-ivory-400 text-ink-500 hover:bg-ivory-500",
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          )}
+        {(!type || type.value === "unfinished") && !stageOpen && !stage && (
+          <button
+            type="button"
+            onClick={() => setStageOpen(true)}
+            className="self-start font-sans text-sm font-medium text-primary-600 hover:underline"
+          >
+            + Add where you are in it
+          </button>
+        )}
 
-          <Field
-            label={type ? type.prompt : "What are you doing right now?"}
-            name="doing"
-            rows={2}
-            value={doing}
-            onChange={setDoing}
-            maxLength={500}
-            placeholder={type ? `e.g. “${type.examples[exampleIndex % type.examples.length]}”` : undefined}
-          />
-
-          {(!type || type.value === "unfinished") && (
-          <fieldset className="flex flex-col gap-4">
-            <legend className="font-sans text-sm font-medium tracking-wide text-ink-500 uppercase">
-              Where are you in it? · Optional
-            </legend>
-            <div className="flex flex-wrap gap-4">
+        {(!type || type.value === "unfinished") && (stageOpen || stage) && (
+          <fieldset className="flex flex-col gap-2">
+            <legend className="pb-1 font-sans text-sm text-ink-400">Where are you in it? (optional)</legend>
+            <div className="flex flex-wrap gap-2">
               {PROGRESS.map((option) => (
                 <button
                   key={option.value}
@@ -663,7 +697,7 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
                   aria-pressed={stage === option.value}
                   onClick={() => setStage(stage === option.value ? null : option.value)}
                   className={cn(
-                    "rounded-full px-4 py-2 font-sans text-sm font-semibold transition-colors",
+                    "rounded-full px-3.5 py-1.5 font-sans text-sm font-semibold transition-colors",
                     stage === option.value
                       ? "bg-primary-500 text-white"
                       : "bg-primary-50 text-primary-600 hover:bg-primary-100",
@@ -674,25 +708,13 @@ export function Composer({ onClose }: { onClose?: () => void } = {}) {
               ))}
             </div>
           </fieldset>
-          )}
-
-          <Field
-            label={type ? type.detailPrompt : "One honest thing about where you are"}
-            name="honest"
-            rows={3}
-            value={honest}
-            onChange={setHonest}
-            maxLength={4000}
-            mention={{ chapterSlug: chapter, picks }}
-          />
-        </div>
-
+        )}
       </div>
 
       {attachmentRow}
       <FormError message={error} />
 
-      <footer className="flex items-center justify-between gap-4 border-t border-ink-50 pt-6">
+      <footer className="flex items-center justify-between gap-4 border-t border-ink-50 pt-4">
         <div className="flex items-center gap-3">
           <MediaChip
             icon={<ImagesIcon className="size-4" />}
@@ -768,6 +790,8 @@ function Field({
   plainLabel = false,
   mention,
   placeholder,
+  bare = false,
+  className,
 }: {
   label: string;
   name: string;
@@ -780,16 +804,23 @@ function Field({
   /** Offers people to tag with @: the circle and people holding this Space. */
   mention?: { chapterSlug: string; picks: MentionPicks };
   placeholder?: string;
+  /** Inside the writing box: no label on screen (the placeholder says it), no frame. */
+  bare?: boolean;
+  className?: string;
 }) {
-  const fieldClass =
-    "w-full resize-y rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]";
+  const fieldClass = cn(
+    bare
+      ? "w-full resize-none bg-transparent px-3.5 py-3 font-sans text-base text-ink-500 outline-none placeholder:font-normal placeholder:text-ink-300"
+      : "w-full resize-y rounded-lg bg-ivory-100 px-3.5 py-2.5 font-sans text-base text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]",
+    className,
+  );
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={cn("flex flex-col", !bare && "gap-1.5")}>
       <label
         htmlFor={name}
         className={cn(
-          "font-sans text-sm font-medium text-ink-500",
-          !plainLabel && "tracking-wide uppercase",
+          bare ? "sr-only" : "font-sans text-sm font-medium text-ink-500",
+          !bare && !plainLabel && "tracking-wide uppercase",
         )}
       >
         {label}
@@ -804,6 +835,7 @@ function Field({
           onChange={onChange}
           context={{ kind: "space", chapterSlug: mention.chapterSlug }}
           picks={mention.picks}
+          placeholder={placeholder}
           className={fieldClass}
         />
       ) : (
