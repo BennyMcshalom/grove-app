@@ -2,6 +2,7 @@ import "server-only";
 import { ENDING_SCOPES, type FeedPage, type FeedQuery, type Post } from "@/lib/posts";
 import type { Database } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
+import { guideIds } from "@/lib/grouv-guides";
 import { signPaths } from "@/lib/storage-server";
 import { timeAgo } from "@/lib/time";
 
@@ -55,9 +56,10 @@ export async function loadPost(postId: string, viewerName: string): Promise<Post
 }
 
 async function toPosts(rows: FeedRow[], viewerName: string): Promise<Post[]> {
-  const [signed, roots] = await Promise.all([
+  const [signed, roots, guides] = await Promise.all([
     signPaths("media", rows.flatMap((row) => row.media.map((m) => m.path)), { width: 1280 }),
     rootCounts(rows.map((row) => row.id)),
+    guideIds(rows.map((row) => (row.is_anonymous ? null : row.author_id))),
   ]);
   const now = Date.now();
   return rows.map((row) => ({
@@ -72,6 +74,7 @@ async function toPosts(rows: FeedRow[], viewerName: string): Promise<Post[]> {
     authorId: row.author_id,
     avatar: row.is_anonymous ? null : row.author_avatar,
     anonymous: row.is_anonymous,
+    guide: !row.is_anonymous && !!row.author_id && guides.has(row.author_id),
     authorPhase: row.author_phase,
     progress: row.progress,
     time: timeAgo(row.created_at, now),

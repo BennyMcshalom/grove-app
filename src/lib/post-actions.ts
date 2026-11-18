@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { loadBondPeople } from "@/lib/bonds-server";
 import { loadFeed, loadPost } from "@/lib/feed";
+import { guideIds } from "@/lib/grouv-guides";
 import { isUuid } from "@/lib/mentions";
 import { topicsFor } from "@/lib/conversations";
 import {
@@ -350,6 +351,7 @@ export async function loadComments(postId: string): Promise<{ comments: PostComm
     ? await supabase.from("comment_roots").select("comment_id").eq("user_id", viewer.userId).in("comment_id", ids)
     : { data: [] as { comment_id: string }[] };
   const rooted = new Set((mineRooted ?? []).map((r) => r.comment_id));
+  const guides = await guideIds((data ?? []).map((c) => c.author_id));
 
   const now = Date.now();
   return {
@@ -358,6 +360,7 @@ export async function loadComments(postId: string): Promise<{ comments: PostComm
       authorId: c.author_id,
       author: c.author?.first_name ?? "Someone",
       avatar: c.author?.avatar_url ?? null,
+      guide: guides.has(c.author_id),
       body: c.body ?? "",
       time: timeAgo(c.created_at, now),
       mine: c.author_id === viewer.userId,

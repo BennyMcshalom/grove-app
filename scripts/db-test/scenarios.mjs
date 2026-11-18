@@ -3125,6 +3125,79 @@ await step("public posts reach everyone, ranked", async () => {
   check("other scopes stay newest first", mine[0]?.id === quiet.id, mine);
 });
 
+// --- Grouv guides (20261118100000) -------------------------------------------
+await step("guides post, reply, root and welcome", async () => {
+  await su(`select private.enlist_guides()`);
+  await su(`select private.enlist_guides()`); // twice is harmless
+  const guides = await su(`select g.user_id, p.first_name, p.username, p.onboarded_at from public.guides g join public.profiles p on p.id = g.user_id`);
+  check("ten guides", guides.length === 10, guides.length);
+  check("onboarded, named, labelled handle", guides.every((g) => g.onboarded_at && g.username?.endsWith(".guide")), guides);
+  const hidden = await su(`select count(*)::int n from public.privacy_settings where user_id in (select user_id from public.guides) and not discoverable and not activity_matching`);
+  check("kept out of suggestions and auto-Bonds", hidden[0].n === 10, hidden);
+  const noEmail = await su(`select count(*)::int n from auth.users where id in (select user_id from public.guides) and email is null`);
+  check("guides have no email", noEmail[0].n === 10, noEmail);
+  const spaces = await su(`select count(distinct chapter_slug)::int n from public.user_chapters where user_id in (select user_id from public.guides)`);
+  check("guides cover all eight Spaces", spaces[0].n === 8, spaces);
+
+  const Ga = await person("Gia", [{ slug: "career", phase: "Starting over" }]);
+  check("anyone signed in can see who the guides are", (await q(Ga, `select user_id from public.guides`)).length === 10);
+
+  // A library post, backdated, with its thread.
+  const [{ pid }] = await su(`select private.guide_post(now() - interval '6 hours') as pid`);
+  check("a guide posts from the library", !!pid);
+  const [gp] = await su(`select p.*, (select count(*)::int from private.guide_queue q where q.post_id = p.id and q.action = 'comment') replies from public.posts p where p.id = $1`, [pid]);
+  check("named, public, everyone", gp.author_id && !gp.is_anonymous && gp.public_reach && gp.audience === "everyone", gp);
+  check("by a guide who holds that Space", (await su(`select 1 from public.user_chapters where user_id = $1 and chapter_slug = $2`, [gp.author_id, gp.chapter_slug])).length === 1);
+  check("backdated", new Date(gp.created_at) < new Date(Date.now() - 5 * 3600e3), gp.created_at);
+  check("replies queued", gp.replies >= 2, gp.replies);
+  await su(`select private.guide_run_queue()`);
+  const thread = await su(`select author_id, created_at from public.comments where post_id = $1`, [pid]);
+  check("replies posted by other guides", thread.length === gp.replies && thread.every((c) => c.author_id !== gp.author_id), thread);
+  check("replies are dated in the thread, not now", thread.every((c) => new Date(c.created_at) < new Date(Date.now() - 60e3)), thread);
+  check("a real person sees it on Home", (await q(Ga, `select id from public.feed_posts('home')`)).some((r) => r.id === pid));
+  check("the library line is used", (await su(`select count(*)::int n from private.guide_posts where used_at is not null`))[0].n === 1);
+  check("no interactions recorded with guides", (await su(`select count(*)::int n from private.interactions where user_a in (select user_id from public.guides) or user_b in (select user_id from public.guides)`))[0].n === 0);
+
+  // A real person's first post: roots and a welcome.
+  const [first] = await q(Ga, `insert into public.posts (chapter_slug, body, conversation) values ('career', 'First time here', 'unspoken') returning id`);
+  const [anon] = await q(Ga, `insert into public.posts (chapter_slug, body, is_anonymous) values ('career', 'Quiet one', true) returning id`);
+  await su(`update public.posts set created_at = now() - interval '10 minutes' where id = any($1)`, [[first.id, anon.id]]);
+  await su(`select private.guide_tend()`);
+  const queued = await su(`select action, body from private.guide_queue where post_id = $1`, [first.id]);
+  check("roots queued for a real post", queued.some((x) => x.action === "root"), queued);
+  check("a welcome on a first post", queued.filter((x) => x.action === "comment").length === 1, queued);
+  check("in the voice of its kind", queued.find((x) => x.action === "comment")?.body.length > 10);
+  check("anonymous posts are left alone", (await su(`select 1 from private.guide_queue where post_id = $1`, [anon.id])).length === 0);
+  await su(`update private.guide_queue set due_at = now() - interval '1 second' where post_id = $1`, [first.id]);
+  await su(`select private.guide_tend()`);
+  const [after] = await su(`select roots_count, comments_count from public.posts where id = $1`, [first.id]);
+  check("the roots and welcome land", after.roots_count >= 1 && after.comments_count === 1, after);
+  check("and notify the person", (await su(`select count(*)::int n from public.notifications where user_id = $1`, [Ga]))[0].n >= 1);
+  await su(`select private.guide_tend()`);
+  check("a post is only noticed once", (await su(`select count(*)::int n from private.guide_queue where post_id = $1 and action = 'comment'`, [first.id]))[0].n === 1);
+
+  // A second post: roots only, no welcome.
+  const [second] = await q(Ga, `insert into public.posts (chapter_slug, body) values ('career', 'Back again') returning id`);
+  await su(`update public.posts set created_at = now() - interval '10 minutes' where id = $1`, [second.id]);
+  await su(`select private.guide_tend()`);
+  check("no welcome on a second post", (await su(`select 1 from private.guide_queue where post_id = $1 and action = 'comment'`, [second.id])).length === 0);
+
+  // Blocking a guide: they leave you alone.
+  const Gb = await person("Gus", [{ slug: "career", phase: "Starting over" }]);
+  for (const g of guides) await q(Gb, `select public.block_user($1)`, [g.user_id]);
+  const [blocked] = await q(Gb, `insert into public.posts (chapter_slug, body) values ('career', 'Leave me be') returning id`);
+  await su(`update public.posts set created_at = now() - interval '10 minutes' where id = $1`, [blocked.id]);
+  await su(`select private.guide_tend()`);
+  check("nothing queued for someone who blocked them", (await su(`select 1 from private.guide_queue where post_id = $1`, [blocked.id])).length === 0);
+
+  // Off switch.
+  await su(`update private.guide_config set enabled = false`);
+  check("switched off, they don't post", (await su(`select private.guide_post() as pid`))[0].pid === null);
+  await su(`update private.guide_config set enabled = true`);
+
+  check("members can't run guide functions", await q(Ga, `select private.guide_post()`).then(() => false, () => true));
+});
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);
 process.exit(failures.length ? 1 : 0);

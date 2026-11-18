@@ -684,6 +684,13 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      /** Grouv guides: labelled house accounts (20261118100000). */
+      guides: {
+        Row: { user_id: string; added_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       space_questions: {
         Row: { id: string; chapter_slug: string; body: string; expires_at: string; created_at: string };
         Insert: { chapter_slug: string; body: string };

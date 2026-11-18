@@ -64,6 +64,8 @@ export interface Post {
   authorId: string | null;
   avatar: string | null;
   anonymous: boolean;
+  /** Written by a Grouv guide (a labelled house account). */
+  guide?: boolean;
   /** The author's current phase in this chapter, when they're named. */
   authorPhase: string | null;
   progress: PostProgress | null;
@@ -116,6 +118,8 @@ export interface PostComment {
   authorId: string;
   author: string;
   avatar: string | null;
+  /** Written by a Grouv guide (a labelled house account). */
+  guide?: boolean;
   body: string;
   time: string;
   mine: boolean;
