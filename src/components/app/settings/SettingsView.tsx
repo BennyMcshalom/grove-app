@@ -26,6 +26,7 @@ import {
 } from "@/app/(app)/settings/actions";
 import { signOut } from "@/lib/auth/actions";
 import { cn } from "@/lib/cn";
+import { Select } from "@/components/ui/Select";
 import { applyTheme } from "@/lib/theme";
 import { isCancelled, planPackage, priceLabel, purchasesFor } from "@/lib/revenuecat-client";
 import { AURAS, LOG_VISIBILITY, auraLabel, type LogVisibility } from "@/lib/profile";
@@ -250,23 +251,16 @@ export function SettingsView({
               body={`Who can see your Grouv Log · ${visibility.body}`}
               divider
               trailing={
-                <label className="relative shrink-0">
-                  <span className="sr-only">Log visibility</span>
-                  <select
+                <div className="shrink-0">
+                  <Select<LogVisibility>
+                    ariaLabel="Log visibility"
                     value={prefs.logVisibility}
-                    onChange={(e) =>
-                      savePreference({ logVisibility: e.target.value as LogVisibility })
-                    }
-                    className="appearance-none rounded-lg bg-ivory-100 py-2 pr-8 pl-3 font-sans text-sm text-ink-500 outline-none focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)]"
-                  >
-                    {LOG_VISIBILITY.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <CaretIcon className="pointer-events-none absolute top-1/2 right-1.5 size-5 -translate-y-1/2 rotate-90 text-ink-400" />
-                </label>
+                    onChange={(next) => savePreference({ logVisibility: next })}
+                    options={LOG_VISIBILITY.map((option) => ({ value: option.value, label: option.label }))}
+                    align="right"
+                    className="rounded-lg bg-ivory-100 py-2 pr-2.5 pl-3 font-sans text-sm text-ink-500"
+                  />
+                </div>
               }
             />
             {/* Profile field audiences, preview, blocked accounts, export and

@@ -9,6 +9,7 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { setLogVisibility, updateLogEntry } from "@/app/(app)/log/actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import { Select } from "@/components/ui/Select";
 import { logDateLabel, type LogEntry } from "@/lib/log";
 import { LOG_VISIBILITY, type LogVisibility } from "@/lib/profile";
 
@@ -143,17 +144,12 @@ export function EditLogEntryModal({
       />
       <label className="flex items-center gap-2 self-start font-sans text-sm text-ink-600">
         Visible to:
-        <select
+        <Select<LogVisibility>
           value={audience}
-          onChange={(e) => setAudience(e.target.value as LogVisibility)}
-          className="rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm text-ink-700 outline-none"
-        >
-          {LOG_VISIBILITY.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          onChange={setAudience}
+          options={LOG_VISIBILITY.map((option) => ({ value: option.value, label: option.label }))}
+          className="rounded-full bg-primary-50 px-3 py-1.5 font-sans text-sm text-ink-700"
+        />
       </label>
       <FormError message={error} />
       <div className="flex w-full justify-end gap-3 border-t border-ink-50 pt-6">

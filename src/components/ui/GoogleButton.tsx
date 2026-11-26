@@ -17,7 +17,7 @@ export function GoogleButton({
       type="submit"
       formAction={signInWithGoogle}
       formNoValidate
-      className="flex w-full items-center justify-center gap-4 rounded-lg border border-ivory-600 px-8 py-4 font-sans text-base text-ink-500 transition-colors hover:bg-ivory-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+      className="flex w-full items-center justify-center gap-3 rounded-lg border border-ivory-600 bg-surface px-6 py-3.5 font-sans text-[15px] font-medium text-ink-700 transition-colors hover:bg-ivory-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
     >
       <GoogleMark />
       {label}
@@ -27,7 +27,7 @@ export function GoogleButton({
 
 function GoogleMark() {
   return (
-    <svg viewBox="0 0 24 24" className="size-6" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46a5.52 5.52 0 0 1-2.4 3.62v3.01h3.88c2.27-2.09 3.58-5.17 3.58-8.82Z"
@@ -48,12 +48,12 @@ function GoogleMark() {
   );
 }
 
-/** The "OR" rule between the form and social sign-in. Figma frame 15:18153. */
+/** The quiet "or" rule between Google and the email form. */
 export function OrDivider() {
   return (
-    <div className="flex items-center gap-[13px]">
+    <div className="flex items-center gap-3">
       <span className="h-px flex-1 bg-ink-100" />
-      <span className="font-sans text-base text-ink-500">OR</span>
+      <span className="font-sans text-xs text-ink-300">or with email</span>
       <span className="h-px flex-1 bg-ink-100" />
     </div>
   );

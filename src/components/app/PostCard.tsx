@@ -6,7 +6,6 @@ import { MentionText } from "@/components/app/MentionText";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/app/Avatar";
-import { GuideTag } from "@/components/app/GuideTag";
 import { PostComments } from "@/components/app/PostComments";
 import { PostMenu, type PostMenuAction } from "@/components/app/PostMenu";
 import {
@@ -172,7 +171,6 @@ export function PostCard({
               <span className="font-sans text-sm font-semibold text-ink-700">
                 {post.author}
               </span>
-              {post.guide && <GuideTag />}
               {badge && (
                 <span className="flex items-center gap-1 rounded-full bg-primary-50 px-2 py-1 font-sans text-xs font-semibold text-primary-500">
                   <BriefcaseIcon className="size-3" />
@@ -478,7 +476,7 @@ function Action({
  * An Unfinished story's updates, oldest first, as a thin timeline under the
  * post. The author adds one inline; followers are notified by the database.
  */
-function StoryUpdates({
+export function StoryUpdates({
   postId,
   updates,
   mine,

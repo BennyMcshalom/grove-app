@@ -12,6 +12,7 @@ import { useViewer } from "@/components/app/ViewerProvider";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
 import { searchEverything, type SearchResult } from "@/lib/search";
+import { FEATURES } from "@/lib/features";
 
 /**
  * Search — Figma frames 123:10150 (desktop) and 628:35194 (phone).
@@ -21,12 +22,12 @@ import { searchEverything, type SearchResult } from "@/lib/search";
  * results are grouped People / Posts / Groups / Spaces, which Figma has no
  * frame for.
  */
-const GROUPS: { kind: SearchResult["kind"]; label: string }[] = [
+const GROUPS = ([
   { kind: "person", label: "People" },
   { kind: "post", label: "Posts" },
   { kind: "group", label: "Groups" },
   { kind: "space", label: "Spaces" },
-];
+] as { kind: SearchResult["kind"]; label: string }[]).filter((g) => g.kind !== "group" || FEATURES.groups);
 
 export function SearchView({
   initialQuery,
@@ -111,7 +112,7 @@ export function SearchView({
             value={query}
             maxLength={80}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search people, posts, groups, spaces"
+            placeholder={FEATURES.groups ? "Search people, posts, groups, spaces" : "Search people, posts and spaces"}
             className="h-12 w-full rounded-full border border-ink-100 bg-ivory-50 pr-12 pl-12 font-sans text-sm text-ink-500 shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline-none placeholder:text-ink-200 focus:border-primary-200 focus:shadow-[0px_0px_0px_4px_rgba(249,189,152,0.25)] lg:h-[72px] lg:pr-6 lg:pl-16 lg:text-lg"
           />
           <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-ink-300 lg:left-6 lg:size-6" />

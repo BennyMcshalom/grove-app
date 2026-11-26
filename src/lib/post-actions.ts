@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireOnboardedViewer } from "@/lib/auth/viewer";
 import { loadBondPeople } from "@/lib/bonds-server";
-import { loadFeed, loadPost } from "@/lib/feed";
+import { loadConversations, loadFeed, loadPost } from "@/lib/feed";
 import { guideIds } from "@/lib/grouv-guides";
 import { isUuid } from "@/lib/mentions";
 import { topicsFor } from "@/lib/conversations";
@@ -12,6 +12,9 @@ import {
   MEDIA_LIMITS,
   PROGRESS,
   REPORT_REASONS,
+  type ConversationCursor,
+  type ConversationPage,
+  type ConversationQuery,
   type FeedPage,
   type FeedQuery,
   type Post,
@@ -45,6 +48,49 @@ export async function loadPosts(query: FeedQuery): Promise<FeedPage> {
   const parsed = FeedQuerySchema.safeParse(query);
   if (!parsed.success) return { posts: [], nextCursor: null, error: "That feed doesn't exist." };
   return loadFeed(parsed.data, viewer.profile.first_name);
+}
+
+const ConversationQuerySchema = z.object({
+  view: z.enum(["for_you", "following", "space"]),
+  chapterSlug: z.string().max(40).nullish(),
+  topic: z.string().max(40).nullish(),
+});
+
+const ConversationCursorSchema = z
+  .object({
+    asOf: z.string().max(40),
+    score: z.number().nullable(),
+    at: z.string().max(40).nullable(),
+    id: z.uuid(),
+  })
+  .nullable();
+
+/** The next 15 for the new Home and Space pages (endless scroll). */
+export async function loadConversationPage(
+  query: ConversationQuery,
+  cursor: ConversationCursor | null,
+): Promise<ConversationPage> {
+  const viewer = await requireOnboardedViewer();
+  const q = ConversationQuerySchema.safeParse(query);
+  const c = ConversationCursorSchema.safeParse(cursor);
+  if (!q.success || !c.success) return { posts: [], nextCursor: null, error: "That feed doesn't exist." };
+  if (q.data.view === "space" && !q.data.chapterSlug) return { posts: [], nextCursor: null };
+  return loadConversations(q.data, c.data, viewer.profile.first_name);
+}
+
+/** ⋯ → Hide: out of your feeds (For You, Following, Spaces); Undo puts it back. */
+export async function setHidden(postId: string, hidden: boolean): Promise<Result> {
+  await requireOnboardedViewer();
+  if (!isUuid(postId)) return { error: "That post doesn't exist." };
+  const supabase = await createClient();
+  const { error } = hidden
+    ? await supabase.from("post_hides").upsert({ post_id: postId }, { onConflict: "user_id,post_id", ignoreDuplicates: true })
+    : await supabase.from("post_hides").delete().eq("post_id", postId);
+  if (error) {
+    console.error("[posts] setHidden failed", error);
+    return { error: "We couldn't do that. Try again." };
+  }
+  return {};
 }
 
 /** One post, for the post modal opened from a shared ?post= link. Null when it isn't visible. */
@@ -100,9 +146,9 @@ export async function createPost(input: CreatePostInput): Promise<Result> {
     parsed.data;
   const isRoot = kind === "root";
   const conversation = isRoot ? (parsed.data.conversation ?? null) : null;
-  // A topic only goes with a type, and only one from this Space's list.
+  // A subhub (topic) is optional on any post, but only one from this Space's list.
   const topic =
-    conversation && parsed.data.topic && topicsFor(chapterSlug).some((t) => t.slug === parsed.data.topic)
+    parsed.data.topic && topicsFor(chapterSlug).some((t) => t.slug === parsed.data.topic)
       ? parsed.data.topic
       : null;
 

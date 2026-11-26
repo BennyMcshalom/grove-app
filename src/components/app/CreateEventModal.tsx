@@ -12,6 +12,7 @@ import { IconPicker } from "@/components/app/IconPicker";
 import { createEvent } from "@/app/(app)/events/actions";
 import { CHAPTERS } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import { Select } from "@/components/ui/Select";
 import { PICKER_ICONS, type PickerIcon } from "@/lib/icons";
 import { localDay } from "@/lib/log";
 
@@ -109,24 +110,14 @@ export function CreateEventModal({ onClose }: { onClose: () => void }) {
             </Labelled>
 
             <Labelled label="Space">
-              <span className={FIELD}>
-                <select
-                  value={chapterSlug}
-                  onChange={(e) => setChapterSlug(e.target.value)}
-                  required
-                  className="min-w-0 flex-1 appearance-none bg-transparent font-sans text-base text-ink-500 outline-none"
-                >
-                  <option value="" disabled>
-                    Select space it belongs to
-                  </option>
-                  {CHAPTERS.map((chapter) => (
-                    <option key={chapter.slug} value={chapter.slug}>
-                      {chapter.name}
-                    </option>
-                  ))}
-                </select>
-                <CaretDownIcon />
-              </span>
+              <Select
+                value={chapterSlug}
+                onChange={setChapterSlug}
+                placeholder="Select space it belongs to"
+                options={CHAPTERS.map((chapter) => ({ value: chapter.slug, label: chapter.name }))}
+                fullWidth
+                className={FIELD}
+              />
             </Labelled>
 
             <div className="flex flex-col gap-6 sm:flex-row">
@@ -211,24 +202,5 @@ function Labelled({
       </span>
       {children}
     </label>
-  );
-}
-
-function CaretDownIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      className="size-4 shrink-0 text-ink-400"
-      aria-hidden="true"
-    >
-      <path
-        d="m4 6 4 4 4-4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

@@ -34,6 +34,7 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
     { data: block },
     { data: ringPeople },
     { data: fields },
+    { data: guide },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -61,6 +62,8 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
     supabase.rpc("grouv_people", { p_user_id: id }),
     // Location, current chapter, bio and birthday as their audiences allow.
     supabase.rpc("profile_for", { p_user_id: id }),
+    // Grouv guides (house accounts) say so on their profile.
+    supabase.from("guides").select("user_id").eq("user_id", id).maybeSingle(),
   ]);
 
   if (!profile?.onboarded_at) notFound();
@@ -99,7 +102,9 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
         chapters: visible?.show_chapter
           ? (chapters ?? []).map((c) => ({ slug: c.chapter_slug, phase: c.phase, shared: held.has(c.chapter_slug) }))
           : [],
-        bio: visible?.bio ?? null,
+        bio: guide
+          ? "Grouv guide: one of the house accounts that keep conversations going while Grouv grows."
+          : (visible?.bio ?? null),
         birthday: visible?.birthday ?? null,
         relationship,
         connectionId: connection?.status === "pending" ? connection.id : null,

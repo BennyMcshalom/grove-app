@@ -16,6 +16,7 @@ import type { BondPerson, Suggestion } from "@/lib/bonds";
 import { getChapter } from "@/lib/chapters";
 import type { Group } from "@/lib/groups";
 import type { Aura } from "@/lib/profile";
+import { FEATURES } from "@/lib/features";
 
 export interface RailMember {
   userId: string;
@@ -56,9 +57,11 @@ export function RightRail({
     loadRail().then((result) => {
       if (!cancelled) setRail(result);
     });
-    loadSuggestedGroups(2).then((result) => {
-      if (!cancelled) setGroups(result);
-    });
+    if (FEATURES.groups) {
+      loadSuggestedGroups(2).then((result) => {
+        if (!cancelled) setGroups(result);
+      });
+    }
     return () => {
       cancelled = true;
     };
@@ -70,14 +73,14 @@ export function RightRail({
   const loading = rail === null && variant === "feed";
 
   return (
-    <aside className="hidden w-[300px] shrink-0 scroll-slim overflow-y-auto bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] rail:block wide:w-[396px]">
-      <div className="flex w-full flex-col gap-7 px-6 pt-6 pb-10 wide:px-8">
+    <aside className="hidden w-[320px] shrink-0 scroll-slim overflow-y-auto bg-surface shadow-[0px_1px_2px_0px_rgba(23,23,23,0.05)] rail:block wide:w-[380px]">
+      <div className="flex w-full flex-col gap-5 px-5 pt-5 pb-8">
         {invitations && (
           <InvitationsList
             heading={(rows) => (
               <>
-                <section className="flex flex-col gap-4">
-                  <h2 className="font-sans text-base font-medium tracking-wide text-ink-700 uppercase">Invitations</h2>
+                <section className="flex flex-col gap-3">
+                  <h2 className="font-sans text-xs font-semibold tracking-wider text-ink-400 uppercase">Invitations</h2>
                   {rows}
                 </section>
                 <Divider />
@@ -99,23 +102,23 @@ export function RightRail({
               <EmptyCircle />
             )
           ) : (
-            <ul className="flex flex-col gap-4">
+            <ul className="flex flex-col gap-1">
               {circle.slice(0, 4).map((p) => (
                 <li key={p.userId}>
                   <Link
                     href={variant === "space" ? "/spaces" : `/bonds?with=${p.userId}`}
-                    className="flex items-center gap-6 rounded-lg p-2 transition-colors hover:bg-ivory-100"
+                    className="-mx-1.5 flex items-center gap-3 rounded-lg p-1.5 transition-colors hover:bg-ivory-100"
                   >
                     <Avatar
                       userId={p.userId}
                       src={p.avatarUrl}
                       name={p.name}
                       aura={p.aura}
-                      sizes="48px"
-                      className="size-12"
+                      sizes="36px"
+                      className="size-9"
                     />
                     <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="truncate font-sans text-base font-medium text-ink-700">
+                      <span className="truncate font-sans text-sm font-medium text-ink-700">
                         {p.name}
                       </span>
                       {p.phase && <StatusBadge chapterSlug={p.chapterSlug}>{p.phase}</StatusBadge>}
@@ -138,19 +141,19 @@ export function RightRail({
           ) : bonds.length === 0 ? (
             <Empty>No bonds yet.</Empty>
           ) : (
-            <ul className="flex flex-col gap-5">
+            <ul className="flex flex-col gap-1">
               {bonds.map((p) => (
                 <li key={p.userId}>
                   <Link
                     href={`/bonds?with=${p.userId}`}
-                    className="flex items-center gap-4 rounded-lg transition-colors hover:bg-ivory-100"
+                    className="-mx-1.5 flex items-center gap-3 rounded-lg p-1.5 transition-colors hover:bg-ivory-100"
                   >
                     <BondAvatar userId={p.userId} src={p.avatarUrl} name={p.name} aura={p.aura} />
                     <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="truncate font-sans text-base font-medium text-ink-700">
+                      <span className="truncate font-sans text-sm font-medium text-ink-700">
                         {p.name}
                       </span>
-                      <span className="truncate font-sans text-sm text-ink-200">
+                      <span className="truncate font-sans text-xs text-ink-300">
                         {p.lastMessage?.preview || `Say hello to ${p.name}`}
                       </span>
                     </span>
@@ -162,8 +165,9 @@ export function RightRail({
         </Section>
         )}
 
-        <Divider />
+        {FEATURES.groups && <Divider />}
 
+        {FEATURES.groups && (
         <Section title="Chapter groups" action="Browse" href="/groups">
           {groups === null ? (
             <Placeholder />
@@ -187,6 +191,7 @@ export function RightRail({
             </ul>
           )}
         </Section>
+        )}
 
         <Divider />
 
@@ -197,24 +202,24 @@ export function RightRail({
             <Empty>Suggestions show up as your spaces fill up.</Empty>
           ) : (
             <ul
-              className="flex flex-col gap-4 rounded-2xl p-4"
+              className="flex flex-col gap-3 rounded-xl p-3"
               style={{ backgroundImage: GROUP_GRADIENT.orange }}
             >
               {rail.suggestions.map((p, i) => (
-                <li key={p.userId} className="flex flex-col gap-4">
+                <li key={p.userId} className="flex flex-col gap-3">
                   {i > 0 && <hr className="border-ink-50" />}
                   {/* The pill drops under the name when the 300px rail can't fit both. */}
-                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-                    <span className="flex min-w-[100px] flex-1 items-center gap-4">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                    <span className="flex min-w-[100px] flex-1 items-center gap-2.5">
                       {/* Avatar 5 (94:3417) — 40px on a 5px white ring. */}
-                      <span className="shrink-0 rounded-full ring-[5px] ring-white">
-                        <Avatar src={p.avatarUrl} name={p.name} userId={p.userId} className="size-10" />
+                      <span className="shrink-0 rounded-full ring-2 ring-white">
+                        <Avatar src={p.avatarUrl} name={p.name} userId={p.userId} sizes="32px" className="size-8" />
                       </span>
                       <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="truncate font-sans text-base font-medium text-ink-700">
+                        <span className="truncate font-sans text-sm font-medium text-ink-700">
                           {p.name}
                         </span>
-                        <span className="truncate font-sans text-sm font-medium text-primary-700">
+                        <span className="truncate font-sans text-xs font-medium text-primary-700">
                           Also in {getChapter(p.sharedChapter)?.name ?? "your space"}
                         </span>
                       </span>
@@ -243,14 +248,14 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="font-sans text-base font-medium tracking-wide text-ink-700 uppercase">
+        <h2 className="font-sans text-xs font-semibold tracking-wider text-ink-400 uppercase">
           {title}
         </h2>
         <Link
           href={href}
-          className="font-sans text-sm font-medium text-primary-500 hover:underline"
+          className="font-sans text-xs font-medium text-primary-500 hover:underline"
         >
           {action}
         </Link>
@@ -308,7 +313,7 @@ function IntroduceButton({ suggestion }: { suggestion: Suggestion }) {
       onClick={state === "invited" ? revoke : invite}
       disabled={state === "busy" || state === "connected"}
       title={state === "invited" ? "Cancel this invite" : undefined}
-      className="group flex shrink-0 items-center gap-2 rounded-full bg-primary-100 px-3 py-1.5 font-ui text-xs font-medium text-primary-600 transition-colors hover:bg-primary-200 disabled:bg-transparent disabled:text-ink-300"
+      className="group flex shrink-0 items-center gap-1.5 rounded-full bg-primary-100 px-2.5 py-1 font-ui text-[11px] font-medium text-primary-600 transition-colors hover:bg-primary-200 disabled:bg-transparent disabled:text-ink-300"
     >
       {state === "invited" ? (
         <>
@@ -329,8 +334,8 @@ function IntroduceButton({ suggestion }: { suggestion: Suggestion }) {
 /** Figma 1087:21626 — the empty rail: a bookmark badge and a line on how a circle forms. */
 function EmptyCircle() {
   return (
-    <div className="flex flex-col items-center gap-3 py-4 text-center">
-      <svg viewBox="0 0 120 100" className="h-[90px] w-[110px]" fill="none" aria-hidden="true">
+    <div className="flex flex-col items-center gap-2 py-2 text-center">
+      <svg viewBox="0 0 120 100" className="h-[60px] w-[72px]" fill="none" aria-hidden="true">
         <ellipse cx="46" cy="52" rx="30" ry="26" className="fill-primary-100" />
         <ellipse cx="78" cy="56" rx="26" ry="22" className="fill-primary-50" />
         <path d="M42 12h36v64l-18-12-18 12z" className="fill-surface stroke-ink-100" strokeWidth="2" strokeLinejoin="round" />
@@ -350,11 +355,11 @@ function EmptyCircle() {
 function BondAvatar({ userId, src, name, aura }: { userId: string; src: string | null; name: string; aura: Aura }) {
   const online = useIsOnline(userId);
   return (
-    <span className="relative size-12 shrink-0">
-      <Avatar src={src} name={name} userId={userId} aura={aura} sizes="48px" className="size-12" />
+    <span className="relative size-9 shrink-0">
+      <Avatar src={src} name={name} userId={userId} aura={aura} sizes="36px" className="size-9" />
       {/* _AvatarIndicator 94:2873 — Success/50 at 36,36. */}
       {online && (
-        <span className="absolute right-0 bottom-0 size-3 rounded-full border-[1.5px] border-surface bg-success-50" />
+        <span className="absolute right-0 bottom-0 size-2.5 rounded-full border-[1.5px] border-surface bg-success-50" />
       )}
     </span>
   );
@@ -370,14 +375,14 @@ function StatusBadge({
 }) {
   const icon = chapterSlug ? getChapter(chapterSlug)?.icon : undefined;
   return (
-    <span className="flex w-fit items-center gap-2 rounded-full bg-ivory-200 px-3 py-1">
+    <span className="flex w-fit items-center gap-1.5 rounded-full bg-ivory-200 px-2 py-0.5">
       {icon && (
         <span
-          className="size-4 shrink-0 rounded-full bg-contain bg-center bg-no-repeat"
+          className="size-3 shrink-0 rounded-full bg-contain bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${icon})` }}
         />
       )}
-      <span className="truncate font-sans text-xs font-medium text-ink-400">
+      <span className="truncate font-sans text-[11px] font-medium text-ink-400">
         {children}
       </span>
     </span>

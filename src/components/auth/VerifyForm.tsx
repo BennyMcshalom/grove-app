@@ -55,7 +55,7 @@ export function VerifyForm({ email }: { email: string }) {
         }}
       >
         <header className="flex flex-col gap-1">
-          <h1 className="font-display text-2xl leading-[1.04] font-semibold sm:text-3xl lg:text-4xl xl:text-5xl text-ink-700">
+          <h1 className="font-display text-2xl leading-tight font-semibold text-ink-800 sm:text-3xl">
             OTP Verification
           </h1>
           <p className="font-sans text-sm text-ink-400 lg:text-base">

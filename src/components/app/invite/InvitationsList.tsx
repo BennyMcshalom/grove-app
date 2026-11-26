@@ -48,12 +48,12 @@ export function InvitationsList({
           <button
             type="button"
             onClick={() => setOpen(invite.token)}
-            className="flex w-full items-center gap-4 rounded-lg p-3 text-left transition-opacity hover:opacity-90"
+            className="flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-opacity hover:opacity-90"
             style={{ backgroundImage: "var(--wash-pink)" }}
           >
-            <Avatar src={invite.senderAvatar} name={invite.senderName} sizes="48px" className="size-12 shrink-0" />
+            <Avatar src={invite.senderAvatar} name={invite.senderName} sizes="40px" className="size-10 shrink-0" />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate font-sans text-base font-medium text-ink-700">
+              <span className="truncate font-sans text-sm font-medium text-ink-700">
                 {invite.senderName} invited you
               </span>
               <span className="truncate font-sans text-xs text-ink-300">
@@ -73,7 +73,7 @@ export function InvitationsList({
         heading(rows)
       ) : titled ? (
         <section className="flex flex-col gap-4">
-          <h2 className="font-sans text-base font-medium tracking-wide text-ink-700 uppercase">Invitations</h2>
+          <h2 className="font-sans text-xs font-semibold tracking-wider text-ink-400 uppercase">Invitations</h2>
           {rows}
         </section>
       ) : (

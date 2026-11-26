@@ -4,6 +4,8 @@ import { useState } from "react";
 import { EmptyFeed } from "@/components/app/EmptyFeed";
 import { GrouvHero, GrouvPage, GrouvTabs } from "@/components/app/GrouvProfile";
 import { GrouvRings, type RingPerson, type RingPrompts } from "@/components/app/GrouvRings";
+import { LeanProfileHeader, LeanProfilePage, LeanProfilePosts } from "@/components/app/LeanProfile";
+import { FEATURES } from "@/lib/features";
 import { BannerPicker } from "@/components/app/settings/BannerPicker";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { Button } from "@/components/ui/Button";
@@ -30,6 +32,30 @@ export function YourGrouvView({
 }) {
   const [pickingBanner, setPickingBanner] = useState(false);
   const viewer = useViewer();
+
+  if (!FEATURES.richProfile) {
+    return (
+      <LeanProfilePage
+        title="Your profile"
+        header={
+          <LeanProfileHeader
+            userId={viewer.id}
+            name={viewer.firstName}
+            avatarUrl={viewer.avatarUrl}
+            aura={viewer.aura}
+            chapters={viewer.chapters}
+            locationLabel={viewer.locationLabel}
+          >
+            <Button variant="secondary" size="sm" href="/settings/edit-profile">
+              Edit profile
+            </Button>
+          </LeanProfileHeader>
+        }
+      >
+        <LeanProfilePosts query={{ scope: "mine" }} posts={posts} empty={<EmptyFeed />} />
+      </LeanProfilePage>
+    );
+  }
 
   return (
     <GrouvPage

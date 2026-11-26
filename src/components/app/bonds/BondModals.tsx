@@ -17,6 +17,7 @@ import {
   setBondGoal,
 } from "@/lib/bond-actions";
 import { cn } from "@/lib/cn";
+import { Select } from "@/components/ui/Select";
 import { localDay } from "@/lib/log";
 
 /** The ivory writing well every Bond dialog uses (LogPrompt's textarea). */
@@ -337,18 +338,15 @@ export function EditGoalModal({
       </label>
       <label className="flex flex-col gap-2">
         <span className={FIELD_LABEL}>For how long</span>
-        <select
+        <Select
           value={months}
-          onChange={(e) => setMonths(e.target.value)}
-          className="w-fit rounded-lg bg-ivory-100 px-3 py-2.5 font-sans text-base text-ink-600 outline-none"
-        >
-          <option value="">No set length</option>
-          {[1, 2, 3, 6, 7, 9, 12, 18, 24].map((m) => (
-            <option key={m} value={m}>
-              {m} {m === 1 ? "month" : "months"}
-            </option>
-          ))}
-        </select>
+          onChange={setMonths}
+          options={[
+            { value: "", label: "No set length" },
+            ...[1, 2, 3, 6, 7, 9, 12, 18, 24].map((m) => ({ value: String(m), label: `${m} ${m === 1 ? "month" : "months"}` })),
+          ]}
+          className="rounded-lg bg-ivory-100 px-3 py-2.5 font-sans text-base text-ink-600"
+        />
       </label>
       <FormError message={error} />
       <Button size="sm" fullWidth loading={busy} disabled={busy || !goal.trim()} onClick={save}>

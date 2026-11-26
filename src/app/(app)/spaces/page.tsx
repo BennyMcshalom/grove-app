@@ -9,6 +9,8 @@ import { OpenInvitation } from "@/components/app/invite/OpenInvitation";
 import { getShellViewer } from "@/lib/auth/viewer";
 import { CHAPTERS, getChapter } from "@/lib/chapters";
 import { createClient } from "@/lib/supabase/server";
+import { SpacesDirectory } from "@/components/app/conversations/SpacesDirectory";
+import { newExperienceOn } from "@/lib/experience";
 
 /**
  * My Spaces — Figma frame 122:8022.
@@ -20,6 +22,17 @@ export default async function SpacesPage({ searchParams }: PageProps<"/spaces">)
   // ?invite=<token>: an invitation link opened while signed in (/i/<token>).
   const { invite } = await searchParams;
   const viewer = await getShellViewer();
+
+  // The new directory (Phase 1); the legacy cards below stay for /view/classic.
+  if (await newExperienceOn()) {
+    return (
+      <>
+        <SpacesDirectory held={viewer.chapters.map((c) => ({ slug: c.slug, paused: Boolean(c.pausedAt) }))} />
+        {typeof invite === "string" && <OpenInvitation token={invite} />}
+      </>
+    );
+  }
+
   const openSlugs = viewer.chapters.map((c) => c.slug);
 
   const supabase = await createClient();

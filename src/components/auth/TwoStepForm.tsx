@@ -42,7 +42,7 @@ export function TwoStepForm({ next }: { next?: string }) {
         }}
       >
         <header className="flex flex-col gap-1">
-          <h1 className="font-display text-2xl leading-[1.04] font-semibold text-ink-700 sm:text-3xl lg:text-4xl xl:text-5xl">
+          <h1 className="font-display text-2xl leading-tight font-semibold text-ink-800 sm:text-3xl">
             Two-step verification
           </h1>
           <p className="font-sans text-sm text-ink-400 lg:text-base">

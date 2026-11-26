@@ -6,18 +6,21 @@ import { cn } from "@/lib/cn";
  * 394px card, 16px padding, 8px radius, 1px border, 24px icon beside a
  * title/description column. "confirm" adds a close button and a wider frame.
  */
-export type AlertTone = "info" | "danger" | "confirm";
+export type AlertTone = "info" | "danger" | "confirm" | "success";
 
 const TONE: Record<AlertTone, string> = {
   info: "bg-primary-50 border-primary-500",
   danger: "bg-destructive-5 border-destructive-60",
   confirm: "bg-destructive-5 border-destructive-60",
+  // Something went through: a calm card with a check, no warning colours.
+  success: "bg-surface border-ink-50",
 };
 
 const ICON_TONE: Record<AlertTone, string> = {
   info: "text-primary-500",
   danger: "text-destructive-60",
   confirm: "text-destructive-60",
+  success: "text-success-60",
 };
 
 export function Alert({
@@ -40,7 +43,7 @@ export function Alert({
 }) {
   return (
     <div
-      role={tone === "info" ? "status" : "alert"}
+      role={tone === "info" || tone === "success" ? "status" : "alert"}
       className={cn(
         "flex w-full max-w-[400px] gap-4 rounded-lg border p-4",
         TONE[tone],
@@ -48,7 +51,9 @@ export function Alert({
       )}
     >
       <span className={cn("shrink-0", ICON_TONE[tone])}>
-        {tone === "info" ? (
+        {tone === "success" ? (
+          <CheckIcon className="size-6" />
+        ) : tone === "info" ? (
           <InfoIcon className="size-6" />
         ) : (
           <ErrorIcon className="size-6" />
@@ -66,7 +71,7 @@ export function Alert({
             onClick={onAction}
             className={cn(
               "w-fit font-sans text-sm font-semibold underline",
-              tone === "info" ? "text-primary-600" : "text-destructive-70",
+              tone === "info" || tone === "success" ? "text-primary-600" : "text-destructive-70",
             )}
           >
             {action}
@@ -120,6 +125,15 @@ function InfoIcon({ className }: { className?: string }) {
         strokeLinecap="round"
       />
       <circle cx="12" cy="8" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="9.5" fill="currentColor" />
+      <path d="m8 12.3 2.7 2.7L16 9.5" stroke="white" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

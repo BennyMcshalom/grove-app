@@ -8,6 +8,7 @@ import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { saveLogEntry } from "@/app/(app)/log/actions";
 import { cn } from "@/lib/cn";
+import { Select } from "@/components/ui/Select";
 import { localDay, type LogEntry } from "@/lib/log";
 import { removeUploads, uploadFile, UPLOAD_LIMITS } from "@/lib/upload";
 
@@ -160,17 +161,12 @@ export function LogPrompt({
               {scope === "bond" && (
                 <label className="flex items-center gap-2 font-sans text-sm text-ink-400">
                   With
-                  <select
+                  <Select
                     value={bondId}
-                    onChange={(e) => setBondId(e.target.value)}
-                    className="rounded-lg bg-ivory-100 px-2 py-1.5 font-sans text-sm text-ink-600 outline-none"
-                  >
-                    {bonds.map((b) => (
-                      <option key={b.bondId} value={b.bondId}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setBondId}
+                    options={bonds.map((b) => ({ value: b.bondId, label: b.name }))}
+                    className="rounded-lg bg-ivory-100 px-2.5 py-1.5 font-sans text-sm text-ink-600"
+                  />
                 </label>
               )}
             </div>

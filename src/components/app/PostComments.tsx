@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { PersonRowsSkeleton } from "@/components/ui/Skeleton";
 import { Avatar } from "@/components/app/Avatar";
-import { GuideTag } from "@/components/app/GuideTag";
 import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { MentionInput, useMentionPicks } from "@/components/app/MentionInput";
@@ -185,7 +184,6 @@ function CommentRow({
         <div className="flex flex-col gap-1 rounded-lg bg-surface px-3 py-2.5 sm:px-4">
           <div className="flex items-baseline gap-2">
             <span className="font-sans text-base font-semibold text-ink-800">{comment.author}</span>
-            {comment.guide && <GuideTag />}
             <span className="font-sans text-xs text-ink-300" suppressHydrationWarning>
               {comment.time}
             </span>

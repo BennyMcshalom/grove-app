@@ -72,7 +72,7 @@ export function ForgotPasswordForm({ initialEmail }: { initialEmail?: string }) 
           }}
         >
           <header className="flex flex-col gap-2">
-            <h1 className="font-display text-2xl leading-[1.04] font-semibold text-ink-700 sm:text-3xl lg:text-4xl xl:text-5xl">
+            <h1 className="font-display text-2xl leading-tight font-semibold text-ink-800 sm:text-3xl">
               One more step
             </h1>
             <p className="font-sans text-sm text-ink-300 lg:text-base">
@@ -107,7 +107,7 @@ export function ForgotPasswordForm({ initialEmail }: { initialEmail?: string }) 
           }}
         >
           <header className="flex flex-col gap-2">
-            <h1 className="font-display text-2xl leading-[1.04] font-semibold text-ink-700 sm:text-3xl lg:text-4xl xl:text-5xl">
+            <h1 className="font-display text-2xl leading-tight font-semibold text-ink-800 sm:text-3xl">
               Reset your password
             </h1>
             <p className="font-sans text-sm text-ink-300 lg:text-base">
@@ -163,7 +163,7 @@ export function ForgotPasswordForm({ initialEmail }: { initialEmail?: string }) 
           }}
         >
           <header className="flex flex-col gap-2">
-            <h1 className="font-display text-2xl leading-[1.04] font-semibold text-ink-700 sm:text-3xl lg:text-4xl xl:text-5xl">
+            <h1 className="font-display text-2xl leading-tight font-semibold text-ink-800 sm:text-3xl">
               Choose a new password
             </h1>
             <p className="font-sans text-sm text-ink-300 lg:text-base">

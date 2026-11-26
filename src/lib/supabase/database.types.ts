@@ -550,6 +550,12 @@ export type Database = {
         Update: { title?: string | null; progress?: PostProgress | null; body?: string | null };
         Relationships: [];
       };
+      post_hides: {
+        Row: { user_id: string; post_id: string; created_at: string };
+        Insert: { user_id?: string; post_id: string };
+        Update: never;
+        Relationships: [];
+      };
       kept_posts: {
         Row: { user_id: string; post_id: string; created_at: string };
         Insert: { user_id?: string; post_id: string };
@@ -1669,6 +1675,24 @@ export type Database = {
           following: boolean;
           updates: { id: string; body: string; created_at: string }[];
         }[];
+      };
+      /** New Home + Spaces (20261119100000): For You, Following, a Space. */
+      conversation_feed: {
+        Args: {
+          p_view?: "for_you" | "following" | "space";
+          p_chapter_slug?: string | null;
+          p_topic?: string | null;
+          p_as_of?: string | null;
+          p_cursor_score?: number | null;
+          p_cursor_at?: string | null;
+          p_cursor_id?: string | null;
+          p_limit?: number;
+        };
+        Returns: (Database["public"]["Functions"]["feed_posts"]["Returns"][number] & {
+          score: number;
+          reason: "connection" | "space" | "new_voice" | "discussion" | "public" | "following_story";
+          activity_at: string;
+        })[];
       };
       space_members: {
         Args: { p_chapter_slug: string };

@@ -104,7 +104,44 @@ export interface Post {
   following: boolean;
   /** An Unfinished story's updates from its author, oldest first. */
   updates: StoryUpdate[];
+  /** New Home: why it's in the feed ("Why am I seeing this?"). */
+  reason?: FeedReason;
 }
+
+/** Why a post is in For You, Following or a Space page (conversation_feed). */
+export type FeedReason = "connection" | "space" | "new_voice" | "discussion" | "public" | "following_story";
+
+/** The new Home's two views, and a Space page. */
+export type ConversationView = "for_you" | "following" | "space";
+
+export interface ConversationQuery {
+  view: ConversationView;
+  /** Space page only. */
+  chapterSlug?: string | null;
+  /** Space page only: one subhub. */
+  topic?: string | null;
+}
+
+/**
+ * Where the next page starts. asOf is the first page's moment, held fixed so
+ * the ranking doesn't shift between pages; For You and Spaces continue after
+ * (score, id), Following after (activity, id).
+ */
+export interface ConversationCursor {
+  asOf: string;
+  score: number | null;
+  at: string | null;
+  id: string;
+}
+
+export interface ConversationPage {
+  posts: Post[];
+  nextCursor: ConversationCursor | null;
+  error?: string;
+}
+
+/** 15 per fetch (Phase 1 handoff). */
+export const CONVERSATION_PAGE_SIZE = 15;
 
 export interface StoryUpdate {
   id: string;

@@ -44,7 +44,7 @@ export default function SplashPage() {
             iconRight={<ArrowRight />}
             href="/sign-up"
           >
-            Begin your chapter
+            Get started
           </Button>
         </div>
       </div>

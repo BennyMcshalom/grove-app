@@ -161,7 +161,7 @@ export function PostingToMenu({
 }
 
 /** Closes the menu on outside click or Escape. */
-function useDismiss(onClose: () => void) {
+export function useDismiss(onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

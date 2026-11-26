@@ -8,7 +8,6 @@ import { FormError } from "@/components/auth/FormError";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { GoogleButton, OrDivider } from "@/components/ui/GoogleButton";
-import { ArrowRight } from "@/components/ui/ArrowRight";
 import { signIn } from "@/lib/auth/actions";
 
 export function SignInForm({
@@ -25,13 +24,13 @@ export function SignInForm({
 
   return (
     <AuthSplitLayout>
-      <form action={formAction} className="flex flex-col gap-5 lg:gap-6">
-        <header className="flex flex-col gap-2">
-          <h1 className="font-display text-2xl leading-[1.04] font-semibold sm:text-3xl lg:text-4xl xl:text-5xl text-ink-700 ">
+      <form action={formAction} className="flex flex-col gap-6">
+        <header className="flex flex-col gap-1.5">
+          <h1 className="font-display text-2xl leading-tight font-semibold text-ink-800 sm:text-3xl">
             Welcome back
           </h1>
-          <p className="font-sans text-sm text-ink-300 lg:text-base">
-            New here?{" "}
+          <p className="font-sans text-sm text-ink-400">
+            New to Grouv?{" "}
             <Link
               href="/sign-up"
               className="font-semibold text-primary-500 hover:underline"
@@ -40,6 +39,9 @@ export function SignInForm({
             </Link>
           </p>
         </header>
+
+        <GoogleButton />
+        <OrDivider />
 
         <FormError message={error} />
         {next && <input type="hidden" name="next" value={next} />}
@@ -51,7 +53,7 @@ export function SignInForm({
               name="email"
               type="email"
               autoComplete="email"
-              placeholder="johndoe@email.com"
+              placeholder="you@email.com"
               defaultValue={state?.values?.email}
               error={state?.fieldErrors?.email}
               required
@@ -86,15 +88,11 @@ export function SignInForm({
             type="submit"
             size="md"
             fullWidth
-            iconRight={<ArrowRight />}
             loading={pending}
           >
-            Continue
+            Sign in
           </Button>
         </div>
-
-        <OrDivider />
-        <GoogleButton />
       </form>
     </AuthSplitLayout>
   );

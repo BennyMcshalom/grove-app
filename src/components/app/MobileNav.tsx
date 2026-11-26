@@ -21,7 +21,7 @@ import {
  */
 const ITEMS = [
   { href: "/home", label: "Home", Icon: HomeIcon },
-  { href: "/spaces", label: "My Spaces", Icon: SpacesIcon },
+  { href: "/spaces", label: "Spaces", Icon: SpacesIcon },
   { href: "/log", label: "Grouv Log", Icon: LogIcon },
   { href: "/bonds", label: "Bonds", Icon: BondsIcon },
 ];

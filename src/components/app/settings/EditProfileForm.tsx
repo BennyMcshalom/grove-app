@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { checkUsername, updateProfile } from "@/app/(app)/settings/actions";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import { Select } from "@/components/ui/Select";
 import { AURAS, type Aura } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/client";
 
@@ -433,20 +434,13 @@ export function EditProfileForm({
                           </button>
                         }
                       >
-                        <div className="relative">
-                          <select
-                            value={phases[held.id]}
-                            onChange={(e) => setPhases({ ...phases, [held.id]: e.target.value })}
-                            className={cn(fieldClass, "appearance-none pr-9")}
-                          >
-                            {chapter.options.map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-                          <CaretDownIcon className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-primary-600" />
-                        </div>
+                        <Select
+                          value={phases[held.id]}
+                          onChange={(next) => setPhases({ ...phases, [held.id]: next })}
+                          options={chapter.options.map((option) => ({ value: option, label: option }))}
+                          fullWidth
+                          className={fieldClass}
+                        />
                       </Labelled>
                     );
                   })}
@@ -566,20 +560,6 @@ function CrosshairIcon() {
         stroke="currentColor"
         strokeWidth="1.3"
         strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function CaretDownIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" className={className} aria-hidden="true">
-      <path
-        d="m4 6 4 4 4-4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );

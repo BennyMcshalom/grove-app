@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { passPromo } from "@/components/app/pass/promo";
+import { shownInNav } from "@/lib/features";
 
 /**
  * The phone "More" sheet — Figma frame 601:31816.
@@ -18,7 +19,7 @@ const ITEMS = [
   { href: "/kept", label: "Kept", icon: "kept" },
   { href: "/deep-focus", label: "Deep Focus", icon: "deep-focus" },
   { href: "/settings", label: "Settings", icon: "settings" },
-];
+].filter((item) => shownInNav(item.href));
 
 export function MobileMenuSheet({ onClose }: { onClose: () => void }) {
   const promo = passPromo(useViewer());

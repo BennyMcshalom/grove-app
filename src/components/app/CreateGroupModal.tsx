@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { createGroup, loadTakenGroupColors } from "@/app/(app)/groups/actions";
 import { CHAPTERS } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import { Select } from "@/components/ui/Select";
 import { artForSpace, pickGroupColor, type GroupArtKey } from "@/lib/group-look";
 
 /**
@@ -150,21 +151,16 @@ export function CreateGroupModal({ onClose }: { onClose: () => void }) {
             </Labelled>
 
             <Labelled label="Space">
-              <select
+              <Select
                 value={chapterSlug}
-                onChange={(e) => {
-                  setChapterSlug(e.target.value);
-                  if (!artPicked) setArt(artForSpace(e.target.value));
+                onChange={(next) => {
+                  setChapterSlug(next);
+                  if (!artPicked) setArt(artForSpace(next));
                 }}
-                className={cn(FIELD, "appearance-none")}
-              >
-                <option value="">Any space</option>
-                {CHAPTERS.map((chapter) => (
-                  <option key={chapter.slug} value={chapter.slug}>
-                    {chapter.name}
-                  </option>
-                ))}
-              </select>
+                options={[{ value: "", label: "Any space" }, ...CHAPTERS.map((chapter) => ({ value: chapter.slug, label: chapter.name }))]}
+                fullWidth
+                className={FIELD}
+              />
             </Labelled>
 
             <Labelled label="What’s this Chapter for?">

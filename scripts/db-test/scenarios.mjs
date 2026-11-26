@@ -3029,7 +3029,8 @@ await step("conversation types, Keep and Follow story", async () => {
   const [{ id: unspoken }] = await q(Ca, `insert into public.posts (chapter_slug, title, conversation, topic) values ('learning', 'Rarely said', 'unspoken', 'study') returning id`);
   const [{ id: story }] = await q(Ca, `insert into public.posts (chapter_slug, title, conversation) values ('learning', 'Learning to swim', 'unfinished') returning id`);
   const [{ id: plain }] = await q(Ca, `insert into public.posts (chapter_slug, body) values ('learning', 'No type') returning id`);
-  await fails("a topic needs a type", Ca, `insert into public.posts (chapter_slug, body, topic) values ('learning', 'x', 'study')`, [], "posts_topic_needs_conversation");
+  // A subhub works on any post from 20261119100000 (it needed a type before).
+  check("a regular post can have a subhub", (await q(Ca, `insert into public.posts (chapter_slug, body, topic) values ('learning', 'x', 'study') returning id`)).length === 1);
   await fails("Just Grouv has no type", Ca, `insert into public.posts (chapter_slug, kind, body, conversation) values ('learning', 'grouv', 'x', 'unspoken')`, [], "posts_conversation_is_a_root");
   await fails("topics are slugs", Ca, `insert into public.posts (chapter_slug, title, conversation, topic) values ('learning', 'x', 'unspoken', 'Bad Topic!')`, [], "check constraint");
 
@@ -3196,6 +3197,115 @@ await step("guides post, reply, root and welcome", async () => {
   await su(`update private.guide_config set enabled = true`);
 
   check("members can't run guide functions", await q(Ga, `select private.guide_post()`).then(() => false, () => true));
+});
+
+// --- New Home: For You, Following, Space, Hide (20261119100000) ---------------
+await step("new home feed: for you, following, space, hide", async () => {
+  const rel = [{ slug: "relationships", phase: "Working on it" }];
+  const car = [{ slug: "career", phase: "Starting over" }];
+  const Na = await person("Nia", rel); // the reader
+  const Nb = await person("Ned", car); // a connection, other Space
+  const Nc = await person("Noa", rel); // a stranger in the reader's Space
+  const Nd = await person("Nox", car); // a stranger elsewhere, posts a lot
+  const Ne = await person("Neo", car); // a stranger who gets reported
+  await connect(Na, Nb);
+  const post = async (who, slug, body, extra = {}) =>
+    (await q(who, `insert into public.posts (chapter_slug, body, conversation, topic) values ($1, $2, $3, $4) returning id`, [slug, body, extra.conversation ?? null, extra.topic ?? null]))[0].id;
+  const feed = async (who, view = "for_you", args = {}) =>
+    q(
+      who,
+      `select id, score, reason, activity_at from public.conversation_feed($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [view, args.slug ?? null, args.topic ?? null, args.asOf ?? null, args.score ?? null, args.at ?? null, args.cursorId ?? null, args.limit ?? 30],
+    );
+
+  const fromConnection = await post(Nb, "career", "From a connection");
+  const inSpace = await post(Nc, "relationships", "In your Space", { conversation: "unspoken", topic: "family" });
+  const friendship = await post(Nc, "relationships", "About friends", { topic: "friendship" });
+  const many = [];
+  for (let i = 0; i < 5; i++) many.push(await post(Nd, "career", `Post ${i}`));
+  const reported = await post(Ne, "career", "Spammy");
+
+  const fy = await feed(Na);
+  const ids = fy.map((r) => r.id);
+  check("For You mixes Spaces, connections and public posts", ids.includes(fromConnection) && ids.includes(inSpace) && ids.includes(many[0]), fy);
+  check("a connection's post says why", fy.find((r) => r.id === fromConnection)?.reason === "connection", fy);
+  check("a post from your Space says why", fy.find((r) => r.id === inSpace)?.reason === "space", fy);
+  check("scores come in order", fy.every((r, i) => i === 0 || fy[i - 1].score >= r.score), fy.map((r) => r.score));
+  const firstFour = fy.slice(0, 4).filter((r) => many.includes(r.id)).length;
+  check("one author doesn't fill the top of the feed", firstFour <= 2, fy);
+
+  // Pages of 3 walk the same order as one long page, with no duplicates.
+  const asOf = new Date().toISOString();
+  const oneGo = (await feed(Na, "for_you", { asOf, limit: 15 })).map((r) => r.id);
+  const seen = [];
+  let cursor = {};
+  for (let page = 0; page < 5; page++) {
+    const rows = await feed(Na, "for_you", { asOf, limit: 3, ...cursor });
+    if (rows.length === 0) break;
+    seen.push(...rows.map((r) => r.id));
+    const last = rows.at(-1);
+    cursor = { score: last.score, cursorId: last.id };
+  }
+  check("paging continues where the last page ended", JSON.stringify(seen) === JSON.stringify(oneGo), { seen, oneGo });
+  check("with no duplicates", new Set(seen).size === seen.length);
+
+  // Freshness decays; nothing disappears.
+  await su(`update public.posts set created_at = now() - interval '4 days' where id = $1`, [inSpace]);
+  const later = await feed(Na);
+  check("an older post is still in For You after 48 hours", later.some((r) => r.id === inSpace));
+  check("and ranks lower than before", later.find((r) => r.id === inSpace).score < fy.find((r) => r.id === inSpace).score);
+  check("and still opens from its link", (await q(Na, `select id from public.posts where id = $1`, [inSpace])).length === 1);
+
+  // Newest first (20261126100000): a four-day-old post from your Space, or a
+  // two-day-old one from a connection, no longer sits above a brand-new post
+  // from a stranger.
+  await su(`update public.posts set created_at = now() - interval '2 days' where id = $1`, [fromConnection]);
+  const fresh = await feed(Na);
+  const scoreOf = (id) => fresh.find((r) => r.id === id)?.score ?? -1;
+  check("a brand-new post outranks a four-day-old one from your Space", scoreOf(reported) > scoreOf(inSpace), fresh);
+  check("and a two-day-old one from a connection", scoreOf(reported) > scoreOf(fromConnection), fresh);
+  await su(`update public.posts set created_at = now() where id = $1`, [fromConnection]);
+
+  // Reported by three people: out until moderation clears it.
+  for (const who of [Nb, Nc, Nd]) {
+    await q(who, `insert into public.reports (target_type, target_id, reason) values ('post', $1, 'spam')`, [reported]);
+  }
+  check("posts reported by three people leave the feed", !(await feed(Na)).some((r) => r.id === reported));
+  await su(`update public.reports set status = 'dismissed' where target_id = $1`, [reported]);
+  check("and come back when moderation clears them", (await feed(Na)).some((r) => r.id === reported));
+
+  // Hide.
+  await q(Na, `insert into public.post_hides (post_id) values ($1)`, [many[0]]);
+  check("a hidden post leaves For You", !(await feed(Na)).some((r) => r.id === many[0]));
+  check("only for the person who hid it", (await feed(Nc)).some((r) => r.id === many[0]));
+  check("nobody else sees your hides", (await q(Nc, `select * from public.post_hides`)).length === 0);
+  await q(Na, `delete from public.post_hides where post_id = $1`, [many[0]]);
+  check("and comes back when unhidden", (await feed(Na)).some((r) => r.id === many[0]));
+
+  // Following: only the Unfinished stories you follow (20261120100000).
+  const story = await post(Nc, "relationships", "Learning to swim", { conversation: "unfinished" });
+  let fol = await feed(Na, "following");
+  check("Following leaves out connections' posts", !fol.some((r) => r.id === fromConnection), fol);
+  check("and stories you don't follow", !fol.some((r) => r.id === inSpace || r.id === many[1] || r.id === story), fol);
+  await q(Na, `insert into public.story_follows (post_id) values ($1)`, [story]);
+  fol = await feed(Na, "following");
+  check("a story you follow appears", fol.find((r) => r.id === story)?.reason === "following_story", fol);
+  await su(`update public.posts set created_at = now() - interval '3 days' where id = $1`, [story]);
+  await q(Nc, `insert into public.post_updates (post_id, body) values ($1, 'Floated today')`, [story]);
+  fol = await feed(Na, "following");
+  check("a new update brings a story back to the top", fol[0]?.id === story, fol);
+  const fyAgain = await feed(Na);
+  check("and freshens it in For You", fyAgain.find((r) => r.id === story)?.score > 0.5, fyAgain.find((r) => r.id === story));
+
+  // A Space, with its subhub.
+  const sp = await feed(Nb, "space", { slug: "relationships" });
+  check("a Space page shows its conversations to anyone", sp.some((r) => r.id === friendship) && sp.every((r) => r.id !== fromConnection), sp);
+  const fam = await feed(Nb, "space", { slug: "relationships", topic: "family" });
+  check("and narrows to a subhub", fam.length === 1 && fam[0].id === inSpace, fam);
+
+  // Blocks win.
+  await q(Na, `select public.block_user($1)`, [Nd]);
+  check("blocked people never appear", !(await feed(Na)).some((r) => many.includes(r.id)));
 });
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
