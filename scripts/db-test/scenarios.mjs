@@ -3308,6 +3308,46 @@ await step("new home feed: for you, following, space, hide", async () => {
   check("blocked people never appear", !(await feed(Na)).some((r) => many.includes(r.id)));
 });
 
+// --- Follow people (20261128100000) -------------------------------------------
+await step("follow people", async () => {
+  const car = [{ slug: "career", phase: "Starting over" }];
+  const Fa = await person("Fay", car); // follows
+  const Fb = await person("Fox", [{ slug: "health", phase: "Building a habit" }]); // gets followed, other Space
+  const Fc = await person("Fen", [{ slug: "health", phase: "Building a habit" }]); // a stranger, other Space
+  const Fd = await person("Fig", car); // looks on
+
+  await q(Fa, `insert into public.user_follows (followee_id) values ($1)`, [Fb]);
+  check("you can follow someone without them accepting", (await q(Fa, `select * from public.user_follows where followee_id = $1`, [Fb])).length === 1);
+  check("they see that you follow them", (await q(Fb, `select * from public.user_follows where follower_id = $1`, [Fa])).length === 1);
+  check("nobody else sees it", (await q(Fd, `select * from public.user_follows`)).length === 0);
+  await fails("you can't follow yourself", Fa, `insert into public.user_follows (followee_id) values ($1)`, [Fa]);
+  await fails("or follow on someone else's behalf", Fa, `insert into public.user_follows (follower_id, followee_id) values ($1, $2)`, [Fd, Fc]);
+  await q(Fd, `delete from public.user_follows where follower_id = $1`, [Fa]);
+  check("or unfollow for them", (await q(Fa, `select * from public.user_follows`)).length === 1);
+
+  // Someone you follow ranks like a connection in For You.
+  const post = async (who, body) => (await q(who, `insert into public.posts (chapter_slug, body) values ('health', $1) returning id`, [body]))[0].id;
+  const followed = await post(Fb, "From someone you follow");
+  const stranger = await post(Fc, "From a stranger");
+  await su(`update public.posts set created_at = now() - interval '1 minute' where id = any($1)`, [[followed, stranger]]);
+  const fy = await q(Fa, `select id, score, reason from public.conversation_feed('for_you')`);
+  const row = (id) => fy.find((r) => r.id === id);
+  check("posts from people you follow rank higher", row(followed)?.score > row(stranger)?.score, fy);
+  check("and say why", row(followed)?.reason === "connection", fy);
+
+  // Unfollow.
+  await q(Fa, `delete from public.user_follows where followee_id = $1`, [Fb]);
+  check("you can unfollow", (await q(Fa, `select * from public.user_follows`)).length === 0);
+
+  // Blocks end follows and stop new ones.
+  await q(Fa, `insert into public.user_follows (followee_id) values ($1)`, [Fb]);
+  await q(Fb, `insert into public.user_follows (followee_id) values ($1)`, [Fa]);
+  await q(Fb, `select public.block_user($1)`, [Fa]);
+  check("a block ends the follow both ways", (await su(`select * from public.user_follows where $1 in (follower_id, followee_id)`, [Fa])).length === 0);
+  await fails("and you can't follow someone who blocked you", Fa, `insert into public.user_follows (followee_id) values ($1)`, [Fb]);
+  await fails("or someone you blocked", Fb, `insert into public.user_follows (followee_id) values ($1)`, [Fa]);
+});
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 for (const f of failures) console.log(`  ✗ ${f}`);
 process.exit(failures.length ? 1 : 0);

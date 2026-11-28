@@ -3,8 +3,6 @@
 import { useState, useTransition } from "react";
 import { IntroNote } from "@/components/app/BondsRail";
 import { GrouvHero, GrouvPage, GrouvTabs } from "@/components/app/GrouvProfile";
-import { LeanProfileHeader, LeanProfilePage, LeanProfilePosts, MoreMenu } from "@/components/app/LeanProfile";
-import { FEATURES } from "@/lib/features";
 import { GrouvRings, type RingPerson } from "@/components/app/GrouvRings";
 import { BlockDialog, ReportPersonModal } from "@/components/app/bonds/SafetyDialogs";
 import { useToast } from "@/components/app/ToastProvider";
@@ -141,101 +139,6 @@ export function PersonView({ person, posts, logs }: { person: Person; posts: Fee
     });
 
   const connected = relationship === "circle" || relationship === "bond";
-
-  // The lean profile: one primary action, the rest in a "···" menu.
-  if (!FEATURES.richProfile) {
-    return (
-      <LeanProfilePage
-        title={person.name}
-        back="/search"
-        header={
-          <LeanProfileHeader
-            userId={person.id}
-            name={person.name}
-            avatarUrl={person.avatarUrl}
-            aura={person.aura}
-            chapters={person.chapters}
-            locationLabel={person.locationLabel}
-            bio={person.bio}
-            label={blocked ? "Blocked" : RELATIONSHIP_LABEL[relationship]}
-          >
-            {relationship === "asked_you" && person.intro && (
-              <div className="flex w-full flex-col gap-2 pb-1">
-                <span className="font-sans text-sm font-medium text-ink-500">{person.name} introduced themselves</span>
-                <IntroNote message={person.intro.message} prompt={person.intro.prompt} />
-              </div>
-            )}
-            {relationship === "none" && !blocked && (
-              <Button size="sm" onClick={connect} loading={pending}>
-                Connect
-              </Button>
-            )}
-            {relationship === "requested" && (
-              <Button variant="secondary" size="sm" onClick={cancelRequest} loading={pending}>
-                Cancel request
-              </Button>
-            )}
-            {relationship === "asked_you" && (
-              <>
-                <Button size="sm" onClick={() => respond(true)} disabled={pending}>
-                  Accept
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => respond(false)} disabled={pending}>
-                  Decline
-                </Button>
-              </>
-            )}
-            {connected && (
-              <Button size="sm" href={`/bonds?with=${person.id}`}>
-                Message
-              </Button>
-            )}
-            <MoreMenu
-              items={[
-                ...(connected ? [{ label: "Remove from circle", onSelect: () => setConfirming("remove") }] : []),
-                { label: blocked ? "Unblock" : "Block", onSelect: () => setConfirming("block"), danger: !blocked },
-                { label: "Report", onSelect: () => setReporting(true), danger: true },
-              ]}
-            />
-          </LeanProfileHeader>
-        }
-      >
-        {confirming && !(confirming === "block" && !blocked) && (
-          <ConfirmBar
-            message={
-              confirming === "remove"
-                ? `Remove ${person.name} from your circle? ${relationship === "bond" ? "Your bond ends too. " : ""}Everything you've shared stays.`
-                : `Unblock ${person.name}? You'll need to connect again to talk.`
-            }
-            action={confirming === "remove" ? "Remove" : "Unblock"}
-            busy={pending}
-            onConfirm={confirming === "remove" ? remove : block}
-            onCancel={() => setConfirming(null)}
-          />
-        )}
-        {!blocked && (
-          <LeanProfilePosts
-            query={{ scope: "person", authorId: person.id }}
-            posts={posts}
-            empty={<GridEmpty>{person.name} hasn&rsquo;t posted anything you can see yet.</GridEmpty>}
-          />
-        )}
-        {confirming === "block" && !blocked && (
-          <BlockDialog
-            userId={person.id}
-            name={person.name}
-            context={relationship === "bond" ? "bond" : "circle"}
-            onClose={() => setConfirming(null)}
-            onBlocked={() => {
-              setBlocked(true);
-              setRelationship("none");
-            }}
-          />
-        )}
-        {reporting && <ReportPersonModal userId={person.id} what="profile" onClose={() => setReporting(false)} />}
-      </LeanProfilePage>
-    );
-  }
 
   return (
     <GrouvPage

@@ -568,6 +568,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      user_follows: {
+        Row: { follower_id: string; followee_id: string; created_at: string };
+        Insert: { follower_id?: string; followee_id: string };
+        Update: never;
+        Relationships: [];
+      };
       post_updates: {
         Row: { id: string; post_id: string; body: string; created_at: string };
         Insert: { post_id: string; body: string };

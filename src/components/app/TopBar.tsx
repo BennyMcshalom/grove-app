@@ -9,6 +9,8 @@ import type { GuideId } from "@/lib/guides";
 import { NotificationsPanel } from "@/components/app/NotificationsPanel";
 import { useUnread } from "@/components/app/Unread";
 import { useViewer } from "@/components/app/ViewerProvider";
+import { useThemeToggle } from "@/components/app/useThemeToggle";
+import { FEATURES } from "@/lib/features";
 import { getChapter } from "@/lib/chapters";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
@@ -78,6 +80,7 @@ export function TopBar({
   const router = useRouter();
   const pathname = usePathname();
   const backTo = back ?? defaultBack(pathname);
+  const { dark, toggle: toggleTheme } = useThemeToggle();
 
   const tabs = (
     /* The five chapter tabs don't fit a 390px phone, so the row scrolls
@@ -137,16 +140,22 @@ export function TopBar({
               </span>
             )}
           </button>
-          <Link href="/search" aria-label="Search" className="text-ink-700">
-            <SearchIcon className="size-7" />
-          </Link>
-          <Link
-            href="/settings"
-            aria-label="Appearance"
+          {FEATURES.search && (
+            <Link href="/search" aria-label="Search" className="text-ink-700">
+              <SearchIcon className="size-7" />
+            </Link>
+          )}
+          {/* Dark mode right here: Settings, where the switch lived, is hidden. */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={dark}
+            aria-label="Dark mode"
+            onClick={toggleTheme}
             className="text-ink-700"
           >
             <MoonIcon className="size-7" />
-          </Link>
+          </button>
         </div>
       </div>
       {title ? (
@@ -182,6 +191,7 @@ export function TopBar({
 
       {desktopActions ?? (
       <div className="flex items-center gap-6 pb-2">
+        {FEATURES.search && (
         <form
           className="relative block w-full max-w-[260px]"
           onSubmit={(e) => {
@@ -205,6 +215,7 @@ export function TopBar({
           />
           <SearchIcon className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-ink-300" />
         </form>
+        )}
 
         <button
           type="button"

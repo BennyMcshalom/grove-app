@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { LANDING_CSP, appCsp } from "@/lib/csp";
+import { FEATURES, screenHidden } from "@/lib/features";
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 // "/goodbye" confirms a scheduled account deletion after signing out.
@@ -80,6 +81,15 @@ async function route(request: NextRequest, requestHeaders: Record<string, string
   }
 
   if (userId && AUTH_PAGES.has(pathname)) {
+    return redirectWithSession(request, response, "/home");
+  }
+
+  // Your profile has its own tab now; hidden sections lead to Home
+  // (src/lib/features.ts).
+  if (userId && !FEATURES.richProfile && pathname === "/settings/your-grouv") {
+    return redirectWithSession(request, response, "/profile");
+  }
+  if (userId && screenHidden(pathname)) {
     return redirectWithSession(request, response, "/home");
   }
 

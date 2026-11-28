@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
+import { PersonProfileView } from "@/components/app/LeanProfile";
 import { PersonView, type Person } from "@/components/app/PersonView";
 import { getShellViewer } from "@/lib/auth/viewer";
 import { loadFeed } from "@/lib/feed";
+import { FEATURES } from "@/lib/features";
 import { loadMyLogEntries } from "@/lib/log-server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,9 +22,36 @@ export default async function PersonPage({ params }: PageProps<"/people/[id]">) 
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const viewer = await getShellViewer();
-  if (id === viewer.id) redirect("/settings/your-grouv");
+  if (id === viewer.id) redirect(FEATURES.richProfile ? "/settings/your-grouv" : "/profile");
 
   const supabase = await createClient();
+
+  // The lean profile (FEATURES.richProfile off): name, Follow, posts.
+  if (!FEATURES.richProfile) {
+    const [{ data: profile }, { data: follow }, { data: block }] = await Promise.all([
+      supabase.from("profiles").select("id, first_name, avatar_url, aura, onboarded_at").eq("id", id).maybeSingle(),
+      supabase.from("user_follows").select("followee_id").eq("follower_id", viewer.id).eq("followee_id", id).maybeSingle(),
+      // Only blocks the viewer made are readable.
+      supabase.from("blocks").select("blocked_id").eq("blocker_id", viewer.id).eq("blocked_id", id).maybeSingle(),
+    ]);
+    if (!profile?.onboarded_at) notFound();
+    const posts = block
+      ? { posts: [], nextCursor: null }
+      : await loadFeed({ scope: "person", authorId: id }, viewer.firstName);
+    return (
+      <PersonProfileView
+        person={{
+          id: profile.id,
+          name: profile.first_name,
+          avatarUrl: profile.avatar_url,
+          aura: profile.aura,
+          following: Boolean(follow),
+          blocked: Boolean(block),
+        }}
+        posts={posts}
+      />
+    );
+  }
   const pair = `and(requester_id.eq.${viewer.id},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${viewer.id})`;
 
   const [

@@ -33,8 +33,17 @@ export interface RailMember {
  *
  * Loads its people and groups after the page renders so no screen waits on
  * the rail.
+ *
+ * Everything in it is circle, Bonds, Connect suggestions or groups, so it is
+ * hidden while FEATURES.bonds is off (2026-11-28) and the column goes to the
+ * feed.
  */
-export function RightRail({
+export function RightRail(props: Parameters<typeof Rail>[0] = {}) {
+  if (!FEATURES.bonds) return null;
+  return <Rail {...props} />;
+}
+
+function Rail({
   variant = "feed",
   spaceMembers,
   invitations = false,

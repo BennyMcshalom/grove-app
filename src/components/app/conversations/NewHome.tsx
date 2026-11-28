@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/app/Avatar";
 import { RightRail } from "@/components/app/RightRail";
+import { FEATURES } from "@/lib/features";
 import { TopBar } from "@/components/app/TopBar";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { ConversationList } from "@/components/app/conversations/ConversationList";
@@ -40,9 +41,10 @@ export function NewHome({
   const postBar = useRef<HTMLDivElement>(null);
   const pastPostBar = useScrolledPast(postBar);
   const [composing, setComposing] = useState(false);
-  const [matchesOpen, setMatchesOpen] = useState(openMatches);
-  const [intro, setIntro] = useState<Introduction | null>(
-    () => introductions.find((i) => i.connectionId === openIntroId) ?? null,
+  // Matches and introductions are part of Connect, hidden with Bonds.
+  const [matchesOpen, setMatchesOpen] = useState<boolean>(openMatches && FEATURES.bonds);
+  const [intro, setIntro] = useState<Introduction | null>(() =>
+    FEATURES.bonds ? (introductions.find((i) => i.connectionId === openIntroId) ?? null) : null,
   );
   const clearQuery = () => {
     if (openMatches || openIntroId) router.replace("/home", { scroll: false });

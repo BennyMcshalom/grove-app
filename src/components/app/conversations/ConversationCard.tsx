@@ -14,6 +14,7 @@ import { useToast } from "@/components/app/ToastProvider";
 import { Linkify } from "@/components/ui/Linkify";
 import { getChapter } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import { FEATURES } from "@/lib/features";
 import { getConversation, topicLabel } from "@/lib/conversations";
 import { setFollowingStory, setHidden, setKept, setRooted, sharePostLink } from "@/lib/post-actions";
 import type { FeedReason, Post, StoryUpdate } from "@/lib/posts";
@@ -253,7 +254,7 @@ export function ConversationCard({ post: initial, onHidden }: { post: Post; onHi
         >
           {type?.replyLabel ?? "Respond"}
         </TextAction>
-        {type && !isStory && (
+        {type && !isStory && FEATURES.kept && (
           <TextAction active={kept} onClick={toggleKept} icon={<BookmarkIcon filled={kept} />}>
             {kept ? "Kept" : "Keep"}
           </TextAction>

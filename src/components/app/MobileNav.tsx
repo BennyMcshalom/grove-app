@@ -6,25 +6,33 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { MobileMenuSheet } from "@/components/app/MobileMenuSheet";
 import { cn } from "@/lib/cn";
+import { FEATURES, shownInNav } from "@/lib/features";
 import {
   HomeIcon,
   SpacesIcon,
   LogIcon,
   BondsIcon,
+  ProfileIcon,
+  ProfileOutlineIcon,
 } from "@/components/icons/nav";
 
 /**
  * Mobile bottom nav — Figma component 601:30105 (instance 621:32013).
  *
  * Five destinations at 440px wide with a 4px primary-500 indicator above the
- * active item. The sidebar takes over from `lg` up.
+ * active item. The sidebar takes over from `lg` up. Since 2026-11-28 it is
+ * Home, Spaces and Profile (src/lib/features.ts), with no More sheet.
  */
 const ITEMS = [
   { href: "/home", label: "Home", Icon: HomeIcon },
   { href: "/spaces", label: "Spaces", Icon: SpacesIcon },
   { href: "/log", label: "Grouv Log", Icon: LogIcon },
   { href: "/bonds", label: "Bonds", Icon: BondsIcon },
-];
+  ...(FEATURES.richProfile ? [] : [{ href: "/profile", label: "Profile", Icon: ProfileIcon, IdleIcon: ProfileOutlineIcon }]),
+].filter((item) => shownInNav(item.href));
+
+/** The More sheet only while something it holds is switched on. */
+const SHOW_MORE = FEATURES.settings;
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -35,8 +43,8 @@ export function MobileNav() {
   return (
     <>
     <nav className="shrink-0 border-t border-ink-50 bg-surface px-5 py-4 lg:hidden">
-      <ul className="flex items-center justify-between">
-        {ITEMS.map(({ href, label, Icon }) => {
+      <ul className={cn("flex items-center", SHOW_MORE ? "justify-between" : "justify-around")}>
+        {ITEMS.map(({ href, label, Icon, ...item }) => {
           const badge = href === "/bonds" ? messages : 0;
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
@@ -55,7 +63,7 @@ export function MobileNav() {
                 )}
               >
                 <span className="relative">
-                  <Icon className="size-5" />
+                  {!active && "IdleIcon" in item && item.IdleIcon ? <item.IdleIcon className="size-5" /> : <Icon className="size-5" />}
                   {badge > 0 && <NavCount count={badge} className="absolute -top-2 -right-3" />}
                 </span>
                 {label}
@@ -64,6 +72,7 @@ export function MobileNav() {
           );
         })}
 
+        {SHOW_MORE && (
         <li>
           <button
             type="button"
@@ -76,6 +85,7 @@ export function MobileNav() {
             More
           </button>
         </li>
+        )}
       </ul>
     </nav>
 

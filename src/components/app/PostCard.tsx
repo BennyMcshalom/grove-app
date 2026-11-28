@@ -29,6 +29,7 @@ import { conversationLine, getConversation } from "@/lib/conversations";
 import { progressLabel, type Post, type StoryUpdate } from "@/lib/posts";
 import { spaceCardClass } from "@/lib/chapters";
 import { cn } from "@/lib/cn";
+import { FEATURES } from "@/lib/features";
 
 /**
  * Post — Figma component set 90:1354.
@@ -338,7 +339,7 @@ export function PostCard({
                 onClick={toggleFollowing}
               />
             ))}
-          {type && !isStory && (
+          {type && !isStory && FEATURES.kept && (
             <Action
               icon={<BookmarkIcon className="size-5" filled={kept} />}
               label={kept ? "Kept" : "Keep"}

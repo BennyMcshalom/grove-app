@@ -3,18 +3,15 @@
 import { NavCount, useUnreadMessages } from "@/components/app/UnreadMessages";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { Logo } from "@/components/ui/Logo";
 import { SwitchTrack } from "@/components/ui/Switch";
 import { Avatar } from "@/components/app/Avatar";
 import { useSidebar } from "@/components/app/SidebarProvider";
-import { useToast } from "@/components/app/ToastProvider";
 import { useViewer } from "@/components/app/ViewerProvider";
 import { passPromo } from "@/components/app/pass/promo";
-import { updatePreferences } from "@/app/(app)/settings/actions";
-import { applyTheme } from "@/lib/theme";
+import { useThemeToggle } from "@/components/app/useThemeToggle";
 import { cn } from "@/lib/cn";
-import { shownInNav } from "@/lib/features";
+import { FEATURES, shownInNav } from "@/lib/features";
 import {
   HomeIcon,
   SpacesIcon,
@@ -26,6 +23,7 @@ import {
   FocusIcon,
   KeptIcon,
   SettingsIcon,
+  ProfileIcon,
 } from "@/components/icons/nav";
 
 /**
@@ -34,11 +32,13 @@ import {
  * 272px column: logo, the signed-in user, the primary menu (what you do
  * every day), the trial promo card, then the places you look back — Archive,
  * Kept — and Settings, pinned to the bottom. Sections switched off in
- * src/lib/features.ts (Events, Nearby, Deep Focus) stay out of it.
+ * src/lib/features.ts stay out of it: since 2026-11-28 that leaves Home,
+ * Spaces and Profile, with the dark-mode switch.
  */
 const PRIMARY = [
   { href: "/home", label: "Home", Icon: HomeIcon, outline: "home" },
   { href: "/spaces", label: "Spaces", Icon: SpacesIcon, outline: "spaces" },
+  ...(FEATURES.richProfile ? [] : [{ href: "/profile", label: "Profile", Icon: ProfileIcon, outline: "profile" }]),
   { href: "/log", label: "Grouv Log", Icon: LogIcon, outline: "log" },
   { href: "/bonds", label: "Bonds", Icon: BondsIcon, outline: "bonds" },
   { href: "/events", label: "Events", Icon: EventsIcon, outline: "events" },
@@ -71,23 +71,7 @@ const SECONDARY = [
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebar();
-  const { theme: savedTheme } = useViewer();
-  const toast = useToast();
-  const [theme, setTheme] = useState(savedTheme);
-  const dark = theme === "dark";
-
-  // Repaint first, then save; put it back if the save fails.
-  const toggleTheme = async () => {
-    const next = dark ? "light" : "dark";
-    setTheme(next);
-    applyTheme(next);
-    const result = await updatePreferences({ theme: next });
-    if (result.error) {
-      setTheme(theme);
-      applyTheme(theme);
-      toast({ title: result.error, tone: "danger" });
-    }
-  };
+  const { dark, toggle: toggleTheme } = useThemeToggle();
 
   return (
     <aside
@@ -280,7 +264,7 @@ function CurrentUser({ collapsed = false }: { collapsed?: boolean }) {
 
   return (
     <Link
-      href="/settings"
+      href={FEATURES.richProfile ? "/settings" : "/profile"}
       className={cn(
         "flex items-center gap-3 py-2 transition-colors hover:bg-ivory-100",
         collapsed ? "justify-center px-3" : "px-4",

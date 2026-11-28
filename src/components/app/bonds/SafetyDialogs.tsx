@@ -19,7 +19,8 @@ export function BlockDialog({
 }: {
   userId: string;
   name: string;
-  context: "bond" | "circle" | "match";
+  /** "profile": blocked from the lean profile, where Follow replaces Connect. */
+  context: "bond" | "circle" | "match" | "profile";
   onClose: () => void;
   onBlocked?: () => void;
 }) {
@@ -42,13 +43,18 @@ export function BlockDialog({
           onBlocked?.();
           toast({
             title: `${first} blocked`,
-            description: "Your chat stays. Unblock anytime from the chat or Privacy & AI controls.",
+            description:
+              context === "profile"
+                ? "Unblock anytime from their profile."
+                : "Your chat stays. Unblock anytime from the chat or Privacy & AI controls.",
             tone: "danger",
           });
         })
       }
     >
-      {context === "bond"
+      {context === "profile"
+        ? `You won’t see each other’s posts, and any follow between you ends. ${first} won’t be told, and you can unblock them anytime from their profile.`
+        : context === "bond"
         ? `This ends your Bond, and neither of you can message or call the other. Your chat stays, and you can unblock ${first} anytime.`
         : context === "match"
           ? `They won’t be able to message or find you, and this match will disappear from your suggestions.`
